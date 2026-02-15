@@ -1,0 +1,59 @@
+================================================================================
+FUTURES CALCULATOR SPREADSHEET ANALYSIS
+File: p:\zorivest\_inspiration\futures-calculator.xlsx
+================================================================================
+
+Sheet names: ['Futures']
+
+
+================================================================================
+SHEET: 'Futures'
+Dimensions: A1:B21
+Max row: 21, Max col: 2
+================================================================================
+
+Cell     Formula/Raw Value                                  Computed Value                 Format
+-------- -------------------------------------------------- ------------------------------ --------------------
+A1       ACC Buying Power                                   ACC Buying Power               
+B1       410000                                             410000                         
+A2       Tick Size                                          Tick Size                      
+B2       0.25                                               0.25                           
+A3       Tick Value                                         Tick Value                     
+B3       0.5                                                0.5                            
+A4       Margin Req                                         Margin Req                     
+B4       1600                                               1600                           
+A5       Max Contracts                                      Max Contracts                  
+B5       [F] =ROUNDDOWN(B1/B4,0)                            256                            
+A6       Ticks per Contract                                 Ticks per Contract             
+B6       [F] =(ABS(B10-B11)/B2)                             48                             
+A7       Risk per Contract                                  Risk per Contract              
+B7       [F] =ROUNDDOWN(B6*B3,0)                            24                             
+A8       Risk %                                             Risk %                         
+B8       0.5                                                0.5                            
+A10      Entry                                              Entry                          
+B10      14488                                              14488                          
+A11      Stop                                               Stop                           
+B11      14500                                              14500                          
+A13      Contracts                                          Contracts                      
+B13      [F] =ROUNDDOWN(B17/B7,0)                           85                             
+A15      Position Size                                      Position Size                  
+B15      [F] =ROUNDUP(B4*B13,0)                             136000                         
+A16      ACC%                                               ACC%                           
+B16      [F] =ROUNDDOWN(B15/(B1/100),2)                     33.17                          
+A17      1R                                                 1R                             
+B17      [F] =(B1/100)*B8                                   2050                           
+A19      Target                                             Target                         
+B19      14450                                              14450                          
+A20      Potential                                          Potential                      
+B20      [F] =(((ABS(B10-B19))/B2)*B3)*B13                  6460                           
+A21      Reward/Risk                                        Reward/Risk                    
+B21      [F] =ROUNDDOWN(B20/B17,2)                          3.15                           
+
+Column widths:
+  A: width=22.4609375
+  B: width=18.69140625
+  C: width=8.69140625
+
+================================================================================
+ANALYSIS COMPLETE
+================================================================================

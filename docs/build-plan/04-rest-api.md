@@ -1,0 +1,175 @@
+# Phase 4: REST API (FastAPI)
+
+> Part of [Zorivest Build Plan](../BUILD_PLAN.md) | Prerequisites: [Phase 3](03-service-layer.md) | Outputs: [Phase 5](05-mcp-server.md), [Phase 6](06-gui.md)
+
+---
+
+## Goal
+
+Thin REST layer that delegates to the same service layer. Test with FastAPI's `TestClient`.
+
+## Step 4.1: Route Definitions
+
+```python
+# packages/api/src/zorivest_api/routes/trades.py
+
+from datetime import datetime
+from fastapi import APIRouter, Depends, File, Form, HTTPException, UploadFile
+from pydantic import BaseModel
+from typing import Optional
+from zorivest_core.services.trade_service import TradeService
+from zorivest_core.services.image_service import ImageService
+from zorivest_core.application.commands import CreateTradeCommand, UpdateTradeCommand, AttachImageCommand
+
+trade_router = APIRouter(prefix="/api/v1/trades", tags=["trades"])
+
+
+# ── Request / Response schemas ──────────────────────────────
+
+class CreateTradeRequest(BaseModel):
+    exec_id: str
+    instrument: str
+    action: str            # "BOT" | "SLD"
+    quantity: float
+    price: float
+    account_id: str
+    commission: float = 0.0
+    realized_pnl: float = 0.0
+    notes: Optional[str] = None
+
+class UpdateTradeRequest(BaseModel):
+    notes: Optional[str] = None
+    commission: Optional[float] = None
+    realized_pnl: Optional[float] = None
+
+class TradeImageResponse(BaseModel):
+    id: int
+    caption: str
+    mime_type: str
+    file_size: int
+    thumbnail_url: str
+    created_at: datetime
+
+
+# ── Trade CRUD routes ───────────────────────────────────────
+
+@trade_router.get("/")
+async def list_trades(limit: int = 50, offset: int = 0,
+                      service: TradeService = Depends(get_trade_service)):
+    return service.list_trades(limit=limit, offset=offset)
+
+@trade_router.post("/", status_code=201)
+async def create_trade(body: CreateTradeRequest,
+                       service: TradeService = Depends(get_trade_service)):
+    result = service.create_trade(CreateTradeCommand(**body.model_dump()))
+    return {"status": "created", "exec_id": result.exec_id}
+
+@trade_router.get("/{exec_id}")
+async def get_trade(exec_id: str,
+                    service: TradeService = Depends(get_trade_service)):
+    trade = service.get_trade(exec_id)
+    if not trade:
+        raise HTTPException(404, "Trade not found")
+    return trade
+
+@trade_router.put("/{exec_id}")
+async def update_trade(exec_id: str, body: UpdateTradeRequest,
+                       service: TradeService = Depends(get_trade_service)):
+    service.update_trade(exec_id, UpdateTradeCommand(**body.model_dump(exclude_none=True)))
+    return {"status": "updated", "exec_id": exec_id}
+
+@trade_router.delete("/{exec_id}", status_code=204)
+async def delete_trade(exec_id: str,
+                       service: TradeService = Depends(get_trade_service)):
+    service.delete_trade(exec_id)
+
+
+# ── Trade image routes ──────────────────────────────────────
+
+@trade_router.get("/{exec_id}/images", response_model=list[TradeImageResponse])
+async def get_trade_images(exec_id: str,
+                           service: ImageService = Depends(get_image_service)):
+    return service.get_images_for_owner("trade", exec_id)
+
+@trade_router.post("/{exec_id}/images")
+async def upload_image(exec_id: str, file: UploadFile = File(...),
+                       caption: str = Form(""),
+                       service: ImageService = Depends(get_image_service)):
+    data = await file.read()
+    result = service.attach_image(AttachImageCommand(
+        owner_type="trade", owner_id=exec_id, image_data=data,
+        mime_type=file.content_type, caption=caption,
+    ))
+    return {"image_id": result.image_id}
+```
+
+## Step 4.1b: Image Routes (Global Access)
+
+```python
+# packages/api/src/zorivest_api/routes/images.py
+
+from fastapi import APIRouter, Depends, HTTPException
+from fastapi.responses import Response
+from zorivest_core.services.image_service import ImageService
+
+image_router = APIRouter(prefix="/api/v1/images", tags=["images"])
+
+@image_router.get("/{image_id}")
+async def get_image_metadata(image_id: int,
+                             service: ImageService = Depends(get_image_service)):
+    meta = service.get_image(image_id)
+    if not meta:
+        raise HTTPException(404, "Image not found")
+    return meta
+
+@image_router.get("/{image_id}/thumbnail")
+async def get_image_thumbnail(image_id: int, max_size: int = 200,
+                              service: ImageService = Depends(get_image_service)):
+    thumb_bytes = service.get_thumbnail(image_id, max_size)
+    return Response(content=thumb_bytes, media_type="image/png")
+
+@image_router.get("/{image_id}/full")
+async def get_image_full(image_id: int,
+                         service: ImageService = Depends(get_image_service)):
+    img = service.get_image(image_id)
+    if not img:
+        raise HTTPException(404, "Image not found")
+    return Response(content=img.data, media_type=img.mime_type)
+```
+
+## Step 4.2: E2E Tests
+
+```python
+# tests/e2e/test_api_endpoints.py
+
+def test_list_trades(client):
+    response = client.get("/api/v1/trades/")
+    assert response.status_code == 200
+
+def test_upload_and_retrieve_image(client):
+    # Create a trade first
+    # Upload image
+    response = client.post(
+        "/api/v1/trades/T001/images",
+        files={"file": ("screenshot.png", b"\x89PNG...", "image/png")},
+        data={"caption": "Entry screenshot"},
+    )
+    assert response.status_code == 200
+    image_id = response.json()["image_id"]
+
+    # Get thumbnail
+    response = client.get(f"/api/v1/images/{image_id}/thumbnail?max_size=150")  # global image route
+    assert response.status_code == 200
+    assert response.headers["content-type"] == "image/png"
+```
+
+## Exit Criteria
+
+- All e2e tests pass with FastAPI `TestClient`
+- Health endpoint returns 200
+
+## Outputs
+
+- FastAPI routes for trades, images, accounts, calculator
+- Full CRUD endpoints with pagination
+- E2E tests using `TestClient`

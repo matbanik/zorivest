@@ -1,0 +1,47 @@
+{
+  "context": {
+    "fileName": [
+      "AGENTS.md",
+      "GEMINI.md"
+    ],
+    "importFormat": "tree",
+    "discoveryMaxDirs": 120,
+    "fileFiltering": {
+      "respectGitIgnore": true,
+      "respectGeminiIgnore": true,
+      "enableRecursiveFileSearch": true,
+      "disableFuzzySearch": false
+    }
+  },
+  "tools": {
+    "useRipgrep": true
+  },
+  "mcp": {
+    "allowed": [
+      "pomera",
+      "text-editor",
+      "sequential-thinking"
+    ],
+    "excluded": [
+      "kokoro-tts"
+    ]
+  },
+  "mcpServers": {
+    "pomera": {
+      "command": "D:/Pomera/pomera.exe",
+      "args": [
+        "--mcp-server"
+      ],
+      "timeout": 120000,
+      "trust": true
+    },
+    "text-editor": {
+      "command": "uvx",
+      "args": [
+        "mcp-text-editor"
+      ],
+      "timeout": 120000,
+      "trust": true
+    }
+  }
+}
