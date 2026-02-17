@@ -17,7 +17,7 @@ BUILD ORDER (left to right):
   │ + Ports │     │          │     │  (DB, Repos) │     │ (Use Cases) │     │API/MCP(TS)/ │     │EB/PyPI/npm│
   └─────────┘     └──────────┘     └──────────────┘     └──────┬──────┘     │   GUI(TS)   │     └───────────┘
     0 deps          0 deps           depends on 1        depends on 1,2    └─────────────┘       packaging
-    pure Python     stdlib+1 pkg     sqlcipher3           orchestration      depends on 3         distribution
+    pure Python     stdlib only      sqlcipher3           orchestration      depends on 3         distribution
     100% unit       100% unit        integration tests    mock repos         REST → TS wrappers   installers
                                                                 │
                                                                 ▼

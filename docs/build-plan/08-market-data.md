@@ -316,19 +316,21 @@ PROVIDER_REGISTRY: dict[str, ProviderConfig] = {
 
 ```python
 # packages/infrastructure/src/zorivest_infra/security/log_redaction.py
+# NOTE: Delegates to the central redaction policy in 01a-logging.md.
+# Partial key masking (first4...last4) is intentionally prohibited.
+# All secret redaction uses full replacement per the security policy.
 
 import re
 
+
 def mask_api_key(key: str) -> str:
-    """Mask an API key for safe logging."""
-    if len(key) > 8:
-        return key[:4] + "..." + key[-4:]
-    return "<keyremoved>"
+    """Mask an API key for safe logging. Full replacement per security policy."""
+    return "[REDACTED]"
 
 def sanitize_url_for_logging(text: str, api_key: str) -> str:
-    """Replace API key with masked version in any text string."""
+    """Replace API key with [REDACTED] in any text string."""
     if api_key and len(api_key) > 4:
-        return text.replace(api_key, mask_api_key(api_key))
+        return text.replace(api_key, "[REDACTED]")
     return text
 ```
 

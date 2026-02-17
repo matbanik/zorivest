@@ -1,6 +1,6 @@
 # Current Focus — Zorivest
 
-> Last updated: 2026-02-16
+> Last updated: 2026-02-17
 
 ## Active Phase
 
@@ -34,3 +34,4 @@ Begin Phase 1 Domain implementation using the new role-based workflow.
 - [x] `docs/build-plan/` market-data GUI/API update review completed; handoff saved in `.agent/context/handoffs/2026-02-15-build-plan-market-data-gui-input-index-review.md`
 - [x] `docs/build-plan/06-gui.md` critical review completed; handoff saved in `.agent/context/handoffs/2026-02-16-06-gui-critical-review.md`
 - [x] `docs/build-plan/` critical review completed with logging deep-dive (`01a-logging.md`); handoff saved in `.agent/context/handoffs/2026-02-17-build-plan-logging-critical-review.md`
+- [x] `docs/build-plan/` critical review completed for logging redaction + MCP encrypted-DB access contracts; handoff saved in `.agent/context/handoffs/2026-02-17-build-plan-logging-mcp-encrypted-db-critical-review.md`

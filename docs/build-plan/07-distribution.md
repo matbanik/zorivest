@@ -57,7 +57,20 @@ npm run build
 npm publish --access public  # @zorivest/mcp-server
 ```
 
-Users install with `npx @zorivest/mcp-server --api-url http://localhost:8765` or add to their IDE's MCP configuration.
+Users install with `npx @zorivest/mcp-server --api-url http://localhost:8765` or add to their IDE's MCP configuration with a `Bearer` API key header for encrypted DB access (see [Phase 5 §5.7](05-mcp-server.md#step-57-mcp-auth-bootstrap-standalone-mode)):
+
+```json
+{
+  "mcpServers": {
+    "zorivest": {
+      "url": "http://localhost:8766/mcp",
+      "headers": {
+        "Authorization": "Bearer zrv_sk_<your_api_key>"
+      }
+    }
+  }
+}
+```
 
 ## GitHub Releases
 

@@ -282,6 +282,101 @@ async def ingest_log(entry: LogEntry):
            extra={"data": entry.data})
 ```
 
+## Step 4.5: Auth / Unlock Routes (Envelope Encryption)
+
+Database unlock endpoint for MCP standalone mode. Uses envelope encryption: API key → Argon2id KDF → KEK → unwrap DEK → `PRAGMA key`.
+
+```python
+# packages/api/src/zorivest_api/routes/auth.py
+
+from fastapi import APIRouter, HTTPException
+from pydantic import BaseModel
+from typing import Optional
+
+auth_router = APIRouter(prefix="/api/v1/auth", tags=["auth"])
+
+
+# ── Request / Response schemas ──────────────────────────────
+
+class UnlockRequest(BaseModel):
+    api_key: str           # e.g. "zrv_sk_..."
+
+class UnlockResponse(BaseModel):
+    session_token: str     # Bearer token for subsequent requests
+    role: str              # "read-only" | "read-write" | "admin"
+    scopes: list[str]      # Permitted MCP tools/routes
+    expires_in: int        # Seconds until token expires (default 3600)
+
+class KeyCreateRequest(BaseModel):
+    label: str             # Human-readable label
+    role: str              # "read-only" | "read-write" | "admin"
+    expires_in: Optional[int] = None  # Seconds; None = no expiry
+
+class KeyInfo(BaseModel):
+    key_id: str            # Unique identifier
+    label: str
+    role: str
+    created_at: str        # ISO 8601
+    last_used_at: Optional[str] = None
+    masked_key: str        # "zrv_sk_...a1b2"
+
+
+# ── Unlock / Lock ───────────────────────────────────────────
+
+@auth_router.post("/unlock", status_code=200)
+async def unlock_database(request: UnlockRequest) -> UnlockResponse:
+    """Unlock encrypted DB using API key (envelope encryption).
+    
+    Flow:
+    1. Hash API key → lookup wrapped DEK in bootstrap.json
+    2. Derive KEK from API key via Argon2id
+    3. Unwrap DEK with KEK (Fernet)
+    4. Open SQLCipher with DEK → PRAGMA key
+    5. Return session token for subsequent requests
+    
+    Errors:
+    - 401: Invalid or unknown API key
+    - 403: API key revoked
+    - 423: DB already locked by another session
+    """
+    ...
+
+@auth_router.post("/lock", status_code=200)
+async def lock_database() -> dict:
+    """Lock the database and invalidate session tokens."""
+    ...
+
+@auth_router.get("/status", status_code=200)
+async def auth_status() -> dict:
+    """Return current auth state: locked/unlocked, active sessions, role."""
+    ...
+
+
+# ── API Key Management (admin only) ────────────────────────
+
+@auth_router.post("/keys", status_code=201)
+async def create_api_key(request: KeyCreateRequest) -> dict:
+    """Generate new API key. Returns the key ONCE (never stored in plain).
+    
+    Flow:
+    1. Generate random key: zrv_sk_<32 random chars>
+    2. Hash key → store for lookup
+    3. Derive KEK from key → wrap DEK → store in bootstrap.json
+    4. Return plain key to caller (display once)
+    """
+    ...
+
+@auth_router.delete("/keys/{key_id}", status_code=204)
+async def revoke_api_key(key_id: str) -> None:
+    """Revoke an API key. Removes its wrapped DEK entry."""
+    ...
+
+@auth_router.get("/keys", status_code=200)
+async def list_api_keys() -> list[KeyInfo]:
+    """List all active API keys (masked, never plain)."""
+    ...
+```
+
 ## Exit Criteria
 
 - All e2e tests pass with FastAPI `TestClient`

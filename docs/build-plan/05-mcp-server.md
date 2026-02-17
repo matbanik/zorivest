@@ -264,6 +264,99 @@ See [Testing Strategy](testing-strategy.md) for full MCP testing approaches.
 > [!NOTE]
 > **Logging MCP tools (future expansion):** When the logging settings GUI ([06f-gui-settings.md](06f-gui-settings.md)) is implemented, corresponding MCP tools for reading/updating per-feature log levels (`get_log_settings`, `update_log_level`) should be added here. These will wrap `GET/PUT /api/v1/settings` with `logging.*` key filtering. See [Phase 1A](01a-logging.md) for the logging architecture.
 
+## Step 5.7: MCP Auth Bootstrap (Standalone Mode)
+
+In standalone mode the MCP server must unlock the encrypted database before any tools can function. The auth handshake uses the envelope encryption architecture defined in [Phase 4 §4.5](04-rest-api.md).
+
+### Boot Sequence
+
+```
+┌─────────────┐                       ┌───────────────┐
+│  IDE Client  │──Bearer zrv_sk_...──▶│  MCP Server   │
+│  (Cursor,    │                       │  (TS, :8766)  │
+│   Windsurf)  │                       └──────┬────────┘
+                                              │
+                                    POST /api/v1/auth/unlock
+                                    { "api_key": "zrv_sk_..." }
+                                              │
+                                              ▼
+                                     ┌────────────────┐
+                                     │  Python API    │
+                                     │  (:8765)       │
+                                     │  → KeyVault    │
+                                     │  → SQLCipher   │
+                                     └────────────────┘
+                                              │
+                                     { session_token, role }
+                                              │
+                                              ▼
+                              MCP server stores session_token
+                              All proxied REST calls include:
+                              Authorization: Bearer <session_token>
+```
+
+### Implementation
+
+```typescript
+// mcp-server/src/auth/bootstrap.ts
+
+interface AuthState {
+  sessionToken: string | null;
+  role: string | null;
+  expiresAt: number | null;
+}
+
+const authState: AuthState = { sessionToken: null, role: null, expiresAt: null };
+
+export async function bootstrapAuth(apiKey: string): Promise<void> {
+  const res = await fetch(`${API_BASE}/auth/unlock`, {
+    method: 'POST',
+    headers: { 'Content-Type': 'application/json' },
+    body: JSON.stringify({ api_key: apiKey }),
+  });
+
+  if (!res.ok) {
+    const err = await res.json();
+    throw new Error(`Auth failed (${res.status}): ${err.detail ?? 'unknown'}`);
+  }
+
+  const data = await res.json();
+  authState.sessionToken = data.session_token;
+  authState.role = data.role;
+  authState.expiresAt = Date.now() + data.expires_in * 1000;
+}
+
+export function getAuthHeaders(): Record<string, string> {
+  if (!authState.sessionToken) {
+    throw new Error('MCP server not authenticated. Call bootstrapAuth first.');
+  }
+  return { 'Authorization': `Bearer ${authState.sessionToken}` };
+}
+```
+
+### IDE Configuration (Standalone)
+
+```json
+// .cursor/mcp.json (or equivalent IDE config)
+{
+  "mcpServers": {
+    "zorivest": {
+      "url": "http://localhost:8766/mcp",
+      "headers": {
+        "Authorization": "Bearer zrv_sk_<your_api_key>"
+      }
+    }
+  }
+}
+```
+
+> [!IMPORTANT]
+> The API key in the IDE config is used **once** during bootstrap to obtain a session token. The MCP server never stores the raw API key after bootstrap. If the session expires, the MCP server re-authenticates using the original header value.
+
+### Embedded Mode
+
+When the MCP server runs inside Electron (embedded mode), the GUI has already unlocked the database via passphrase. The MCP server receives a pre-authenticated session token from the main process — no API key bootstrap is needed.
+
 ## Exit Criteria
 
 - All Vitest tests pass

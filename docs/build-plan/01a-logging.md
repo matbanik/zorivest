@@ -116,7 +116,7 @@ Child loggers (e.g., `zorivest.marketdata.alpha_vantage`) inherit routing to the
 | Pattern | When to Use | Where It Routes |
 |---|---|---|
 | `logging.getLogger("zorivest.trades")` | Business events that must reach a specific feature file | `trades.jsonl` via `FeatureFilter` |
-| `logging.getLogger(__name__)` | Low-level module diagnostics, utility logging | `app.jsonl` via catchall (safety net) |
+| `logging.getLogger(__name__)` | Low-level module diagnostics, utility logging | `misc.jsonl` via catchall (safety net) |
 
 ```python
 # ✅ CORRECT — business events use explicit feature loggers
@@ -131,7 +131,7 @@ logger = logging.getLogger(__name__)  # → zorivest_infra.repos.trade_repo
 logger.debug("Cache miss for trade lookup")
 ```
 
-The `app.jsonl` handler uses a `CatchallFilter` that accepts any record NOT matched by a specific feature prefix. This prevents silent log loss from `__name__`-based loggers.
+The `misc.jsonl` handler uses a `CatchallFilter` that accepts any record NOT matched by a specific feature prefix. This prevents silent log loss from `__name__`-based loggers.
 
 ### Log Directory Structure
 
@@ -149,7 +149,8 @@ The `app.jsonl` handler uses a `CatchallFilter` that accepts any record NOT matc
 ├── images.jsonl
 ├── api.jsonl
 ├── frontend.jsonl         # Electron renderer telemetry
-├── app.jsonl              # App lifecycle + catchall for __name__ loggers
+├── app.jsonl              # App lifecycle (zorivest.app feature handler)
+├── misc.jsonl             # Catchall for __name__-based loggers (safety net)
 ├── uvicorn.jsonl          # Uvicorn server logs (access + error)
 └── bootstrap.jsonl        # Pre-DB startup capture
 ```
@@ -206,16 +207,31 @@ sequenceDiagram
 
 ### Log Redaction
 
-A filter strips sensitive data before writing:
+A dual-layer filter strips sensitive data before writing:
 
-| Pattern | Replacement |
-|---|---|
-| API keys in URLs (`?apikey=...`) | `?apikey=[REDACTED]` |
-| Bearer tokens | `Bearer [REDACTED]` |
-| Database passphrases | `[REDACTED]` |
-| Credit card patterns | `[REDACTED]` |
+**Layer 1 — Regex patterns** (applied to all string content):
 
-This reuses the sanitization concept from `_logging-architecture.md` (`AIToolsEngine._sanitize_url()`).
+| # | Category | Example Match | Replacement |
+|---|---|---|---|
+| 1 | URL query params (`apikey`, `token`, `secret`, etc.) | `?apikey=abc123` | `?apikey=[REDACTED]` |
+| 2 | Bearer tokens | `Bearer eyJ...` | `Bearer [REDACTED]` |
+| 3 | Encrypted values (`ENC:` prefix) | `ENC:gAAAAA...` | `[ENCRYPTED_VALUE]` |
+| 4 | JWT tokens | `eyJhbGci...` | `[JWT_REDACTED]` |
+| 5 | AWS access keys | `AKIAIOSFODNN7...` | `[AWS_KEY_REDACTED]` |
+| 6 | AWS secret keys | `secret_key=...` | `secret_key=[REDACTED]` |
+| 7 | Connection strings | `://user:pass@host` | `://[REDACTED]:[REDACTED]@` |
+| 8 | Credit card (PAN) | `4111-2222-3333-4444` | `[CC_REDACTED]` |
+| 9 | SSN | `123-45-6789` | `[SSN_REDACTED]` |
+| 10 | Custom auth headers | `X-Api-Key: abc` | `X-Api-Key: [REDACTED]` |
+| 11 | Raw Authorization | `Authorization: rawkey` | `Authorization: [REDACTED]` |
+| 12 | Passphrase params | `passphrase=mypass` | `passphrase=[REDACTED]` |
+| 13 | Zorivest API keys | `zrv_sk_A1b2C3...` | `[ZRV_KEY_REDACTED]` |
+
+**Layer 2 — Sensitive key denylist** (applied to `dict` data in `record.args`, `record.__dict__` extras, and nested structures):
+
+Any dict key matching the denylist (`password`, `token`, `api_key`, `authorization`, `cookie`, `passphrase`, `dek`, `wrapped_dek`, `master_key`, etc.) has its value replaced with `[REDACTED]` regardless of format. Non-reserved extras attached via `extra={...}` are scanned recursively before the formatter emits them.
+
+This builds on the sanitization concept from `_logging-architecture.md` (`AIToolsEngine._sanitize_url()`).
 
 ---
 
@@ -344,9 +360,9 @@ class LoggingManager:
             self._handlers[feature] = handler
             handlers.append(handler)
 
-        # Catchall handler for __name__-based loggers → app.jsonl
+        # Catchall handler for __name__-based loggers → misc.jsonl
         catchall_handler = logging.handlers.RotatingFileHandler(
-            filename=self._log_dir / "app.jsonl",
+            filename=self._log_dir / "misc.jsonl",
             maxBytes=rotation_mb * 1024 * 1024,
             backupCount=backup_count,
             encoding="utf-8",
@@ -489,33 +505,119 @@ class JsonFormatter(logging.Formatter):
 
 import logging
 import re
+from typing import Any
 
 
 class RedactionFilter(logging.Filter):
-    """Redacts API keys, tokens, and sensitive data from log messages."""
+    """Dual-layer redaction: regex patterns + sensitive key denylist.
 
+    Layer 1: Regex patterns scan all string content for known secret formats.
+    Layer 2: Key denylist scans dict args/extra for sensitive field names.
+    """
+
+    # --- Layer 1: Regex patterns (order matters — specific before general) ---
     PATTERNS = [
-        (re.compile(r'(apikey|api_key|key|token|password|secret)=([^&\s]+)', re.I),
+        # 1. URL query params (covers Alpha Vantage, FMP, EODHD, Benzinga, etc.)
+        (re.compile(
+            r'(apikey|api_key|api_token|token|password|secret)=([^&\s]+)', re.I),
          r'\1=[REDACTED]'),
+        # 2. Bearer tokens (Polygon.io, OAuth)
         (re.compile(r'Bearer\s+\S+', re.I),
          'Bearer [REDACTED]'),
-        (re.compile(r'(?:ENC:)[A-Za-z0-9+/=]+'),
+        # 3. Fernet-encrypted values (ENC: prefix)
+        (re.compile(r'ENC:[A-Za-z0-9+/=]+'),
          '[ENCRYPTED_VALUE]'),
+        # 4. JWT tokens (three base64url segments)
+        (re.compile(r'eyJ[\w-]+\.eyJ[\w-]+\.[\w-]+'),
+         '[JWT_REDACTED]'),
+        # 5. AWS access key IDs
+        (re.compile(r'AKIA[0-9A-Z]{16}'),
+         '[AWS_KEY_REDACTED]'),
+        # 6. AWS secret keys
+        (re.compile(
+            r'(aws_secret_access_key|secret_key)[\s:=]+[A-Za-z0-9/+=]{40}', re.I),
+         r'\1=[REDACTED]'),
+        # 7. Connection strings (user:pass in URIs)
+        (re.compile(r'://[^:]+:[^@]+@'),
+         '://[REDACTED]:[REDACTED]@'),
+        # 8. Credit card numbers (PAN, with optional separators)
+        (re.compile(r'\b\d{4}[\s-]?\d{4}[\s-]?\d{4}[\s-]?\d{4}\b'),
+         '[CC_REDACTED]'),
+        # 9. US Social Security Numbers
+        (re.compile(r'\b\d{3}-\d{2}-\d{4}\b'),
+         '[SSN_REDACTED]'),
+        # 10. Custom auth headers (X-Api-Key, X-Finnhub-Token, etc.)
+        (re.compile(
+            r'(X-[\w-]*(?:Key|Token|Auth)[\w-]*)\s*[:=]\s*\S+', re.I),
+         r'\1: [REDACTED]'),
+        # 11. Raw Authorization header (non-Bearer, e.g. SEC API)
+        (re.compile(r'Authorization\s*[:=]\s*(?!Bearer\b)\S+', re.I),
+         'Authorization: [REDACTED]'),
+        # 12. Passphrase/password params in logs
+        (re.compile(r'(passphrase|passwd|db_password)\s*[=:]\s*\S+', re.I),
+         r'\1=[REDACTED]'),
+        # 13. Zorivest API keys (zrv_sk_ prefix)
+        (re.compile(r'zrv_sk_[A-Za-z0-9_-]{32,}'),
+         '[ZRV_KEY_REDACTED]'),
     ]
+
+    # --- Layer 2: Sensitive key denylist (for dict/extra data) ---
+    SENSITIVE_KEYS = frozenset({
+        'password', 'passwd', 'passphrase', 'secret', 'token',
+        'apikey', 'api_key', 'api_token', 'authorization',
+        'cookie', 'set-cookie', 'x-api-key', 'x-finnhub-token',
+        'encrypted_api_key', 'credential', 'private_key',
+        'dek', 'wrapped_dek', 'kek', 'master_key',
+    })
 
     def filter(self, record: logging.LogRecord) -> bool:
         record.msg = self._redact(str(record.msg))
         if record.args:
-            record.args = tuple(
-                self._redact(str(a)) if isinstance(a, str) else a
-                for a in record.args
-            ) if isinstance(record.args, tuple) else record.args
+            record.args = self._redact_args(record.args)
+        # Layer 2: Redact non-reserved extras (emitted verbatim by formatter)
+        _RESERVED = {
+            'name', 'msg', 'args', 'created', 'relativeCreated', 'exc_info',
+            'exc_text', 'stack_info', 'lineno', 'funcName', 'pathname',
+            'filename', 'module', 'thread', 'threadName', 'process',
+            'processName', 'levelname', 'levelno', 'msecs', 'taskName',
+        }
+        for attr_key in list(record.__dict__):
+            if attr_key not in _RESERVED and not attr_key.startswith('_'):
+                val = record.__dict__[attr_key]
+                if isinstance(val, str):
+                    record.__dict__[attr_key] = self._redact(val)
+                elif isinstance(val, dict):
+                    record.__dict__[attr_key] = self._redact_dict(val)
         return True
 
     def _redact(self, text: str) -> str:
+        """Apply all regex patterns to a string."""
         for pattern, replacement in self.PATTERNS:
             text = pattern.sub(replacement, text)
         return text
+
+    def _redact_args(self, args: Any) -> Any:
+        """Redact log record args (tuple, dict, or single value)."""
+        if isinstance(args, dict):
+            return self._redact_dict(args)
+        if isinstance(args, tuple):
+            return tuple(
+                self._redact_dict(a) if isinstance(a, dict)
+                else self._redact(str(a)) if isinstance(a, str)
+                else a
+                for a in args
+            )
+        return args
+
+    def _redact_dict(self, data: dict) -> dict:
+        """Recursively redact dict values whose keys match the denylist."""
+        return {
+            k: '[REDACTED]' if k.lower() in self.SENSITIVE_KEYS
+            else self._redact(str(v)) if isinstance(v, str)
+            else self._redact_dict(v) if isinstance(v, dict)
+            else v
+            for k, v in data.items()
+        }
 ```
 
 ### `bootstrap.py` — Logger Usage Examples
@@ -538,7 +640,7 @@ Pattern 1 — Feature loggers (PREFERRED for business events):
         except Exception:
             logger.exception("Failed to create trade", extra={"trade_id": trade.exec_id})
 
-Pattern 2 — Module loggers (for utility/diagnostic logging, routes to app.jsonl):
+Pattern 2 — Module loggers (for utility/diagnostic logging, routes to misc.jsonl):
 
     import logging
     logger = logging.getLogger(__name__)
@@ -796,7 +898,7 @@ BUILD ORDER (with logging):
 
 After this phase:
 - ✅ Feature loggers (`get_feature_logger("trades")`) route to dedicated JSONL files
-- ✅ Module loggers (`__name__`) caught by CatchallFilter, routed to `app.jsonl`
+- ✅ Module loggers (`__name__`) caught by CatchallFilter, routed to `misc.jsonl`
 - ✅ Each feature writes to its own rotating JSONL file
 - ✅ Log levels are configurable per feature at runtime
 - ✅ Sensitive data is redacted before writing

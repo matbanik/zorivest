@@ -184,7 +184,7 @@ engine = create_engine("sqlite://", creator=create_connection,
 
 ## TypeScript MCP server (reference SDK)
 
-The MCP (Model Context Protocol) specification reached version **2025-11-25**, now governed by the Linux Foundation's Agentic AI Foundation. The **TypeScript SDK** (`@modelcontextprotocol/sdk`) is the reference implementation — bugs are found and fixed here first, community examples are overwhelmingly TypeScript, and edge-case solutions are easier to find.
+The MCP (Model Context Protocol) specification reached version **2025-06-18**, now governed by the Linux Foundation's Agentic AI Foundation. The **TypeScript SDK** (`@modelcontextprotocol/sdk`) is the reference implementation — bugs are found and fixed here first, community examples are overwhelmingly TypeScript, and edge-case solutions are easier to find. MCP servers are now classified as **OAuth 2.0 Resource Servers** under the latest auth specification.
 
 In the hybrid architecture, the MCP server runs as a **separate TypeScript package** (`mcp-server/`) that calls the Python REST API via `fetch()`. Each MCP tool is a thin wrapper around a REST endpoint:
 
@@ -228,12 +228,32 @@ export function registerTradeTools(server: McpServer) {
 }
 ```
 
-The MCP server can run in two modes:
+The MCP server uses **Streamable HTTP** transport (the current MCP standard — SSE is deprecated) and can run in two modes:
 
-1. **Inside Electron's main process** — when the desktop app is running, the MCP server shares the Node.js runtime with Electron. No extra process needed.
-2. **Standalone via stdio** — for IDE integration without the desktop app: `npx @zorivest/mcp-server --api-url http://localhost:8765`
+| Mode | When | Transport | Auth |
+|---|---|---|---|
+| **Embedded** | GUI running | Streamable HTTP on `:8766` (within Electron process) | Session-inherited (GUI already authenticated) |
+| **Standalone** | IDE-only, no GUI | Streamable HTTP on `:8766` (separate process) | Bearer token (API key: `zrv_sk_...`) |
 
-For IDE integration, Claude Code connects via `claude mcp add zorivest npx @zorivest/mcp-server`, and Cursor via `.cursor/mcp.json` configuration. The **MCP Inspector** (`npx @modelcontextprotocol/inspector`) provides visual testing during development.
+Both modes expose a single MCP endpoint at `POST http://localhost:8766/mcp` with `MCP-Protocol-Version: 2025-06-18` and `Mcp-Session-Id` headers. In standalone mode, the MCP server authenticates via Bearer token and forwards the API key to the Python backend's `/api/v1/auth/unlock` endpoint for database access via envelope encryption (see `02-infrastructure.md`).
+
+For IDE integration, Cursor connects via `.cursor/mcp.json`, Windsurf via its MCP configuration, and Claude Code via `claude mcp add`:
+
+```json
+// .cursor/mcp.json (or equivalent IDE config)
+{
+  "mcpServers": {
+    "zorivest": {
+      "url": "http://localhost:8766/mcp",
+      "headers": {
+        "Authorization": "Bearer zrv_sk_..."
+      }
+    }
+  }
+}
+```
+
+The **MCP Inspector** (`npx @modelcontextprotocol/inspector`) provides visual testing during development.
 
 Both the MCP tools and the Electron UI call the **same REST API**, ensuring consistent business logic regardless of the access path. Tool descriptions are critical — LLMs use them to decide when and how to call tools, so write clear, specific descriptions.
 

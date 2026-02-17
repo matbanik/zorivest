@@ -327,11 +327,12 @@ Canonical registry of **every input** the system accepts — human-entered, agen
 
 ---
 
-## 14. Database Passphrase (Security)
+## 14. Database Passphrase & API Key Auth (Security)
 
 | # | Input | Type | Description | Surface | Status | Plan Files |
 |---|-------|------|-------------|---------|--------|------------|
-| 14.1 | `passphrase` | `password` | SQLCipher key derivation (Argon2id) | 🖥️ | ✅ | [02](02-infrastructure.md) |
+| 14.1 | `passphrase` | `password` | SQLCipher key derivation (Argon2id) — GUI unlock | 🖥️ | ✅ | [02](02-infrastructure.md) |
+| 14.2 | `api_key` | `password` | Envelope encryption unlock — MCP standalone mode | 🤖🔌 | ✅ | [04](04-rest-api.md), [05](05-mcp-server.md) |
 
 ### Test Strategy
 
@@ -340,8 +341,13 @@ Canonical registry of **every input** the system accepts — human-entered, agen
 | Correct passphrase | Valid password | DB unlocked, app starts |
 | Wrong passphrase | Invalid password | Decryption error, retry prompt |
 | Empty passphrase | "" | Validation error |
+| Valid API key | zrv_sk_... via POST /auth/unlock | 200 + session_token + role |
+| Invalid API key | Wrong key | 401 Unauthorized |
+| Revoked API key | Revoked key | 403 Forbidden |
+| Key management | POST /auth/keys | New key generated (admin only) |
+| Key revocation | DELETE /auth/keys/{id} | Key removed, wrapped DEK deleted |
 
-> **Note:** GUI-only — no MCP/API surface (security constraint).
+> **Dual-access architecture:** GUI uses passphrase → KDF → DEK directly. MCP uses API key → envelope encryption (KEK unwraps DEK) via `POST /api/v1/auth/unlock`. See [Phase 4 §4.5](04-rest-api.md) and [Phase 5 §5.7](05-mcp-server.md).
 
 ---
 
