@@ -1,6 +1,6 @@
 # Phase 4: REST API (FastAPI)
 
-> Part of [Zorivest Build Plan](../BUILD_PLAN.md) | Prerequisites: [Phase 3](03-service-layer.md) | Outputs: [Phase 5](05-mcp-server.md), [Phase 6](06-gui.md)
+> Part of [Zorivest Build Plan](../BUILD_PLAN.md) | Prerequisites: [Phase 3](03-service-layer.md) | Outputs: [Phase 5](05-mcp-server.md), [Phase 6](06-gui.md) ([Shell](06a-gui-shell.md), [Trades](06b-gui-trades.md), [Settings](06f-gui-settings.md))
 
 ---
 
@@ -55,8 +55,18 @@ class TradeImageResponse(BaseModel):
 
 @trade_router.get("/")
 async def list_trades(limit: int = 50, offset: int = 0,
+                      account_id: str | None = None,
+                      sort: str = "-created_at",
                       service: TradeService = Depends(get_trade_service)):
-    return service.list_trades(limit=limit, offset=offset)
+    """List trades with optional account filter and sort.
+
+    Query params:
+      - account_id: filter to a specific account (optional)
+      - sort: sort field, prefix '-' for descending (default: '-created_at')
+              allowed fields: created_at, instrument, price
+    """
+    return service.list_trades(limit=limit, offset=offset,
+                               account_id=account_id, sort=sort)
 
 @trade_router.post("/", status_code=201)
 async def create_trade(body: CreateTradeRequest,
@@ -163,13 +173,127 @@ def test_upload_and_retrieve_image(client):
     assert response.headers["content-type"] == "image/png"
 ```
 
+## Step 4.3: Settings Routes
+
+> Settings routes expose the `SettingModel` key-value store (see [Phase 2](02-infrastructure.md)) via REST. Consumed by the GUI for UI state persistence, notification preferences, and display mode toggles.
+
+```python
+# packages/api/src/zorivest_api/routes/settings.py
+
+from typing import Any, Optional
+from fastapi import APIRouter, Depends, HTTPException
+from pydantic import BaseModel
+from zorivest_core.services.settings_service import SettingsService
+
+settings_router = APIRouter(prefix="/api/v1/settings", tags=["settings"])
+
+
+class SettingResponse(BaseModel):
+    key: str
+    value: str
+    value_type: str
+
+
+@settings_router.get("/")
+async def get_all_settings(service: SettingsService = Depends(get_settings_service)):
+    """Bulk read all settings as key-value dict."""
+    return service.get_all()
+
+
+@settings_router.get("/{key}")
+async def get_setting(key: str, service: SettingsService = Depends(get_settings_service)):
+    """Read a single setting by key."""
+    result = service.get(key)
+    if result is None:
+        raise HTTPException(404, f"Setting '{key}' not found")
+    return result
+
+
+@settings_router.put("/")
+async def update_settings(body: dict[str, Any],
+                          service: SettingsService = Depends(get_settings_service)):
+    """Bulk upsert settings. Body: {"key1": "value1", "key2": "value2"}"""
+    service.bulk_upsert(body)
+    return {"status": "updated", "count": len(body)}
+```
+
+### Step 4.3 Tests
+
+```python
+# tests/e2e/test_settings_api.py
+
+def test_settings_roundtrip(client):
+    """PUT bulk → GET single → GET all."""
+    response = client.put("/api/v1/settings", json={"ui.theme": "dark", "notification.info.enabled": "false"})
+    assert response.status_code == 200
+    assert response.json()["count"] == 2
+
+    response = client.get("/api/v1/settings/ui.theme")
+    assert response.status_code == 200
+    assert response.json()["value"] == "dark"
+
+    response = client.get("/api/v1/settings")
+    assert response.status_code == 200
+    assert "ui.theme" in response.json()
+
+def test_setting_not_found(client):
+    response = client.get("/api/v1/settings/nonexistent.key")
+    assert response.status_code == 404
+```
+
+## Step 4.4: Logging Route
+
+> Append-only log ingestion from the Electron renderer. Used by startup performance metrics (see [Phase 6](06-gui.md)) and future frontend error reporting. No authentication required (localhost-only).
+>
+> The `zorivest.frontend` logger used below routes through the [Phase 1A](01a-logging.md) QueueHandler/Listener system, writing to the `frontend.jsonl` feature log file.
+
+```python
+# packages/api/src/zorivest_api/routes/logs.py
+
+from fastapi import APIRouter
+from pydantic import BaseModel
+from typing import Any, Literal, Optional
+import logging
+
+log_router = APIRouter(prefix="/api/v1/logs", tags=["logs"])
+logger = logging.getLogger("zorivest.frontend")
+
+_LEVEL_MAP = {
+    "debug": logger.debug,
+    "info": logger.info,
+    "warning": logger.warning,
+    "error": logger.error,
+    "critical": logger.critical,
+}
+
+
+class LogEntry(BaseModel):
+    level: Literal["debug", "info", "warning", "error", "critical"] = "info"
+    component: str = "unknown"  # e.g. "startup", "renderer"
+    message: str
+    data: Optional[dict[str, Any]] = None
+
+
+@log_router.post("/", status_code=204)
+async def ingest_log(entry: LogEntry):
+    """Append-only log ingestion from Electron renderer."""
+    log_fn = _LEVEL_MAP[entry.level]  # Safe: Literal constraint guarantees valid key
+    log_fn(f"[{entry.component}] {entry.message}",
+           extra={"data": entry.data})
+```
+
 ## Exit Criteria
 
 - All e2e tests pass with FastAPI `TestClient`
 - Health endpoint returns 200
+- Settings CRUD endpoints return correct values
+- Log ingestion endpoint accepts and records frontend metrics
+- Trade list supports `account_id` filter and `sort` parameter
 
 ## Outputs
 
 - FastAPI routes for trades, images, accounts, calculator
-- Full CRUD endpoints with pagination
+- Settings routes for UI state and preference persistence
+- Logging route for frontend metric ingestion
+- Full CRUD endpoints with pagination, filtering, and sorting
 - E2E tests using `TestClient`

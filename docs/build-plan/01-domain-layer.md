@@ -66,9 +66,13 @@ zorivest/
 │   │       │   ├── __init__.py
 │   │       │   ├── ibkr_adapter.py   # Interactive Brokers adapter
 │   │       │   └── tradingview_adapter.py
-│   │       └── logging/
+│   │       └── logging/              # See Phase 1A (01a-logging.md)
 │   │           ├── __init__.py
-│   │           └── config.py         # structlog setup
+│   │           ├── config.py         # LoggingManager (QueueHandler/Listener)
+│   │           ├── filters.py        # FeatureFilter (per-file routing)
+│   │           ├── formatters.py     # JsonFormatter (JSONL output)
+│   │           ├── redaction.py      # RedactionFilter (API key masking)
+│   │           └── bootstrap.py      # Usage patterns
 │   ├── api/                                # Python — FastAPI REST layer
 │   │   ├── pyproject.toml
 │   │   └── src/zorivest_api/

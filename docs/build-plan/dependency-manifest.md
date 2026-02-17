@@ -24,7 +24,7 @@ uv add --package zorivest-infra sqlalchemy sqlcipher3 argon2-cffi alembic pillow
 uv add --package zorivest-api fastapi uvicorn pydantic httpx
 
 # Cross-cutting (Python)
-uv add structlog
+# Phase 1A (Logging): zero external dependencies — stdlib only
 uv add --dev ruff bandit pip-audit
 
 # ── TypeScript side (npm/pnpm) ──────────────────────────────
@@ -39,7 +39,7 @@ cd ..
 # Phase 6: GUI (Electron + React)
 cd ui
 npm init -y
-npm install react react-dom @tanstack/react-table @tanstack/react-query lightweight-charts
+npm install react react-dom @tanstack/react-table @tanstack/react-query lightweight-charts fuse.js sonner electron-store
 npm install -D electron electron-builder vite @vitejs/plugin-react typescript vitest
 npm install -D @testing-library/react playwright
 cd ..
@@ -63,7 +63,8 @@ uv add --package zorivest-infra cryptography httpx
 | 3 | `zorivest-core` (services) | No new deps |
 | 4 | `zorivest-api` | `fastapi`, `uvicorn`, `pydantic`, `httpx` |
 | 5 | `mcp-server` (TS) | `@modelcontextprotocol/sdk`, `zod` |
-| 6 | `ui` (TS) | `react`, `electron`, `@tanstack/react-table`, `lightweight-charts` |
+| 6 | `ui` (TS) | `react`, `electron`, `@tanstack/react-table`, `@tanstack/react-query`, `lightweight-charts`, `fuse.js`, `sonner`, `electron-store` |
 | 7 | distribution | `pyinstaller`, `electron-builder` |
 | 8 | `zorivest-infra` (market) | `cryptography`, `httpx` |
-| * | cross-cutting | `structlog`, `ruff`, `bandit` |
+| 1A | zorivest-infra (logging) | *(none — stdlib only)* |
+| * | cross-cutting | `ruff`, `bandit` |

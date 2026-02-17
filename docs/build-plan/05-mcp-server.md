@@ -1,6 +1,6 @@
 # Phase 5: MCP Server (TypeScript)
 
-> Part of [Zorivest Build Plan](../BUILD_PLAN.md) | Prerequisites: [Phase 4](04-rest-api.md) | Outputs: [Phase 7](07-distribution.md)
+> Part of [Zorivest Build Plan](../BUILD_PLAN.md) | Prerequisites: [Phase 4](04-rest-api.md) | Market data tools require [Phase 8](08-market-data.md) | Outputs: [Phase 7](07-distribution.md)
 
 ---
 
@@ -177,6 +177,81 @@ server.tool(
 );
 ```
 
+## Step 5.4: Market Data MCP Tools (from Phase 8)
+
+> These tools are defined in [Phase 8 §8.5](08-market-data.md) and registered in the same MCP server. Listed here for completeness — see Phase 8 for full implementation.
+
+| Tool | Description | REST Endpoint |
+|---|---|---|
+| `get_stock_quote` | Real-time stock price data | `GET /market-data/quote?ticker=` |
+| `get_market_news` | Financial news, filtered by ticker | `GET /market-data/news` |
+| `search_ticker` | Search tickers by company name | `GET /market-data/search?query=` |
+| `get_sec_filings` | SEC filings for a company | `GET /market-data/sec-filings?ticker=` |
+| `list_market_providers` | All configured provider statuses | `GET /market-data/providers` |
+| `test_market_provider` | Test a provider's API connection | `POST /market-data/providers/{name}/test` |
+| `disconnect_market_provider` | Remove API key and disable provider | `DELETE /market-data/providers/{name}/key` |
+
+### Server Registration
+
+```typescript
+// mcp-server/src/index.ts
+
+import { registerTradeTools } from './tools/trade-tools.js';
+import { registerMarketDataTools } from './tools/market-data-tools.js';
+import { registerSettingsTools } from './tools/settings-tools.js';
+
+const server = new McpServer({ name: 'zorivest', version: '1.0.0' });
+
+registerTradeTools(server);
+registerMarketDataTools(server);  // Phase 8 tools
+registerSettingsTools(server);    // UI settings tools
+```
+
+## Step 5.5: Settings MCP Tools
+
+> Thin wrappers around the settings REST endpoints (see [Phase 4 §4.3](04-rest-api.md)). Allows AI agents to read/write user preferences (display modes, notification settings).
+
+```typescript
+// mcp-server/src/tools/settings-tools.ts
+
+import { McpServer } from '@modelcontextprotocol/sdk/server/mcp.js';
+import { z } from 'zod';
+
+const API_BASE = process.env.ZORIVEST_API_URL ?? 'http://localhost:8765/api/v1';
+
+export function registerSettingsTools(server: McpServer) {
+
+  server.tool(
+    'get_settings',
+    'Read all user settings or a specific setting by key. Returns key-value pairs for UI preferences, notification settings, and display modes.',
+    { key: z.string().optional().describe('Optional specific setting key to read (e.g. "ui.theme", "notification.warning.enabled")') },
+    async ({ key }) => {
+      const url = key ? `${API_BASE}/settings/${encodeURIComponent(key)}` : `${API_BASE}/settings`;
+      const res = await fetch(url);
+      const data = await res.json();
+      return { content: [{ type: 'text' as const, text: JSON.stringify(data) }] };
+    }
+  );
+
+  server.tool(
+    'update_settings',
+    'Update one or more user settings. Accepts a key-value map.',
+    { settings: z.record(z.string()).describe('Map of setting keys to values, e.g. {"ui.theme": "dark", "notification.info.enabled": "false"}') },
+    async ({ settings }) => {
+      const res = await fetch(`${API_BASE}/settings`, {
+        method: 'PUT',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify(settings),
+      });
+      const data = await res.json();
+      return { content: [{ type: 'text' as const, text: JSON.stringify(data) }] };
+    }
+  );
+}
+```
+
+> **Convention**: All setting values are **strings at the API/MCP boundary**. Consumers parse to their native types (e.g., `"true"` → `boolean`, `"280"` → `number`). The `value_type` column in `SettingModel` is metadata for future typed deserialization but is not enforced at the REST layer.
+
 ## Testing Strategy
 
 See [Testing Strategy](testing-strategy.md) for full MCP testing approaches.
@@ -186,6 +261,9 @@ See [Testing Strategy](testing-strategy.md) for full MCP testing approaches.
 - **What it tests**: Tool logic, Zod schema validation, response formatting
 - **Limitation**: Doesn't test Python REST API integration
 
+> [!NOTE]
+> **Logging MCP tools (future expansion):** When the logging settings GUI ([06f-gui-settings.md](06f-gui-settings.md)) is implemented, corresponding MCP tools for reading/updating per-feature log levels (`get_log_settings`, `update_log_level`) should be added here. These will wrap `GET/PUT /api/v1/settings` with `logging.*` key filtering. See [Phase 1A](01a-logging.md) for the logging architecture.
+
 ## Exit Criteria
 
 - All Vitest tests pass
@@ -194,5 +272,7 @@ See [Testing Strategy](testing-strategy.md) for full MCP testing approaches.
 
 ## Outputs
 
-- TypeScript MCP tools: `create_trade`, `list_trades`, `attach_screenshot`, `get_trade_screenshots`, `calculate_position_size`, `get_screenshot`
+- TypeScript MCP tools (trade/image): `create_trade`, `list_trades`, `attach_screenshot`, `get_trade_screenshots`, `calculate_position_size`, `get_screenshot`
+- TypeScript MCP tools (market data, from Phase 8): `get_stock_quote`, `get_market_news`, `search_ticker`, `get_sec_filings`, `list_market_providers`, `test_market_provider`, `disconnect_market_provider`
+- TypeScript MCP tools (settings): `get_settings`, `update_settings`
 - Vitest test suite with mocked `fetch()`

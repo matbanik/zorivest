@@ -1,6 +1,6 @@
 # Image Storage & Display Architecture
 
-> Part of [Zorivest Build Plan](../BUILD_PLAN.md) — Referenced by [Phase 2](02-infrastructure.md), [Phase 5](05-mcp-server.md), [Phase 6](06-gui.md)
+> Part of [Zorivest Build Plan](../BUILD_PLAN.md) — Referenced by [Phase 2](02-infrastructure.md), [Phase 5](05-mcp-server.md), [Phase 6](06-gui.md) ([Trades](06b-gui-trades.md))
 
 ---
 

@@ -1,6 +1,6 @@
 # Phase 8: Market Data Aggregation Layer
 
-> Part of [Zorivest Build Plan](../BUILD_PLAN.md) | Prerequisites: [Phase 2](02-infrastructure.md), [Phase 3](03-service-layer.md), [Phase 4](04-rest-api.md) | Consumers: [Phase 5](05-mcp-server.md), [Phase 6](06-gui.md)
+> Part of [Zorivest Build Plan](../BUILD_PLAN.md) | Prerequisites: [Phase 2](02-infrastructure.md), [Phase 3](03-service-layer.md), [Phase 4](04-rest-api.md) | Consumers: [Phase 5](05-mcp-server.md), [Phase 6](06-gui.md) ([Settings](06f-gui-settings.md))
 >
 > **Source**: [`_inspiration/_market_tools_api-architecture.md`](../../_inspiration/_market_tools_api-architecture.md)
 
@@ -488,7 +488,14 @@ async def list_providers(service = Depends(get_provider_service)):
 
 @market_data_router.put("/providers/{name}")
 async def configure_provider(name: str, body: ProviderConfigRequest, service = Depends(get_provider_service)):
-    await service.configure_provider(name, body.api_key, body.rate_limit, body.timeout)
+    """Update provider settings. Omitted fields are left unchanged (PATCH semantics)."""
+    await service.configure_provider(
+        name,
+        api_key=body.api_key,
+        rate_limit=body.rate_limit,
+        timeout=body.timeout,
+        is_enabled=body.is_enabled,
+    )
     return {"status": "configured"}
 
 @market_data_router.post("/providers/{name}/test")
@@ -498,8 +505,17 @@ async def test_provider(name: str, service = Depends(get_provider_service)):
 
 @market_data_router.delete("/providers/{name}/key")
 async def remove_provider_key(name: str, service = Depends(get_provider_service)):
+    """Remove API key and disable provider."""
     await service.remove_api_key(name)
     return {"status": "removed"}
+
+
+class ProviderConfigRequest(BaseModel):
+    """All fields optional — omitted fields are left unchanged (PATCH semantics)."""
+    api_key: str | None = None
+    rate_limit: int | None = None
+    timeout: int | None = None
+    is_enabled: bool | None = None
 ```
 
 ---
@@ -588,6 +604,19 @@ export function registerMarketDataTools(server: McpServer) {
       return { content: [{ type: 'text' as const, text: JSON.stringify(data) }] };
     }
   );
+
+  server.tool(
+    'disconnect_market_provider',
+    'Remove API key and disable a market data provider.',
+    { provider_name: z.string().describe('Provider name, e.g. "Alpha Vantage"') },
+    async ({ provider_name }) => {
+      const res = await fetch(`${API_BASE}/market-data/providers/${encodeURIComponent(provider_name)}/key`, {
+        method: 'DELETE',
+      });
+      const data = await res.json();
+      return { content: [{ type: 'text' as const, text: JSON.stringify(data) }] };
+    }
+  );
 }
 ```
 
@@ -620,6 +649,26 @@ Response validation rules per provider (used by `ProviderConnectionService.test_
 | 429 | Rate limit exceeded | ⚠️ Rate limit exceeded |
 | Timeout | Connection or read timeout | ❌ Connection timeout |
 | ConnectionError | DNS/network failure | ❌ Connection failed |
+
+### Concurrency Guard
+
+When testing multiple providers (e.g., "Test All Connections"), use an `asyncio.Semaphore` to limit concurrency and prevent rate-limiting from providers that detect rapid sequential requests:
+
+```python
+# Limit to 2 concurrent connection tests
+_test_semaphore = asyncio.Semaphore(2)
+
+async def test_all_providers(self) -> list[tuple[str, bool, str]]:
+    async def _guarded_test(provider: ProviderStatus):
+        async with self._test_semaphore:
+            return (provider.provider_name, *await self.test_connection(provider.provider_name))
+    
+    providers: list[ProviderStatus] = await self.list_providers()
+    enabled = [p for p in providers if p.has_api_key]
+    return await asyncio.gather(*[_guarded_test(p) for p in enabled])
+```
+
+> This is the async equivalent of the thread lock pattern from the inspiration doc. A semaphore (rather than a mutex) allows 2 concurrent tests for reasonable throughput while still preventing rate-limit storms. `ProviderStatus` is a Pydantic model returned by `list_providers()` — see [06f-gui-settings.md](06f-gui-settings.md) for the TypeScript equivalent.
 
 ---
 
@@ -681,5 +730,5 @@ Response validation rules per provider (used by `ProviderConnectionService.test_
 - Response normalizers for all 9 providers
 - Log redaction filter
 - 8 FastAPI REST endpoints under `/api/v1/market-data/`
-- 6 TypeScript MCP tools
+- 7 TypeScript MCP tools
 - Full test suite (unit + e2e + TypeScript)

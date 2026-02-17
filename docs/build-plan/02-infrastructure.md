@@ -1,6 +1,6 @@
 # Phase 2: Infrastructure — Database & Repositories
 
-> Part of [Zorivest Build Plan](../BUILD_PLAN.md) | Prerequisites: [Phase 1](01-domain-layer.md) | Outputs: [Phase 3](03-service-layer.md)
+> Part of [Zorivest Build Plan](../BUILD_PLAN.md) | Prerequisites: [Phase 1](01-domain-layer.md), [Phase 1A](01a-logging.md) | Outputs: [Phase 3](03-service-layer.md)
 
 ---
 
@@ -151,6 +151,11 @@ class SettingModel(Base):
     value = Column(Text)
     value_type = Column(String(20))
     updated_at = Column(DateTime)
+
+    # Key convention (namespaced dot notation):
+    # ui.theme, ui.activePage, ui.panel.*.collapsed, ui.sidebar.width
+    # notification.{category}.enabled  (success|info|warning|confirmation)
+    # display.dollar_visible, display.percent_visible, display.percent_mode
 
 
 class MarketProviderSettingModel(Base):

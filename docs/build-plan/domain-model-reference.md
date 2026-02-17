@@ -1,6 +1,6 @@
 # Domain Model Reference
 
-> Part of [Zorivest Build Plan](../BUILD_PLAN.md) — Referenced by [Phase 1](01-domain-layer.md), [Phase 2](02-infrastructure.md), [Phase 5](05-mcp-server.md), [Phase 6](06-gui.md)
+> Part of [Zorivest Build Plan](../BUILD_PLAN.md) — Referenced by [Phase 1](01-domain-layer.md), [Phase 2](02-infrastructure.md), [Phase 5](05-mcp-server.md), [Phase 6](06-gui.md) ([Trades](06b-gui-trades.md), [Planning](06c-gui-planning.md), [Accounts](06d-gui-accounts.md), [Settings](06f-gui-settings.md), [Tax](06g-gui-tax.md), [Calculator](06h-gui-calculator.md))
 
 ---
 

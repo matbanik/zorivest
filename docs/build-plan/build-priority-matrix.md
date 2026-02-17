@@ -8,6 +8,7 @@
 
 | Order | What | Tests First? | Deps on | Key Test Strategy |
 |-------|------|-------------|---------|-------------------|
+| **1A** | **Logging infrastructure** ([01a-logging.md](01a-logging.md)) — QueueHandler/Listener, JSONL, per-feature routing, redaction | ✅ Yes | Nothing | `pytest` — formatter, filter, routing, thread safety |
 | **1** | Position size calculator | ✅ Yes | Nothing | `pytest.approx()` with spec values |
 | **2** | Enums (AccountType, TradeAction, etc.) | ✅ Yes | Nothing | Enum membership tests |
 | **3** | Domain entities (Trade, Account, Image, BalanceSnapshot) | ✅ Yes | Nothing | Dataclass creation, validation |
@@ -25,8 +26,17 @@
 | **12** | FastAPI routes | ✅ Yes | Services | `TestClient` |
 | **13** | TypeScript MCP tools (trade, account, calculator, image) | ✅ Yes | REST API | `vitest` with mocked `fetch()` |
 | **14** | MCP + REST integration test | ✅ Yes | Both live | TS MCP calling live Python API |
-| **15** | Electron + React UI shell | ✅ Yes | REST API | React Testing Library + Playwright |
-| **16** | React pages (Dashboard, Trades, Plans) | Manual | API hooks | Visual verification |
+| **15** | Electron + React UI shell ([06a](06a-gui-shell.md)) | ✅ Yes | REST API | React Testing Library + Playwright |
+| **15a** | Settings REST endpoints (`GET`/`PUT /settings`) | ✅ Yes | Services | `TestClient` round-trip |
+| **15b** | Settings MCP tools (`get_settings`, `update_settings`) | ✅ Yes | REST API | `vitest` with mocked `fetch()` |
+| **15c** | Command registry (`commandRegistry.ts`) ([06a](06a-gui-shell.md)) | ✅ Yes | Nothing | Vitest: all entries have unique ids, valid actions |
+| **15d** | Window state persistence (`electron-store`) ([06a](06a-gui-shell.md)) | Manual | Electron | Launch → move → close → relaunch → verify position |
+| **16** | React pages — Trades ([06b](06b-gui-trades.md)), Plans ([06c](06c-gui-planning.md)) | Manual | API hooks | Visual verification |
+| **16a** | Notification system ([06a](06a-gui-shell.md)) | Manual | Settings API | Visual: toast categories, suppression toggle |
+| **16b** | Command palette ([06a](06a-gui-shell.md), Ctrl+K) | Manual | Registry | Visual: search, navigate, select |
+| **16c** | UI state persistence ([06a](06a-gui-shell.md)) | Manual | Settings API | Change → restart → verify restored |
+
+> **Note**: Items 13 and 15 cover **core** MCP tools and GUI shell only. Market-data MCP tools and the Market Data Settings page depend on Phase 8 (items 21–30 in P1.5) and must not be started until P1.5 is reached.
 
 ---
 
@@ -37,7 +47,7 @@
 | **17** | TradeReport entity + service | ✅ Yes | Post-trade journaling with ratings, tags, images |
 | **18** | TradeReport MCP tools + API routes | ✅ Yes | `create_report`, `get_report_for_trade` |
 | **19** | Multi-account UI (account type badges, filtering) | ✅ Yes | Filter trades by account type |
-| **20** | Report GUI panel (ratings, tags, lessons) | Manual | Attached to trade detail view |
+| **20** | Report GUI panel ([06b](06b-gui-trades.md): ratings, tags, lessons) | Manual | Attached to trade detail view |
 
 ---
 
@@ -56,7 +66,7 @@
 | **27** | Rate limiter (token-bucket per provider) + log redaction | ✅ Yes | Async token-bucket, API key masking |
 | **28** | Market data REST API endpoints (8 routes) | ✅ Yes | FastAPI under `/api/v1/market-data/` |
 | **29** | Market data MCP tools (6 tools) | ✅ Yes | TypeScript via `registerMarketDataTools` |
-| **30** | Market Data Providers GUI settings page | Manual | Provider list, connection testing, API key management |
+| **30** | Market Data Providers GUI settings page ([06f](06f-gui-settings.md)) | Manual | Provider list, connection testing, API key management |
 
 ---
 
@@ -68,7 +78,10 @@
 | **32** | TradePlan ↔ Trade linking (plan → execution) | ✅ Yes | `followed_plan` in TradeReport |
 | **33** | Watchlist entity + service | ✅ Yes | Named lists of tickers |
 | **34** | TradePlan + Watchlist MCP tools | ✅ Yes | AI agent can create/query plans |
-| **35** | Planning GUI (chart annotation, plan cards) | Manual | Rich text + image support |
+| **35** | Planning GUI ([06c](06c-gui-planning.md): plan cards, watchlists) | Manual | List+detail layout, conviction indicators |
+| **35a** | Account Management GUI ([06d](06d-gui-accounts.md)) | Manual | Account CRUD, Review wizard, balance history |
+| **35b** | Scheduling GUI ([06e](06e-gui-scheduling.md)) | Manual | Policy editor, cron preview, pipeline run history |
+| **35c** | Email Provider Settings GUI ([06f](06f-gui-settings.md)) | Manual | SMTP config, preset auto-fill, test connection |
 
 ---
 
@@ -132,10 +145,11 @@
 | **64** | Deferred loss carryover report | ✅ Yes | Real P&L vs reported P&L, trapped losses in chains |
 | **65** | Tax alpha savings summary | ✅ Yes | YTD savings from lot optimization + loss harvesting |
 | **66** | Error check / transaction audit | ✅ Yes | Scan for missing basis, dupes, impossible prices |
-| **67** | Tax report GUI (React) | Manual | Summary dashboard, lot viewer, what-if panel |
+| **67** | Tax estimator GUI (React) — [06g-gui-tax.md](06g-gui-tax.md) | Manual | Dashboard, lot viewer, wash sales, what-if, harvesting, quarterly tracker |
+| **67a** | Position calculator GUI (React) — [06h-gui-calculator.md](06h-gui-calculator.md) | Manual | Calculator modal, multi-scenario comparison, calculation history |
 | **68** | Section 475 / 1256 / Forex toggles (conditional) | ✅ Yes | Mark-to-Market, 60/40 futures, forex worksheet |
 
 ---
 
-**The first line of code you write is `test_calculator.py`. The first line of production code is `calculator.py`. Everything flows from there.**
+**The first lines of code you write are `test_calculator.py` and `test_logging_config.py`. Phase 1 and Phase 1A start in parallel — both have zero dependencies.**
 
