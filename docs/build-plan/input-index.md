@@ -1,6 +1,7 @@
 # Input Index — Complete Input Catalog
 
 > Part of [Zorivest Build Plan](../BUILD_PLAN.md) | Sources: [Domain Model Ref](domain-model-reference.md), [Build Priority Matrix](build-priority-matrix.md)
+> Companion indexes: [Output Index](output-index.md) · [GUI Actions Index](gui-actions-index.md)
 
 Canonical registry of **every input** the system accepts — human-entered, agent-invoked, and programmatically triggered. Each row links to the build plan file(s) that define its contract.
 
