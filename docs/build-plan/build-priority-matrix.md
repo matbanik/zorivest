@@ -1,6 +1,6 @@
 # Build Priority Matrix
 
-> Part of [Zorivest Build Plan](../BUILD_PLAN.md) — The 68-item build order across all priority levels.
+> Part of [Zorivest Build Plan](../BUILD_PLAN.md) — The 92-item build order across all priority levels.
 
 ---
 
@@ -22,6 +22,11 @@
 | **8** | Repository implementations | ✅ Yes | Models | In-memory SQLite |
 | **9** | Unit of Work | ✅ Yes | Repos | Transaction rollback tests |
 | **10** | SQLCipher connection | ✅ Yes | sqlcipher3 | Encrypt/decrypt round-trip |
+| **10a** | `AppDefaultModel` + seeding migration ([02a](02a-backup-restore.md)) | ✅ Yes | Models | In-memory SQLite, seed + query defaults |
+| **10b** | `SettingsRegistry` + `SettingsResolver` ([02a](02a-backup-restore.md)) | ✅ Yes | Nothing | Three-tier resolution, type coercion, unknown key rejection |
+| **10c** | `BackupManager` (auto backup + GFS rotation) ([02a](02a-backup-restore.md)) | ✅ Yes | SQLCipher, pyzipper | Snapshot → AES ZIP → rotate → verify |
+| **10d** | `BackupRecoveryManager` (restore + repair) ([02a](02a-backup-restore.md)) | ✅ Yes | BackupManager | Restore cycle, hash verify, atomic swap, repair |
+| **10e** | `ConfigExportService` (JSON export/import) ([02a](02a-backup-restore.md)) | ✅ Yes | SettingsRegistry | Allowlist enforcement, sensitivity filtering, dry-run |
 | **11** | Image processing (validate, thumbnail) | ✅ Yes | Pillow | Thumbnail generation |
 | **12** | FastAPI routes | ✅ Yes | Services | `TestClient` |
 | **13** | TypeScript MCP tools (trade, account, calculator, image) | ✅ Yes | REST API | `vitest` with mocked `fetch()` |
@@ -31,12 +36,15 @@
 | **15b** | Settings MCP tools (`get_settings`, `update_settings`) | ✅ Yes | REST API | `vitest` with mocked `fetch()` |
 | **15c** | Command registry (`commandRegistry.ts`) ([06a](06a-gui-shell.md)) | ✅ Yes | Nothing | Vitest: all entries have unique ids, valid actions |
 | **15d** | Window state persistence (`electron-store`) ([06a](06a-gui-shell.md)) | Manual | Electron | Launch → move → close → relaunch → verify position |
+| **15e** | MCP Guard: `McpGuardModel` + REST endpoints + MCP middleware + GUI | ✅ Yes | REST API, MCP tools | Circuit breaker, panic button, per-minute/hour rate limits ([02](02-infrastructure.md), [04](04-rest-api.md), [05](05-mcp-server.md), [06f](06f-gui-settings.md)) |
 | **16** | React pages — Trades ([06b](06b-gui-trades.md)), Plans ([06c](06c-gui-planning.md)) | Manual | API hooks | Visual verification |
 | **16a** | Notification system ([06a](06a-gui-shell.md)) | Manual | Settings API | Visual: toast categories, suppression toggle |
 | **16b** | Command palette ([06a](06a-gui-shell.md), Ctrl+K) | Manual | Registry | Visual: search, navigate, select |
 | **16c** | UI state persistence ([06a](06a-gui-shell.md)) | Manual | Settings API | Change → restart → verify restored |
 
 > **Note**: Items 13 and 15 cover **core** MCP tools and GUI shell only. Market-data MCP tools and the Market Data Settings page depend on Phase 8 (items 21–30 in P1.5) and must not be started until P1.5 is reached.
+
+> **Release gate**: Item 15e (MCP Guard) must pass before any MCP-enabled release. Do not ship MCP tools without abuse controls.
 
 ---
 
@@ -82,6 +90,9 @@
 | **35a** | Account Management GUI ([06d](06d-gui-accounts.md)) | Manual | Account CRUD, Review wizard, balance history |
 | **35b** | Scheduling GUI ([06e](06e-gui-scheduling.md)) | Manual | Policy editor, cron preview, pipeline run history |
 | **35c** | Email Provider Settings GUI ([06f](06f-gui-settings.md)) | Manual | SMTP config, preset auto-fill, test connection |
+| **35d** | Backup & Restore Settings GUI ([06f](06f-gui-settings.md)) | Manual | Manual backup, restore, verify, auto-backup config |
+| **35e** | Config Export/Import GUI ([06f](06f-gui-settings.md)) | Manual | JSON export download, import with preview diff |
+| **35f** | Reset to Default on settings pages ([06f](06f-gui-settings.md)) | Manual | Source indicator, per-setting reset, bulk reset |
 
 ---
 

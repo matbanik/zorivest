@@ -1,6 +1,6 @@
 # Current Focus — Zorivest
 
-> Last updated: 2026-02-17
+> Last updated: 2026-02-18
 
 ## Active Phase
 
@@ -35,3 +35,7 @@ Begin Phase 1 Domain implementation using the new role-based workflow.
 - [x] `docs/build-plan/06-gui.md` critical review completed; handoff saved in `.agent/context/handoffs/2026-02-16-06-gui-critical-review.md`
 - [x] `docs/build-plan/` critical review completed with logging deep-dive (`01a-logging.md`); handoff saved in `.agent/context/handoffs/2026-02-17-build-plan-logging-critical-review.md`
 - [x] `docs/build-plan/` critical review completed for logging redaction + MCP encrypted-DB access contracts; handoff saved in `.agent/context/handoffs/2026-02-17-build-plan-logging-mcp-encrypted-db-critical-review.md`
+- [x] `docs/build-plan/` critical review completed for backup/restore + settings defaults/export-import updates; handoff saved in `.agent/context/handoffs/2026-02-18-build-plan-backup-restore-defaults-critical-review.md`
+- [x] `docs/build-plan/` critical review completed for settings validation/cache/422 GUI error-contract updates; handoff saved in `.agent/context/handoffs/2026-02-18-build-plan-settings-validation-critical-review.md`
+- [x] `docs/build-plan/` critical review completed for MCP guard circuit-breaker + emergency-stop updates; handoff saved in `.agent/context/handoffs/2026-02-18-build-plan-mcp-guard-emergency-stop-critical-review.md`
+- [x] `docs/build-plan/` critical review completed for release/versioning architecture updates (`00-overview.md`, `07-distribution.md`, `dependency-manifest.md`); handoff saved in `.agent/context/handoffs/2026-02-18-build-plan-release-versioning-critical-review.md`

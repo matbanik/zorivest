@@ -210,7 +210,7 @@ Canonical registry of **every input** the system accepts — human-entered, agen
 |---|-------|------|-------------|---------|--------|------------|
 | 9.1 | `dollar_visible` | `bool` | Toggle $ display | 🖥️🤖🔌 | ✅ | [02](02-infrastructure.md), [04](04-rest-api.md), [05](05-mcp-server.md), [06f](06f-gui-settings.md) |
 | 9.2 | `percent_visible` | `bool` | Toggle % display | 🖥️🤖🔌 | ✅ | [02](02-infrastructure.md), [04](04-rest-api.md), [05](05-mcp-server.md), [06f](06f-gui-settings.md) |
-| 9.3 | `percent_mode` | `bool` | Toggle % reference mode | 🖥️🤖🔌 | ✅ | [02](02-infrastructure.md), [04](04-rest-api.md), [05](05-mcp-server.md), [06f](06f-gui-settings.md) |
+| 9.3 | `percent_mode` | `string` | Percentage display mode (daily/total) | 🖥️🤖🔌 | ✅ | [02](02-infrastructure.md), [04](04-rest-api.md), [05](05-mcp-server.md), [06f](06f-gui-settings.md) |
 
 ### Test Strategy
 
@@ -504,17 +504,34 @@ These inputs are triggered automatically by the system, IDE agent calls, or sche
 
 ---
 
+## 19. MCP Guard (Circuit Breaker + Panic Button)
+
+> Protects against runaway MCP tool calls. Opt-in; disabled by default.
+> Model: [`McpGuardModel`](02-infrastructure.md) | REST: [§4.6](04-rest-api.md) | MCP: [§5.6](05-mcp-server.md) | GUI: [§6f.8](06f-gui-settings.md)
+
+| # | Input | Type | Description | Surface | Status | Plan Files |
+|---|-------|------|-------------|---------|--------|------------|
+| 19.1 | `is_enabled` | `bool` | Enable/disable circuit breaker | 🖥️🔌 | ✅ | [02](02-infrastructure.md), [04](04-rest-api.md), [06f](06f-gui-settings.md) |
+| 19.2 | `calls_per_minute_limit` | `number` | Max MCP calls/min (default 60) | 🖥️🔌 | ✅ | [02](02-infrastructure.md), [04](04-rest-api.md), [06f](06f-gui-settings.md) |
+| 19.3 | `calls_per_hour_limit` | `number` | Max MCP calls/hr (default 500) | 🖥️🔌 | ✅ | [02](02-infrastructure.md), [04](04-rest-api.md), [06f](06f-gui-settings.md) |
+| 19.4 | Lock (panic) | `action` | Immediately lock all MCP tools | 🖥️🤖🔌 | ✅ | [04](04-rest-api.md), [05](05-mcp-server.md), [06f](06f-gui-settings.md) |
+| 19.5 | Unlock | `action` | Re-enable MCP tools | 🖥️🤖🔌 | ✅ | [04](04-rest-api.md), [05](05-mcp-server.md), [06f](06f-gui-settings.md) |
+| 19.6 | `reason` | `string` | Lock reason (free-text; convention: manual, rate_limit_exceeded, agent_self_lock) | 🤖🔌 | ✅ | [05](05-mcp-server.md) |
+| 19.7 | `confirm` | `literal` | Unlock confirmation token (`"UNLOCK"`) | 🤖 | ✅ | [05](05-mcp-server.md) |
+
+---
+
 ## Summary Statistics
 
 | Category | Count |
 |----------|-------|
-| Total input fields (human-entered) | 108 |
+| Total input fields (human-entered) | 115 |
 | Programmatic/scheduled triggers | 14 |
-| Feature groups | 22 (incl. sub-sections 9a, 15a, 15b, 15m, 15d) |
-| ✅ Defined (full surface contract) | 48 inputs |
+| Feature groups | 23 (incl. sub-sections 9a, 15a, 15b, 15m, 15d) |
+| ✅ Defined (full surface contract) | 55 inputs |
 | 🔶 Domain modeled (no REST/MCP/GUI contract) | 34 inputs |
 | 📋 Planned (matrix-only, no routes/tools) | 40 inputs |
 | GUI-only inputs (security) | 2 (passphrase, API key entry) |
-| MCP-only inputs | 1 (`image_base64`, row 3.2) |
-| Files referenced | 8 build plan docs |
+| MCP-only inputs | 2 (`image_base64` row 3.2, `confirm` row 19.7) |
+| Files referenced | 9 build plan docs |
 

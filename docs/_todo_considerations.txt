@@ -1,0 +1,23 @@
+Scheduler - define how policies will work
+Watchlist as main source of data pulling for market info and news.
+API data aggregation > report table (report table will need standars in financial reporting)
+report table > template > email
+
+pomera start gui, diagnostic mcp commands - create inspiration doc
+
+review current screenshot <image> processing and storing, adjust planing in GUI and build vision for MCP for next steps
+
+trade import system from image or tabular source file
+
+account balance import system from pdf, csv statements or images
+
+review mcp commands and create complete list based on workflows for 
+account balance checking
+trade planing
+investment risk exposure
+meta analsys of past trades
+meta analsys of mindset/purpose/energy
+oportunity seekings
+watchlist managments
+watchlist usage with trade plans
+

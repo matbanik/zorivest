@@ -1,6 +1,6 @@
 # Phase 2: Infrastructure — Database & Repositories
 
-> Part of [Zorivest Build Plan](../BUILD_PLAN.md) | Prerequisites: [Phase 1](01-domain-layer.md), [Phase 1A](01a-logging.md) | Outputs: [Phase 3](03-service-layer.md)
+> Part of [Zorivest Build Plan](../BUILD_PLAN.md) | Prerequisites: [Phase 1](01-domain-layer.md), [Phase 1A](01a-logging.md) | Outputs: [Phase 2A](02a-backup-restore.md), [Phase 3](03-service-layer.md)
 
 ---
 
@@ -145,6 +145,7 @@ class BalanceSnapshotModel(Base):
 
 
 class SettingModel(Base):
+    """User-level setting overrides (writable by user actions)."""
     __tablename__ = "settings"
 
     key = Column(String, primary_key=True)
@@ -156,6 +157,20 @@ class SettingModel(Base):
     # ui.theme, ui.activePage, ui.panel.*.collapsed, ui.sidebar.width
     # notification.{category}.enabled  (success|info|warning|confirmation)
     # display.dollar_visible, display.percent_visible, display.percent_mode
+
+
+class AppDefaultModel(Base):
+    """Application-level setting defaults. Seeded from code registry during migration.
+    See Phase 2A (02a-backup-restore.md) for full default values and resolution logic.
+    """
+    __tablename__ = "app_defaults"
+
+    key = Column(String, primary_key=True)
+    value = Column(Text, nullable=False)
+    value_type = Column(String(20), nullable=False)     # "str", "int", "float", "bool", "json"
+    category = Column(String(50), nullable=False)        # "dialog", "logging", "display", "backup"
+    description = Column(Text, nullable=True)
+    updated_at = Column(DateTime, nullable=False)
 
 
 class MarketProviderSettingModel(Base):
@@ -172,6 +187,28 @@ class MarketProviderSettingModel(Base):
     created_at = Column(DateTime, nullable=False)
     updated_at = Column(DateTime, nullable=True)
 ```
+
+### McpGuardModel (MCP Circuit Breaker State)
+
+```python
+# zorivest_infra/database/models.py  (continued)
+
+class McpGuardModel(Base):
+    """Singleton row — circuit breaker state for MCP tool access."""
+    __tablename__ = "mcp_guard"
+
+    id = Column(Integer, primary_key=True, default=1)        # singleton
+    is_enabled = Column(Boolean, default=False)               # opt-in; disabled by default
+    is_locked = Column(Boolean, default=False)                # True = all MCP tools blocked
+    locked_at = Column(DateTime, nullable=True)
+    lock_reason = Column(String(100), nullable=True)          # free-text; convention: "manual", "rate_limit_exceeded", "agent_self_lock"
+    calls_per_minute_limit = Column(Integer, default=60)
+    calls_per_hour_limit = Column(Integer, default=500)
+    updated_at = Column(DateTime, nullable=True)
+```
+
+> The guard row is seeded during `AppDefaultModel` migration (see [Phase 2A](02a-backup-restore.md)).
+> When `is_enabled=False`, the guard middleware is a no-op.
 
 ## Step 2.2: Repository Integration Tests
 

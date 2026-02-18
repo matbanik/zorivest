@@ -1,6 +1,6 @@
 # Phase 6f: GUI — Settings Pages
 
-> Part of [Phase 6: GUI](06-gui.md) | Prerequisites: [Phase 4](04-rest-api.md), [Phase 8](08-market-data.md) | Outputs: [Phase 7](07-distribution.md)
+> Part of [Zorivest Build Plan](../BUILD_PLAN.md) | Prerequisites: [Phase 4](04-rest-api.md), [Phase 2A](02a-backup-restore.md) | Parent: [Phase 6 GUI](06-gui.md) | Outputs: [Phase 7](07-distribution.md)
 
 ---
 
@@ -298,9 +298,18 @@ export function ProviderSettingsPage() {
 |---|---|---|---|
 | `display.hide_dollars` | `boolean` | `false` | Mask all dollar amounts |
 | `display.hide_percentages` | `boolean` | `false` | Mask all percentage values |
-| `display.use_percent_mode` | `boolean` | `false` | Show values as % of account |
+| `display.percent_mode` | `string` | `daily` | Percentage display mode (daily/total) |
 
 Settings persisted via `PUT /api/v1/settings` using the `usePersistedState` hook (see [06a-gui-shell.md](06a-gui-shell.md)).
+
+### Validation Error Display
+
+All settings pages share the same error handling for `PUT /settings` validation failures (see [Phase 2A §2A.2b](02a-backup-restore.md)):
+
+- **422 response** → Parse `detail.errors` (keyed by setting) and render per-field error text below the corresponding input
+- **Error text style** — Red (`var(--danger)`) inline message below the field, matching standard form error pattern
+- **No client-side validation duplication** — The `SettingsValidator` on the server is the single source of truth. The GUI does not re-implement range checks, enum constraints, or security validation; it only renders errors the server returns
+- **All-or-nothing** — If any field fails validation, no fields are saved. The toast notification summarizes: `"Validation failed for {n} field(s)"`
 
 ---
 
@@ -350,7 +359,7 @@ Settings persisted via `PUT /api/v1/settings` using the `usePersistedState` hook
 
 ---
 
-## 6f.5: Logging Settings (Phase 1A)
+## 6f.4: Logging Settings (Phase 1A)
 
 > [!NOTE]
 > **Stub section** — full implementation depends on [Phase 1A Logging Infrastructure](01a-logging.md). Expand when logging is implemented.
@@ -419,6 +428,260 @@ const [rotationMb, setRotationMb] = usePersistedState('logging.rotation_mb', '10
 
 ---
 
+## 6f.5: Backup & Restore Settings Page
+
+> **Source**: [Phase 2A](02a-backup-restore.md) — Encrypted backup/restore architecture
+
+### Layout
+
+Vertical stack within the Settings sidebar:
+
+```
+┌─────────────────────────────────────────────────────┐
+│  Backup & Restore                                    │
+├──────────────────────────────────────────────────────┤
+│                                                      │
+│  ┌─ Manual Backup ─────────────────────────────────┐ │
+│  │  [Create Backup Now]           Last: 2h ago     │ │
+│  └─────────────────────────────────────────────────┘ │
+│                                                      │
+│  ┌─ Automatic Backups ─────────────────────────────┐ │
+│  │  Interval: [300] seconds    [●] Enabled         │ │
+│  │  Change threshold: [100]                        │ │
+│  │  Compression: [●] Enabled                       │ │
+│  └─────────────────────────────────────────────────┘ │
+│                                                      │
+│  ┌─ Restore ───────────────────────────────────────┐ │
+│  │  [Select Backup File...]  [Verify]  [Restore]   │ │
+│  │  Status: Ready                                  │ │
+│  └─────────────────────────────────────────────────┘ │
+│                                                      │
+│  ┌─ Backup History ────────────────────────────────┐ │
+│  │  Date         │ Size   │ Type   │ Actions       │ │
+│  │  2026-02-17   │ 1.2 MB │ Auto   │ [Verify] [↗]  │ │
+│  │  2026-02-16   │ 1.1 MB │ Manual │ [Verify] [↗]  │ │
+│  └─────────────────────────────────────────────────┘ │
+└──────────────────────────────────────────────────────┘
+```
+
+### REST Endpoints
+
+| Action | Method | Endpoint |
+|--------|--------|----------|
+| Create manual backup | `POST` | `/api/v1/backups` |
+| List backups | `GET` | `/api/v1/backups` |
+| Verify backup | `POST` | `/api/v1/backups/verify` |
+| Restore from backup | `POST` | `/api/v1/backups/restore` |
+
+### Behavior
+
+- **Create Backup**: triggers `POST /backups`, shows spinner, displays result toast
+- **Verify**: non-destructive check (hash verification + DB open test), shows pass/fail
+- **Restore**: confirmation dialog (uses `dialog.confirm_restore` setting), progress indicator, auto-reload after success
+- **Backup History**: fetched from `GET /backups`, row actions for verify and open-in-explorer
+
+> **Passphrase handling**: Verify and restore use the **session-unlocked passphrase** — no second prompt. If the session has expired, the GUI shows a re-authentication modal before proceeding.
+
+---
+
+## 6f.6: Config Export/Import
+
+> **Source**: [Phase 2A](02a-backup-restore.md) — JSON config export/import (non-sensitive only)
+
+### Layout
+
+Card within Settings sidebar:
+
+```
+┌─────────────────────────────────────────────────────┐
+│  Config Export / Import                              │
+├──────────────────────────────────────────────────────┤
+│                                                      │
+│  Export your application settings as a portable      │
+│  JSON file (excludes API keys and passwords).        │
+│                                                      │
+│  [Export Config]                                      │
+│                                                      │
+│  ─────────────────────────────────────────────────── │
+│                                                      │
+│  Import settings from a previously exported file.    │
+│                                                      │
+│  [Select File...]  [Preview Changes]  [Import]       │
+│                                                      │
+│  Preview:                                            │
+│  ┌───────────────────────────────────────────────┐   │
+│  │ display.hide_dollars: false → true            │   │
+│  │ logging.rotation_mb: 10 → 20                  │   │
+│  │ + backup.auto_interval_seconds: 600 (new)     │   │
+│  └───────────────────────────────────────────────┘   │
+└──────────────────────────────────────────────────────┘
+```
+
+### REST Endpoints
+
+| Action | Method | Endpoint |
+|--------|--------|----------|
+| Export config | `GET` | `/api/v1/config/export` |
+| Preview import | `POST` | `/api/v1/config/import?dry_run=true` |
+| Apply import | `POST` | `/api/v1/config/import` |
+
+### Behavior
+
+- **Export**: triggers file download of `zorivest-config-{date}.json`
+- **Preview**: shows diff of current vs imported settings (dry-run mode)
+- **Import**: confirmation dialog, applies accepted keys only, shows rejected/unknown keys in warning toast
+
+---
+
+## 6f.7: Reset to Default
+
+All settings pages gain a "Reset to Default" capability:
+
+- Each setting row shows its source: **User**, **Default**, or **Hardcoded** (from `GET /api/v1/settings/resolved`)
+- User-overridden settings show a small ↻ (reset) icon button
+- Clicking reset calls `DELETE /api/v1/settings/{key}` and the value falls back to the next tier
+- Bulk "Reset All to Defaults" button at the bottom of each settings category
+
+---
+
+## 6f.8: MCP Guard Settings
+
+> Circuit breaker + panic button for MCP tool access.
+> Model: [`McpGuardModel`](02-infrastructure.md) | REST: [§4.6](04-rest-api.md) | MCP middleware: [§5.6](05-mcp-server.md)
+
+### Wireframe
+
+```
+┌──────────────────────────────────────────────────────────┐
+│  Settings > MCP Guard                                     │
+├──────────────────────────────────────────────────────────┤
+│                                                          │
+│  ┌─ Status ─────────────────────────────────────┐        │
+│  │ 🟢 MCP Tools: Active                        │        │
+│  │    Last 1 min: 3 calls                       │        │
+│  │    Last 1 hr:  47 calls                      │        │
+│  └──────────────────────────────────────────────┘        │
+│                                                          │
+│  ── Thresholds ─────────────────────────────────         │
+│  [●] Enable MCP Guard                                    │
+│  Calls per minute:  [ 60  ]                              │
+│  Calls per hour:    [ 500 ]                              │
+│                                                          │
+│  [Save]                                                  │
+│                                                          │
+│  ── Emergency ─────────────────────────────────          │
+│  [🔴 Emergency Stop — Lock All MCP Tools]                │
+│  ⚠️ This immediately blocks all AI agent access.          │
+│     Unlock from this page when ready.                    │
+│                                                          │
+└──────────────────────────────────────────────────────────┘
+```
+
+When locked, the status section changes to:
+
+```
+│  ┌─ Status ─────────────────────────────────────┐        │
+│  │ 🔴 MCP Tools: LOCKED                        │        │
+│  │    Locked at: 2026-02-17 21:45:00            │        │
+│  │    Reason: manual                            │        │
+│  │                                              │        │
+│  │    [🟢 Unlock MCP Tools]                     │        │
+│  └──────────────────────────────────────────────┘        │
+```
+
+### React Component
+
+> All `/mcp-guard/*` requests use the shared `apiFetch()` wrapper which injects the session token from `useAuth()` context (same pattern as all other settings pages).
+
+```tsx
+// src/renderer/pages/settings/McpGuardSettingsPage.tsx
+
+export function McpGuardSettingsPage() {
+  const { data: status } = useQuery({
+    queryKey: ['mcp-guard-status'],
+    queryFn: () => apiFetch(`${API}/mcp-guard/status`).then(r => r.json()),
+    refetchInterval: 5000,  // poll every 5s for live counters
+  });
+
+  const lockMutation = useMutation({
+    mutationFn: () => apiFetch(`${API}/mcp-guard/lock`, {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ reason: 'manual' }),
+    }),
+    onSuccess: () => queryClient.invalidateQueries({ queryKey: ['mcp-guard-status'] }),
+  });
+
+  const unlockMutation = useMutation({
+    mutationFn: () => apiFetch(`${API}/mcp-guard/unlock`, { method: 'POST' }),
+    onSuccess: () => queryClient.invalidateQueries({ queryKey: ['mcp-guard-status'] }),
+  });
+
+  const saveMutation = useMutation({
+    mutationFn: (config: McpGuardConfigUpdate) =>
+      apiFetch(`${API}/mcp-guard/config`, {
+        method: 'PUT',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify(config),
+      }),
+    onSuccess: () => queryClient.invalidateQueries({ queryKey: ['mcp-guard-status'] }),
+  });
+
+  return (
+    <div className="mcp-guard-settings">
+      <h2>MCP Guard</h2>
+
+      {/* Status card */}
+      <div className={`status-card ${status?.is_locked ? 'locked' : 'active'}`}>
+        <span>{status?.is_locked ? '🔴 LOCKED' : '🟢 Active'}</span>
+        {status?.is_locked ? (
+          <>
+            <p>Locked: {status.locked_at} — {status.lock_reason}</p>
+            <button className="unlock-btn" onClick={() => unlockMutation.mutate()}>
+              🟢 Unlock MCP Tools
+            </button>
+          </>
+        ) : (
+          <p>Last 1 min: {status?.recent_calls_1min} | Last 1 hr: {status?.recent_calls_1hr}</p>
+        )}
+      </div>
+
+      {/* Thresholds */}
+      <fieldset>
+        <legend>Thresholds</legend>
+        <label className="toggle">
+          <input type="checkbox" checked={isEnabled} onChange={...} /> Enable MCP Guard
+        </label>
+        <label>Calls per minute: <input type="number" value={callsPerMin} ... /></label>
+        <label>Calls per hour: <input type="number" value={callsPerHr} ... /></label>
+        <button onClick={() => saveMutation.mutate({ is_enabled: isEnabled, calls_per_minute_limit: callsPerMin, calls_per_hour_limit: callsPerHr })}>Save</button>
+      </fieldset>
+
+      {/* Emergency stop */}
+      {!status?.is_locked && (
+        <div className="emergency-section">
+          <button className="emergency-btn" onClick={() => lockMutation.mutate()}>
+            🔴 Emergency Stop — Lock All MCP Tools
+          </button>
+          <p className="warning">⚠️ This immediately blocks all AI agent access.</p>
+        </div>
+      )}
+    </div>
+  );
+}
+```
+
+### REST Endpoints Consumed
+
+| Method | Endpoint | Purpose |
+|--------|----------|---------|
+| `GET` | `/api/v1/mcp-guard/status` | Poll guard state + live counters |
+| `PUT` | `/api/v1/mcp-guard/config` | Save thresholds and enabled toggle |
+| `POST` | `/api/v1/mcp-guard/lock` | Emergency stop |
+| `POST` | `/api/v1/mcp-guard/unlock` | Restore MCP access |
+
+---
+
 ## Exit Criteria
 
 - Market Data Settings page displays all 9 providers with connection status
@@ -427,10 +690,17 @@ const [rotationMb, setRotationMb] = usePersistedState('logging.rotation_mb', '10
 - Email test connection sends a test email and reports success/failure
 - Display mode toggles immediately affect all dollar/percentage displays
 - Tax Profile page renders (P3 placeholder — full validation deferred)
+- Backup page: create, verify, restore cycle works end-to-end
+- Config export produces valid JSON; import with preview applies non-sensitive settings only
+- Reset to Default removes user override and falls back correctly
+- MCP Guard page displays status, accepts threshold changes, and lock/unlock cycle works
 
 ## Outputs
 
 - React components: `ProviderSettingsPage`, `EmailSettingsPage`, `DisplaySettingsPage`, `TaxProfilePage` (P3)
+- React components: `BackupSettingsPage`, `ConfigExportImportCard` — see [Phase 2A](02a-backup-restore.md)
+- React component: `McpGuardSettingsPage` — circuit breaker + panic button
 - Email preset auto-fill configuration map
 - Display mode toggle with live preview
-- All settings pages consuming `PUT /api/v1/settings` REST endpoint
+- Reset to Default ↻ buttons on all settings rows
+- Settings pages consume: `GET/PUT /settings`, `GET /settings/resolved`, `POST/GET /backups`, `GET /config/export`, `POST /config/import`, `DELETE /settings/{key}`, `GET/PUT /mcp-guard/config`, `GET /mcp-guard/status`, `POST /mcp-guard/lock`, `POST /mcp-guard/unlock`

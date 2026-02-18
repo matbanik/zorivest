@@ -1,6 +1,6 @@
 # Phase 3: Application — Service Layer & Use Cases
 
-> Part of [Zorivest Build Plan](../BUILD_PLAN.md) | Prerequisites: [Phase 1](01-domain-layer.md), [Phase 2](02-infrastructure.md) | Outputs: [Phase 4](04-rest-api.md)
+> Part of [Zorivest Build Plan](../BUILD_PLAN.md) | Prerequisites: [Phase 1](01-domain-layer.md), [Phase 2](02-infrastructure.md), [Phase 2A](02a-backup-restore.md) | Outputs: [Phase 4](04-rest-api.md)
 
 ---
 
@@ -93,6 +93,8 @@ class TestImageService:
 | `tests/unit/test_trade_service.py` | Trade creation, deduplication, via mocked repos |
 | `tests/unit/test_image_service.py` | Image attach, retrieval, thumbnails, error handling |
 | `tests/unit/test_account_service.py` | Account management, balance snapshots |
+| `tests/unit/test_settings_resolver.py` | Three-tier resolution, type coercion, unknown key rejection |
+| `tests/unit/test_config_export.py` | Allowlist enforcement, sensitivity filtering |
 
 ## Outputs
 
@@ -100,4 +102,7 @@ class TestImageService:
 - `ImageService` with attach, retrieve, thumbnail operations
 - `AccountService` for balance management
 - `CalculatorService` wrapping the pure calculator function
+- `SettingsService` with `SettingsResolver` (three-tier resolution, reset-to-default) — see [Phase 2A](02a-backup-restore.md)
+- `BackupService` wrapping `BackupManager` + `BackupRecoveryManager` — see [Phase 2A](02a-backup-restore.md)
+- `ConfigExportService` for JSON config export/import with allowlist — see [Phase 2A](02a-backup-restore.md)
 - All services use Unit of Work pattern for transactions

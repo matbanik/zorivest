@@ -1,6 +1,8 @@
 # Phase 4: REST API (FastAPI)
 
 > Part of [Zorivest Build Plan](../BUILD_PLAN.md) | Prerequisites: [Phase 3](03-service-layer.md) | Outputs: [Phase 5](05-mcp-server.md), [Phase 6](06-gui.md) ([Shell](06a-gui-shell.md), [Trades](06b-gui-trades.md), [Settings](06f-gui-settings.md))
+>
+> **Phase 2A routes**: Backup, config export/import, and settings resolver endpoints are defined in [Phase 2A](02a-backup-restore.md) and implemented here.
 
 ---
 
@@ -184,6 +186,7 @@ from typing import Any, Optional
 from fastapi import APIRouter, Depends, HTTPException
 from pydantic import BaseModel
 from zorivest_core.services.settings_service import SettingsService
+from zorivest_core.domain.settings_validator import SettingsValidationError
 
 settings_router = APIRouter(prefix="/api/v1/settings", tags=["settings"])
 
@@ -191,6 +194,14 @@ settings_router = APIRouter(prefix="/api/v1/settings", tags=["settings"])
 class SettingResponse(BaseModel):
     key: str
     value: str
+    value_type: str
+
+
+class ResolvedSettingResponse(BaseModel):
+    """Used by GET /settings/resolved (Phase 2A). Returns typed values."""
+    key: str
+    value: Any            # typed: bool, int, float, str — NOT string-only
+    source: str           # "user" | "default" | "hardcoded"
     value_type: str
 
 
@@ -212,9 +223,77 @@ async def get_setting(key: str, service: SettingsService = Depends(get_settings_
 @settings_router.put("/")
 async def update_settings(body: dict[str, Any],
                           service: SettingsService = Depends(get_settings_service)):
-    """Bulk upsert settings. Body: {"key1": "value1", "key2": "value2"}"""
-    service.bulk_upsert(body)
-    return {"status": "updated", "count": len(body)}
+    """Bulk upsert settings with validation.
+
+    Returns 422 if any setting fails validation, with per-key error details.
+    All-or-nothing: no settings are written if any key fails.
+    Body: {"key1": "value1", "key2": "value2"}
+    """
+    try:
+        service.bulk_upsert(body)
+        return {"status": "updated", "count": len(body)}
+    except SettingsValidationError as e:
+        raise HTTPException(422, detail={"errors": e.per_key_errors})
+```
+
+#### Validation Error Tests
+
+```python
+# tests/e2e/test_settings_api.py
+
+def test_invalid_setting_rejected(client):
+    """PUT with out-of-range value returns 422 with per-key errors."""
+    response = client.put("/api/v1/settings", json={"logging.rotation_mb": "-5"})
+    assert response.status_code == 422
+    assert "logging.rotation_mb" in response.json()["detail"]["errors"]
+
+def test_path_traversal_rejected(client):
+    """PUT with path traversal value returns 422 with security error."""
+    response = client.put("/api/v1/settings", json={"display.percent_mode": "../../../etc/passwd"})
+    assert response.status_code == 422
+    assert "display.percent_mode" in response.json()["detail"]["errors"]
+
+def test_unknown_key_rejected(client):
+    """PUT with unknown key returns 422 with per-key error."""
+    response = client.put("/api/v1/settings", json={"not.a.real.key": "value"})
+    assert response.status_code == 422
+    assert "not.a.real.key" in response.json()["detail"]["errors"]
+
+def test_valid_setting_accepted(client):
+    """PUT with valid values returns 200."""
+    response = client.put("/api/v1/settings", json={"logging.rotation_mb": "20"})
+    assert response.status_code == 200
+
+def test_mixed_payload_all_or_nothing(client):
+    """PUT with one valid and one invalid key returns 422 and persists nothing."""
+    response = client.put("/api/v1/settings", json={
+        "logging.rotation_mb": "20",       # valid
+        "logging.backup_count": "-1",       # invalid (below min)
+    })
+    assert response.status_code == 422
+    errors = response.json()["detail"]["errors"]
+    assert "logging.backup_count" in errors
+    assert "logging.rotation_mb" not in errors
+    # Verify valid key was NOT persisted
+    get_resp = client.get("/api/v1/settings/logging.rotation_mb")
+    assert get_resp.json()["value"] != "20"
+
+def test_422_per_key_error_shape(client):
+    """All 422 responses include detail.errors as dict[str, list[str]]."""
+    response = client.put("/api/v1/settings", json={"display.percent_mode": "../hack"})
+    assert response.status_code == 422
+    errors = response.json()["detail"]["errors"]
+    assert isinstance(errors, dict)
+    for key, msgs in errors.items():
+        assert isinstance(key, str)
+        assert isinstance(msgs, list)
+        assert all(isinstance(m, str) for m in msgs)
+
+def test_invalid_bool_rejected(client):
+    """PUT with non-bool string for bool setting returns 422."""
+    response = client.put("/api/v1/settings", json={"display.hide_dollars": "not-a-bool"})
+    assert response.status_code == 422
+    assert "display.hide_dollars" in response.json()["detail"]["errors"]
 ```
 
 ### Step 4.3 Tests
@@ -377,6 +456,189 @@ async def list_api_keys() -> list[KeyInfo]:
     ...
 ```
 
+## Step 4.6: MCP Guard Routes
+
+> Circuit breaker + panic button for MCP tool access.
+> Model: [`McpGuardModel`](02-infrastructure.md) | GUI: [§6f.8](06f-gui-settings.md) | MCP middleware: [§5.6](05-mcp-server.md)
+
+### Pydantic Schemas
+
+```python
+# zorivest_api/schemas/mcp_guard.py
+
+class McpGuardStatus(BaseModel):
+    is_enabled: bool
+    is_locked: bool
+    locked_at: datetime | None
+    lock_reason: str | None
+    calls_per_minute_limit: int
+    calls_per_hour_limit: int
+    recent_calls_1min: int          # live counter (in-memory)
+    recent_calls_1hr: int           # live counter (in-memory)
+
+class McpGuardConfigUpdate(BaseModel):
+    is_enabled: bool | None = None
+    calls_per_minute_limit: int | None = Field(None, ge=1, le=10000)
+    calls_per_hour_limit: int | None = Field(None, ge=1, le=100000)
+
+class McpGuardLockRequest(BaseModel):
+    reason: str = Field("manual", description="Free-text reason. Convention: 'manual', 'rate_limit_exceeded', 'agent_self_lock'.")
+```
+
+### Routes
+
+> All `/mcp-guard/*` routes require an active database session via `Depends(get_guard_service)`, consistent with trade/settings routes. Calls without an unlocked DB session return **403**.
+
+```python
+# zorivest_api/routes/mcp_guard.py
+
+guard_router = APIRouter(prefix="/api/v1/mcp-guard", tags=["mcp-guard"])
+
+@guard_router.get("/status", status_code=200)
+async def guard_status(service: McpGuardService = Depends(get_guard_service)) -> McpGuardStatus:
+    """Return current guard state, thresholds, and live call counters."""
+    ...
+
+@guard_router.put("/config", status_code=200)
+async def update_guard_config(body: McpGuardConfigUpdate,
+                              service: McpGuardService = Depends(get_guard_service)) -> McpGuardStatus:
+    """Update guard thresholds and enabled toggle. Returns updated state."""
+    ...
+
+@guard_router.post("/lock", status_code=200)
+async def lock_mcp(body: McpGuardLockRequest,
+                   service: McpGuardService = Depends(get_guard_service)) -> McpGuardStatus:
+    """Panic button — immediately lock all MCP tools."""
+    ...
+
+@guard_router.post("/unlock", status_code=200)
+async def unlock_mcp(service: McpGuardService = Depends(get_guard_service)) -> McpGuardStatus:
+    """Re-enable MCP tools. Requires active database session (same as all other routes)."""
+    ...
+
+@guard_router.post("/check", status_code=200)
+async def guard_check(service: McpGuardService = Depends(get_guard_service)) -> dict:
+    """Lightweight check endpoint called by MCP middleware on each tool call.
+    Increments in-memory counter. Returns {"allowed": true/false, "reason": ...}.
+    If threshold exceeded, auto-locks with reason 'rate_limit_exceeded' and returns allowed=false."""
+    ...
+```
+
+### E2E Tests
+
+```python
+# tests/e2e/test_mcp_guard.py
+
+def test_guard_status_returns_defaults(client):
+    """GET /mcp-guard/status returns is_enabled=False, is_locked=False."""
+    r = client.get("/api/v1/mcp-guard/status")
+    assert r.status_code == 200
+    assert r.json()["is_enabled"] is False
+    assert r.json()["is_locked"] is False
+
+def test_guard_lock_unlock_cycle(client):
+    """POST lock → locked=True → POST unlock → locked=False."""
+    client.post("/api/v1/mcp-guard/lock", json={"reason": "test"})
+    assert client.get("/api/v1/mcp-guard/status").json()["is_locked"] is True
+    client.post("/api/v1/mcp-guard/unlock")
+    assert client.get("/api/v1/mcp-guard/status").json()["is_locked"] is False
+
+def test_guard_config_update(client):
+    """PUT new thresholds → GET reflects changes."""
+    client.put("/api/v1/mcp-guard/config", json={"calls_per_minute_limit": 30})
+    status = client.get("/api/v1/mcp-guard/status").json()
+    assert status["calls_per_minute_limit"] == 30
+
+def test_guard_lock_reason_persisted(client):
+    """Lock reason is stored and returned in status."""
+    client.post("/api/v1/mcp-guard/lock", json={"reason": "agent_self_lock"})
+    assert client.get("/api/v1/mcp-guard/status").json()["lock_reason"] == "agent_self_lock"
+
+def test_guard_routes_require_session(unauthenticated_client):
+    """All guard routes return 403 without an unlocked DB session."""
+    assert unauthenticated_client.get("/api/v1/mcp-guard/status").status_code == 403
+    assert unauthenticated_client.post("/api/v1/mcp-guard/lock", json={}).status_code == 403
+    assert unauthenticated_client.post("/api/v1/mcp-guard/unlock").status_code == 403
+
+def test_guard_check_auto_locks_on_threshold(client):
+    """Enable guard with limit=2. Third /check call triggers auto-lock."""
+    client.put("/api/v1/mcp-guard/config", json={"is_enabled": True, "calls_per_minute_limit": 2})
+    assert client.post("/api/v1/mcp-guard/check").json()["allowed"] is True
+    assert client.post("/api/v1/mcp-guard/check").json()["allowed"] is True
+    result = client.post("/api/v1/mcp-guard/check").json()
+    assert result["allowed"] is False
+    assert result["reason"] == "rate_limit_exceeded"
+    assert client.get("/api/v1/mcp-guard/status").json()["is_locked"] is True
+    assert client.get("/api/v1/mcp-guard/status").json()["lock_reason"] == "rate_limit_exceeded"
+
+def test_guard_check_allowed_when_disabled(client):
+    """Guard disabled: /check always returns allowed=true, never auto-locks."""
+    client.put("/api/v1/mcp-guard/config", json={"is_enabled": False})
+    for _ in range(10):
+        assert client.post("/api/v1/mcp-guard/check").json()["allowed"] is True
+    assert client.get("/api/v1/mcp-guard/status").json()["is_locked"] is False
+
+def test_guard_check_counter_resets_after_window(client):
+    """Call /check near limit, wait for window expiry, verify counter resets."""
+    client.put("/api/v1/mcp-guard/config", json={"is_enabled": True, "calls_per_minute_limit": 2})
+    client.post("/api/v1/mcp-guard/check")  # 1 of 2
+    # ... (time.sleep or mock clock to advance past 60s window) ...
+    result = client.post("/api/v1/mcp-guard/check").json()
+    assert result["allowed"] is True  # counter reset
+```
+
+## Step 4.7: Version Route
+
+> Exposes runtime version and resolution context for diagnostics (see [Phase 7 §7.1](07-distribution.md)). No authentication required (localhost-only).
+
+```python
+# packages/api/src/zorivest_api/routes/version.py
+
+from fastapi import APIRouter
+from pydantic import BaseModel
+from zorivest_core.version import get_version, get_version_context
+
+version_router = APIRouter(prefix="/api/v1/version", tags=["version"])
+
+
+class VersionResponse(BaseModel):
+    version: str        # SemVer string, e.g. "1.0.0"
+    context: str        # "frozen" | "installed" | "dev"
+
+
+@version_router.get("/", status_code=200)
+async def get_app_version() -> VersionResponse:
+    """Return application version and how it was resolved.
+
+    Resolution order (see §7.1):
+    1. Frozen executable (_VERSION constant)
+    2. Installed package (importlib.metadata)
+    3. Development (.version file in repo root)
+    """
+    return VersionResponse(version=get_version(), context=get_version_context())
+```
+
+### Step 4.7 Tests
+
+```python
+# tests/e2e/test_version_api.py
+
+def test_version_endpoint_returns_200(client):
+    """GET /api/v1/version/ returns version and context."""
+    response = client.get("/api/v1/version/")
+    assert response.status_code == 200
+    data = response.json()
+    assert "version" in data
+    assert data["context"] in ("frozen", "installed", "dev")
+
+def test_version_format_is_semver(client):
+    """Version string matches SemVer pattern."""
+    import re
+    response = client.get("/api/v1/version/")
+    version = response.json()["version"]
+    assert re.match(r"^\d+\.\d+\.\d+", version)
+```
+
 ## Exit Criteria
 
 - All e2e tests pass with FastAPI `TestClient`
@@ -384,11 +646,18 @@ async def list_api_keys() -> list[KeyInfo]:
 - Settings CRUD endpoints return correct values
 - Log ingestion endpoint accepts and records frontend metrics
 - Trade list supports `account_id` filter and `sort` parameter
+- MCP guard lock/unlock cycle and threshold updates work end-to-end
+- Version endpoint returns valid SemVer and resolution context
 
 ## Outputs
 
 - FastAPI routes for trades, images, accounts, calculator
+- Version route for diagnostics (`GET /api/v1/version/`)
 - Settings routes for UI state and preference persistence
+- Settings resolver routes (`GET /resolved`, `DELETE /{key}` for reset) — see [Phase 2A](02a-backup-restore.md)
+- Backup routes (`POST/GET /backups`, `POST /backups/restore`, `POST /backups/verify`) — see [Phase 2A](02a-backup-restore.md)
+- Config export/import routes (`GET /config/export`, `POST /config/import`) — see [Phase 2A](02a-backup-restore.md)
+- MCP guard routes (`GET/PUT /mcp-guard/config`, `GET /mcp-guard/status`, `POST /mcp-guard/lock`, `POST /mcp-guard/unlock`, `POST /mcp-guard/check`)
 - Logging route for frontend metric ingestion
 - Full CRUD endpoints with pagination, filtering, and sorting
 - E2E tests using `TestClient`

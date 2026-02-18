@@ -250,7 +250,9 @@ export function registerSettingsTools(server: McpServer) {
 }
 ```
 
-> **Convention**: All setting values are **strings at the API/MCP boundary**. Consumers parse to their native types (e.g., `"true"` → `boolean`, `"280"` → `number`). The `value_type` column in `SettingModel` is metadata for future typed deserialization but is not enforced at the REST layer.
+> **Convention**: Setting values at the `GET/PUT /settings` and MCP `get_settings`/`update_settings` boundary are **strings**. Consumers parse to their native types (e.g., `"true"` → `boolean`, `"280"` → `number`). The `value_type` column in `SettingModel` is metadata for future typed deserialization but is not enforced at the REST layer.
+>
+> **Exception**: The `GET /settings/resolved` and `/config/export|import` routes (defined in [Phase 2A](02a-backup-restore.md)) return **typed JSON values** (bool, int, float) because those endpoints use the `SettingsResolver` which performs type coercion.
 
 ## Testing Strategy
 
@@ -357,15 +359,231 @@ export function getAuthHeaders(): Record<string, string> {
 
 When the MCP server runs inside Electron (embedded mode), the GUI has already unlocked the database via passphrase. The MCP server receives a pre-authenticated session token from the main process — no API key bootstrap is needed.
 
+## Step 5.6: MCP Guard Middleware
+
+> Circuit breaker + panic button for MCP tool access.
+> Model: [`McpGuardModel`](02-infrastructure.md) | REST: [§4.6](04-rest-api.md) | GUI: [§6f.8](06f-gui-settings.md)
+
+### Guard Check Flow
+
+```
+MCP Tool Call
+  → guardCheck()
+    → POST /api/v1/mcp-guard/check
+      → [locked?]           → MCP error: "MCP guard is locked: {reason}"
+      → [enabled + OK?]     → increment counter → execute tool
+      → [threshold hit?]    → auto-lock + MCP error: "Rate limit exceeded"
+      → [disabled?]         → skip check → execute tool
+```
+
+### Middleware Implementation
+
+```typescript
+// mcp-server/src/middleware/mcp-guard.ts
+
+const API_BASE = process.env.ZORIVEST_API_URL ?? 'http://localhost:8765';
+
+interface GuardCheckResult {
+  allowed: boolean;
+  reason?: string;
+}
+
+export async function guardCheck(): Promise<GuardCheckResult> {
+  // Session token injected via getAuthHeaders() — same auth model as all other REST calls
+  const res = await fetch(`${API_BASE}/api/v1/mcp-guard/check`, {
+    method: 'POST',
+    headers: { 'Content-Type': 'application/json', ...getAuthHeaders() },
+  });
+  return res.json();
+}
+
+/**
+ * Wraps an MCP tool handler with guard check.
+ * If guard denies, returns MCP error content instead of executing.
+ */
+export function withGuard<T>(
+  handler: (args: T) => Promise<McpResult>
+): (args: T) => Promise<McpResult> {
+  return async (args: T) => {
+    const check = await guardCheck();
+    if (!check.allowed) {
+      return {
+        content: [{
+          type: 'text' as const,
+          text: `⛔ MCP guard blocked this call: ${check.reason}. Unlock via GUI → Settings → MCP Guard, or via zorivest_emergency_unlock tool.`,
+        }],
+        isError: true,
+      };
+    }
+    return handler(args);
+  };
+}
+```
+
+### Emergency Stop Tool
+
+```typescript
+// mcp-server/src/tools/guard-tools.ts
+
+import { McpServer } from '@modelcontextprotocol/sdk/server/mcp.js';
+import { z } from 'zod';
+
+const API_BASE = process.env.ZORIVEST_API_URL ?? 'http://localhost:8765';
+
+export function registerGuardTools(server: McpServer) {
+  server.tool(
+    'zorivest_emergency_stop',
+    'Emergency: Lock all MCP tool access. Use if you detect runaway behavior or a loop.',
+    { reason: z.string().default('agent_self_lock') },
+    async ({ reason }) => {
+      const res = await fetch(`${API_BASE}/api/v1/mcp-guard/lock`, {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json', ...getAuthHeaders() },
+        body: JSON.stringify({ reason }),
+      });
+      const data = await res.json();
+      return {
+        content: [{
+          type: 'text' as const,
+          text: `🔒 MCP tools locked. Reason: "${reason}". Unlock via GUI → Settings → MCP Guard, or via zorivest_emergency_unlock tool.`,
+        }],
+      };
+    }
+  );
+
+  server.tool(
+    'zorivest_emergency_unlock',
+    'Unlock MCP tools after an emergency stop. Requires confirmation token.',
+    { confirm: z.literal('UNLOCK') },
+    async () => {
+      const res = await fetch(`${API_BASE}/api/v1/mcp-guard/unlock`, {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json', ...getAuthHeaders() },
+      });
+      const data = await res.json();
+      return {
+        content: [{
+          type: 'text' as const,
+          text: data.is_locked
+            ? `⚠️ Unlock failed — guard is still locked. Check REST API logs.`
+            : `🟢 MCP tools unlocked. Guard is active and accepting calls.`,
+        }],
+      };
+    }
+  );
+}
+```
+
+### Registration
+
+```typescript
+// mcp-server/src/index.ts  (additions)
+
+import { registerGuardTools } from './tools/guard-tools.js';
+import { withGuard } from './middleware/mcp-guard.js';
+
+// Register guard tool (emergency stop is NOT itself guarded — always available)
+registerGuardTools(server);
+
+// Wrap existing tool handlers with guard middleware
+// (Applied during registration in registerTradeTools, registerMarketDataTools, etc.)
+```
+
+### Vitest Tests
+
+```typescript
+// mcp-server/tests/guard.test.ts
+
+import { describe, it, expect, vi } from 'vitest';
+
+describe('MCP Guard Middleware', () => {
+  it('allows tool execution when guard is disabled', async () => {
+    vi.mocked(fetch).mockResolvedValueOnce(
+      new Response(JSON.stringify({ allowed: true }))
+    );
+    const handler = withGuard(async () => ({
+      content: [{ type: 'text' as const, text: 'ok' }],
+    }));
+    const result = await handler({});
+    expect(result.content[0].text).toBe('ok');
+  });
+
+  it('blocks tool execution when guard is locked', async () => {
+    vi.mocked(fetch).mockResolvedValueOnce(
+      new Response(JSON.stringify({ allowed: false, reason: 'manual' }))
+    );
+    const handler = withGuard(async () => ({
+      content: [{ type: 'text' as const, text: 'ok' }],
+    }));
+    const result = await handler({});
+    expect(result.isError).toBe(true);
+    expect(result.content[0].text).toContain('MCP guard blocked');
+  });
+
+  it('emergency stop tool calls lock endpoint', async () => {
+    vi.mocked(fetch).mockResolvedValueOnce(
+      new Response(JSON.stringify({ is_locked: true }))
+    );
+    // Import and invoke the handler directly
+    const { registerGuardTools } = await import('../src/tools/guard-tools.js');
+    const mockServer = { tool: vi.fn() };
+    registerGuardTools(mockServer as any);
+    // Extract the emergency_stop handler (first registered tool)
+    const [, , , handler] = mockServer.tool.mock.calls[0];
+    const result = await handler({ reason: 'test-lock' });
+    expect(fetch).toHaveBeenCalledWith(
+      expect.stringContaining('/mcp-guard/lock'),
+      expect.objectContaining({
+        method: 'POST',
+        body: JSON.stringify({ reason: 'test-lock' }),
+      })
+    );
+    expect(result.content[0].text).toContain('MCP tools locked');
+  });
+
+  it('emergency unlock tool calls unlock endpoint', async () => {
+    vi.mocked(fetch).mockResolvedValueOnce(
+      new Response(JSON.stringify({ is_locked: false }))
+    );
+    const { registerGuardTools } = await import('../src/tools/guard-tools.js');
+    const mockServer = { tool: vi.fn() };
+    registerGuardTools(mockServer as any);
+    // Extract the emergency_unlock handler (second registered tool)
+    const [, , , handler] = mockServer.tool.mock.calls[1];
+    const result = await handler({ confirm: 'UNLOCK' });
+    expect(fetch).toHaveBeenCalledWith(
+      expect.stringContaining('/mcp-guard/unlock'),
+      expect.objectContaining({ method: 'POST' })
+    );
+    expect(result.content[0].text).toContain('MCP tools unlocked');
+  });
+
+  it('blocks tool execution when rate limit exceeded', async () => {
+    vi.mocked(fetch).mockResolvedValueOnce(
+      new Response(JSON.stringify({ allowed: false, reason: 'rate_limit_exceeded' }))
+    );
+    const handler = withGuard(async () => ({
+      content: [{ type: 'text' as const, text: 'ok' }],
+    }));
+    const result = await handler({});
+    expect(result.isError).toBe(true);
+    expect(result.content[0].text).toContain('rate_limit_exceeded');
+  });
+});
+```
+
 ## Exit Criteria
 
 - All Vitest tests pass
 - Tool schemas validate input/output correctly
 - MCP Inspector shows correct tool registration
+- Guard middleware blocks/allows tools based on guard state
 
 ## Outputs
 
 - TypeScript MCP tools (trade/image): `create_trade`, `list_trades`, `attach_screenshot`, `get_trade_screenshots`, `calculate_position_size`, `get_screenshot`
 - TypeScript MCP tools (market data, from Phase 8): `get_stock_quote`, `get_market_news`, `search_ticker`, `get_sec_filings`, `list_market_providers`, `test_market_provider`, `disconnect_market_provider`
 - TypeScript MCP tools (settings): `get_settings`, `update_settings`
+- TypeScript MCP tools (guard): `zorivest_emergency_stop`, `zorivest_emergency_unlock`
+- MCP guard middleware: `withGuard()` wrapper, `guardCheck()` REST client
 - Vitest test suite with mocked `fetch()`
