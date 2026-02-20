@@ -111,6 +111,15 @@ pytest -m "not e2e" --tb=short && npx vitest run
 pytest --tb=long -v && npx vitest run --reporter=verbose
 ```
 
+### Diagnostics, Metrics & GUI Launch Tools
+
+The new MCP tools added in [Phase 5 §5.8–5.11](05-mcp-server.md) follow the standard Vitest + mocked `fetch()` approach (Approach 1):
+
+- **`zorivest_diagnose`** — mock the 4 parallel `fetch()` calls (`/health`, `/version/`, `/mcp-guard/status`, `/market-data/providers`) to test reachable vs unreachable scenarios. Verify API keys are never included in output. Verify unauthenticated mode returns partial results with auth-dependent fields as `"unavailable"`.
+- **`MetricsCollector`** — pure unit tests (no mocking needed). Verify percentile calculations, ring buffer bounds, error rate computation, and auto-warnings.
+- **`withMetrics()` wrapper** — verify latency recording and error tracking; test composition with `withGuard()`.
+- **`zorivest_launch_gui`** — mock `existsSync()` and `exec()` to test all 4 discovery methods, platform-specific launch commands, and the not-installed fallback response.
+
 ## Test Infrastructure Setup
 
 ### `conftest.py` — Shared Fixtures

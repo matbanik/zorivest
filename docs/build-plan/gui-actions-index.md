@@ -172,13 +172,15 @@ Canonical registry of **every GUI action** (buttons, triggers, keyboard shortcut
 
 ## 15. Schedule Management
 
+> **⛔ Superseded by Section 25 (Scheduling & Pipeline).** The `/api/v1/schedules` endpoints below are replaced by the Phase 9 policy-driven scheduling at `/api/v1/scheduling/policies`. See Section 25 for the canonical contracts.
+
 | # | Action | Trigger | REST | MCP | Status | Plan Files |
 |---|--------|---------|------|-----|--------|------------|
-| 15.1 | Create schedule | 🔘 | `POST /api/v1/schedules` | — | 📋 | [06e](06e-gui-scheduling.md) |
-| 15.2 | Update schedule | 🔘 | `PUT /api/v1/schedules/{id}` | — | 📋 | [06e](06e-gui-scheduling.md) |
-| 15.3 | Delete schedule | 🔘 | `DELETE /api/v1/schedules/{id}` | — | 📋 | [06e](06e-gui-scheduling.md) |
-| 15.4 | Run Now | 🔘 | `POST /api/v1/schedules/{id}/run` | `run_pipeline_now` | 📋 | [06e](06e-gui-scheduling.md) |
-| 15.5 | Enable/Disable toggle | 🔀 | `PATCH /api/v1/schedules/{id}` | — | 📋 | [06e](06e-gui-scheduling.md) |
+| 15.1 | ~~Create schedule~~ | 🔘 | ~~`POST /api/v1/schedules`~~ | — | ⛔ | [09](09-scheduling.md) §25.1 |
+| 15.2 | ~~Update schedule~~ | 🔘 | ~~`PUT /api/v1/schedules/{id}`~~ | — | ⛔ | [09](09-scheduling.md) §25.2 |
+| 15.3 | ~~Delete schedule~~ | 🔘 | ~~`DELETE /api/v1/schedules/{id}`~~ | — | ⛔ | [09](09-scheduling.md) §25.1 |
+| 15.4 | ~~Run Now~~ | 🔘 | ~~`POST /api/v1/schedules/{id}/run`~~ | ~~`run_pipeline_now`~~ | ⛔ | [09](09-scheduling.md) §25.4 |
+| 15.5 | ~~Enable/Disable toggle~~ | 🔀 | ~~`PATCH /api/v1/schedules/{id}`~~ | — | ⛔ | [09](09-scheduling.md) §25.3 |
 
 ---
 
@@ -261,16 +263,43 @@ Canonical registry of **every GUI action** (buttons, triggers, keyboard shortcut
 
 ---
 
+## 24. Settings — MCP Server Status
+
+| # | Action | Trigger | REST | MCP | Status | Plan Files |
+|---|--------|---------|------|-----|--------|------------|
+| 24.1 | Copy IDE config JSON | 🔘 | — (client-side generation) | — | ✅ | [06f](06f-gui-settings.md) |
+| 24.2 | Refresh status | 🔘 | `GET /health` + `GET /version` | `zorivest_diagnose` | ✅ | [06f](06f-gui-settings.md), [05](05-mcp-server.md) |
+
+---
+
+## 25. Scheduling & Pipeline
+
+> Policy management, pipeline execution, and approval flow.
+> Source: [06e-gui-scheduling.md](06e-gui-scheduling.md), [Phase 9](09-scheduling.md)
+
+| # | Action | Trigger | REST | MCP | Status | Plan Files |
+|---|--------|---------|------|-----|--------|------------|
+| 25.1 | Create/save policy | 🔘 | `POST/PUT /api/v1/scheduling/policies` | `create_policy` | ✅ | [06e](06e-gui-scheduling.md), [09](09-scheduling.md) |
+| 25.2 | Enable/disable schedule | 🔘 toggle | `PUT /api/v1/scheduling/policies/{id}` | `update_policy_schedule` | ✅ | [06e](06e-gui-scheduling.md), [09](09-scheduling.md) |
+| 25.3 | Run now | 🔘 | `POST /api/v1/scheduling/policies/{id}/run` | `run_pipeline` | ✅ | [06e](06e-gui-scheduling.md), [09](09-scheduling.md) |
+| 25.4 | Dry-run / preview report | 🔘 | `POST /api/v1/scheduling/policies/{id}/run` (dry_run=true) | `preview_report` | ✅ | [06e](06e-gui-scheduling.md), [09](09-scheduling.md) |
+| 25.5 | Approve policy | 🔘 | `POST /api/v1/scheduling/policies/{id}/approve` | — | ✅ | [09](09-scheduling.md) |
+| 25.6 | Delete policy | 🔘 | `DELETE /api/v1/scheduling/policies/{id}` | — | ✅ | [06e](06e-gui-scheduling.md), [09](09-scheduling.md) |
+| 25.7 | View run history | 🔘 table row | `GET /api/v1/scheduling/policies/{id}/runs` | `get_pipeline_history` | ✅ | [06e](06e-gui-scheduling.md), [09](09-scheduling.md) |
+| 25.8 | View run detail (step progress) | 🔘 table row | `GET /api/v1/scheduling/runs/{id}` | — | ✅ | [09](09-scheduling.md) |
+
+---
+
 ## Summary Statistics
 
 | Category | Count |
 |----------|-------|
-| Total GUI actions | 82 |
-| Sections | 23 |
-| ✅ Defined (full contract) | 47 |
+| Total GUI actions | 92 |
+| Sections | 25 |
+| ✅ Defined (full contract) | 57 |
 | 🔶 Domain modeled | 14 |
 | 📋 Planned | 21 |
-| Actions with REST endpoints | 53 |
-| Actions with MCP equivalents | 11 |
+| Actions with REST endpoints | 65 |
+| Actions with MCP equivalents | 17 |
 | Keyboard-triggered actions | 11 |
-| Client-side only (no REST) | 29 |
+| Client-side only (no REST) | 27 |

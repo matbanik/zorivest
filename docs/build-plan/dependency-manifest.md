@@ -55,6 +55,10 @@ uv add --dev pip-audit twine                # Dependency audit + package validat
 
 # Phase 8: Market Data Aggregation
 uv add --package zorivest-infra cryptography httpx
+
+# Phase 9: Scheduling & Pipeline Engine
+uv add --package zorivest-core apscheduler aiolimiter tenacity structlog pandera
+uv add --package zorivest-infra weasyprint plotly kaleido jinja2 aiosmtplib
 ```
 
 ## Dependency Mapping by Phase
@@ -72,5 +76,7 @@ uv add --package zorivest-infra cryptography httpx
 | 6 | `ui` (TS) | `react`, `electron`, `@tanstack/react-table`, `@tanstack/react-query`, `lightweight-charts`, `fuse.js`, `sonner`, `electron-store` |
 | 7 | distribution | `pyinstaller`, `electron-builder`, `pip-audit`, `twine` (check only), npm ≥ 11.5.1 |
 | 8 | `zorivest-infra` (market) | `cryptography`, `httpx` |
+| 9 | `zorivest-core` (scheduling) | `apscheduler`, `aiolimiter`, `tenacity`, `structlog`, `pandera` |
+| 9 | `zorivest-infra` (pipeline) | `weasyprint`, `plotly`, `kaleido`, `jinja2`, `aiosmtplib` |
 | 1A | zorivest-infra (logging) | *(none — stdlib only)* |
-| * | cross-cutting | `ruff`, `bandit`, `mypy` |
+| * | cross-cutting | `ruff`, `bandit`, `pyright` |

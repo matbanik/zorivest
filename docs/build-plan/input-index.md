@@ -445,27 +445,58 @@ Canonical registry of **every input** the system accepts — human-entered, agen
 
 ## 17. Schedule Management
 
+> **⛔ Superseded by Section 17a (Pipeline Policy Authoring).** The inputs below represent the legacy schedule model. Phase 9 replaces them with policy-driven scheduling. Field migration map:
+>
+> | Section 17 (Legacy) | Section 17a (Phase 9 Equivalent) |
+> |---|---|
+> | 17.1 `schedule_name` | 17a.1 `policy_json.name` |
+> | 17.2 `pipeline_type` | 17a.2 `policy_json.steps[].type` |
+> | 17.3 `cron_expression` | 17a.3 `policy_json.trigger.cron_expression` |
+> | 17.4 `timezone` | 17a.3 `policy_json.trigger.timezone` |
+> | 17.5 `recipients` | 17a.2 Send step `params.recipients` |
+> | 17.6 `enabled` | 17a.3 `policy_json.trigger.enabled` |
+> | 17.7 `skip_if_running` | 17a.3 `policy_json.trigger.max_instances=1` |
+> | 17.8 `misfire_grace` | 17a.3 `policy_json.trigger.misfire_grace_time` |
+> | 17.9 Run Now | 17a.5 `run_pipeline` MCP tool / `POST /policies/{id}/run` |
+
 | # | Input | Type | Description | Surface | Status | Plan Files |
 |---|-------|------|-------------|---------|--------|------------|
-| 17.1 | `schedule_name` | `string` | e.g. "Daily Performance Report" | 🖥️🤖🔌 | 📋 | [matrix](build-priority-matrix.md) |
-| 17.2 | `pipeline_type` | `dropdown` | `daily_report` / `data_refresh` / custom | 🖥️🤖🔌 | 📋 | [matrix](build-priority-matrix.md) |
-| 17.3 | `cron_expression` | `string` | 5-field cron (e.g. `0 8 * * *`) | 🖥️🤖🔌 | 📋 | [matrix](build-priority-matrix.md) |
-| 17.4 | `timezone` | `dropdown` | Default UTC | 🖥️🤖🔌 | 📋 | [matrix](build-priority-matrix.md) |
-| 17.5 | `recipients` | `string[]` | Email addresses | 🖥️🤖🔌 | 📋 | [matrix](build-priority-matrix.md) |
-| 17.6 | `enabled` | `bool` | Active / paused toggle | 🖥️🤖🔌 | 📋 | [matrix](build-priority-matrix.md) |
-| 17.7 | `skip_if_running` | `bool` | Prevent overlapping runs | 🖥️🔌 | 📋 | [matrix](build-priority-matrix.md) |
-| 17.8 | `misfire_grace` | `number` | Seconds (default 3600) | 🖥️🔌 | 📋 | [matrix](build-priority-matrix.md) |
-| 17.9 | Run Now | `action` | Trigger immediate execution | 🖥️🤖🔌 | 📋 | [matrix](build-priority-matrix.md) |
+| 17.1 | `schedule_name` | `string` | e.g. "Daily Performance Report" | 🖥️🤖🔌 | ⛔ | [09](09-scheduling.md) |
+| 17.2 | `pipeline_type` | `dropdown` | `daily_report` / `data_refresh` / custom | 🖥️🤖🔌 | ⛔ | [09](09-scheduling.md) |
+| 17.3 | `cron_expression` | `string` | 5-field cron (e.g. `0 8 * * *`) | 🖥️🤖🔌 | ⛔ | [09](09-scheduling.md) |
+| 17.4 | `timezone` | `dropdown` | Default UTC | 🖥️🤖🔌 | ⛔ | [09](09-scheduling.md) |
+| 17.5 | `recipients` | `string[]` | Email addresses | 🖥️🤖🔌 | ⛔ | [09](09-scheduling.md) |
+| 17.6 | `enabled` | `bool` | Active / paused toggle | 🖥️🤖🔌 | ⛔ | [09](09-scheduling.md) |
+| 17.7 | `skip_if_running` | `bool` | Prevent overlapping runs | 🖥️🔌 | ⛔ | [09](09-scheduling.md) |
+| 17.8 | `misfire_grace` | `number` | Seconds (default 3600) | 🖥️🔌 | ⛔ | [09](09-scheduling.md) |
+| 17.9 | Run Now | `action` | Trigger immediate execution | 🖥️🤖🔌 | ⛔ | [09](09-scheduling.md) |
 
 ### Test Strategy
 
 | Test | Input | Expected Output |
-|------|-------|-----------------|
+|------|-------|-----------------
 | Create schedule | Valid cron + recipients | Schedule created, next run calculated |
 | Invalid cron | "* * *" (3 fields) | Validation error |
 | Run Now | Trigger pipeline | Pipeline execution started |
 | Disable schedule | enabled=false | Next run nullified |
 | Misfire recovery | Missed run within grace period | Late execution triggered |
+
+---
+
+## 17a. Pipeline Policy Authoring (Phase 9 — Scheduling)
+
+> Policy documents define scheduled data pipelines (fetch → transform → store → render → send).
+> Domain: [`PolicyDocument`](09-scheduling.md) | REST: [§9.10](09-scheduling.md) | MCP: [§9.11](09-scheduling.md) | GUI: [§9.12](09-scheduling.md)
+
+| # | Input | Type | Description | Surface | Status | Plan Files |
+|---|-------|------|-------------|---------|--------|------------|
+| 17a.1 | Policy JSON document | `json` | Full PolicyDocument with steps, trigger, retry config | 🖥️🤖🔌 | ✅ | [09](09-scheduling.md) |
+| 17a.2 | Cron expression | `string` | 5-field cron for scheduling (e.g. `0 7 * * 1-5`) | 🖥️🤖🔌 | ✅ | [09](09-scheduling.md) |
+| 17a.3 | Timezone | `string` | IANA timezone for schedule (e.g. `America/New_York`) | 🖥️🤖🔌 | ✅ | [09](09-scheduling.md) |
+| 17a.4 | Enable/disable toggle | `bool` | Enable or disable a policy's schedule | 🖥️🤖🔌 | ✅ | [09](09-scheduling.md) |
+| 17a.5 | Dry-run flag | `bool` | Skip steps with side effects during execution | 🖥️🤖🔌 | ✅ | [09](09-scheduling.md) |
+| 17a.6 | Policy approval | `action` | Approve a policy for execution (human-in-the-loop) | 🖥️ | ✅ | [09](09-scheduling.md) |
+| 17a.7 | Manual run trigger | `action` | Trigger a pipeline run immediately | 🖥️🤖🔌 | ✅ | [09](09-scheduling.md) |
 
 ---
 
@@ -478,14 +509,14 @@ These inputs are triggered automatically by the system, IDE agent calls, or sche
 | 18.1 | IBKR FlexQuery Import | Trade execution records | `batch` | Bulk trade import from IBKR FlexQuery XML/CSV | ⏰🔗 | ✅ | [01](01-domain-layer.md), [04](04-rest-api.md) |
 | 18.2 | IBKR TWS Live Feed | Execution / position events | `event` | Real-time trade capture from TWS API socket | 🔗 | ✅ | [01](01-domain-layer.md) |
 | 18.3 | Scheduled Data Refresh | Market data cache refresh | `cron` | Periodic refresh of quotes/news for watchlist tickers | ⏰ | ✅ | [08](08-market-data.md) |
-| 18.4 | Scheduled Report Pipeline | Report generation + email | `cron` | Fetches data → processes → renders → sends email | ⏰ | 📋 | [matrix](build-priority-matrix.md) |
+| 18.4 | Scheduled Report Pipeline | Report generation + email | `cron` | Fetches data → processes → renders → sends email | ⏰ | ✅ | [09](09-scheduling.md) |
 | 18.5 | Plaid Webhook | Account balance update | `webhook` | Plaid sends balance/transaction updates | 🔗 | 📋 | [02](02-infrastructure.md) |
 | 18.6 | OAuth Token Refresh | Token renewal | `timer` | Background refresh before token expiry | 🔗 | 📋 | [02](02-infrastructure.md) |
 | 18.7 | Agent Quote Lookup | `get_stock_quote` via MCP | `agent_call` | IDE agent queries a ticker price on behalf of user | 🤖 | ✅ | [08](08-market-data.md), [05](05-mcp-server.md) |
 | 18.8 | Agent Tax Simulation | `simulate_tax_impact` via MCP | `agent_call` | IDE agent runs tax what-if during chat | 🤖 | 📋 | [matrix](build-priority-matrix.md) |
 | 18.9 | Agent Loss Harvesting | `harvest_losses` via MCP | `agent_call` | IDE agent identifies loss harvesting opportunities | 🤖 | 📋 | [matrix](build-priority-matrix.md) |
 | 18.10 | Agent Trade Plan | `create_trade_plan` via MCP | `agent_call` | IDE agent creates a plan during research | 🤖 | ✅ | [01](01-domain-layer.md) |
-| 18.11 | Agent Pipeline Trigger | `run_pipeline_now` via MCP | `agent_call` | IDE agent triggers a report pipeline on demand | 🤖 | 📋 | [matrix](build-priority-matrix.md) |
+| 18.11 | Agent Pipeline Trigger | `run_pipeline` via MCP | `agent_call` | IDE agent triggers a report pipeline on demand | 🤖 | ✅ | [09](09-scheduling.md), [05](05-mcp-server.md) |
 | 18.12 | Quarterly Deadline Alert | Auto-generated notification | `timer` | System alerts when IRS quarterly deadline approaches | ⏰ | 📋 | [matrix](build-priority-matrix.md) |
 | 18.13 | Wash Sale Auto-Detect | Trade triggers wash check | `event` | Every new trade auto-checks 61-day wash sale window | 🔗 | ✅ | [01](01-domain-layer.md), [matrix](build-priority-matrix.md) |
 | 18.14 | NIIT Threshold Alert | MAGI approaches $200K/$250K | `event` | Auto-triggered when AGI nears NIIT threshold | 🔗 | 📋 | [matrix](build-priority-matrix.md) |
@@ -522,17 +553,30 @@ These inputs are triggered automatically by the system, IDE agent calls, or sche
 
 ---
 
+## 20. MCP Diagnostics & GUI Launch
+
+> Agent-facing tools for debugging connectivity and launching the GUI.
+> MCP: [§5.8](05-mcp-server.md), [§5.10](05-mcp-server.md)
+
+| # | Input | Type | Description | Surface | Status | Plan Files |
+|---|-------|------|-------------|---------|--------|------------|
+| 20.1 | `verbose` | `bool` | Include per-tool latency percentiles in diagnose output (default false) | 🤖 | ✅ | [05](05-mcp-server.md) |
+| 20.2 | `wait_for_close` | `bool` | Block until GUI process exits (default false) | 🤖 | ✅ | [05](05-mcp-server.md) |
+
+---
+
 ## Summary Statistics
 
 | Category | Count |
 |----------|-------|
-| Total input fields (human-entered) | 115 |
+| Total input fields (human-entered) | 122 |
 | Programmatic/scheduled triggers | 14 |
-| Feature groups | 23 (incl. sub-sections 9a, 15a, 15b, 15m, 15d) |
-| ✅ Defined (full surface contract) | 55 inputs |
+| Feature groups | 25 (incl. sub-sections 9a, 15a, 15b, 15m, 15d, 17a) |
+| ✅ Defined (full surface contract) | 66 inputs |
 | 🔶 Domain modeled (no REST/MCP/GUI contract) | 34 inputs |
-| 📋 Planned (matrix-only, no routes/tools) | 40 inputs |
+| 📋 Planned (matrix-only, no routes/tools) | 38 inputs |
 | GUI-only inputs (security) | 2 (passphrase, API key entry) |
-| MCP-only inputs | 2 (`image_base64` row 3.2, `confirm` row 19.7) |
-| Files referenced | 9 build plan docs |
+| MCP-only inputs | 4 (`image_base64` row 3.2, `confirm` row 19.7, `verbose` row 20.1, `wait_for_close` row 20.2) |
+| Files referenced | 10 build plan docs |
+
 

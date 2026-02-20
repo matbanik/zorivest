@@ -25,9 +25,20 @@ BUILD ORDER (left to right):
                                                                             │   Phase 8    │
                                                                             │ Market Data  │
                                                                             │ Aggregation  │
-                                                                            └──────────────┘
+                                                                            └──────┬───────┘
                                                                             depends on 2,3,4
                                                                             9 API providers
+                                                                                   │
+                                                                                   ▼
+                                                                            ┌──────────────┐
+                                                                            │   Phase 9    │
+                                                                            │ Scheduling & │
+                                                                            │  Pipelines   │
+                                                                            └──────────────┘
+                                                                            depends on 2–5,8
+                                                                            policy engine,
+                                                                            5 pipeline stages,
+                                                                            6 MCP tools
 
   Phase 1A (Logging) has zero dependencies and can be built in parallel
   with Phase 1. All subsequent phases benefit from structured logging.
@@ -41,6 +52,9 @@ BUILD ORDER (left to right):
 
   Phase 8 (Market Data) depends on Phases 2–4 and provides market
   data tools consumed by Phase 5 (MCP) and Phase 6 (GUI).
+
+  Phase 9 (Scheduling & Pipelines) depends on Phases 2–5,8 and provides
+  the pipeline engine consumed by Phase 6e (GUI Scheduling).
 ```
 
 ## Phase Summary
@@ -57,6 +71,7 @@ BUILD ORDER (left to right):
 | 6 | [GUI](06-gui.md) ([Shell](06a-gui-shell.md), [Trades](06b-gui-trades.md), [Planning](06c-gui-planning.md), [Accounts](06d-gui-accounts.md), [Scheduling](06e-gui-scheduling.md), [Settings](06f-gui-settings.md), [Tax](06g-gui-tax.md), [Calculator](06h-gui-calculator.md)) | Phase 4, 8 | Electron + React desktop app |
 | 7 | [Distribution](07-distribution.md) | All | Versioning architecture, CI/CD pipelines (ci/release/publish/test-release), code signing, auto-update, OIDC publishing, rollback procedures |
 | 8 | [Market Data](08-market-data.md) | Phase 2, 3, 4 | 9-provider aggregation, encryption, MCP tools |
+| 9 | [Scheduling & Pipelines](09-scheduling.md) | Phase 2, 3, 4, 5, 8 | Policy engine, pipeline runner, APScheduler, 5 stages, 6 MCP tools |
 
 ## Golden Rules
 
@@ -74,6 +89,7 @@ BUILD ORDER (left to right):
 | [Image Architecture](image-architecture.md) | Image storage, processing pipeline, thumbnails |
 | [Backup/Restore Architecture](../_backup-restore-architecture.md) | Two-manager backup design, GFS rotation, restore flow |
 | [Dependency Manifest](dependency-manifest.md) | Install order, package versions |
-| [Build Priority Matrix](build-priority-matrix.md) | P0–P3 sequenced build order (92 items) |
+| [Build Priority Matrix](build-priority-matrix.md) | P0–P3 sequenced build order (106 items) |
 | [Input Index](input-index.md) | Every human, agent, and programmatic input with test strategies |
 | [Security Architecture](../_security-architecture.md) | Encryption, sensitive data detection, MCP circuit breaker (reference) |
+| [Scheduling Integration Roadmap](../../_inspiration/scheduling_research/scheduling-integration-roadmap.md) | Research synthesis, resolved decisions, library stack |

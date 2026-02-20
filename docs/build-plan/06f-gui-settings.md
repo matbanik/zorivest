@@ -682,6 +682,76 @@ export function McpGuardSettingsPage() {
 
 ---
 
+## 6f.9: MCP Server Status
+
+> Read-only status panel showing MCP server health, connection state, and IDE configuration helper. For detailed diagnostics, agents use `zorivest_diagnose` ([§5.8](05-mcp-server.md)). Inspired by Pomera's MCP Manager widget ([`_mcp-manager-architecture.md`](../../_inspiration/_mcp-manager-architecture.md)).
+
+### Wireframe
+
+```
+┌──────────────────────────────────────────────────────────┐
+│  Settings > MCP Server Status                             │
+├──────────────────────────────────────────────────────────┤
+│                                                          │
+│  ┌─ Connection ──────────────────────────────────┐       │
+│  │ Backend: 🟢 Connected (localhost:8765)        │       │
+│  │ Version: 1.0.0 (dev)                          │       │
+│  │ Database: 🟢 Unlocked                         │       │
+│  │ MCP Guard: 🟢 Active (47 calls/hr)            │       │
+│  │ Registered tools: 22                           │       │
+│  │ Uptime: 1h 23m                                 │       │
+│  │                                                │       │
+│  │ [Refresh Status]                               │       │
+│  └────────────────────────────────────────────────┘       │
+│                                                          │
+│  ┌─ IDE Configuration ───────────────────────────┐       │
+│  │ Generate configuration for your AI IDE:       │       │
+│  │                                                │       │
+│  │ [Cursor]  [Claude Desktop]  [Windsurf]        │       │
+│  │                                                │       │
+│  │ ┌──────────────────────────────────────────┐   │       │
+│  │ │ {                                        │   │       │
+│  │ │   "mcpServers": {                        │   │       │
+│  │ │     "zorivest": {                        │   │       │
+│  │ │       "url": "http://localhost:8766/mcp", │   │       │
+│  │ │       "headers": {                       │   │       │
+│  │ │         "Authorization": "Bearer ..."    │   │       │
+│  │ │       }                                  │   │       │
+│  │ │     }                                    │   │       │
+│  │ │   }                                      │   │       │
+│  │ │ }                                        │   │       │
+│  │ └──────────────────────────────────────────┘   │       │
+│  │ [📋 Copy to Clipboard]                         │       │
+│  └────────────────────────────────────────────────┘       │
+│                                                          │
+└──────────────────────────────────────────────────────────┘
+```
+
+### Data Sources
+
+| Field | Source | Polling |
+|---|---|---|
+| Backend status | `GET /health` | On-demand (Refresh button) |
+| Version + context | `GET /version` | On-demand |
+| Database status | `GET /health` (derived) | On-demand |
+| Guard state | `GET /mcp-guard/status` | On-demand |
+| Tool count | `zorivest_diagnose` response (shows "unknown" if unavailable) | On-demand |
+| Uptime | `zorivest_diagnose` response | On-demand |
+
+### IDE Config JSON Templates
+
+The generated JSON varies by IDE:
+
+| IDE | Config Path | Format |
+|---|---|---|
+| Cursor | `.cursor/mcp.json` | `{ "mcpServers": { "zorivest": { ... } } }` |
+| Claude Desktop | `claude_desktop_config.json` | `{ "mcpServers": { "zorivest": { ... } } }` |
+| Windsurf | `.windsurf/mcp.json` | `{ "mcpServers": { "zorivest": { ... } } }` |
+
+All templates auto-fill `url` from the detected MCP server URL and include the `Authorization` header pattern from [§5.7](05-mcp-server.md).
+
+---
+
 ## Exit Criteria
 
 - Market Data Settings page displays all 9 providers with connection status
@@ -694,13 +764,15 @@ export function McpGuardSettingsPage() {
 - Config export produces valid JSON; import with preview applies non-sensitive settings only
 - Reset to Default removes user override and falls back correctly
 - MCP Guard page displays status, accepts threshold changes, and lock/unlock cycle works
+- MCP Server Status panel shows connection health and generates valid IDE config JSON
 
 ## Outputs
 
 - React components: `ProviderSettingsPage`, `EmailSettingsPage`, `DisplaySettingsPage`, `TaxProfilePage` (P3)
 - React components: `BackupSettingsPage`, `ConfigExportImportCard` — see [Phase 2A](02a-backup-restore.md)
 - React component: `McpGuardSettingsPage` — circuit breaker + panic button
+- React component: `McpServerStatusPanel` — connection status + IDE config generation
 - Email preset auto-fill configuration map
 - Display mode toggle with live preview
 - Reset to Default ↻ buttons on all settings rows
-- Settings pages consume: `GET/PUT /settings`, `GET /settings/resolved`, `POST/GET /backups`, `GET /config/export`, `POST /config/import`, `DELETE /settings/{key}`, `GET/PUT /mcp-guard/config`, `GET /mcp-guard/status`, `POST /mcp-guard/lock`, `POST /mcp-guard/unlock`
+- Settings pages consume: `GET/PUT /settings`, `GET /settings/resolved`, `POST/GET /backups`, `GET /config/export`, `POST /config/import`, `DELETE /settings/{key}`, `GET/PUT /mcp-guard/config`, `GET /mcp-guard/status`, `POST /mcp-guard/lock`, `POST /mcp-guard/unlock`, `GET /health`, `GET /version`

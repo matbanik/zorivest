@@ -1,9 +1,9 @@
+pomera start gui, diagnostic mcp commands - create inspiration doc
+
 Scheduler - define how policies will work
 Watchlist as main source of data pulling for market info and news.
 API data aggregation > report table (report table will need standars in financial reporting)
 report table > template > email
-
-pomera start gui, diagnostic mcp commands - create inspiration doc
 
 review current screenshot <image> processing and storing, adjust planing in GUI and build vision for MCP for next steps
 
@@ -20,4 +20,6 @@ meta analsys of mindset/purpose/energy
 oportunity seekings
 watchlist managments
 watchlist usage with trade plans
+
+create mcp-tool-call-index.md that will document all mcp tools and their usage in IDE
 

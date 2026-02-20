@@ -256,13 +256,62 @@ Canonical registry of **every computed or derived output** the system produces �
 
 ---
 
+## 14. Diagnostics & Performance Metrics
+
+> Runtime health, version, and per-tool performance data surfaced via `zorivest_diagnose` ([§5.8](05-mcp-server.md)).
+> Metrics collected by the performance middleware ([§5.9](05-mcp-server.md)).
+
+| # | Output | Type | Source | Surface | Endpoint | Status | Plan Files |
+|---|--------|------|--------|---------|----------|--------|------------|
+| 14.1 | Backend reachability | Bool | `GET /health` | 🤖 | `zorivest_diagnose` | ✅ | [05](05-mcp-server.md) |
+| 14.2 | Database unlock status | Bool | auth state | 🤖 | `zorivest_diagnose` | ✅ | [05](05-mcp-server.md) |
+| 14.3 | Version + context | Text | `GET /version` | 🤖 | `zorivest_diagnose` | ✅ | [05](05-mcp-server.md), [07](07-distribution.md) |
+| 14.4 | Guard state snapshot | Object | `GET /mcp-guard/status` | 🤖 | `zorivest_diagnose` | ✅ | [05](05-mcp-server.md) |
+| 14.5 | Provider availability | List | `GET /market-data/providers` | 🤖 | `zorivest_diagnose` | ✅ | [05](05-mcp-server.md), [08](08-market-data.md) |
+| 14.6 | Per-tool latency (p50/p95/p99) | Object | in-memory metrics | 🤖 | `zorivest_diagnose` (verbose) | ✅ | [05](05-mcp-server.md) |
+| 14.7 | Per-tool error rate | % | in-memory metrics | 🤖 | `zorivest_diagnose` (verbose) | ✅ | [05](05-mcp-server.md) |
+| 14.8 | Session uptime | minutes | in-memory | 🤖 | `zorivest_diagnose` | ✅ | [05](05-mcp-server.md) |
+
+---
+
+## 15. GUI Launch
+
+> `zorivest_launch_gui` MCP tool output ([§5.10](05-mcp-server.md)).
+
+| # | Output | Type | Source | Surface | Endpoint | Status | Plan Files |
+|---|--------|------|--------|---------|----------|--------|------------|
+| 15.1 | GUI found flag | Bool | discovery scan | 🤖 | `zorivest_launch_gui` | ✅ | [05](05-mcp-server.md) |
+| 15.2 | Discovery method | Enum | installed/dev/path/env | 🤖 | `zorivest_launch_gui` | ✅ | [05](05-mcp-server.md) |
+| 15.3 | Setup instructions | Object | static | 🤖 | `zorivest_launch_gui` | ✅ | [05](05-mcp-server.md) |
+
+---
+
+## 16. Pipeline & Scheduling Outputs
+
+> Pipeline execution status, step-level results, and scheduler metadata.
+> Source: [Phase 9](09-scheduling.md) | REST: [§9.10](09-scheduling.md) | MCP: [§9.11](09-scheduling.md)
+
+| # | Output | Type | Source | Surface | Endpoint | Status | Plan Files |
+|---|--------|------|--------|---------|----------|--------|------------|
+| 16.1 | Policy list (with next run) | List | `PolicyModel` + APScheduler | 🖥️🤖🔌 | `GET /scheduling/policies` | ✅ | [09](09-scheduling.md) |
+| 16.2 | Policy approval status | Object | `PolicyModel.approved` + `approved_hash` | 🖥️🤖🔌 | `GET /scheduling/policies/{id}` | ✅ | [09](09-scheduling.md) |
+| 16.3 | Pipeline run result | Object | `PipelineRunModel` | 🖥️🤖🔌 | `GET /scheduling/runs/{id}` | ✅ | [09](09-scheduling.md) |
+| 16.4 | Step-level execution detail | List | `PipelineStepModel` | 🖥️🤖🔌 | `GET /scheduling/runs/{id}/steps` | ✅ | [09](09-scheduling.md) |
+| 16.5 | Run history (per policy) | List | `PipelineRunModel` | 🖥️🤖🔌 | `GET /scheduling/policies/{id}/runs` | ✅ | [09](09-scheduling.md) |
+| 16.6 | Scheduler status | Object | `SchedulerService.get_status()` | 🖥️🤖🔌 | `GET /scheduling/scheduler/status` | ✅ | [09](09-scheduling.md) |
+| 16.7 | Rendered report (HTML) | HTML | `RenderStep` output | 🖥️ | local file | ✅ | [09](09-scheduling.md) |
+| 16.8 | Rendered report (PDF) | File | `WeasyPrint` output | 🖥️✉️ | local file / email attachment | ✅ | [09](09-scheduling.md) |
+| 16.9 | Delivery tracking result | Object | `ReportDeliveryModel` | 🖥️🤖 | `GET /scheduling/runs/{id}` | ✅ | [09](09-scheduling.md) |
+
+---
+
 ## Summary Statistics
 
 | Category | Count |
 |----------|-------|
-| Total computed outputs | 120 |
-| Sections | 17 (incl. sub-sections 1a–1d) |
-| ✅ Defined (full contract) | 72 |
+| Total computed outputs | 140 |
+| Sections | 20 (incl. sub-sections 1a–1d) |
+| ✅ Defined (full contract) | 92 |
 | 🔶 Domain modeled | 2 |
 | 📋 Planned | 46 |
 | Calculator outputs (§1–§2) | 57 |
@@ -270,3 +319,6 @@ Canonical registry of **every computed or derived output** the system produces �
 | Trade/account outputs (§3, §11) | 7 |
 | Market data outputs (§12) | 5 |
 | Guard status outputs (§13) | 5 |
+| Diagnostics/metrics outputs (§14) | 8 |
+| GUI launch outputs (§15) | 3 |
+| Pipeline/scheduling outputs (§16) | 9 |

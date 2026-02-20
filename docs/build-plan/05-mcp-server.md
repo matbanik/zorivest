@@ -572,12 +572,699 @@ describe('MCP Guard Middleware', () => {
 });
 ```
 
+## Step 5.8: `zorivest_diagnose` MCP Tool
+
+> Self-diagnostics tool that agents can call to debug connectivity, check backend health, and inspect runtime state. Inspired by Pomera's `pomera_diagnose` ([`_mcp-manager-architecture.md`](../../_inspiration/_mcp-manager-architecture.md#performance-metrics-coremcpmetricspy)).
+
+Returns:
+- Backend connectivity (Python API health check)
+- Database status (unlocked/locked, SQLCipher connected)
+- Version info (version string + resolution context: `frozen|installed|dev`)
+- Guard state (enabled/locked, calls in window, lock reason)
+- Configured market data providers (name + status, **never reveals API keys**)
+- MCP server uptime, tool count, Node.js version
+- Performance metrics summary (if verbose + metrics middleware active — see Step 5.9)
+
+> [!IMPORTANT]
+> This tool is **NOT guarded** — it must always be callable, even when the MCP guard is locked (same pattern as `zorivest_emergency_stop`/`zorivest_emergency_unlock`).
+
+```typescript
+// mcp-server/src/tools/diagnostics-tools.ts
+
+import { McpServer } from '@modelcontextprotocol/sdk/server/mcp.js';
+import { z } from 'zod';
+import { authState } from '../auth/bootstrap.js';
+import { metricsCollector } from '../middleware/metrics.js';
+
+/** Non-throwing auth header helper for diagnostics (always-callable tool). */
+function getAuthHeadersSafe(): Record<string, string> {
+  return authState.sessionToken
+    ? { 'Authorization': `Bearer ${authState.sessionToken}` }
+    : {};
+}
+
+const API_BASE = process.env.ZORIVEST_API_URL ?? 'http://localhost:8765/api/v1';
+
+export function registerDiagnosticsTools(server: McpServer) {
+  server.tool(
+    'zorivest_diagnose',
+    'Runtime diagnostics. Returns backend health, DB status, guard state, provider availability, and performance metrics. Never reveals API keys.',
+    {
+      verbose: z.boolean().default(false).describe(
+        'Include per-tool latency percentiles (p50/p95/p99) and payload sizes'
+      ),
+    },
+    async ({ verbose }) => {
+      const safeFetch = async (url: string, opts?: RequestInit) => {
+        try {
+          const res = await fetch(url, opts);
+          return res.json();
+        } catch {
+          return null;
+        }
+      };
+
+      const [health, version, guard, providers] = await Promise.all([
+        safeFetch(`${API_BASE}/health`),
+        safeFetch(`${API_BASE}/version/`),
+        safeFetch(`${API_BASE}/mcp-guard/status`, { headers: getAuthHeadersSafe() }),
+        safeFetch(`${API_BASE}/market-data/providers`, { headers: getAuthHeadersSafe() }),
+      ]);
+
+      const report = {
+        backend: {
+          reachable: health !== null,
+          status: health?.status ?? 'unreachable',
+        },
+        version: version ?? { version: 'unknown', context: 'unknown' },
+        database: { unlocked: health?.database_unlocked ?? false },
+        guard: guard ?? { status: 'unavailable' },
+        providers: (providers ?? []).map((p: any) => ({
+          name: p.name,
+          enabled: p.is_enabled,
+          connected: p.has_key,
+          // NOTE: Never include api_key or secret fields
+        })),
+        mcp_server: {
+          uptime_minutes: metricsCollector.getUptimeMinutes(),
+          tool_count: server.getRegisteredToolCount?.() ?? 'unknown',
+          node_version: process.version,
+        },
+        metrics: metricsCollector.getSummary(verbose),
+      };
+
+      return {
+        content: [{
+          type: 'text' as const,
+          text: JSON.stringify(report, null, 2),
+        }],
+      };
+    }
+  );
+}
+```
+
+## Step 5.9: Per-Tool Performance Metrics Middleware
+
+> In-memory metrics collector tracking per-tool latency, call counts, error rates, and payload sizes. Inspired by Pomera's `core/mcp/metrics.py` ([`_mcp-manager-architecture.md`](../../_inspiration/_mcp-manager-architecture.md#performance-metrics-coremcpmetricspy)).
+
+### What's Collected
+
+| Metric | Per-Tool | Session-Level |
+|---|---|---|
+| Latency | avg, min, max, p50, p95, p99 (ms) | — |
+| Call count | ✅ | `total_tool_calls` |
+| Error count + rate | ✅ | `overall_error_rate` |
+| Payload size (bytes) | avg response size | — |
+| Uptime | — | `session_uptime_minutes` |
+| Calls/minute | — | `calls_per_minute` |
+| Slowest tool | — | by avg latency |
+| Most-errored tool | — | by error count |
+
+### Auto-Warnings in `zorivest_diagnose`
+
+| Condition | Warning |
+|---|---|
+| Error rate > 10% | `Tool 'X' has 15% error rate (3/20 calls)` |
+| p95 > 2000ms (non-network tools) | `Tool 'X' p95 latency is 2500ms` |
+
+**Excluded from slow warnings**: `get_stock_quote`, `get_market_news`, `get_sec_filings`, `search_ticker` (network-bound, expected to be slow).
+
+### Design Decisions
+
+| Decision | Rationale |
+|---|---|
+| In-memory only (no persistence) | Per-session data; resets on restart to avoid stale metrics |
+| Ring buffer (last 1000 per tool) | Bounded memory; old latencies age out |
+| Singleton module-level instance | One collector per MCP server process |
+| No external dependencies | Uses only Node.js built-ins (`performance.now()`) |
+
+### Implementation
+
+```typescript
+// mcp-server/src/middleware/metrics.ts
+
+interface ToolMetrics {
+  callCount: number;
+  errorCount: number;
+  latencies: number[];      // ms, ring buffer (last 1000)
+  payloadSizes: number[];   // bytes, ring buffer (last 1000)
+}
+
+interface MetricsSummary {
+  session_uptime_minutes: number;
+  total_tool_calls: number;
+  overall_error_rate: number;
+  calls_per_minute: number;
+  slowest_tool: string | null;
+  most_errored_tool: string | null;
+  per_tool?: Record<string, {
+    call_count: number;
+    error_count: number;
+    error_rate: number;
+    latency: { avg: number; min: number; max: number; p50: number; p95: number; p99: number };
+    avg_payload_bytes: number;
+  }>;
+  warnings: string[];
+}
+
+const RING_BUFFER_SIZE = 1000;
+const NETWORK_TOOLS = new Set([
+  'get_stock_quote', 'get_market_news', 'get_sec_filings', 'search_ticker',
+]);
+
+export class MetricsCollector {
+  private tools = new Map<string, ToolMetrics>();
+  private startTime = Date.now();
+
+  record(toolName: string, latencyMs: number, payloadBytes: number, isError: boolean): void {
+    let metrics = this.tools.get(toolName);
+    if (!metrics) {
+      metrics = { callCount: 0, errorCount: 0, latencies: [], payloadSizes: [] };
+      this.tools.set(toolName, metrics);
+    }
+    metrics.callCount++;
+    if (isError) metrics.errorCount++;
+
+    // Ring buffer: keep last N entries
+    if (metrics.latencies.length >= RING_BUFFER_SIZE) metrics.latencies.shift();
+    metrics.latencies.push(latencyMs);
+    if (metrics.payloadSizes.length >= RING_BUFFER_SIZE) metrics.payloadSizes.shift();
+    metrics.payloadSizes.push(payloadBytes);
+  }
+
+  getUptimeMinutes(): number {
+    return Math.round((Date.now() - this.startTime) / 60000);
+  }
+
+  getSummary(verbose: boolean): MetricsSummary {
+    const warnings: string[] = [];
+    let totalCalls = 0;
+    let totalErrors = 0;
+    let slowestTool: string | null = null;
+    let slowestAvg = 0;
+    let mostErroredTool: string | null = null;
+    let mostErrors = 0;
+    const perTool: Record<string, any> = {};
+
+    for (const [name, m] of this.tools.entries()) {
+      totalCalls += m.callCount;
+      totalErrors += m.errorCount;
+
+      const sorted = [...m.latencies].sort((a, b) => a - b);
+      const avg = sorted.length ? sorted.reduce((s, v) => s + v, 0) / sorted.length : 0;
+      const percentile = (p: number) => {
+        if (!sorted.length) return 0;
+        const idx = Math.ceil(p * sorted.length) - 1;
+        return Math.round(sorted[Math.max(0, idx)]);
+      };
+      const errorRate = m.callCount ? m.errorCount / m.callCount : 0;
+
+      if (avg > slowestAvg) { slowestAvg = avg; slowestTool = name; }
+      if (m.errorCount > mostErrors) { mostErrors = m.errorCount; mostErroredTool = name; }
+
+      // Auto-warnings
+      if (errorRate > 0.10) {
+        warnings.push(`Tool '${name}' has ${Math.round(errorRate * 100)}% error rate (${m.errorCount}/${m.callCount} calls)`);
+      }
+      if (percentile(0.95) > 2000 && !NETWORK_TOOLS.has(name)) {
+        warnings.push(`Tool '${name}' p95 latency is ${percentile(0.95)}ms`);
+      }
+
+      if (verbose) {
+        const avgPayload = m.payloadSizes.length
+          ? Math.round(m.payloadSizes.reduce((s, v) => s + v, 0) / m.payloadSizes.length)
+          : 0;
+        perTool[name] = {
+          call_count: m.callCount,
+          error_count: m.errorCount,
+          error_rate: Math.round(errorRate * 10000) / 10000,
+          latency: {
+            avg: Math.round(avg),
+            min: sorted.length ? Math.round(sorted[0]) : 0,
+            max: sorted.length ? Math.round(sorted[sorted.length - 1]) : 0,
+            p50: percentile(0.50),
+            p95: percentile(0.95),
+            p99: percentile(0.99),
+          },
+          avg_payload_bytes: avgPayload,
+        };
+      }
+    }
+
+    const uptimeMin = this.getUptimeMinutes();
+    return {
+      session_uptime_minutes: uptimeMin,
+      total_tool_calls: totalCalls,
+      overall_error_rate: totalCalls ? Math.round((totalErrors / totalCalls) * 10000) / 10000 : 0,
+      calls_per_minute: uptimeMin > 0 ? Math.round((totalCalls / uptimeMin) * 100) / 100 : 0,
+      slowest_tool: slowestTool,
+      most_errored_tool: mostErroredTool,
+      per_tool: verbose ? perTool : undefined,
+      warnings,
+    };
+  }
+}
+
+export const metricsCollector = new MetricsCollector();
+
+/**
+ * Wraps an MCP tool handler with performance metrics recording.
+ * Composable with withGuard: withMetrics('name', withGuard(handler))
+ */
+export function withMetrics<T>(
+  toolName: string,
+  handler: (args: T) => Promise<McpResult>
+): (args: T) => Promise<McpResult> {
+  return async (args: T) => {
+    const start = performance.now();
+    try {
+      const result = await handler(args);
+      const elapsed = performance.now() - start;
+      const payloadSize = JSON.stringify(result).length;
+      metricsCollector.record(toolName, elapsed, payloadSize, !!result.isError);
+      return result;
+    } catch (err) {
+      metricsCollector.record(toolName, performance.now() - start, 0, true);
+      throw err;
+    }
+  };
+}
+```
+
+### Middleware Composition
+
+```typescript
+// mcp-server/src/index.ts — middleware wrapping order
+
+// Registration: metrics wraps guard wraps handler
+// handler → withGuard(handler) → withMetrics('tool_name', withGuard(handler))
+
+// Unguarded tools (diagnose, guard, gui) still get metrics:
+// handler → withMetrics('tool_name', handler)
+```
+
+## Step 5.10: `zorivest_launch_gui` MCP Tool
+
+> Allows AI agents to launch the Zorivest GUI. If the GUI is not installed, opens the download page and returns structured setup instructions to the agent. Inspired by Pomera's `pomera_launch_gui` ([`_mcp-manager-architecture.md`](../../_inspiration/_mcp-manager-architecture.md#remote-gui-launch-via-mcp-pomera_launch_gui)).
+
+### GUI Discovery (4 methods, tried in order)
+
+| # | Method | How it finds the GUI |
+|---|---|---|
+| 1 | Packaged Electron app | Check standard install paths (`%LOCALAPPDATA%/Programs/Zorivest` on Windows, `/Applications/Zorivest.app` on macOS, `/usr/bin/zorivest` on Linux) |
+| 2 | Development mode | Navigate from MCP server dir → repo root → `ui/` → check for `package.json` |
+| 3 | PATH lookup | `which zorivest` / `where zorivest` — system-installed binary |
+| 4 | Environment variable | `ZORIVEST_GUI_PATH` → custom install location |
+
+### Cross-Platform Process Detachment
+
+> [!WARNING]
+> Python-level subprocess flags (`creationflags`, `start_new_session`) do NOT fully escape IDE-spawned MCP server contexts. OS shell commands are required. See Pomera's implementation notes in [`_mcp-manager-architecture.md`](../../_inspiration/_mcp-manager-architecture.md#cross-platform-process-detachment).
+
+| Platform | Strategy | Why |
+|---|---|---|
+| **Windows** | `start "" "zorivest.exe"` via `child_process.exec` | `start` fully detaches from IDE process tree |
+| **macOS** | `open -a Zorivest` or `nohup ... &` | `open` is macOS-native app launcher |
+| **Linux** | `setsid zorivest > /dev/null 2>&1 &` | `setsid` creates new session leader |
+
+### Not-Installed Fallback Flow
+
+When the GUI executable is not found at any discovery path:
+
+1. **Opens the GitHub releases page** in the user's default browser
+2. **Returns structured setup instructions to the agent** so the agent can guide the user through installation:
+
+```json
+{
+  "gui_found": false,
+  "message": "Zorivest GUI is not installed. A browser window has been opened to the download page.",
+  "setup_instructions": {
+    "desktop_app": {
+      "description": "Download the Zorivest desktop app (recommended)",
+      "url": "https://github.com/matbanik/zorivest/releases/latest",
+      "windows": "Download and run the .exe installer from the releases page",
+      "macos": "Download and open the .dmg from the releases page",
+      "linux": "Download and run the .AppImage from the releases page"
+    },
+    "from_source": {
+      "description": "Run from source (developers)",
+      "steps": [
+        "git clone https://github.com/matbanik/zorivest",
+        "cd zorivest/ui",
+        "npm install",
+        "npm run dev"
+      ]
+    },
+    "env_hint": "Set ZORIVEST_GUI_PATH=/path/to/zorivest to use a custom install location"
+  }
+}
+```
+
+### Tool Parameters
+
+| Parameter | Type | Default | Description |
+|---|---|---|---|
+| `wait_for_close` | bool | `false` | If true, blocks until GUI process exits |
+
+### Implementation
+
+```typescript
+// mcp-server/src/tools/gui-tools.ts
+
+import { McpServer } from '@modelcontextprotocol/sdk/server/mcp.js';
+import { z } from 'zod';
+import { exec } from 'child_process';
+import { existsSync } from 'fs';
+import { join } from 'path';
+
+const RELEASES_URL = 'https://github.com/matbanik/zorivest/releases/latest';
+
+interface GuiDiscoveryResult {
+  found: boolean;
+  path: string | null;
+  method: 'installed' | 'dev' | 'path' | 'env' | null;
+}
+
+function getStandardInstallPaths(): string[] {
+  const platform = process.platform;
+  if (platform === 'win32') {
+    return [
+      join(process.env.LOCALAPPDATA ?? '', 'Programs', 'Zorivest', 'Zorivest.exe'),
+      join(process.env.PROGRAMFILES ?? '', 'Zorivest', 'Zorivest.exe'),
+    ];
+  } else if (platform === 'darwin') {
+    return ['/Applications/Zorivest.app'];
+  } else {
+    return ['/usr/bin/zorivest', '/usr/local/bin/zorivest'];
+  }
+}
+
+function resolveDevModePath(): string | null {
+  // Navigate from mcp-server/ → repo root → ui/package.json
+  const repoRoot = join(__dirname, '..', '..', '..');
+  const uiPkg = join(repoRoot, 'ui', 'package.json');
+  return existsSync(uiPkg) ? join(repoRoot, 'ui') : null;
+}
+
+function findInPath(name: string): string | null {
+  const cmd = process.platform === 'win32' ? 'where' : 'which';
+  try {
+    const { execSync } = require('child_process');
+    return execSync(`${cmd} ${name}`, { encoding: 'utf-8' }).trim().split('\n')[0];
+  } catch {
+    return null;
+  }
+}
+
+function discoverGui(): GuiDiscoveryResult {
+  // Method 1: Standard install paths
+  for (const p of getStandardInstallPaths()) {
+    if (existsSync(p)) return { found: true, path: p, method: 'installed' };
+  }
+  // Method 2: Development mode
+  const devPath = resolveDevModePath();
+  if (devPath) return { found: true, path: devPath, method: 'dev' };
+  // Method 3: PATH lookup
+  const pathResult = findInPath('zorivest');
+  if (pathResult) return { found: true, path: pathResult, method: 'path' };
+  // Method 4: Environment variable
+  const envPath = process.env.ZORIVEST_GUI_PATH;
+  if (envPath && existsSync(envPath)) return { found: true, path: envPath, method: 'env' };
+
+  return { found: false, path: null, method: null };
+}
+
+function launchDetached(target: string, isDev: boolean): void {
+  const platform = process.platform;
+  if (isDev) {
+    // Dev mode: run npm run dev in the ui/ directory
+    const cmd = platform === 'win32'
+      ? `start "" cmd /c "cd /d ${target} && npm run dev"`
+      : `cd "${target}" && nohup npm run dev > /dev/null 2>&1 &`;
+    exec(cmd, { windowsHide: true });
+    return;
+  }
+  // Production: launch the packaged executable
+  if (platform === 'win32') {
+    exec(`start "" "${target}"`, { windowsHide: true });
+  } else if (platform === 'darwin') {
+    exec(`open "${target}"`);
+  } else {
+    exec(`setsid "${target}" > /dev/null 2>&1 &`);
+  }
+}
+
+function openInBrowser(url: string): void {
+  const cmd = process.platform === 'win32' ? 'start' :
+              process.platform === 'darwin' ? 'open' : 'xdg-open';
+  exec(`${cmd} ${url}`);
+}
+
+export function registerGuiTools(server: McpServer) {
+  server.tool(
+    'zorivest_launch_gui',
+    'Launch the Zorivest desktop GUI. If not installed, opens the download page and returns setup instructions the agent can relay to the user.',
+    {
+      wait_for_close: z.boolean().default(false).describe(
+        'If true, blocks until GUI process exits'
+      ),
+    },
+    async ({ wait_for_close }) => {
+      const discovery = discoverGui();
+
+      if (!discovery.found) {
+        openInBrowser(RELEASES_URL);
+        return {
+          content: [{
+            type: 'text' as const,
+            text: JSON.stringify({
+              gui_found: false,
+              message: 'Zorivest GUI is not installed. A browser window has been opened to the download page.',
+              setup_instructions: {
+                desktop_app: {
+                  description: 'Download the Zorivest desktop app (recommended)',
+                  url: RELEASES_URL,
+                  windows: 'Download and run the .exe installer from the releases page',
+                  macos: 'Download and open the .dmg from the releases page',
+                  linux: 'Download and run the .AppImage from the releases page',
+                },
+                from_source: {
+                  description: 'Run from source (developers)',
+                  steps: [
+                    'git clone https://github.com/matbanik/zorivest',
+                    'cd zorivest/ui',
+                    'npm install',
+                    'npm run dev',
+                  ],
+                },
+                env_hint: 'Set ZORIVEST_GUI_PATH=/path/to/zorivest to use a custom install location',
+              },
+            }, null, 2),
+          }],
+        };
+      }
+
+      // GUI found — launch it
+      if (wait_for_close) {
+        // Foreground mode: spawn and wait for exit
+        const { execSync } = require('child_process');
+        try {
+          execSync(`"${discovery.path!}"`, { stdio: 'ignore', windowsHide: true });
+        } catch {
+          // GUI closed with non-zero exit — ignore
+        }
+      } else {
+        launchDetached(discovery.path!, discovery.method === 'dev');
+      }
+
+      return {
+        content: [{
+          type: 'text' as const,
+          text: JSON.stringify({
+            gui_found: true,
+            method: discovery.method,
+            message: `Zorivest GUI launched via ${discovery.method} (${discovery.path}).`,
+          }),
+        }],
+      };
+    }
+  );
+}
+```
+
+### Registration
+
+```typescript
+// mcp-server/src/index.ts  (additions)
+
+import { registerDiagnosticsTools } from './tools/diagnostics-tools.js';
+import { registerGuiTools } from './tools/gui-tools.js';
+
+// Unguarded tools (always available, even when guard is locked)
+registerGuardTools(server);
+registerDiagnosticsTools(server);
+registerGuiTools(server);
+
+// Guarded tools get both middleware wrappers:
+// withMetrics('create_trade', withGuard(handler))
+```
+
+## Step 5.11: Vitest Tests for New Tools
+
+### Diagnostics Tests
+
+```typescript
+// mcp-server/tests/diagnostics.test.ts
+
+import { describe, it, expect, vi, beforeEach } from 'vitest';
+
+describe('zorivest_diagnose', () => {
+  beforeEach(() => { vi.restoreAllMocks(); });
+
+  it('returns full report when backend is reachable', async () => {
+    vi.mocked(fetch)
+      .mockResolvedValueOnce(new Response(JSON.stringify({ status: 'ok' })))       // /health
+      .mockResolvedValueOnce(new Response(JSON.stringify({ version: '1.0.0', context: 'dev' }))) // /version
+      .mockResolvedValueOnce(new Response(JSON.stringify({ is_locked: false })))    // /mcp-guard
+      .mockResolvedValueOnce(new Response(JSON.stringify([                         // /providers
+        { name: 'alpha_vantage', is_enabled: true, has_key: true },
+      ])));
+    // invoke handler, parse JSON response
+    // expect(report.backend.reachable).toBe(true);
+    // expect(report.providers[0].name).toBe('alpha_vantage');
+    // expect(report.providers[0]).not.toHaveProperty('api_key');
+  });
+
+  it('reports unreachable when backend is down', async () => {
+    vi.mocked(fetch).mockRejectedValue(new Error('ECONNREFUSED'));
+    // invoke handler
+    // expect(report.backend.reachable).toBe(false);
+    // expect(report.database.unlocked).toBe(false);
+  });
+
+  it('never reveals API keys in provider list', async () => {
+    vi.mocked(fetch).mockResolvedValue(
+      new Response(JSON.stringify([
+        { name: 'polygon', is_enabled: true, has_key: true, api_key: 'SECRET_KEY_123' },
+      ]))
+    );
+    // invoke handler
+    // expect(JSON.stringify(report)).not.toContain('SECRET_KEY_123');
+  });
+});
+```
+
+### GUI Launch Tests
+
+```typescript
+// mcp-server/tests/gui.test.ts
+
+import { describe, it, expect, vi } from 'vitest';
+
+describe('zorivest_launch_gui', () => {
+  it('returns setup instructions when GUI is not found', async () => {
+    // Mock discoverGui → { found: false }
+    // invoke handler
+    // expect(result.gui_found).toBe(false);
+    // expect(result.setup_instructions.desktop_app.url).toContain('releases');
+    // expect(exec).toHaveBeenCalledWith(expect.stringContaining('releases'));
+  });
+
+  it('launches GUI when found at standard path', async () => {
+    // Mock discoverGui → { found: true, path: 'C:/...', method: 'installed' }
+    // invoke handler
+    // expect(result.gui_found).toBe(true);
+    // expect(exec).toHaveBeenCalledWith(expect.stringContaining('start'));
+  });
+
+  it('uses npm run dev in development mode', async () => {
+    // Mock discoverGui → { found: true, path: '/repo/ui', method: 'dev' }
+    // invoke handler
+    // expect(exec command).toContain('npm run dev');
+  });
+});
+```
+
+### Metrics Tests
+
+```typescript
+// mcp-server/tests/metrics.test.ts
+
+import { describe, it, expect } from 'vitest';
+import { MetricsCollector, withMetrics } from '../src/middleware/metrics.js';
+
+describe('MetricsCollector', () => {
+  it('records latency and computes percentiles', () => {
+    const mc = new MetricsCollector();
+    for (let i = 1; i <= 100; i++) mc.record('test_tool', i, 500, false);
+    const summary = mc.getSummary(true);
+    expect(summary.per_tool?.test_tool.latency.p50).toBeCloseTo(50, 0);
+    expect(summary.per_tool?.test_tool.latency.p95).toBeCloseTo(95, 0);
+  });
+
+  it('tracks error count and rate', () => {
+    const mc = new MetricsCollector();
+    for (let i = 0; i < 10; i++) mc.record('test_tool', 10, 100, i < 2);
+    const summary = mc.getSummary(true);
+    expect(summary.per_tool?.test_tool.error_count).toBe(2);
+    expect(summary.per_tool?.test_tool.error_rate).toBeCloseTo(0.2);
+  });
+
+  it('warns when error rate exceeds 10%', () => {
+    const mc = new MetricsCollector();
+    for (let i = 0; i < 10; i++) mc.record('bad_tool', 10, 100, i < 3);
+    const summary = mc.getSummary(true);
+    expect(summary.warnings).toContainEqual(expect.stringContaining('error rate'));
+  });
+
+  it('excludes network tools from slow warnings', () => {
+    const mc = new MetricsCollector();
+    mc.record('get_stock_quote', 5000, 100, false);
+    const summary = mc.getSummary(true);
+    expect(summary.warnings).not.toContainEqual(expect.stringContaining('get_stock_quote'));
+  });
+
+  it('uses ring buffer to bound memory', () => {
+    const mc = new MetricsCollector();
+    for (let i = 0; i < 2000; i++) mc.record('test_tool', i, 100, false);
+    const summary = mc.getSummary(true);
+    // latency min should reflect ring buffer truncation, not i=0
+    expect(summary.per_tool?.test_tool.latency.min).toBeGreaterThanOrEqual(1000);
+  });
+});
+
+describe('withMetrics wrapper', () => {
+  it('records successful call metrics', async () => {
+    const handler = withMetrics('test_tool', async () => ({
+      content: [{ type: 'text' as const, text: 'ok' }],
+    }));
+    await handler({});
+    // verify metricsCollector recorded a call
+  });
+
+  it('records failed call metrics', async () => {
+    const handler = withMetrics('test_tool', async () => {
+      throw new Error('fail');
+    });
+    await expect(handler({})).rejects.toThrow('fail');
+    // verify metricsCollector recorded an error
+  });
+});
+```
+
 ## Exit Criteria
 
 - All Vitest tests pass
 - Tool schemas validate input/output correctly
 - MCP Inspector shows correct tool registration
 - Guard middleware blocks/allows tools based on guard state
+- `zorivest_diagnose` returns valid report when backend is up AND when it's down
+- `zorivest_diagnose` never reveals API keys in output
+- `zorivest_launch_gui` launches GUI when found at any discovery path
+- `zorivest_launch_gui` returns setup instructions and opens browser when GUI is not installed
+- `MetricsCollector` accurately computes latency percentiles and error rates
+- `withMetrics()` composes correctly with `withGuard()`
 
 ## Outputs
 
@@ -585,5 +1272,8 @@ describe('MCP Guard Middleware', () => {
 - TypeScript MCP tools (market data, from Phase 8): `get_stock_quote`, `get_market_news`, `search_ticker`, `get_sec_filings`, `list_market_providers`, `test_market_provider`, `disconnect_market_provider`
 - TypeScript MCP tools (settings): `get_settings`, `update_settings`
 - TypeScript MCP tools (guard): `zorivest_emergency_stop`, `zorivest_emergency_unlock`
+- TypeScript MCP tools (diagnostics): `zorivest_diagnose`
+- TypeScript MCP tools (GUI): `zorivest_launch_gui`
 - MCP guard middleware: `withGuard()` wrapper, `guardCheck()` REST client
+- MCP metrics middleware: `withMetrics()` wrapper, `MetricsCollector` class
 - Vitest test suite with mocked `fetch()`
