@@ -167,37 +167,44 @@ Clicking a failed run expands to show the full error traceback and which pipelin
 
 The scheduling system is designed for **MCP-first interaction**. The GUI is the secondary interface.
 
-### MCP Tools (defined in [Phase 5](05-mcp-server.md))
+### MCP Tools (defined in [Phase 9 §9.11](09-scheduling.md))
 
 | Tool | Description |
 |------|-------------|
-| `create_schedule` | Create a new scheduled job with policy |
-| `update_schedule` | Update schedule config or policy |
-| `list_schedules` | List all schedules with status |
-| `run_pipeline_now` | Trigger immediate pipeline execution |
-| `get_pipeline_runs` | Get run history for a schedule |
-| `delete_schedule` | Remove a scheduled job |
+| `create_policy` | Create a new pipeline policy from a JSON document |
+| `list_policies` | List all policies with approval/schedule status |
+| `run_pipeline` | Trigger immediate pipeline execution |
+| `preview_report` | Dry-run pipeline, return rendered HTML preview |
+| `update_policy_schedule` | Update cron expression, enable/disable, timezone |
+| `get_pipeline_history` | Get recent pipeline execution history |
+
+> **Note:** `approve_policy` is intentionally GUI-only (human-in-the-loop security gate — see [Phase 9 §9.9c](09-scheduling.md)). Agents cannot approve their own policies.
 
 ### Typical MCP Workflow
 
 1. AI agent researches what data the user wants in their daily report
 2. Agent composes a pipeline policy JSON with appropriate steps
-3. Agent calls `create_schedule` with the policy and cron expression
-4. User can review/edit the policy in the GUI if needed
-5. Pipeline runs on schedule, agent can monitor via `get_pipeline_runs`
+3. Agent calls `create_policy` with the policy document
+4. Policy requires approval → **user approves via GUI** (not agent-callable)
+5. User can review/edit the policy in the GUI if needed
+6. Pipeline runs on schedule, agent can monitor via `get_pipeline_history`
 
 ### REST Endpoints Consumed
 
+> These endpoints are defined in [Phase 9 §9.10](09-scheduling.md). The GUI consumes the canonical scheduling API.
+
 | Method | Endpoint | Purpose |
 |--------|----------|---------|
-| `GET` | `/api/v1/schedules` | List all schedules |
-| `POST` | `/api/v1/schedules` | Create schedule |
-| `GET` | `/api/v1/schedules/{id}` | Get schedule detail + policy |
-| `PUT` | `/api/v1/schedules/{id}` | Update schedule |
-| `DELETE` | `/api/v1/schedules/{id}` | Delete schedule |
-| `POST` | `/api/v1/schedules/{id}/run` | Trigger immediate run |
-| `POST` | `/api/v1/schedules/{id}/test` | Dry-run (no side effects) |
-| `GET` | `/api/v1/schedules/{id}/runs` | Get run history |
+| `GET` | `/api/v1/scheduling/policies` | List all policies |
+| `POST` | `/api/v1/scheduling/policies` | Create policy |
+| `GET` | `/api/v1/scheduling/policies/{id}` | Get policy detail |
+| `PUT` | `/api/v1/scheduling/policies/{id}` | Update policy |
+| `DELETE` | `/api/v1/scheduling/policies/{id}` | Delete policy |
+| `POST` | `/api/v1/scheduling/policies/{id}/approve` | Approve policy for scheduling (GUI-only) |
+| `POST` | `/api/v1/scheduling/policies/{id}/run` | Trigger immediate run (`dry_run=true` for test) |
+| `GET` | `/api/v1/scheduling/policies/{id}/runs` | Get run history (filterable by policy) |
+| `GET` | `/api/v1/scheduling/runs/{id}` | Get run detail with step status |
+| `GET` | `/api/v1/scheduling/scheduler/status` | Scheduler health + active jobs |
 
 ---
 

@@ -50,7 +50,22 @@ zorivest/
 │   │           ├── display_service.py     # Display mode management ($ hide, % hide, % mode)
 │   │           ├── account_review_service.py  # Guided balance update workflow
 │   │           ├── calculator_service.py
-│   │           └── tax_service.py         # Tax estimation orchestration
+│   │           ├── tax_service.py         # Tax estimation orchestration
+│   │           ├── broker_adapter_service.py  # Unified broker sync (Build Plan Expansion §1, §2)
+│   │           ├── round_trip_service.py      # Execution matching (Build Plan Expansion §3)
+│   │           ├── dedup_service.py           # Hash + exec_id dedup (Build Plan Expansion §6)
+│   │           ├── excursion_service.py       # MFE/MAE/BSO enrichment (Build Plan Expansion §7)
+│   │           ├── identifier_service.py      # CUSIP/ISIN/SEDOL resolver (Build Plan Expansion §5)
+│   │           ├── options_grouping_service.py # Multi-leg strategy detection (Build Plan Expansion §8)
+│   │           ├── ledger_service.py          # Fee decomposition (Build Plan Expansion §9)
+│   │           ├── execution_quality_service.py # NBBO scoring (Build Plan Expansion §10)
+│   │           ├── pfof_service.py            # PFOF impact analysis (Build Plan Expansion §11)
+│   │           ├── ai_review_service.py       # Multi-persona AI review (Build Plan Expansion §12)
+│   │           ├── expectancy_service.py      # Expectancy & edge metrics (Build Plan Expansion §13)
+│   │           ├── drawdown_service.py        # Monte Carlo drawdown probability (Build Plan Expansion §14)
+│   │           ├── mistake_service.py         # Mistake tracking + cost attr (Build Plan Expansion §17)
+│   │           ├── strategy_breakdown_service.py # Strategy P&L breakdown (Build Plan Expansion §21)
+│   │           └── bank_import_service.py     # Bank statement import (Build Plan Expansion §26)
 │   ├── infrastructure/
 │   │   ├── pyproject.toml
 │   │   └── src/zorivest_infra/
@@ -65,7 +80,15 @@ zorivest/
 │   │       ├── external_apis/
 │   │       │   ├── __init__.py
 │   │       │   ├── ibkr_adapter.py   # Interactive Brokers adapter
+│   │       │   ├── alpaca_adapter.py # Alpaca broker adapter (Build Plan Expansion §24)
+│   │       │   ├── tradier_adapter.py # Tradier broker adapter (Build Plan Expansion §25)
 │   │       │   └── tradingview_adapter.py
+│   │       ├── parsers/              # File import parsers (Build Plan Expansion §18, §26)
+│   │       │   ├── __init__.py
+│   │       │   ├── csv_parser.py     # Multi-broker CSV import
+│   │       │   ├── ofx_parser.py     # OFX/QFX bank statement parser
+│   │       │   ├── pdf_parser.py     # PDF statement extraction (P3 — fallback)
+│   │       │   └── qif_parser.py     # QIF format parser (P2)
 │   │       └── logging/              # See Phase 1A (01a-logging.md)
 │   │           ├── __init__.py
 │   │           ├── config.py         # LoggingManager (QueueHandler/Listener)
@@ -172,6 +195,80 @@ class DisplayModeFlag(StrEnum):
     DOLLAR_VISIBLE = "dollar_visible"       # Show/hide all $ amounts
     PERCENT_VISIBLE = "percent_visible"     # Show/hide all % values
     PERCENT_MODE = "percent_mode"           # Show % of total portfolio alongside $
+
+# ── Build Plan Expansion enums ──────────────────────────────────────────
+
+class RoundTripStatus(StrEnum):  # §3
+    OPEN = "open"
+    CLOSED = "closed"
+    PARTIAL = "partial"
+
+class IdentifierType(StrEnum):  # §5
+    CUSIP = "cusip"
+    ISIN = "isin"
+    SEDOL = "sedol"
+    FIGI = "figi"
+
+class FeeType(StrEnum):  # §9
+    COMMISSION = "commission"
+    EXCHANGE = "exchange"
+    REGULATORY = "regulatory"
+    ECN = "ecn"
+    CLEARING = "clearing"
+    PLATFORM = "platform"
+    OTHER = "other"
+
+class StrategyType(StrEnum):  # §8
+    VERTICAL = "vertical"
+    IRON_CONDOR = "iron_condor"
+    BUTTERFLY = "butterfly"
+    CALENDAR = "calendar"
+    STRADDLE = "straddle"
+    STRANGLE = "strangle"
+    CUSTOM = "custom"
+
+class MistakeCategory(StrEnum):  # §17
+    EARLY_EXIT = "early_exit"
+    LATE_EXIT = "late_exit"
+    OVERSIZED = "oversized"
+    NO_STOP = "no_stop"
+    REVENGE_TRADE = "revenge_trade"
+    FOMO_ENTRY = "fomo_entry"
+    IGNORED_PLAN = "ignored_plan"
+    OVERTRADING = "overtrading"
+    CHASING = "chasing"
+    OTHER = "other"
+
+class RoutingType(StrEnum):  # §23
+    PFOF = "pfof"
+    DMA = "dma"
+    HYBRID = "hybrid"
+
+class TransactionCategory(StrEnum):  # §26
+    DEPOSIT = "deposit"
+    WITHDRAWAL = "withdrawal"
+    TRANSFER_IN = "transfer_in"
+    TRANSFER_OUT = "transfer_out"
+    FEE = "fee"
+    INTEREST = "interest"
+    DIVIDEND = "dividend"
+    ACH_DEBIT = "ach_debit"
+    ACH_CREDIT = "ach_credit"
+    WIRE_IN = "wire_in"
+    WIRE_OUT = "wire_out"
+    CHECK = "check"
+    CARD_PURCHASE = "card_purchase"
+    REFUND = "refund"
+    ATM = "atm"
+    OTHER = "other"
+
+class BalanceSource(StrEnum):  # §26
+    MANUAL = "manual"
+    CSV_IMPORT = "csv_import"
+    OFX_IMPORT = "ofx_import"
+    QIF_IMPORT = "qif_import"
+    PDF_IMPORT = "pdf_import"
+    AGENT_SUBMIT = "agent_submit"
 ```
 
 ### Build Priority for Domain Objects
@@ -188,6 +285,14 @@ Not everything needs to be built at once. Here's the phased approach:
 | **P2 — Next** | TradePlan | After P1 ships | Forward-looking trade planning |
 | **P2 — Next** | Watchlist, WatchlistItem | After P1 ships | Ticker tracking |
 | **P3 — Later** | TaxEstimator | After research phase | Complex rules, needs accuracy verification |
+| **P1 — Soon** | RoundTrip | After trades work | Round-trip matching for P&L (Expansion §3) |
+| **P1 — Soon** | ExcursionMetrics (MFE/MAE/BSO) | After market data | Auto-enrichment from bar data (Expansion §7) |
+| **P1 — Soon** | TransactionLedger | After trades work | Per-trade fee decomposition (Expansion §9) |
+| **P1 — Soon** | MistakeEntry | After trade reports | Behavior feedback loop (Expansion §17) |
+| **P1 — Soon** | BankTransaction | After accounts work | Bank statement import (Expansion §26, phased) |
+| **P2 — Next** | IdentifierMapping | After core import | CUSIP/ISIN resolution cache (Expansion §5) |
+| **P2 — Next** | OptionsStrategy | After multi-leg needs | Multi-leg options grouping (Expansion §8) |
+| **P2 — Next** | BrokerModel | After broker adapters | PDT, settlement, leverage constraints (Expansion §23) |
 
 **P0 entities get tests and implementation now. P1–P3 get Protocol interfaces (ports) now but concrete implementations later.** This way the architecture supports future growth without blocking current development.
 
@@ -337,8 +442,8 @@ class TestTrade:
             account_id="DU3584717",
         )
         img = ImageAttachment(
-            data=b"\x89PNG...",  # raw bytes
-            mime_type="image/png",
+            data=b"RIFF\x00\x00\x00\x00WEBP...",  # raw bytes (WebP-standardized)
+            mime_type="image/webp",
             caption="Entry screenshot",
             width=1920, height=1080,
         )
@@ -377,6 +482,30 @@ class AbstractUnitOfWork(Protocol):
     def __exit__(self, *args) -> None: ...
     def commit(self) -> None: ...
     def rollback(self) -> None: ...
+
+
+# ── Build Plan Expansion ports ──────────────────────────────────────────
+
+class BrokerPort(Protocol):  # §1 IBroker Interface Pattern
+    """Abstract broker adapter — all brokers implement this protocol."""
+    def get_account(self) -> dict: ...
+    def get_positions(self) -> list[dict]: ...
+    def get_orders(self, status: str = "closed") -> list[dict]: ...
+    def get_bars(self, symbol: str, timeframe: str, start: str, end: str) -> list[dict]: ...
+    def get_order_history(self, start: str, end: str) -> list[dict]: ...
+
+
+class BankImportPort(Protocol):  # §26 Bank Statement Import
+    """Abstract parser for bank statement files."""
+    def detect_format(self, file_path: str) -> str: ...
+    def parse_statement(self, file_path: str, config: dict | None = None) -> dict: ...
+    def detect_bank(self, headers: list[str]) -> str | None: ...
+
+
+class IdentifierResolverPort(Protocol):  # §5 Identifier Resolution
+    """Resolve CUSIP/ISIN/SEDOL to ticker symbol."""
+    def resolve(self, id_type: str, id_value: str, exchange_hint: str | None = None) -> dict | None: ...
+    def batch_resolve(self, identifiers: list[dict]) -> list[dict]: ...
 ```
 
 ## Exit Criteria

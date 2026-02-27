@@ -75,7 +75,7 @@ Canonical registry of **every input** the system accepts — human-entered, agen
 | 3.3 | `caption` | `string` | Image caption (default empty) | 🖥️🤖🔌 | ✅ | [04](04-rest-api.md), [05](05-mcp-server.md) |
 | 3.4 | `owner_type` | `string` | Service-internal: `"trade"` / `"report"` / `"plan"` | — | ✅ | [01](01-domain-layer.md) |
 | 3.5 | `owner_id` | `string` | Service-internal: resolved from route path (e.g. `/trades/{exec_id}/images`) | — | ✅ | [01](01-domain-layer.md) |
-| 3.6 | `mime_type` | `string` | MIME type (auto-detected from file, default `image/png`) | 🤖🔌 | ✅ | [05](05-mcp-server.md) |
+| 3.6 | `mime_type` | `string` | MIME type (auto-detected from file; all images standardized to WebP on ingestion, default `image/webp`) | 🤖🔌 | ✅ | [05](05-mcp-server.md) |
 
 > **Note:** `owner_type`/`owner_id` are service-layer parameters, not API-consumer inputs. Current REST surface is trade-scoped: `POST /trades/{exec_id}/images`.
 
@@ -86,7 +86,7 @@ Canonical registry of **every input** the system accepts — human-entered, agen
 | Upload valid PNG | POST multipart with PNG file | 200 + `image_id` |
 | Upload to missing trade | owner_id="NONEXIST" | 404 TradeNotFoundError |
 | MCP base64 attach | base64 string + caption | Decoded → multipart → 200 |
-| Get thumbnail | GET /images/{id}/thumbnail?max_size=200 | 200 + `image/png` bytes |
+| Get thumbnail | GET /images/{id}/thumbnail?max_size=200 | 200 + `image/webp` bytes |
 | Oversized file | >10MB image | 413 Payload Too Large |
 
 ---
@@ -333,7 +333,7 @@ Canonical registry of **every input** the system accepts — human-entered, agen
 | # | Input | Type | Description | Surface | Status | Plan Files |
 |---|-------|------|-------------|---------|--------|------------|
 | 14.1 | `passphrase` | `password` | SQLCipher key derivation (Argon2id) — GUI unlock | 🖥️ | ✅ | [02](02-infrastructure.md) |
-| 14.2 | `api_key` | `password` | Envelope encryption unlock — MCP standalone mode | 🤖🔌 | ✅ | [04](04-rest-api.md), [05](05-mcp-server.md) |
+| 14.2 | `api_key` | `password` | Envelope encryption unlock — MCP auth | 🤖🔌 | ✅ | [04](04-rest-api.md), [05](05-mcp-server.md) |
 
 ### Test Strategy
 
@@ -371,11 +371,11 @@ Canonical registry of **every input** the system accepts — human-entered, agen
 | 15b.3 | `secret` | `password` | Fernet-encrypted at rest | 🖥️🔌 | 📋 | [02](02-infrastructure.md) |
 | 15b.4 | Test connection | `action` | Verify credentials | 🖥️🤖🔌 | 📋 | [04](04-rest-api.md), [05](05-mcp-server.md) |
 
-### 15b-market. Market Data API Keys (9 Providers)
+### 15b-market. Market Data API Keys (12 Providers)
 
 | # | Input | Type | Description | Surface | Status | Plan Files |
 |---|-------|------|-------------|---------|--------|------------|
-| 15m.1 | `provider_name` | `dropdown` | Pre-populated from 9-provider registry | 🖥️🤖🔌 | ✅ | [08](08-market-data.md) |
+| 15m.1 | `provider_name` | `dropdown` | Pre-populated from 12-provider registry | 🖥️🤖🔌 | ✅ | [08](08-market-data.md) |
 | 15m.2 | `api_key` | `password` | Fernet-encrypted (`ENC:` prefix) | 🖥️🔌 | ✅ | [08](08-market-data.md), [02](02-infrastructure.md) |
 | 15m.3 | `rate_limit` | `number` | Requests per minute | 🖥️🔌 | ✅ | [08](08-market-data.md) |
 | 15m.4 | `timeout` | `number` | Seconds (default 30) | 🖥️🔌 | ✅ | [08](08-market-data.md) |
@@ -515,7 +515,7 @@ These inputs are triggered automatically by the system, IDE agent calls, or sche
 | 18.7 | Agent Quote Lookup | `get_stock_quote` via MCP | `agent_call` | IDE agent queries a ticker price on behalf of user | 🤖 | ✅ | [08](08-market-data.md), [05](05-mcp-server.md) |
 | 18.8 | Agent Tax Simulation | `simulate_tax_impact` via MCP | `agent_call` | IDE agent runs tax what-if during chat | 🤖 | 📋 | [matrix](build-priority-matrix.md) |
 | 18.9 | Agent Loss Harvesting | `harvest_losses` via MCP | `agent_call` | IDE agent identifies loss harvesting opportunities | 🤖 | 📋 | [matrix](build-priority-matrix.md) |
-| 18.10 | Agent Trade Plan | `create_trade_plan` via MCP | `agent_call` | IDE agent creates a plan during research | 🤖 | ✅ | [01](01-domain-layer.md) |
+| 18.10 | Agent Trade Plan | `create_trade_plan` via MCP | `agent_call` | IDE agent creates a plan during research | 🤖 | 🔶 | [01](01-domain-layer.md) |
 | 18.11 | Agent Pipeline Trigger | `run_pipeline` via MCP | `agent_call` | IDE agent triggers a report pipeline on demand | 🤖 | ✅ | [09](09-scheduling.md), [05](05-mcp-server.md) |
 | 18.12 | Quarterly Deadline Alert | Auto-generated notification | `timer` | System alerts when IRS quarterly deadline approaches | ⏰ | 📋 | [matrix](build-priority-matrix.md) |
 | 18.13 | Wash Sale Auto-Detect | Trade triggers wash check | `event` | Every new trade auto-checks 61-day wash sale window | 🔗 | ✅ | [01](01-domain-layer.md), [matrix](build-priority-matrix.md) |
@@ -565,18 +565,143 @@ These inputs are triggered automatically by the system, IDE agent calls, or sche
 
 ---
 
+## 21. Build Plan Expansion Inputs
+
+> Inputs for features from the [Build Plan Expansion Ideas](../../_inspiration/import_research/Build%20Plan%20Expansion%20Ideas.md) §1–§26.
+
+### 21a. Broker Connection (§1, §24, §25)
+
+| # | Input | Type | Description | Surface | Status | Plan Files |
+|---|-------|------|-------------|---------|--------|------------|
+| 21a.1 | `broker_id` | `string` | Broker adapter ID (e.g. "ibkr_pro", "alpaca_paper") | 🖥️🤖🔌 | 📋 | [04](04-rest-api.md), [05](05-mcp-server.md) |
+| 21a.2 | `api_key` | `password` | Broker API key (Fernet-encrypted) | 🖥️🔌 | 📋 | [04](04-rest-api.md) |
+| 21a.3 | `api_secret` | `password` | Broker API secret (Alpaca requires both) | 🖥️🔌 | 📋 | [04](04-rest-api.md) |
+| 21a.4 | `environment` | `enum` | `live` / `paper` | 🖥️🔌 | 📋 | [04](04-rest-api.md) |
+
+### 21b. CSV Import (§18)
+
+| # | Input | Type | Description | Surface | Status | Plan Files |
+|---|-------|------|-------------|---------|--------|------------|
+| 21b.1 | `file` | `UploadFile` | Broker CSV file | 🖥️🤖🔌 | 📋 | [04](04-rest-api.md), [05](05-mcp-server.md) |
+| 21b.2 | `broker_hint` | `string` | Broker name hint for format detection (default "auto") | 🖥️🤖🔌 | 📋 | [04](04-rest-api.md), [05](05-mcp-server.md) |
+| 21b.3 | `account_id` | `string` | Target account for imported trades | 🖥️🤖🔌 | 📋 | [04](04-rest-api.md), [05](05-mcp-server.md) |
+
+### 21c. Bank Statement Import (§26)
+
+| # | Input | Type | Description | Surface | Status | Plan Files |
+|---|-------|------|-------------|---------|--------|------------|
+| 21c.1 | `file` | `UploadFile` | Bank statement file (CSV, OFX, QIF) | 🖥️🤖🔌 | 📋 | [04](04-rest-api.md), [05](05-mcp-server.md) |
+| 21c.2 | `format_hint` | `enum` | `auto` / `csv` / `ofx` / `qif` | 🖥️🤖🔌 | 📋 | [04](04-rest-api.md), [05](05-mcp-server.md) |
+| 21c.3 | `account_id` | `string` | Target bank account | 🖥️🤖🔌 | 📋 | [04](04-rest-api.md), [05](05-mcp-server.md) |
+| 21c.4 | `bank_hint` | `string` | Bank name hint for field mapping | 🖥️🤖🔌 | 📋 | [04](04-rest-api.md), [05](05-mcp-server.md) |
+
+### 21d. Manual Bank Transaction (§26)
+
+| # | Input | Type | Description | Surface | Status | Plan Files |
+|---|-------|------|-------------|---------|--------|------------|
+| 21d.1 | `account_id` | `string` | Target bank account | 🖥️🔌 | 📋 | [04](04-rest-api.md) |
+| 21d.2 | `date` | `date` | Transaction date | 🖥️🔌 | 📋 | [04](04-rest-api.md) |
+| 21d.3 | `amount` | `number` | Transaction amount (negative for debit) | 🖥️🔌 | 📋 | [04](04-rest-api.md) |
+| 21d.4 | `description` | `string` | Transaction description | 🖥️🔌 | 📋 | [04](04-rest-api.md) |
+| 21d.5 | `category` | `enum` | TransactionCategory (deposit, withdrawal, etc.) | 🖥️🔌 | 📋 | [04](04-rest-api.md) |
+
+### 21e. Mistake Tag (§17)
+
+| # | Input | Type | Description | Surface | Status | Plan Files |
+|---|-------|------|-------------|---------|--------|------------|
+| 21e.1 | `trade_exec_id` | `string` | Trade to tag | 🖥️🤖🔌 | 📋 | [04](04-rest-api.md), [05](05-mcp-server.md) |
+| 21e.2 | `category` | `enum` | MistakeCategory (EARLY_EXIT, REVENGE_TRADE, etc.) | 🖥️🤖🔌 | 📋 | [04](04-rest-api.md), [05](05-mcp-server.md) |
+| 21e.3 | `estimated_cost` | `number` | Estimated cost of mistake | 🖥️🤖🔌 | 📋 | [04](04-rest-api.md), [05](05-mcp-server.md) |
+| 21e.4 | `notes` | `text` | Free-form notes | 🖥️🤖🔌 | 📋 | [04](04-rest-api.md), [05](05-mcp-server.md) |
+
+### 21f. AI Review Request (§12)
+
+| # | Input | Type | Description | Surface | Status | Plan Files |
+|---|-------|------|-------------|---------|--------|------------|
+| 21f.1 | `trade_exec_id` | `string` | Trade to review | 🤖🔌 | 📋 | [04](04-rest-api.md), [05](05-mcp-server.md) |
+| 21f.2 | `review_type` | `enum` | `single` / `weekly` | 🤖🔌 | 📋 | [04](04-rest-api.md), [05](05-mcp-server.md) |
+| 21f.3 | `budget_cap` | `number` | Max spend in cents (opt-in) | 🤖🔌 | 📋 | [04](04-rest-api.md), [05](05-mcp-server.md) |
+
+### 21g. Identifier Resolution (§5)
+
+| # | Input | Type | Description | Surface | Status | Plan Files |
+|---|-------|------|-------------|---------|--------|------------|
+| 21g.1 | `id_type` | `enum` | `cusip` / `isin` / `sedol` / `figi` | 🤖🔌 | 📋 | [04](04-rest-api.md), [05](05-mcp-server.md) |
+| 21g.2 | `id_value` | `string` | Identifier value to resolve | 🤖🔌 | 📋 | [04](04-rest-api.md), [05](05-mcp-server.md) |
+
+---
+
+## 22. Service Daemon Controls (Phase 10)
+
+> Backend service lifecycle management. GUI controls via Electron IPC; MCP tools via REST.
+> Source: [Phase 10](10-service-daemon.md) | REST: [§10.3](10-service-daemon.md) | MCP: [§10.4](10-service-daemon.md) | GUI: [§10.5](10-service-daemon.md)
+
+| # | Input | Type | Description | Surface | Status | Plan Files |
+|---|-------|------|-------------|---------|--------|------------|
+| 22.1 | Start service | `action` | Start the backend service via OS service wrapper | 🖥️ | ✅ | [10](10-service-daemon.md) |
+| 22.2 | Stop service | `action` | Stop the backend service | 🖥️ | ✅ | [10](10-service-daemon.md) |
+| 22.3 | Restart service | `action` | Graceful restart via `POST /service/graceful-shutdown` | 🖥️🤖 | ✅ | [10](10-service-daemon.md) |
+| 22.4 | Toggle auto-start | `bool` | Enable/disable auto-start at login | 🖥️ | ✅ | [10](10-service-daemon.md) |
+| 22.5 | Open log folder | `action` | Open service log directory in file explorer | 🖥️ | ✅ | [10](10-service-daemon.md) |
+| 22.6 | Service status query | `agent_call` | `zorivest_service_status` via MCP | 🤖 | ✅ | [10](10-service-daemon.md), [05](05-mcp-server.md) |
+| 22.7 | Service log listing | `agent_call` | `zorivest_service_logs` via MCP | 🤖 | ✅ | [10](10-service-daemon.md), [05](05-mcp-server.md) |
+
+### Test Strategy
+
+| Test | Input | Expected Output |
+|------|-------|-----------------|
+| Start service | Start action | Service state → running, PID visible |
+| Stop service | Stop action | Service state → stopped, PID cleared |
+| Restart service | Restart action | Service restarts, new PID |
+| Toggle auto-start | Toggle on/off | Auto-start config updated per platform |
+| Open logs | Open folder action | File explorer opens log directory |
+| MCP status (up) | `zorivest_service_status` | Health + process metrics returned |
+| MCP status (down) | `zorivest_service_status` (backend unreachable) | Error state returned |
+
+---
+
+## 23. MCP Discovery & Toolset Management
+
+> Toolset discovery, inspection, and activation for adaptive MCP clients.
+> Source: [05j-mcp-discovery.md](05j-mcp-discovery.md) | Architecture: [§5.11–§5.14](05-mcp-server.md)
+
+| # | Input | Type | Description | Surface | Status | Plan Files |
+|---|-------|------|-------------|---------|--------|------------|
+| 23.1 | (none) | — | `list_available_toolsets` is parameterless | 🤖 | ✅ | [05j](05j-mcp-discovery.md) |
+| 23.2 | `toolset_name` | `string` | Toolset to describe (e.g. `"trade-analytics"`) | 🤖 | ✅ | [05j](05j-mcp-discovery.md) |
+| 23.3 | `toolset_name` | `string` | Toolset to enable/disable | 🤖 | ✅ | [05j](05j-mcp-discovery.md) |
+| 23.4 | `enable` | `bool` | Enable (`true`) or disable (`false`) toolset | 🤖 | ✅ | [05j](05j-mcp-discovery.md) |
+| 23.5 | `tool_name` | `string` | Tool requiring confirmation (destructive ops) | 🤖 | ✅ | [05j](05j-mcp-discovery.md) |
+| 23.6 | `parameters` | `object` | Tool parameters to hash for token generation | 🤖 | ✅ | [05j](05j-mcp-discovery.md) |
+
+### Test Strategy
+
+| Test | Input | Expected Output |
+|------|-------|-----------------|
+| List toolsets | `list_available_toolsets` | Array with all 8 toolsets, each with name/description/enabled/tool_count |
+| Describe valid | `describe_toolset("core")` | Tool list with annotations for each core tool |
+| Describe invalid | `describe_toolset("nonexistent")` | Error: toolset not found |
+| Enable toolset | `enable_toolset("tax", true)` | Confirmation with enabled=true |
+| Disable toolset | `enable_toolset("tax", false)` | Confirmation with enabled=false |
+| Confirm token | `get_confirmation_token("zorivest_emergency_stop", {...})` | Valid HMAC token string |
+| Token for non-destructive | `get_confirmation_token("list_trades", {...})` | Error: tool is not destructive |
+
+---
+
 ## Summary Statistics
 
 | Category | Count |
 |----------|-------|
-| Total input fields (human-entered) | 122 |
-| Programmatic/scheduled triggers | 14 |
-| Feature groups | 25 (incl. sub-sections 9a, 15a, 15b, 15m, 15d, 17a) |
-| ✅ Defined (full surface contract) | 66 inputs |
+| Total input fields (human-entered) | 155 |
+| Programmatic/scheduled triggers | 16 |
+| MCP discovery inputs | 6 |
+| Feature groups | 34 (incl. sub-sections 9a, 15a, 15b, 15m, 15d, 17a, 21a–21g, 23) |
+| ✅ Defined (full surface contract) | 79 inputs |
 | 🔶 Domain modeled (no REST/MCP/GUI contract) | 34 inputs |
-| 📋 Planned (matrix-only, no routes/tools) | 38 inputs |
+| 📋 Planned (matrix-only, no routes/tools) | 48 inputs |
 | GUI-only inputs (security) | 2 (passphrase, API key entry) |
-| MCP-only inputs | 4 (`image_base64` row 3.2, `confirm` row 19.7, `verbose` row 20.1, `wait_for_close` row 20.2) |
-| Files referenced | 10 build plan docs |
+| MCP-only input parameters | 10 (`image_base64`, `confirm`, `verbose`, `wait_for_close`, `toolset_name`, `enable`, `tool_name`, `parameters`) |
+| MCP-only tool calls (no GUI equivalent) | 6 (`zorivest_service_status`, `zorivest_service_logs`, `list_available_toolsets`, `describe_toolset`, `enable_toolset`, `get_confirmation_token`) |
+| Files referenced | 12 build plan docs |
 
 

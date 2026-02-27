@@ -34,6 +34,10 @@
 - Pass/fail matrix:
 - Repro failures:
 - Coverage/test gaps:
+- Evidence bundle location:
+- FAIL_TO_PASS / PASS_TO_PASS result:
+- Mutation score:
+- Contract verification status:
 
 ## Reviewer Output
 
@@ -41,6 +45,7 @@
 - Open questions:
 - Verdict:
 - Residual risk:
+- Anti-deferral scan result:
 
 ## Guardrail Output (If Required)
 

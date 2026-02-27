@@ -34,6 +34,35 @@ Use this workflow for implementation tasks where code is changed.
 6. Safety gate (guardrail when triggered): block or clear with notes.
 7. Human approval gate: explicit approval required for merge/release/deploy.
 
+## Evidence-First Completion Protocol
+
+A task **cannot** be marked `done` without an attached evidence bundle. Narrative status alone cannot close a task.
+
+**Evidence bundle must include:**
+
+| Field | Required? | Description |
+|---|---|---|
+| Changed files | Yes | List of every file modified, created, or deleted |
+| Commands executed | Yes | Every command run during implementation and testing |
+| Test/eval results | Yes | Pass/fail matrix with command output or log references |
+| Artifact references | Yes | Links to handoff file, logs, reports, screenshots |
+| Reviewer verdict | Yes | Independent reviewer `approved` or `changes_required` |
+
+## No-Deferral Without Replan
+
+If implementation is blocked or incomplete, the task status becomes `blocked`, **never** `done`.
+
+**Rules:**
+
+1. Blocked work must create a **replacement scoped task** with: `owner_role`, `deliverable`, `validation`, `status`.
+2. The following are **banned** in completed tasks:
+   - `TODO` / `FIXME` comments
+   - `NotImplementedError` / `raise NotImplementedError`
+   - Empty `except` / `catch` blocks
+   - `pass  # placeholder` or `...  # placeholder`
+   - Skeleton stubs with no implementation
+3. If any banned pattern is found, the task must revert to `in_progress` or `blocked`.
+
 ## Handoff Artifact
 
 Create one handoff file per task:
@@ -46,5 +75,7 @@ Use `.agent/context/handoffs/TEMPLATE.md`.
 
 1. Required roles are executed in sequence.
 2. Blocking checks are green.
-3. Review verdict is `approved` with no unresolved blockers.
-4. Human approval gate is satisfied for merge/release/deploy.
+3. Evidence bundle is attached and complete (see Evidence-First Completion Protocol).
+4. No banned placeholders remain in deliverables (see No-Deferral Without Replan).
+5. Review verdict is `approved` with no unresolved blockers.
+6. Human approval gate is satisfied for merge/release/deploy.

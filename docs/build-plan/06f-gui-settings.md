@@ -14,7 +14,7 @@ Consolidate all settings and configuration pages: Market Data Providers (migrate
 
 > **Source**: Adapted from [`_market_tools_api-architecture.md`](../../_inspiration/_market_tools_api-architecture.md) GUI specification. Uses a list+detail layout (modern React pattern) instead of nested provider tabs.
 
-The Market Data Settings page lets users configure API keys and monitor connection status for all 9 market data providers. It consumes the REST endpoints defined in [Phase 8 §8.4](08-market-data.md).
+The Market Data Settings page lets users configure API keys and monitor connection status for all 12 market data providers. It consumes the REST endpoints defined in [Phase 8 §8.4](08-market-data.md).
 
 ### Layout
 
@@ -184,7 +184,7 @@ export function ProviderSettingsPage() {
 
 | Inspiration Feature | Build Plan Decision | Rationale |
 |---|---|---|
-| Nested 9-tab provider interface | List+detail split layout | Cleaner UX; 9 tabs clutters the tab bar |
+| Nested 12-tab provider interface | List+detail split layout | Cleaner UX; 12 tabs clutters the tab bar |
 | Auto-save on every keystroke | Explicit "Save Changes" button | Standard React pattern; avoids excessive REST calls |
 | ScrolledText status log | Toast notifications | Standard desktop app UX |
 | Font customization | CSS global styling | Not needed as a per-widget feature |
@@ -698,7 +698,8 @@ export function McpGuardSettingsPage() {
 │  │ Version: 1.0.0 (dev)                          │       │
 │  │ Database: 🟢 Unlocked                         │       │
 │  │ MCP Guard: 🟢 Active (47 calls/hr)            │       │
-│  │ Registered tools: 22                           │       │
+│  │ Registered tools: 68 (8 toolsets)             │       │
+│  │ Active toolsets: 8/8                            │       │
 │  │ Uptime: 1h 23m                                 │       │
 │  │                                                │       │
 │  │ [Refresh Status]                               │       │
@@ -735,7 +736,8 @@ export function McpGuardSettingsPage() {
 | Version + context | `GET /version` | On-demand |
 | Database status | `GET /health` (derived) | On-demand |
 | Guard state | `GET /mcp-guard/status` | On-demand |
-| Tool count | `zorivest_diagnose` response (shows "unknown" if unavailable) | On-demand |
+| Tool count + toolsets | `list_available_toolsets` MCP tool (shows tool_count per toolset and total) | On-demand |
+| Active toolset count | `list_available_toolsets` (count of enabled toolsets) | On-demand |
 | Uptime | `zorivest_diagnose` response | On-demand |
 
 ### IDE Config JSON Templates
@@ -754,7 +756,7 @@ All templates auto-fill `url` from the detected MCP server URL and include the `
 
 ## Exit Criteria
 
-- Market Data Settings page displays all 9 providers with connection status
+- Market Data Settings page displays all 12 providers with connection status
 - API key save/test/remove cycle works end-to-end via REST
 - Email provider preset auto-fills SMTP fields
 - Email test connection sends a test email and reports success/failure
@@ -765,6 +767,7 @@ All templates auto-fill `url` from the detected MCP server URL and include the `
 - Reset to Default removes user override and falls back correctly
 - MCP Guard page displays status, accepts threshold changes, and lock/unlock cycle works
 - MCP Server Status panel shows connection health and generates valid IDE config JSON
+- Service Manager panel shows status, start/stop/restart work, auto-start toggle persists
 
 ## Outputs
 
@@ -772,7 +775,8 @@ All templates auto-fill `url` from the detected MCP server URL and include the `
 - React components: `BackupSettingsPage`, `ConfigExportImportCard` — see [Phase 2A](02a-backup-restore.md)
 - React component: `McpGuardSettingsPage` — circuit breaker + panic button
 - React component: `McpServerStatusPanel` — connection status + IDE config generation
+- React component: `ServiceManagerPage` — backend service lifecycle controls — see [Phase 10 §10.5](10-service-daemon.md)
 - Email preset auto-fill configuration map
 - Display mode toggle with live preview
 - Reset to Default ↻ buttons on all settings rows
-- Settings pages consume: `GET/PUT /settings`, `GET /settings/resolved`, `POST/GET /backups`, `GET /config/export`, `POST /config/import`, `DELETE /settings/{key}`, `GET/PUT /mcp-guard/config`, `GET /mcp-guard/status`, `POST /mcp-guard/lock`, `POST /mcp-guard/unlock`, `GET /health`, `GET /version`
+- Settings pages consume: `GET/PUT /settings`, `GET /settings/resolved`, `POST/GET /backups`, `GET /config/export`, `POST /config/import`, `DELETE /settings/{key}`, `GET/PUT /mcp-guard/config`, `GET /mcp-guard/status`, `POST /mcp-guard/lock`, `POST /mcp-guard/unlock`, `GET /health`, `GET /version`, `GET /service/status`, `POST /service/graceful-shutdown`

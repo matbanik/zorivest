@@ -218,7 +218,7 @@ Each nav rail item maps to a module that may contain internal tabs:
 | Trades | Table · Detail · Journal · Screenshots | [06b](06b-gui-trades.md) |
 | Planning | Plans · Watchlists · (Calculator modal) | [06c](06c-gui-planning.md), [06h](06h-gui-calculator.md) |
 | Scheduling | Jobs · Run History | [06e](06e-gui-scheduling.md) |
-| Settings | Market Data · Email · Display · Tax Profile · Logging · Backup | [06f](06f-gui-settings.md) |
+| Settings | Market Data · Email · Display · Tax Profile · Logging · Backup · Service Manager | [06f](06f-gui-settings.md), [10](10-service-daemon.md) |
 
 ---
 
@@ -359,7 +359,7 @@ export const useAccountContext = () => useContext(AccountContext);
 - Trades table displays with image badges and full-field columns
 - Screenshot panel supports upload, paste, and lightbox viewing
 - Display mode toggles ($, %, % mode) work correctly
-- Market Data Settings page displays all 9 providers with connection status
+- Market Data Settings page displays all 12 providers with connection status
 - Trade plans and watchlists support CRUD operations
 - Position calculator computes all outputs, supports multi-scenario comparison
 - Tax Dashboard displays YTD summary cards with live data
@@ -372,6 +372,7 @@ export const useAccountContext = () => useContext(AccountContext);
 - Window position/size restored on app restart
 - Command palette opens on Ctrl+K, fuzzy-searches all registered entries
 - Theme preference persists across sessions
+- Service Manager panel shows status, allows start/stop/restart, toggles auto-start
 
 ## Outputs
 

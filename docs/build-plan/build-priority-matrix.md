@@ -1,6 +1,6 @@
 # Build Priority Matrix
 
-> Part of [Zorivest Build Plan](../BUILD_PLAN.md) — The 106-item build order across all priority levels.
+> Part of [Zorivest Build Plan](../BUILD_PLAN.md) — The 136-item build order across all priority levels.
 
 ---
 
@@ -27,9 +27,9 @@
 | **10c** | `BackupManager` (auto backup + GFS rotation) ([02a](02a-backup-restore.md)) | ✅ Yes | SQLCipher, pyzipper | Snapshot → AES ZIP → rotate → verify |
 | **10d** | `BackupRecoveryManager` (restore + repair) ([02a](02a-backup-restore.md)) | ✅ Yes | BackupManager | Restore cycle, hash verify, atomic swap, repair |
 | **10e** | `ConfigExportService` (JSON export/import) ([02a](02a-backup-restore.md)) | ✅ Yes | SettingsRegistry | Allowlist enforcement, sensitivity filtering, dry-run |
-| **11** | Image processing (validate, thumbnail) | ✅ Yes | Pillow | Thumbnail generation |
+| **11** | Image processing (validate, WebP standardize, thumbnail) | ✅ Yes | Pillow | WebP conversion + thumbnail generation |
 | **12** | FastAPI routes | ✅ Yes | Services | `TestClient` |
-| **13** | TypeScript MCP tools (trade, account, calculator, image) | ✅ Yes | REST API | `vitest` with mocked `fetch()` |
+| **13** | TypeScript MCP tools (trade, account, calculator, image, discovery) | ✅ Yes | REST API, ToolsetRegistry | `vitest` with mocked `fetch()` |
 | **14** | MCP + REST integration test | ✅ Yes | Both live | TS MCP calling live Python API |
 | **15** | Electron + React UI shell ([06a](06a-gui-shell.md)) | ✅ Yes | REST API | React Testing Library + Playwright |
 | **15a** | Settings REST endpoints (`GET`/`PUT /settings`) | ✅ Yes | Services | `TestClient` round-trip |
@@ -41,12 +41,14 @@
 | **15g** | Per-tool performance metrics middleware ([§5.9](05-mcp-server.md)) | ✅ Yes | Nothing | Vitest: latency recording, percentile accuracy, error rate |
 | **15h** | `zorivest_launch_gui` MCP tool ([§5.10](05-mcp-server.md)) | ✅ Yes | Nothing | Vitest: found/not-found paths, platform commands, setup instructions |
 | **15i** | MCP Server Status panel ([§6f.9](06f-gui-settings.md)) | Manual | REST API, MCP tools | Visual: status indicators, IDE config copy |
+| **15j** | Discovery meta-tools: `list_available_toolsets`, `describe_toolset`, `enable_toolset`, `get_confirmation_token` ([05j](05j-mcp-discovery.md)) | ✅ Yes | ToolsetRegistry | Vitest: registry enumeration, annotation echo, enable/disable toggle, HMAC token lifecycle |
+| **15k** | `ToolsetRegistry` module + adaptive client detection ([§5.11–§5.14](05-mcp-server.md)) | ✅ Yes | Nothing | Vitest: toolset CRUD, `core` immutability, client capability negotiation |
 | **16** | React pages — Trades ([06b](06b-gui-trades.md)), Plans ([06c](06c-gui-planning.md)) | Manual | API hooks | Visual verification |
 | **16a** | Notification system ([06a](06a-gui-shell.md)) | Manual | Settings API | Visual: toast categories, suppression toggle |
 | **16b** | Command palette ([06a](06a-gui-shell.md), Ctrl+K) | Manual | Registry | Visual: search, navigate, select |
 | **16c** | UI state persistence ([06a](06a-gui-shell.md)) | Manual | Settings API | Change → restart → verify restored |
 
-> **Note**: Items 13 and 15 cover **core** MCP tools and GUI shell only. Market-data MCP tools and the Market Data Settings page depend on Phase 8 (items 21–30 in P1.5) and must not be started until P1.5 is reached.
+> **Note**: Items 13 and 15 cover **core** MCP tools, discovery meta-tools, and GUI shell only. Market-data MCP tools and the Market Data Settings page depend on Phase 8 (items 21–30 in P1.5) and must not be started until P1.5 is reached.
 
 > **Release gate**: Item 15e (MCP Guard) must pass before any MCP-enabled release. Do not ship MCP tools without abuse controls.
 
@@ -69,10 +71,10 @@
 
 | Order | What | Tests First? | Notes |
 |-------|------|-------------|-------|
-| **21** | `MarketDataProvider` entity + `AuthMethod` enum | ✅ Yes | 9 provider configs, 4 auth methods |
+| **21** | `MarketDataProvider` entity + `AuthMethod` enum | ✅ Yes | 12 provider configs, 4 auth methods |
 | **22** | Normalized response DTOs (`MarketQuote`, `MarketNewsItem`, etc.) | ✅ Yes | Pydantic models for cross-provider normalization |
 | **23** | `MarketProviderSettingModel` + encrypted key storage | ✅ Yes | SQLAlchemy table, Fernet encrypt/decrypt |
-| **24** | Provider registry (singleton config map) | ✅ Yes | All 9 providers with auth templates, test endpoints |
+| **24** | Provider registry (singleton config map) | ✅ Yes | All 12 providers with auth templates, test endpoints |
 | **25** | `ProviderConnectionService` (test, configure, list) | ✅ Yes | Connection testing framework with response validation |
 | **26** | `MarketDataService` (quote, news, search, SEC filings) | ✅ Yes | Provider fallback chain, response normalization |
 | **27** | Rate limiter (token-bucket per provider) + log redaction | ✅ Yes | Async token-bucket, API key masking |
@@ -120,6 +122,69 @@
 | **47** | `SendStep` + async email + delivery tracking | ✅ Yes | aiosmtplib, idempotent dedup, local file |
 | **48** | Scheduling REST API (12 endpoints) + MCP tools (6 tools + 2 resources) | ✅ Yes | Policy CRUD, run trigger, scheduler status |
 | **49** | Security guardrails (rate limits, approval flow, audit trail) | ✅ Yes | Human-in-the-loop, hash-based re-approval |
+
+---
+
+## P2.6 — Service Daemon (Phase 10)
+
+> See [Phase 10](10-service-daemon.md) for full spec.
+
+| Order | What | Tests First? | Notes |
+|-------|------|-------------|-------|
+| **49a** | Service config files (WinSW XML, launchd plist, systemd unit) | No tests needed | Template files, platform-native |
+| **49b** | `ServiceManager` class + IPC bridge (Electron main process) | ✅ Yes | Vitest: platform-specific start/stop/status commands |
+| **49c** | Service REST endpoints (`/service/status`, `/service/graceful-shutdown`) | ✅ Yes | `TestClient`: process metrics, graceful restart |
+| **49d** | Service MCP tools (`zorivest_service_status`, `_restart`, `_logs`) | ✅ Yes | Vitest: reachable/unreachable, restart polling, log listing |
+| **49e** | Service Manager GUI (Settings panel) + installer hooks (NSIS, first-launch) | Manual | Status polling, start/stop/restart, auto-start toggle, open log folder |
+
+---
+
+## P2.75 — Build Plan Expansion (Analytics, Behavioral, Import)
+
+> **Source**: [Build Plan Expansion Ideas](../../_inspiration/import_research/Build%20Plan%20Expansion%20Ideas.md) §1–§26. Features depend on P0–P2 trade/account infrastructure.
+
+### Broker Adapters & Import
+
+| Order | What | Tests First? | Notes |
+|-------|------|-------------|-------|
+| **50e** | IBKR FlexQuery adapter (§1) | ✅ Yes | XML parsing, trade normalization |
+| **51e** | Alpaca REST adapter (§24) | ✅ Yes | `alpaca-py`, position sync |
+| **52e** | Tradier REST adapter (§25) | ✅ Yes | REST client, order history |
+| **53e** | CSV import service + broker auto-detection (§18) | ✅ Yes | Header pattern matching |
+| **54e** | PDF statement parser (§19) | ✅ Yes | `pdfplumber`, tabular extraction |
+| **55e** | Deduplication service (§6) | ✅ Yes | Exact + fuzzy matching, merge UI |
+| **56e** | Identifier resolver / CUSIP→ticker (§5) | ✅ Yes | OpenFIGI API, cache layer |
+| **57e** | Bank statement import (§26) | ✅ Yes | OFX/CSV/QIF parsing, dedup |
+
+### Analytics & Behavioral
+
+| Order | What | Tests First? | Notes |
+|-------|------|-------------|-------|
+| **58e** | Round-trip service (§3) | ✅ Yes | Entry→exit pairing, aggregate P&L |
+| **59e** | MFE/MAE/BSO excursion service (§7) | ✅ Yes | Historical bar data, efficiency % |
+| **60e** | Options strategy grouping (§8) | ✅ Yes | Multi-leg detection (condor, straddle) |
+| **61e** | Transaction ledger / fee decomposition (§9) | ✅ Yes | Commission + exchange + regulatory |
+| **62e** | Execution quality scoring (§10) | ✅ Yes | NBBO comparison, A–F grading |
+| **63e** | PFOF analysis (§11) | ✅ Yes | Probabilistic model, labeled ESTIMATE |
+| **64e** | AI review multi-persona (§12) | ✅ Yes | Budget cap, opt-in, persona routing |
+| **65e** | Expectancy + edge metrics (§13) | ✅ Yes | Win rate, Kelly %, payoff ratio |
+| **66e** | Monte Carlo drawdown (§14) | ✅ Yes | `numpy`/`scipy`, seed reproducibility |
+| **67e** | Mistake tracking service (§17) | ✅ Yes | Category enum, cost attribution |
+| **68e** | Strategy breakdown (§21) | ✅ Yes | P&L per strategy name from tags |
+| **68.1e** | SQN service (§15) | ✅ Yes | Van Tharp SQN + grade classification |
+| ~~**68.2e**~~ | ~~PDF statement parser (§19)~~ | — | **Duplicate of item 54e** — see Broker Adapters & Import section above |
+| **68.3e** | Cost of Free analysis (§22) | ✅ Yes | PFOF + fee hidden cost report |
+| **68.4e** | Trade↔journal linking (§16) | ✅ Yes | Bidirectional FK + service |
+
+### Expansion API + MCP + GUI
+
+| Order | What | Tests First? | Notes |
+|-------|------|-------------|-------|
+| **69e** | REST routes (10 groups: brokers, analytics, banking, import, ...) | ✅ Yes | `TestClient` e2e |
+| **70e** | MCP tools (22 expansion tools) | ✅ Yes | `vitest` with mocked `fetch()` |
+| **71e** | Trade detail GUI tabs (Excursion, Fees, Mistakes, Expectancy, ...) | Manual | 10 new React components |
+| **72e** | Account GUI enhancements (Bank import, Broker sync, Column mapping) | Manual | 5 new React components |
+| **73e** | Analytics dashboard GUI (planned) | Manual | SQN, drawdown, strategy, monthly P&L calendar |
 
 ---
 

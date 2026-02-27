@@ -123,7 +123,8 @@ module.exports = {
   productName: 'Zorivest',
   directories: { output: 'dist' },
   extraResources: [
-    { from: 'dist-python/zorivest-api${ext}', to: 'backend/' }
+    { from: 'dist-python/zorivest-api${ext}', to: 'backend/' },
+    { from: 'resources/service/', to: 'service/' },  // WinSW binary + XML config (Phase 10)
   ],
   win: { target: ['nsis'], icon: 'assets/icon.ico' },
   mac: { target: ['dmg'], icon: 'assets/icon.icns' },
@@ -195,7 +196,7 @@ npm run build
 npm publish --access public  # @zorivest/mcp-server
 ```
 
-Users install with `npx @zorivest/mcp-server --api-url http://localhost:8765` or add to their IDE's MCP configuration with a `Bearer` API key header for encrypted DB access (see [Phase 5 §5.7](05-mcp-server.md#step-57-mcp-auth-bootstrap-standalone-mode)):
+Users install with `npx @zorivest/mcp-server --api-url http://localhost:8765` or add to their IDE's MCP configuration with a `Bearer` API key header for encrypted DB access (see [Phase 5 §5.7](05-mcp-server.md#step-57-mcp-auth-bootstrap)):
 
 ```json
 {
@@ -236,7 +237,7 @@ jobs:
       - run: uv sync --frozen
       - run: uv run ruff check .
       - run: uv run ruff format --check .
-      - run: uv run mypy packages/core/src
+      - run: uv run pyright packages/core/src
 
   lint-mcp-server:
     runs-on: ubuntu-latest
@@ -645,3 +646,51 @@ Cache is keyed per-OS in matrix builds. `actions/setup-node` and `astral-sh/setu
 | `.github/workflows/release.yml` | Tag-triggered desktop builds |
 | `.github/workflows/publish.yml` | Registry publishing (PyPI + npm) |
 | `.github/workflows/test-release.yml` | Dry-run packaging validation |
+
+## 7.18 Branch Protection Required Checks
+
+GitHub branch protection rules for `main` must require the following status checks before merge:
+
+### Existing CI Checks (from `ci.yml`)
+
+| Required Check | Job Name | What It Gates |
+|---|---|---|
+| Python type check | `lint-python` | No type errors in `packages/` |
+| Python lint | `lint-python` | No ruff violations |
+| Python tests | `test-python` | All pytest suites pass (3-OS matrix) |
+| TS type check (MCP) | `lint-mcp-server` | No TypeScript errors in `mcp-server/` |
+| TS type check (UI) | `lint-ui` | No TypeScript errors in `ui/` |
+| TS tests (MCP) | `test-mcp-server` | All Vitest suites pass |
+| TS tests (UI) | `test-ui` | All Vitest suites pass |
+
+### Planned Integrity Checks (added as code arrives)
+
+| Required Check | Job Name | What It Gates | Phase |
+|---|---|---|---|
+| Feature eval | `feature-eval` | FAIL_TO_PASS + PASS_TO_PASS regression suite passes | Phase 1+ |
+| Contract verification | `contract-verify` | Pact provider verification passes | Phase 4+ |
+| Mutation score | `mutation-score` | mutmut/StrykerJS threshold met (≥60%, ratcheting) | Phase 1+ |
+| Evidence manifest | `evidence-manifest` | Handoff evidence bundle exists and is non-empty | Phase 1+ |
+
+> **Note:** Planned checks are added to `ci.yml` as their corresponding code is implemented. Until then, they are tracked here as the target state for branch protection.
+
+### Configuration
+
+```yaml
+# GitHub repo settings → Branches → Branch protection rules → main
+# Required status checks before merging:
+#   ✅ Require status checks to pass before merging
+#   ✅ Require branches to be up to date before merging
+#   Status checks:
+#     - lint-python
+#     - lint-mcp-server
+#     - lint-ui
+#     - test-python
+#     - test-mcp-server
+#     - test-ui
+#     # Add when implemented:
+#     # - feature-eval
+#     # - contract-verify
+#     # - mutation-score
+#     # - evidence-manifest
+```

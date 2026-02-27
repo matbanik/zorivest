@@ -236,10 +236,10 @@ Canonical registry of **every computed or derived output** the system produces �
 
 | # | Output | Type | Source | Surface | Endpoint | Status | Plan Files |
 |---|--------|------|--------|---------|----------|--------|------------|
-| 12.1 | Stock quote (price, volume, change) | object | provider auto-routing | 🖥️🤖🔌 | `GET /market-data/quote/{ticker}` | ✅ | [08](08-market-data.md) |
-| 12.2 | Ticker search results | list | fuzzy match on name/symbol | 🤖🔌 | `GET /market-data/search?q=` | ✅ | [08](08-market-data.md) |
-| 12.3 | News articles | list | ticker-scoped headlines | 🤖🔌 | `GET /market-data/news/{ticker}` | ✅ | [08](08-market-data.md) |
-| 12.4 | SEC filings | list | ticker-scoped filings | 🤖🔌 | `GET /market-data/filings/{ticker}` | ✅ | [08](08-market-data.md) |
+| 12.1 | Stock quote (price, volume, change) | object | provider auto-routing | 🖥️🤖🔌 | `GET /market-data/quote?ticker=` | ✅ | [08](08-market-data.md) |
+| 12.2 | Ticker search results | list | fuzzy match on name/symbol | 🤖🔌 | `GET /market-data/search?query=` | ✅ | [08](08-market-data.md) |
+| 12.3 | News articles | list | ticker-scoped headlines | 🤖🔌 | `GET /market-data/news?ticker=` | ✅ | [08](08-market-data.md) |
+| 12.4 | SEC filings | list | ticker-scoped filings | 🤖🔌 | `GET /market-data/sec-filings?ticker=` | ✅ | [08](08-market-data.md) |
 | 12.5 | Provider connection test result | Bool + Text | `success` + error message | 🖥️🤖🔌 | `POST /market-data/providers/{name}/test` | ✅ | [08](08-market-data.md) |
 
 ---
@@ -248,11 +248,11 @@ Canonical registry of **every computed or derived output** the system produces �
 
 | # | Output | Type | Source | Surface | Endpoint | Status | Plan Files |
 |---|--------|------|--------|---------|----------|--------|------------|
-| 13.1 | Guard status (active/locked) | Enum | `McpGuardModel.is_locked` | 🖥️🤖🔌 | `GET /mcp-guard` | ✅ | [04](04-rest-api.md), [06f](06f-gui-settings.md) |
-| 13.2 | Calls in last minute | # | sliding window counter | 🖥️🔌 | `GET /mcp-guard` | ✅ | [04](04-rest-api.md), [06f](06f-gui-settings.md) |
-| 13.3 | Calls in last hour | # | sliding window counter | 🖥️🔌 | `GET /mcp-guard` | ✅ | [04](04-rest-api.md), [06f](06f-gui-settings.md) |
-| 13.4 | Lock reason | Text | `McpGuardModel.lock_reason` | 🖥️🤖🔌 | `GET /mcp-guard` | ✅ | [04](04-rest-api.md), [06f](06f-gui-settings.md) |
-| 13.5 | Locked-at timestamp | datetime | `McpGuardModel.locked_at` | 🖥️🔌 | `GET /mcp-guard` | ✅ | [04](04-rest-api.md), [06f](06f-gui-settings.md) |
+| 13.1 | Guard status (active/locked) | Enum | `McpGuardModel.is_locked` | 🖥️🤖🔌 | `GET /mcp-guard/status` | ✅ | [04](04-rest-api.md), [06f](06f-gui-settings.md) |
+| 13.2 | Calls in last minute | # | sliding window counter | 🖥️🔌 | `GET /mcp-guard/status` | ✅ | [04](04-rest-api.md), [06f](06f-gui-settings.md) |
+| 13.3 | Calls in last hour | # | sliding window counter | 🖥️🔌 | `GET /mcp-guard/status` | ✅ | [04](04-rest-api.md), [06f](06f-gui-settings.md) |
+| 13.4 | Lock reason | Text | `McpGuardModel.lock_reason` | 🖥️🤖🔌 | `GET /mcp-guard/status` | ✅ | [04](04-rest-api.md), [06f](06f-gui-settings.md) |
+| 13.5 | Locked-at timestamp | datetime | `McpGuardModel.locked_at` | 🖥️🔌 | `GET /mcp-guard/status` | ✅ | [04](04-rest-api.md), [06f](06f-gui-settings.md) |
 
 ---
 
@@ -305,15 +305,77 @@ Canonical registry of **every computed or derived output** the system produces �
 
 ---
 
+## 17. Build Plan Expansion Outputs
+
+> Analytics, behavioral, and import outputs from the [Build Plan Expansion](../../_inspiration/import_research/Build%20Plan%20Expansion%20Ideas.md).
+
+| # | Output | Type | Source | Surface | Endpoint | Status | Plan Files |
+|---|--------|------|--------|---------|----------|--------|------------|
+| 17.1 | Expectancy metrics (win rate, Kelly %) | Object | `ExpectancyService` | 🖥️🤖🔌 | `GET /analytics/expectancy` | 📋 | [04](04-rest-api.md), [05](05-mcp-server.md) |
+| 17.2 | Monte Carlo drawdown table | Object | `DrawdownService` | 🖥️🤖🔌 | `GET /analytics/drawdown` | 📋 | [04](04-rest-api.md), [05](05-mcp-server.md) |
+| 17.3 | MFE/MAE/BSO excursion metrics | Object | `ExcursionService` | 🖥️🤖🔌 | `POST /analytics/excursion/{id}` | 📋 | [04](04-rest-api.md), [05](05-mcp-server.md) |
+| 17.4 | Fee breakdown by type | Object | `TransactionLedgerService` | 🖥️🤖🔌 | `GET /fees/summary` | 📋 | [04](04-rest-api.md), [05](05-mcp-server.md) |
+| 17.5 | Execution quality grade (A–F) | Enum | `ExecutionQualityService` | 🖥️🤖🔌 | `GET /analytics/execution-quality` | 📋 | [04](04-rest-api.md), [05](05-mcp-server.md) |
+| 17.6 | PFOF impact estimate | Object | `PFOFAnalysisService` | 🖥️🤖🔌 | `GET /analytics/pfof-report` | 📋 | [04](04-rest-api.md), [05](05-mcp-server.md) |
+| 17.7 | Strategy P&L breakdown | Object | `StrategyBreakdownService` | 🖥️🤖🔌 | `GET /analytics/strategy-breakdown` | 📋 | [04](04-rest-api.md), [05](05-mcp-server.md) |
+| 17.8 | Mistake summary (by category) | Object | `MistakeTrackingService` | 🖥️🤖🔌 | `GET /mistakes/summary` | 📋 | [04](04-rest-api.md), [05](05-mcp-server.md) |
+| 17.9 | Round-trip list (open/closed) | List | `RoundTripService` | 🖥️🤖🔌 | `GET /round-trips` | 📋 | [04](04-rest-api.md), [05](05-mcp-server.md) |
+| 17.10 | Options strategy detection | Object | `OptionsGroupingService` | 🖥️🤖🔌 | `POST /analytics/options-strategy` | 📋 | [04](04-rest-api.md), [05](05-mcp-server.md) |
+| 17.11 | Bank statement import result | Object | `BankImportService` | 🖥️🤖🔌 | `POST /banking/import` | 📋 | [04](04-rest-api.md), [05](05-mcp-server.md) |
+| 17.12 | Identifier resolution (batch) | List | `IdentifierResolverService` | 🤖🔌 | `POST /identifiers/resolve` | 📋 | [04](04-rest-api.md), [05](05-mcp-server.md) |
+| 17.13 | Broker sync result | Object | `BrokerAdapterService` | 🖥️🤖🔌 | `POST /brokers/{id}/sync` | 📋 | [04](04-rest-api.md), [05](05-mcp-server.md) |
+| 17.14 | SQN value + grade | Object | `SQNService` | 🖥️🤖🔌 | `GET /analytics/sqn` | 📋 | [04](04-rest-api.md), [05](05-mcp-server.md) |
+| 17.15 | Monthly P&L calendar grid | Object | Client-side from trades | 🖥️ | computed locally | 📋 | [06b](06b-gui-trades.md) |
+| 17.16 | Cost of Free breakdown | Object | `CostOfFreeService` | 🖥️🤖🔌 | `GET /analytics/cost-of-free` | 📋 | [04](04-rest-api.md), [05](05-mcp-server.md) |
+
+---
+
+## 18. Service Daemon Outputs
+
+> Service lifecycle status, process metrics, and health data.
+> Source: [Phase 10](10-service-daemon.md) | REST: [§10.3](10-service-daemon.md) | MCP: [§10.4](10-service-daemon.md)
+
+| # | Output | Type | Source | Surface | Endpoint | Status | Plan Files |
+|---|--------|------|--------|---------|----------|--------|------------|
+| 18.1 | Service OS state (running/stopped) | Enum | `ServiceManager.getStatus()` | 🖥️ | Electron IPC | ✅ | [10](10-service-daemon.md) |
+| 18.2 | Service PID | # | `ServiceManager` + `tasklist`/`launchctl`/`systemctl` | 🖥️🤖 | IPC + `GET /service/status` | ✅ | [10](10-service-daemon.md) |
+| 18.3 | Process uptime | # | `time.time() - APP_START_TIME` | 🖥️🤖🔌 | `GET /health`, `GET /service/status` | ✅ | [10](10-service-daemon.md) |
+| 18.4 | Process memory (MB) | #.# | `psutil.Process.memory_info()` | 🖥️🤖🔌 | `GET /service/status` | ✅ | [10](10-service-daemon.md) |
+| 18.5 | Process CPU (%) | #.# | `psutil.Process.cpu_percent()` | 🖥️🤖🔌 | `GET /service/status` | ✅ | [10](10-service-daemon.md) |
+| 18.6 | Auto-start enabled | Bool | `sc qc`/`launchctl`/`systemctl is-enabled` | 🖥️ | Electron IPC | ✅ | [10](10-service-daemon.md) |
+| 18.7 | Graceful shutdown status | Text | `POST /service/graceful-shutdown` | 🤖🔌 | `POST /service/graceful-shutdown` | ✅ | [10](10-service-daemon.md) |
+| 18.8 | Log directory + file listing | Object | filesystem scan | 🤖 | `zorivest_service_logs` | ✅ | [10](10-service-daemon.md) |
+
+---
+
+## 19. MCP Discovery & Toolset Outputs
+
+> Toolset introspection and management responses from discovery meta-tools.
+> Source: [05j-mcp-discovery.md](05j-mcp-discovery.md) | Architecture: [§5.11–§5.14](05-mcp-server.md)
+
+| # | Output | Type | Source | Surface | Endpoint | Status | Plan Files |
+|---|--------|------|--------|---------|----------|--------|------------|
+| 19.1 | Available toolsets array | List | `ToolsetRegistry` | 🤖 | `list_available_toolsets` | ✅ | [05j](05j-mcp-discovery.md) |
+| 19.2 | Toolset name + description | Text | registry entry | 🤖 | `list_available_toolsets` | ✅ | [05j](05j-mcp-discovery.md) |
+| 19.3 | Per-toolset enabled flag | Bool | `ToolsetRegistry.enabled` | 🤖 | `list_available_toolsets` | ✅ | [05j](05j-mcp-discovery.md) |
+| 19.4 | Per-toolset tool count | # | `ToolsetRegistry.tools.length` | 🤖 | `list_available_toolsets` | ✅ | [05j](05j-mcp-discovery.md) |
+| 19.5 | Tool list with annotations | List | per-tool annotation metadata | 🤖 | `describe_toolset` | ✅ | [05j](05j-mcp-discovery.md) |
+| 19.6 | Per-tool readOnly/destructive/idempotent hints | Object | annotation block values | 🤖 | `describe_toolset` | ✅ | [05j](05j-mcp-discovery.md) |
+| 19.7 | Enable/disable confirmation | Object | toolset state after toggle | 🤖 | `enable_toolset` | ✅ | [05j](05j-mcp-discovery.md) |
+| 19.8 | Confirmation token (HMAC) | Text | server-generated, time-limited | 🤖 | `get_confirmation_token` | ✅ | [05j](05j-mcp-discovery.md) |
+| 19.9 | Token expiry timestamp | datetime | `issued_at + TTL` | 🤖 | `get_confirmation_token` | ✅ | [05j](05j-mcp-discovery.md) |
+
+---
+
 ## Summary Statistics
 
 | Category | Count |
 |----------|-------|
-| Total computed outputs | 140 |
-| Sections | 20 (incl. sub-sections 1a–1d) |
-| ✅ Defined (full contract) | 92 |
+| Total computed outputs | 173 |
+| Sections | 23 (incl. sub-sections 1a–1d) |
+| ✅ Defined (full contract) | 109 |
 | 🔶 Domain modeled | 2 |
-| 📋 Planned | 46 |
+| 📋 Planned | 62 |
 | Calculator outputs (§1–§2) | 57 |
 | Tax outputs (§4–§10) | 46 |
 | Trade/account outputs (§3, §11) | 7 |
@@ -322,3 +384,7 @@ Canonical registry of **every computed or derived output** the system produces �
 | Diagnostics/metrics outputs (§14) | 8 |
 | GUI launch outputs (§15) | 3 |
 | Pipeline/scheduling outputs (§16) | 9 |
+| Expansion analytics/behavioral (§17) | 13 |
+| Service daemon outputs (§18) | 8 |
+| Discovery/toolset outputs (§19) | 9 |
+

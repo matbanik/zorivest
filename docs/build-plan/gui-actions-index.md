@@ -36,7 +36,7 @@ Canonical registry of **every GUI action** (buttons, triggers, keyboard shortcut
 
 | # | Action | Trigger | REST | MCP | Status | Plan Files |
 |---|--------|---------|------|-----|--------|------------|
-| 2.1 | Save trade (create) | 🔘 | `POST /api/v1/trades` | `log_trade` | ✅ | [04](04-rest-api.md), [05](05-mcp-server.md), [06b](06b-gui-trades.md) |
+| 2.1 | Save trade (create) | 🔘 | `POST /api/v1/trades` | `create_trade` | ✅ | [04](04-rest-api.md), [05](05-mcp-server.md), [06b](06b-gui-trades.md) |
 | 2.2 | Update trade | 🔘 | `PUT /api/v1/trades/{exec_id}` | — | ✅ | [04](04-rest-api.md), [06b](06b-gui-trades.md) |
 | 2.3 | Delete trade | 🔘 | `DELETE /api/v1/trades/{exec_id}` | — | ✅ | [04](04-rest-api.md), [06b](06b-gui-trades.md) |
 
@@ -164,8 +164,8 @@ Canonical registry of **every GUI action** (buttons, triggers, keyboard shortcut
 
 | # | Action | Trigger | REST | MCP | Status | Plan Files |
 |---|--------|---------|------|-----|--------|------------|
-| 14.1 | Emergency Stop (lock) | 🔘 | `POST /api/v1/mcp-guard/lock` | `lock_mcp` | ✅ | [04](04-rest-api.md), [05](05-mcp-server.md), [06f](06f-gui-settings.md) |
-| 14.2 | Unlock MCP tools | 🔘 | `POST /api/v1/mcp-guard/unlock` | `unlock_mcp` | ✅ | [04](04-rest-api.md), [05](05-mcp-server.md), [06f](06f-gui-settings.md) |
+| 14.1 | Emergency Stop (lock) | 🔘 | `POST /api/v1/mcp-guard/lock` | `zorivest_emergency_stop` | ✅ | [04](04-rest-api.md), [05](05-mcp-server.md), [06f](06f-gui-settings.md) |
+| 14.2 | Unlock MCP tools | 🔘 | `POST /api/v1/mcp-guard/unlock` | `zorivest_emergency_unlock` | ✅ | [04](04-rest-api.md), [05](05-mcp-server.md), [06f](06f-gui-settings.md) |
 | 14.3 | Save threshold config | 🔘 | `PUT /api/v1/mcp-guard` | — | ✅ | [04](04-rest-api.md), [06f](06f-gui-settings.md) |
 
 ---
@@ -207,7 +207,7 @@ Canonical registry of **every GUI action** (buttons, triggers, keyboard shortcut
 
 | # | Action | Trigger | REST | MCP | Status | Plan Files |
 |---|--------|---------|------|-----|--------|------------|
-| 18.1 | Simulate | 🔘 | `POST /api/v1/tax/simulate` | `simulate_tax_impact` | 📋 | [06g](06g-gui-tax.md) |
+| 18.1 | Simulate | 🔘 | `POST /api/v1/tax/simulate` | `simulate_tax_impact` (pending matrix item 76) | 📋 | [06g](06g-gui-tax.md) |
 | 18.2 | Save scenario | 🔘 | — (session state) | — | 📋 | [06g](06g-gui-tax.md) |
 | 18.3 | Compare scenarios | 🔘 | — (client-side) | — | 📋 | [06g](06g-gui-tax.md) |
 
@@ -217,7 +217,7 @@ Canonical registry of **every GUI action** (buttons, triggers, keyboard shortcut
 
 | # | Action | Trigger | REST | MCP | Status | Plan Files |
 |---|--------|---------|------|-----|--------|------------|
-| 19.1 | Scan portfolio | 🔘 | `GET /api/v1/tax/harvest` | `harvest_losses` | 📋 | [06g](06g-gui-tax.md) |
+| 19.1 | Scan portfolio | 🔘 | `GET /api/v1/tax/harvest` | `harvest_losses` (pending matrix item 76) | 📋 | [06g](06g-gui-tax.md) |
 | 19.2 | Simulate (per row) | 🔘 | `POST /api/v1/tax/simulate` | — | 📋 | [06g](06g-gui-tax.md) |
 | 19.3 | Sell (per row) | 🔘 | — (opens order flow) | — | 📋 | [06g](06g-gui-tax.md) |
 
@@ -290,16 +290,32 @@ Canonical registry of **every GUI action** (buttons, triggers, keyboard shortcut
 
 ---
 
+## 26. Settings — Service Manager
+
+> Backend service lifecycle controls.
+> Source: [10-service-daemon.md §10.5](10-service-daemon.md)
+
+| # | Action | Trigger | REST | MCP | Status | Plan Files |
+|---|--------|---------|------|-----|--------|------------|
+| 26.1 | Start service | 🔘 | — (Electron IPC → OS command) | — (GUI-only: requires OS privilege escalation) | ✅ | [10](10-service-daemon.md) |
+| 26.2 | Stop service | 🔘 | — (Electron IPC → OS command) | — (GUI-only: requires OS privilege escalation) | ✅ | [10](10-service-daemon.md) |
+| 26.3 | Restart service | 🔘 | `POST /api/v1/service/graceful-shutdown` | `zorivest_service_restart` | ✅ | [10](10-service-daemon.md) |
+| 26.4 | Toggle auto-start | 🔀 | — (Electron IPC → OS command) | — (GUI-only: requires OS privilege escalation) | ✅ | [10](10-service-daemon.md) |
+| 26.5 | Open log folder | 🔘 | — (Electron `shell.openPath`) | `zorivest_service_logs` (returns content; GUI opens folder) | ✅ | [10](10-service-daemon.md) |
+
+---
+
 ## Summary Statistics
 
 | Category | Count |
 |----------|-------|
-| Total GUI actions | 92 |
-| Sections | 25 |
-| ✅ Defined (full contract) | 57 |
+| Total GUI actions | 97 (incl. 5 superseded) |
+| Sections | 26 |
+| ✅ Defined (full contract) | 62 |
 | 🔶 Domain modeled | 14 |
 | 📋 Planned | 21 |
-| Actions with REST endpoints | 65 |
-| Actions with MCP equivalents | 17 |
+| ⛔ Superseded | 5 |
+| Actions with REST endpoints | 66 |
+| Actions with MCP equivalents | 19 |
 | Keyboard-triggered actions | 11 |
-| Client-side only (no REST) | 27 |
+| Client-side only (no REST) | 31 |

@@ -246,8 +246,8 @@ export function ScreenshotPanel({ tradeId }: { tradeId: string }) {
     const { clipboard, nativeImage } = window.electronAPI;
     const img = clipboard.readImage();
     if (!img.isEmpty()) {
-      const blob = new Blob([img.toPNG()], { type: 'image/png' });
-      uploadMutation.mutate(new File([blob], 'clipboard.png'));
+      const blob = new Blob([img.toPNG()], { type: 'image/png' });  // Server standardizes to WebP
+      uploadMutation.mutate(new File([blob], 'clipboard.png'));  // Backend converts on ingestion
     }
   };
 
@@ -343,6 +343,115 @@ When viewing a trade's detail panel, a "Journal" tab provides post-trade analysi
 
 ---
 
+## Build Plan Expansion: Trade Detail Tabs
+
+> Source: [Build Plan Expansion Ideas](../../_inspiration/import_research/Build%20Plan%20Expansion%20Ideas.md) §3, §7–§12, §17
+
+The existing Trade Detail Panel tabs (`[Info] [Journal] [Screenshots]`) are extended with new tabs from the expansion features:
+
+```
+TRADE DETAIL · [Info] [Journal] [Screenshots] [Excursion] [Fees] [Mistakes] [Round-Trip] [AI Review]
+```
+
+### Excursion Tab (§7 — MFE/MAE/BSO)
+
+```
+┌─────────────────────────────────────────────────────────────────────────┐
+│  Excursion Metrics — SPY BOT 100 @ 619.61                              │
+│  ────────────────────────────────────────────────────────────           │
+│                                                                         │
+│  MFE (Max Favorable Excursion):  +$2.41  (+0.39%)                      │
+│  MAE (Max Adverse Excursion):    -$0.85  (-0.14%)                      │
+│  BSO (Best Scale Out %):         62.3%                                 │
+│                                                                         │
+│  Data source: Alpha Vantage  ·  Computed: Jan 15, 2025 14:45           │
+│                                                                         │
+│  Trade efficiency:  You captured 62% of the available move.             │
+│  ─── Excursion Chart ────────────────────────────────────               │
+│  [Lightweight Charts mini-chart showing price path with                 │
+│   MFE marker (green ▲) and MAE marker (red ▼)]                         │
+│                                                                         │
+│  [Recalculate]   — re-fetches bar data and recalculates                │
+│                                                                         │
+└─────────────────────────────────────────────────────────────────────────┘
+```
+
+### Mistakes Tab (§17)
+
+```
+┌─────────────────────────────────────────────────────────────────────────┐
+│  Mistakes — SPY BOT 100 @ 619.61                                       │
+│  ────────────────────────────────────────────────────────────           │
+│                                                                         │
+│  Category:       [ Early Exit ▼ ]    ← MistakeCategory enum            │
+│  Options: Early Exit | Late Exit | Oversized | No Stop | Revenge       │
+│           FOMO Entry | Ignored Plan | Overtrading | Chasing | Other    │
+│                                                                         │
+│  Estimated Cost:  [$120.00    ]     ← what the mistake cost             │
+│  Notes:                                                                 │
+│  ┌─────────────────────────────────────────────────────────────────┐   │
+│  │ Exited at $621.50 when target was $625. Left ~$350 on          │   │
+│  │ the table. Fear of reversal after prior loss.                   │   │
+│  └─────────────────────────────────────────────────────────────────┘   │
+│                                                                         │
+│  Auto-detected:  ☐                  ← checked if rule-classified       │
+│                                                                         │
+│  [Save Mistake]                                                         │
+│                                                                         │
+└─────────────────────────────────────────────────────────────────────────┘
+```
+
+### Fee Breakdown Tab (§9)
+
+```
+┌─────────────────────────────────────────────────────────────────────────┐
+│  Fee Breakdown — SPY BOT 100 @ 619.61                                  │
+│  ────────────────────────────────────────────────────────────           │
+│                                                                         │
+│  ┌──────────────────┬──────────┬────────────────────┐                  │
+│  │ Fee Type         │ Amount   │ Description         │                  │
+│  ├──────────────────┼──────────┼────────────────────┤                  │
+│  │ Commission       │ $1.00    │ IBKR tiered         │                  │
+│  │ Exchange         │ $0.01    │ NYSE transaction fee │                  │
+│  │ Regulatory       │ $0.01    │ SEC fee              │                  │
+│  │ ECN              │ —        │                      │                  │
+│  ├──────────────────┼──────────┼────────────────────┤                  │
+│  │ **Total**        │ **$1.02**│                      │                  │
+│  └──────────────────┴──────────┴────────────────────┘                  │
+│                                                                         │
+└─────────────────────────────────────────────────────────────────────────┘
+```
+
+### Execution Quality Badge (§10) — Inline in Info Tab
+
+> Displayed as a badge next to the trade header in the Info tab. Shows A–F grade if NBBO data is available, or "N/A — No NBBO data" if not.
+
+### Round-Trip Viewer (§3) — Sub-Panel
+
+> When viewing a trade that is part of a round-trip, a collapsible section shows related executions, aggregate P&L, and holding period.
+
+### Options Strategy Detector (§8) — Inline Notice
+
+> If a trade is identified as part of a multi-leg options strategy, a badge shows the detected strategy type (e.g., "🦋 Iron Condor") and links to the strategy detail view.
+
+### AI Review Tab (§12) — Opt-In
+
+> Multi-persona AI trade review with budget cap. Requires explicit opt-in. Shows personas (Risk Manager, Trend Analyst, Contrarian) with formatted feedback.
+
+### New React Components
+
+| Component | Source §§ | Description |
+|-----------|----------|-------------|
+| `ExcursionPanel` | §7 | MFE/MAE/BSO metrics + mini-chart |
+| `MistakeForm` | §17 | Mistake category selector + cost attribution |
+| `FeeBreakdownTable` | §9 | Per-trade fee decomposition table |
+| `RoundTripDetail` | §3 | Collapsible round-trip aggregate view |
+| `ExecutionQualityBadge` | §10 | A–F grade badge (conditional on NBBO data) |
+| `OptionsStrategyBadge` | §8 | Strategy type badge for multi-leg trades |
+| `AIReviewPanel` | §12 | Multi-persona AI review results display |
+
+---
+
 ## Exit Criteria
 
 - Trades table displays all domain columns with sorting and filtering
@@ -358,3 +467,17 @@ When viewing a trade's detail panel, a "Journal" tab provides post-trade analysi
 - TanStack Table column definitions with custom cell renderers
 - Trade CRUD forms consuming [Phase 4](04-rest-api.md) REST endpoints
 - Trade Report form consuming report REST endpoints
+
+### Build Plan Expansion Components
+
+- `ExcursionPanel` — MFE/MAE/BSO metrics with mini-chart (§7)
+- `MistakeForm` — mistake category + cost attribution (§17)
+- `FeeBreakdownTable` — per-trade fee decomposition (§9)
+- `RoundTripDetail` — collapsible round-trip viewer (§3)
+- `ExecutionQualityBadge` — A–F execution grade (§10)
+- `OptionsStrategyBadge` — multi-leg strategy badge (§8)
+- `AIReviewPanel` — multi-persona AI review (§12, opt-in)
+- `ExpectancyDashboard` — win rate, avg win/loss, expectancy per trade, Kelly % (§13)
+- `MonthlyPnLCalendar` — calendar heatmap of daily P&L with color coding (§20)
+- `StrategyBreakdownPanel` — P&L breakdown by strategy_name with totals (§21)
+

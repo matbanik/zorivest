@@ -2650,6 +2650,8 @@ async def patch_policy_schedule(
 
 ## Step 9.11: MCP Tools (TypeScript)
 
+> **Primary spec location:** [05g-mcp-scheduling.md](05g-mcp-scheduling.md). The code below is retained as implementation reference — the category file is authoritative for tool contracts.
+
 ### 9.11a: Tool Registrations
 
 ```typescript

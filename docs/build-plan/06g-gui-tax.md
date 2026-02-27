@@ -1,12 +1,12 @@
 # Phase 6g: GUI — Tax Estimator
 
-> Part of [Phase 6: GUI](06-gui.md) | Prerequisites: [Phase 4](04-rest-api.md), P3 Tax Engine (items 36–68 in [Build Priority Matrix](build-priority-matrix.md)) | Outputs: [Phase 7](07-distribution.md)
+> Part of [Phase 6: GUI](06-gui.md) | Prerequisites: [Phase 4](04-rest-api.md), P3 Tax Engine (items 50–82 in [Build Priority Matrix](build-priority-matrix.md)) | Outputs: [Phase 7](07-distribution.md)
 
 ---
 
 ## Goal
 
-Build the tax estimator GUI surface spanning all seven domain model modules (A–G). Provides a Tax Dashboard for year-end summaries, a Lot Viewer for cost-basis management, a Wash Sale Monitor for chain visualization, a What-If Simulator for pre-trade tax impact, a Loss Harvesting Tool for tax-smart selling, and a Quarterly Payments Tracker for estimated tax obligations. All pages consume the Tax REST API endpoints defined in [build-priority-matrix](build-priority-matrix.md) item 61.
+Build the tax estimator GUI surface spanning all seven domain model modules (A–G). Provides a Tax Dashboard for year-end summaries, a Lot Viewer for cost-basis management, a Wash Sale Monitor for chain visualization, a What-If Simulator for pre-trade tax impact, a Loss Harvesting Tool for tax-smart selling, and a Quarterly Payments Tracker for estimated tax obligations. All pages consume the Tax REST API endpoints defined in [build-priority-matrix](build-priority-matrix.md) item 75.
 
 > ⚠️ **Disclaimer**: Every tax output screen must display: *"This is an estimator, not tax advice. Always consult a CPA."* — per [Domain Model Reference](domain-model-reference.md).
 

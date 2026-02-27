@@ -8,7 +8,7 @@
 
 ## Goal
 
-Build a unified market data aggregation layer connecting to **9 REST API providers**, enabling agentic queries (via MCP), GUI widgets, and scheduled reporting pipelines. All providers use API key authentication with keys encrypted at rest via Fernet.
+Build a unified market data aggregation layer connecting to **12 REST API providers** (9 original + 3 expansion: OpenFIGI, Alpaca, Tradier), enabling agentic queries (via MCP), GUI widgets, and scheduled reporting pipelines. All providers use API key authentication with keys encrypted at rest via Fernet.
 
 ---
 
@@ -165,6 +165,7 @@ class MarketProviderSettingModel(Base):
 
     provider_name = Column(String, primary_key=True)       # e.g., "Alpha Vantage"
     encrypted_api_key = Column(Text, nullable=True)        # Fernet-encrypted, "ENC:" prefix
+    encrypted_api_secret = Column(Text, nullable=True)     # Fernet-encrypted; for dual-key providers (Alpaca)
     rate_limit = Column(Integer, default=5)                # requests per minute
     timeout = Column(Integer, default=30)                  # seconds
     is_enabled = Column(Boolean, default=False)
@@ -308,6 +309,43 @@ PROVIDER_REGISTRY: dict[str, ProviderConfig] = {
         test_endpoint="/news?token={api_key}&pagesize=1",
         default_rate_limit=60,
         signup_url="https://www.benzinga.com/apis",
+    ),
+    # ── Build Plan Expansion Providers (§5, §24, §25) ──
+    "OpenFIGI": ProviderConfig(
+        name="OpenFIGI",
+        base_url="https://api.openfigi.com/v3",
+        auth_method=AuthMethod.CUSTOM_HEADER,
+        auth_param_name="X-OPENFIGI-APIKEY",
+        headers_template={"X-OPENFIGI-APIKEY": "{api_key}"},
+        test_endpoint="/mapping",  # POST with test payload
+        default_rate_limit=10,  # Free tier: 10 req/min
+        signup_url="https://www.openfigi.com/api",
+        response_validator_key="data",
+    ),
+    "Alpaca": ProviderConfig(
+        name="Alpaca",
+        base_url="https://api.alpaca.markets/v2",
+        auth_method=AuthMethod.CUSTOM_HEADER,
+        auth_param_name="APCA-API-KEY-ID",
+        headers_template={
+            "APCA-API-KEY-ID": "{api_key}",
+            "APCA-API-SECRET-KEY": "{api_secret}",
+        },
+        test_endpoint="/account",
+        default_rate_limit=200,
+        signup_url="https://app.alpaca.markets/signup",
+        response_validator_key="id",
+    ),
+    "Tradier": ProviderConfig(
+        name="Tradier",
+        base_url="https://api.tradier.com/v1",
+        auth_method=AuthMethod.BEARER_HEADER,
+        auth_param_name="Authorization",
+        headers_template={"Authorization": "Bearer {api_key}"},
+        test_endpoint="/user/profile",
+        default_rate_limit=120,
+        signup_url="https://developer.tradier.com/",
+        response_validator_key="profile",
     ),
 }
 ```
@@ -494,6 +532,7 @@ async def configure_provider(name: str, body: ProviderConfigRequest, service = D
     await service.configure_provider(
         name,
         api_key=body.api_key,
+        api_secret=body.api_secret,
         rate_limit=body.rate_limit,
         timeout=body.timeout,
         is_enabled=body.is_enabled,
@@ -515,6 +554,7 @@ async def remove_provider_key(name: str, service = Depends(get_provider_service)
 class ProviderConfigRequest(BaseModel):
     """All fields optional — omitted fields are left unchanged (PATCH semantics)."""
     api_key: str | None = None
+    api_secret: str | None = None            # for dual-key providers (Alpaca)
     rate_limit: int | None = None
     timeout: int | None = None
     is_enabled: bool | None = None
@@ -523,6 +563,8 @@ class ProviderConfigRequest(BaseModel):
 ---
 
 ## Step 8.5: MCP Tools (TypeScript)
+
+> **Primary spec location:** [05e-mcp-market-data.md](05e-mcp-market-data.md). The code below is retained as implementation reference — the category file is authoritative for tool contracts.
 
 ```typescript
 // mcp-server/src/tools/market-data-tools.ts
@@ -710,7 +752,7 @@ async def test_all_providers(self) -> list[tuple[str, bool, str]]:
 
 ## Exit Criteria
 
-1. All 9 providers registered in provider registry with correct auth config
+1. All 12 providers registered in provider registry with correct auth config
 2. Encrypt/decrypt round-trip tests pass for API keys
 3. Connection testing returns correct status for each HTTP scenario (200, 401, 429, timeout)
 4. Response normalizers convert fixture data correctly for all supported providers
@@ -729,7 +771,7 @@ async def test_all_providers(self) -> list[tuple[str, bool, str]]:
 - `ProviderConnectionService` with test/configure/list operations
 - `MarketDataService` with quote/news/search/SEC query operations
 - Rate limiter (async token-bucket)
-- Response normalizers for all 9 providers
+- Response normalizers for all 12 providers
 - Log redaction filter
 - 8 FastAPI REST endpoints under `/api/v1/market-data/`
 - 7 TypeScript MCP tools

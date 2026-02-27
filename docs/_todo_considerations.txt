@@ -23,3 +23,4 @@ watchlist usage with trade plans
 
 create mcp-tool-call-index.md that will document all mcp tools and their usage in IDE
 
+Add start with the system option so the scheduler is running in the app only rather than using the system deamon

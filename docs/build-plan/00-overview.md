@@ -27,7 +27,7 @@ BUILD ORDER (left to right):
                                                                             │ Aggregation  │
                                                                             └──────┬───────┘
                                                                             depends on 2,3,4
-                                                                            9 API providers
+                                                                            12 API providers
                                                                                    │
                                                                                    ▼
                                                                             ┌──────────────┐
@@ -67,11 +67,12 @@ BUILD ORDER (left to right):
 | **2A** | [**Backup/Restore & Defaults**](02a-backup-restore.md) | **Phase 2** | **Encrypted backup, settings resolver, config export** |
 | 3 | [Service Layer](03-service-layer.md) | Phase 1, 2, 2A | Use cases, service orchestration |
 | 4 | [REST API](04-rest-api.md) | Phase 3 | FastAPI routes, e2e tests |
-| 5 | [MCP Server](05-mcp-server.md) | Phase 4, 8 | TypeScript MCP tools (calls REST) |
+| 5 | [MCP Server](05-mcp-server.md) | Phase 4, 8 | TypeScript MCP tools (calls REST), discovery meta-tools, toolset registry ([05j](05j-mcp-discovery.md)) |
 | 6 | [GUI](06-gui.md) ([Shell](06a-gui-shell.md), [Trades](06b-gui-trades.md), [Planning](06c-gui-planning.md), [Accounts](06d-gui-accounts.md), [Scheduling](06e-gui-scheduling.md), [Settings](06f-gui-settings.md), [Tax](06g-gui-tax.md), [Calculator](06h-gui-calculator.md)) | Phase 4, 8 | Electron + React desktop app |
 | 7 | [Distribution](07-distribution.md) | All | Versioning architecture, CI/CD pipelines (ci/release/publish/test-release), code signing, auto-update, OIDC publishing, rollback procedures |
-| 8 | [Market Data](08-market-data.md) | Phase 2, 3, 4 | 9-provider aggregation, encryption, MCP tools |
+| 8 | [Market Data](08-market-data.md) | Phase 2, 3, 4 | 12-provider aggregation, encryption, MCP tools |
 | 9 | [Scheduling & Pipelines](09-scheduling.md) | Phase 2, 3, 4, 5, 8 | Policy engine, pipeline runner, APScheduler, 5 stages, 6 MCP tools |
+| 10 | [Service Daemon](10-service-daemon.md) | Phase 4, 7 | Cross-platform OS service (WinSW/launchd/systemd), ServiceManager, 3 MCP tools |
 
 ## Golden Rules
 
@@ -89,7 +90,36 @@ BUILD ORDER (left to right):
 | [Image Architecture](image-architecture.md) | Image storage, processing pipeline, thumbnails |
 | [Backup/Restore Architecture](../_backup-restore-architecture.md) | Two-manager backup design, GFS rotation, restore flow |
 | [Dependency Manifest](dependency-manifest.md) | Install order, package versions |
-| [Build Priority Matrix](build-priority-matrix.md) | P0–P3 sequenced build order (106 items) |
+| [Build Priority Matrix](build-priority-matrix.md) | P0–P3 sequenced build order (136 items) |
 | [Input Index](input-index.md) | Every human, agent, and programmatic input with test strategies |
+| [MCP Discovery & Toolsets](05j-mcp-discovery.md) | Toolset registry, discovery meta-tools, annotations, confirmation tokens |
+| [MCP Tool Index](mcp-tool-index.md) | Complete MCP tool catalog with annotations and toolset membership |
 | [Security Architecture](../_security-architecture.md) | Encryption, sensitive data detection, MCP circuit breaker (reference) |
 | [Scheduling Integration Roadmap](../../_inspiration/scheduling_research/scheduling-integration-roadmap.md) | Research synthesis, resolved decisions, library stack |
+
+## Execution Integrity Gates
+
+### Feature Intent Contract (FIC)
+
+Every planned feature **must** have a Feature Intent Contract before implementation begins. The FIC is embedded in the implementation plan and traces intent through to verification.
+
+| FIC Field | Description | Example |
+|---|---|---|
+| **Intent statement** | What must be true for users when this feature ships | "Users can import trades from any supported broker without data loss" |
+| **Acceptance criteria** | Concrete, testable conditions (numbered) | "AC-1: All 14 FlexQuery fields are parsed. AC-2: Duplicate exec_ids are rejected." |
+| **Negative cases** | What must NOT happen | "Must not silently drop rows. Must not accept malformed CSV without error." |
+| **Observable outputs** | Evidence artifacts that prove correctness | "Import summary log, test coverage report, sample output file" |
+| **Test mapping** | Exact test/eval proving each acceptance criterion | "AC-1 → `test_flexquery_all_fields`, AC-2 → `test_dedup_rejects_duplicates`" |
+
+### Phase-Exit Criterion
+
+A phase cannot be declared complete unless **all FIC acceptance criteria are mapped to passing tests/evals with evidence links** in the handoff artifact. Self-reported completion without evidence is not accepted.
+
+### FAIL_TO_PASS / PASS_TO_PASS Model
+
+For each feature change, track regression confidence using:
+
+| Category | Definition | Required? |
+|---|---|---|
+| **FAIL_TO_PASS** | Tests that FAILED before the change and PASS after (proves the feature works) | Yes — at least one per acceptance criterion |
+| **PASS_TO_PASS** | Tests that PASSED before the change and still PASS after (proves no regressions) | Yes — full existing test suite |

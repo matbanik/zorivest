@@ -1,121 +1,35 @@
-# Phase 5: MCP Server (TypeScript)
+# Phase 5: MCP Server (Shared Infrastructure Hub)
 
-> Part of [Zorivest Build Plan](../BUILD_PLAN.md) | Prerequisites: [Phase 4](04-rest-api.md) | Market data tools require [Phase 8](08-market-data.md) | Outputs: [Phase 7](07-distribution.md)
+> Expose Zorivest service-layer operations as [Model Context Protocol](https://modelcontextprotocol.io/) tools for agentic IDE interaction.
+>
+> Prereq: [Phase 4 (REST API)](04-rest-api.md) | Consumers: [Phase 6 (GUI)](06-gui.md), [Phase 9 (Scheduling)](09-scheduling.md)
 
 ---
 
-## Goal
+> **Hub-only file.** All MCP tool contracts live in their respective category files below.
+> This file retains only **shared infrastructure**: auth bootstrap, guard middleware, metrics middleware, SDK compatibility, test patterns, and exit criteria.
 
-Expose service layer operations as MCP tools via a TypeScript MCP server that calls the Python REST API. The MCP server uses the `@modelcontextprotocol/sdk` (reference implementation). Each tool is a thin wrapper around a REST endpoint. Test using Vitest with mocked `fetch()` — **no subprocess, no live backend needed**.
+## Category Files
 
-> **Build order note**: Phase 4 (REST API) must be complete before Phase 5, since MCP tools call REST endpoints.
+| File | Category | Specified | Planned | Future | Total |
+|------|----------|-----------|---------|--------|-------|
+| [05a-mcp-zorivest-settings.md](05a-mcp-zorivest-settings.md) | `zorivest-settings` | 4 | — | 2 | 6 |
+| [05b-mcp-zorivest-diagnostics.md](05b-mcp-zorivest-diagnostics.md) | `zorivest-diagnostics` | 5 | — | — | 5 |
+| [05c-mcp-trade-analytics.md](05c-mcp-trade-analytics.md) | `trade-analytics` | 17 | 2 | — | 19 |
+| [05d-mcp-trade-planning.md](05d-mcp-trade-planning.md) | `trade-planning`, `calculator` | 1 | 1 | — | 2 |
+| [05e-mcp-market-data.md](05e-mcp-market-data.md) | `market-data` | 7 | — | — | 7 |
+| [05f-mcp-accounts.md](05f-mcp-accounts.md) | `accounts` | 7 | 1 | — | 8 |
+| [05g-mcp-scheduling.md](05g-mcp-scheduling.md) | `scheduling` | 6 | — | — | 6 |
+| [05h-mcp-tax.md](05h-mcp-tax.md) | `tax` | — | 8 | — | 8 |
+| [05i-mcp-behavioral.md](05i-mcp-behavioral.md) | `behavioral` | 3 | — | — | 3 |
+| [05j-mcp-discovery.md](05j-mcp-discovery.md) | `discovery` | 4 | — | — | 4 |
+| **Totals** | | **54** | **12** | **2** | **68** |
 
-## Step 5.1: MCP Tool Definitions
+---
 
-```typescript
-// mcp-server/src/tools/trade-tools.ts
+## Step 5.1: Trade Tools
 
-import { McpServer } from '@modelcontextprotocol/sdk/server/mcp.js';
-import { z } from 'zod';
-
-const API_BASE = process.env.ZORIVEST_API_URL ?? 'http://localhost:8765/api/v1';
-
-export function registerTradeTools(server: McpServer) {
-
-  server.tool(
-    'create_trade',
-    'Record a new trade execution. Deduplicates by exec_id.',
-    {
-      exec_id: z.string(),
-      instrument: z.string(),
-      action: z.enum(['BOT', 'SLD']),
-      quantity: z.number(),
-      price: z.number(),
-      account_id: z.string(),
-    },
-    async ({ exec_id, instrument, action, quantity, price, account_id }) => {
-      const res = await fetch(`${API_BASE}/trades`, {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ exec_id, instrument, action, quantity, price, account_id }),
-      });
-      const data = await res.json();
-      return { content: [{ type: 'text' as const, text: JSON.stringify(data) }] };
-    }
-  );
-
-  server.tool(
-    'list_trades',
-    'List recorded trades with pagination.',
-    { limit: z.number().default(50), offset: z.number().default(0) },
-    async ({ limit, offset }) => {
-      const res = await fetch(`${API_BASE}/trades?limit=${limit}&offset=${offset}`);
-      const data = await res.json();
-      return { content: [{ type: 'text' as const, text: JSON.stringify(data) }] };
-    }
-  );
-
-  server.tool(
-    'attach_screenshot',
-    'Attach a screenshot image to a trade. Image must be base64-encoded. The MCP server decodes base64 and forwards as multipart/form-data to the REST API.',
-    {
-      trade_id: z.string(),
-      image_base64: z.string(),
-      mime_type: z.string().default('image/png'),
-      caption: z.string().default(''),
-    },
-    async ({ trade_id, image_base64, mime_type, caption }) => {
-      // Decode base64 → binary buffer
-      const binaryData = Buffer.from(image_base64, 'base64');
-
-      // Build multipart/form-data (canonical contract: field name = 'file')
-      const blob = new Blob([binaryData], { type: mime_type });
-      const formData = new FormData();
-      formData.append('file', blob, `screenshot.${mime_type.split('/')[1]}`);
-      formData.append('caption', caption);
-
-      const res = await fetch(`${API_BASE}/trades/${trade_id}/images`, {
-        method: 'POST',
-        body: formData,  // Content-Type set automatically by FormData
-      });
-      const data = await res.json();
-      return { content: [{ type: 'text' as const, text: JSON.stringify(data) }] };
-    }
-  );
-
-  server.tool(
-    'get_trade_screenshots',
-    'Get metadata for all screenshots attached to a trade.',
-    { trade_id: z.string() },
-    async ({ trade_id }) => {
-      const res = await fetch(`${API_BASE}/trades/${trade_id}/images`);
-      const data = await res.json();
-      return { content: [{ type: 'text' as const, text: JSON.stringify(data) }] };
-    }
-  );
-
-  server.tool(
-    'calculate_position_size',
-    'Calculate position size based on risk parameters.',
-    {
-      balance: z.number(),
-      risk_pct: z.number().default(1.0),
-      entry: z.number(),
-      stop: z.number(),
-      target: z.number(),
-    },
-    async ({ balance, risk_pct, entry, stop, target }) => {
-      const res = await fetch(`${API_BASE}/calculator/position-size`, {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ balance, risk_pct, entry, stop, target }),
-      });
-      const data = await res.json();
-      return { content: [{ type: 'text' as const, text: JSON.stringify(data) }] };
-    }
-  );
-}
-```
+> **Spec location:** [05c-mcp-trade-analytics.md](05c-mcp-trade-analytics.md) (core trades, screenshots, analytics), [05d-mcp-trade-planning.md](05d-mcp-trade-planning.md) (position sizing, trade plans)
 
 ## Step 5.2: Vitest Unit Tests (Mocked Fetch)
 
@@ -142,113 +56,17 @@ describe('create_trade', () => {
 });
 ```
 
-## Step 5.3: Image MCP Tools
+## Step 5.3: Image Tools
 
-```typescript
-// mcp-server/src/tools/image-tools.ts
+> **Spec location:** [05c-mcp-trade-analytics.md](05c-mcp-trade-analytics.md) (`get_screenshot`, `attach_screenshot`, `get_trade_screenshots`)
 
-server.tool(
-  'get_screenshot',
-  'Retrieve a screenshot image by ID. Returns metadata and base64 image content for display.',
-  { image_id: z.number() },
-  async ({ image_id }) => {
-    // Fetch image metadata
-    const metaRes = await fetch(`${API_BASE}/images/${image_id}`);
-    if (!metaRes.ok) {
-      return { content: [{ type: 'text' as const, text: 'Image not found' }] };
-    }
-    const meta = await metaRes.json();
+## Step 5.4: Market Data Tools
 
-    // Fetch full image bytes as base64
-    const imgRes = await fetch(`${API_BASE}/images/${image_id}/full`);
-    const imgBuffer = Buffer.from(await imgRes.arrayBuffer());
+> **Spec location:** [05e-mcp-market-data.md](05e-mcp-market-data.md)
 
-    return {
-      content: [
-        { type: 'text' as const, text: `Caption: ${meta.caption}\nSize: ${meta.width}×${meta.height}` },
-        {
-          type: 'image' as const,
-          data: imgBuffer.toString('base64'),
-          mimeType: meta.mime_type,
-        },
-      ],
-    };
-  }
-);
-```
+## Step 5.5: Settings & Guard Tools
 
-## Step 5.4: Market Data MCP Tools (from Phase 8)
-
-> These tools are defined in [Phase 8 §8.5](08-market-data.md) and registered in the same MCP server. Listed here for completeness — see Phase 8 for full implementation.
-
-| Tool | Description | REST Endpoint |
-|---|---|---|
-| `get_stock_quote` | Real-time stock price data | `GET /market-data/quote?ticker=` |
-| `get_market_news` | Financial news, filtered by ticker | `GET /market-data/news` |
-| `search_ticker` | Search tickers by company name | `GET /market-data/search?query=` |
-| `get_sec_filings` | SEC filings for a company | `GET /market-data/sec-filings?ticker=` |
-| `list_market_providers` | All configured provider statuses | `GET /market-data/providers` |
-| `test_market_provider` | Test a provider's API connection | `POST /market-data/providers/{name}/test` |
-| `disconnect_market_provider` | Remove API key and disable provider | `DELETE /market-data/providers/{name}/key` |
-
-### Server Registration
-
-```typescript
-// mcp-server/src/index.ts
-
-import { registerTradeTools } from './tools/trade-tools.js';
-import { registerMarketDataTools } from './tools/market-data-tools.js';
-import { registerSettingsTools } from './tools/settings-tools.js';
-
-const server = new McpServer({ name: 'zorivest', version: '1.0.0' });
-
-registerTradeTools(server);
-registerMarketDataTools(server);  // Phase 8 tools
-registerSettingsTools(server);    // UI settings tools
-```
-
-## Step 5.5: Settings MCP Tools
-
-> Thin wrappers around the settings REST endpoints (see [Phase 4 §4.3](04-rest-api.md)). Allows AI agents to read/write user preferences (display modes, notification settings).
-
-```typescript
-// mcp-server/src/tools/settings-tools.ts
-
-import { McpServer } from '@modelcontextprotocol/sdk/server/mcp.js';
-import { z } from 'zod';
-
-const API_BASE = process.env.ZORIVEST_API_URL ?? 'http://localhost:8765/api/v1';
-
-export function registerSettingsTools(server: McpServer) {
-
-  server.tool(
-    'get_settings',
-    'Read all user settings or a specific setting by key. Returns key-value pairs for UI preferences, notification settings, and display modes.',
-    { key: z.string().optional().describe('Optional specific setting key to read (e.g. "ui.theme", "notification.warning.enabled")') },
-    async ({ key }) => {
-      const url = key ? `${API_BASE}/settings/${encodeURIComponent(key)}` : `${API_BASE}/settings`;
-      const res = await fetch(url);
-      const data = await res.json();
-      return { content: [{ type: 'text' as const, text: JSON.stringify(data) }] };
-    }
-  );
-
-  server.tool(
-    'update_settings',
-    'Update one or more user settings. Accepts a key-value map.',
-    { settings: z.record(z.string()).describe('Map of setting keys to values, e.g. {"ui.theme": "dark", "notification.info.enabled": "false"}') },
-    async ({ settings }) => {
-      const res = await fetch(`${API_BASE}/settings`, {
-        method: 'PUT',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify(settings),
-      });
-      const data = await res.json();
-      return { content: [{ type: 'text' as const, text: JSON.stringify(data) }] };
-    }
-  );
-}
-```
+> **Spec location:** [05a-mcp-zorivest-settings.md](05a-mcp-zorivest-settings.md) (settings CRUD, emergency stop/unlock, future logging tools)
 
 > **Convention**: Setting values at the `GET/PUT /settings` and MCP `get_settings`/`update_settings` boundary are **strings**. Consumers parse to their native types (e.g., `"true"` → `boolean`, `"280"` → `number`). The `value_type` column in `SettingModel` is metadata for future typed deserialization but is not enforced at the REST layer.
 >
@@ -263,12 +81,121 @@ See [Testing Strategy](testing-strategy.md) for full MCP testing approaches.
 - **What it tests**: Tool logic, Zod schema validation, response formatting
 - **Limitation**: Doesn't test Python REST API integration
 
-> [!NOTE]
-> **Logging MCP tools (future expansion):** When the logging settings GUI ([06f-gui-settings.md](06f-gui-settings.md)) is implemented, corresponding MCP tools for reading/updating per-feature log levels (`get_log_settings`, `update_log_level`) should be added here. These will wrap `GET/PUT /api/v1/settings` with `logging.*` key filtering. See [Phase 1A](01a-logging.md) for the logging architecture.
+---
 
-## Step 5.7: MCP Auth Bootstrap (Standalone Mode)
+## Step 5.6: MCP Guard Middleware
 
-In standalone mode the MCP server must unlock the encrypted database before any tools can function. The auth handshake uses the envelope encryption architecture defined in [Phase 4 §4.5](04-rest-api.md).
+> Circuit breaker + panic button for MCP tool access.
+> Model: [`McpGuardModel`](02-infrastructure.md) | REST: [§4.6](04-rest-api.md) | GUI: [§6f.8](06f-gui-settings.md)
+>
+> **Tool specs:** `zorivest_emergency_stop`, `zorivest_emergency_unlock` → [05a-mcp-zorivest-settings.md](05a-mcp-zorivest-settings.md)
+
+### Guard Check Flow
+
+```
+MCP Tool Call
+  → guardCheck()
+    → POST /api/v1/mcp-guard/check
+      → [locked?]           → MCP error: "MCP guard is locked: {reason}"
+      → [enabled + OK?]     → increment counter → execute tool
+      → [threshold hit?]    → auto-lock + MCP error: "Rate limit exceeded"
+      → [disabled?]         → skip check → execute tool
+```
+
+### Middleware Implementation
+
+```typescript
+// mcp-server/src/middleware/mcp-guard.ts
+
+const API_BASE = process.env.ZORIVEST_API_URL ?? 'http://localhost:8765';
+
+interface GuardCheckResult {
+  allowed: boolean;
+  reason?: string;
+}
+
+export async function guardCheck(): Promise<GuardCheckResult> {
+  // Session token injected via getAuthHeaders() — same auth model as all other REST calls
+  const res = await fetch(`${API_BASE}/api/v1/mcp-guard/check`, {
+    method: 'POST',
+    headers: { 'Content-Type': 'application/json', ...getAuthHeaders() },
+  });
+  return res.json();
+}
+
+/**
+ * Wraps an MCP tool handler with guard check.
+ * If guard denies, returns MCP error content instead of executing.
+ */
+export function withGuard<T>(
+  handler: (args: T) => Promise<McpResult>
+): (args: T) => Promise<McpResult> {
+  return async (args: T) => {
+    const check = await guardCheck();
+    if (!check.allowed) {
+      return {
+        content: [{
+          type: 'text' as const,
+          text: `⛔ MCP guard blocked this call: ${check.reason}. Unlock via GUI → Settings → MCP Guard, or via zorivest_emergency_unlock tool.`,
+        }],
+        isError: true,
+      };
+    }
+    return handler(args);
+  };
+}
+```
+
+### Vitest Tests
+
+```typescript
+// mcp-server/tests/guard.test.ts
+
+import { describe, it, expect, vi } from 'vitest';
+
+describe('MCP Guard Middleware', () => {
+  it('allows tool execution when guard is disabled', async () => {
+    vi.mocked(fetch).mockResolvedValueOnce(
+      new Response(JSON.stringify({ allowed: true }))
+    );
+    const handler = withGuard(async () => ({
+      content: [{ type: 'text' as const, text: 'ok' }],
+    }));
+    const result = await handler({});
+    expect(result.content[0].text).toBe('ok');
+  });
+
+  it('blocks tool execution when guard is locked', async () => {
+    vi.mocked(fetch).mockResolvedValueOnce(
+      new Response(JSON.stringify({ allowed: false, reason: 'manual' }))
+    );
+    const handler = withGuard(async () => ({
+      content: [{ type: 'text' as const, text: 'ok' }],
+    }));
+    const result = await handler({});
+    expect(result.isError).toBe(true);
+    expect(result.content[0].text).toContain('MCP guard blocked');
+  });
+
+  it('blocks tool execution when rate limit exceeded', async () => {
+    vi.mocked(fetch).mockResolvedValueOnce(
+      new Response(JSON.stringify({ allowed: false, reason: 'rate_limit_exceeded' }))
+    );
+    const handler = withGuard(async () => ({
+      content: [{ type: 'text' as const, text: 'ok' }],
+    }));
+    const result = await handler({});
+    expect(result.isError).toBe(true);
+    expect(result.content[0].text).toContain('rate_limit_exceeded');
+  });
+});
+```
+
+---
+
+## Step 5.7: MCP Auth Bootstrap
+
+The MCP server must unlock the encrypted database before any tools can function. The auth handshake uses the envelope encryption architecture defined in [Phase 4 §4.5](04-rest-api.md).
 
 ### Boot Sequence
 
@@ -336,7 +263,7 @@ export function getAuthHeaders(): Record<string, string> {
 }
 ```
 
-### IDE Configuration (Standalone)
+### IDE Configuration
 
 ```json
 // .cursor/mcp.json (or equivalent IDE config)
@@ -355,318 +282,48 @@ export function getAuthHeaders(): Record<string, string> {
 > [!IMPORTANT]
 > The API key in the IDE config is used **once** during bootstrap to obtain a session token. The MCP server never stores the raw API key after bootstrap. If the session expires, the MCP server re-authenticates using the original header value.
 
-### Embedded Mode
+> [!NOTE]
+> **Design Decision (2026-02-26):** The MCP server always runs as a separate process.
+> Embedding inside Electron was evaluated and rejected due to 5 shared-process security
+> risks: trust boundary collapse (shared memory), IDE-initiated attacks on pre-authenticated
+> sessions, MCP Guard bypass, session scope inflation (full owner role), and expanded
+> Electron attack surface. The standalone model ensures clean auth separation (passphrase
+> for GUI, API key for MCP) and independent process lifecycle.
 
-When the MCP server runs inside Electron (embedded mode), the GUI has already unlocked the database via passphrase. The MCP server receives a pre-authenticated session token from the main process — no API key bootstrap is needed.
+---
 
-## Step 5.6: MCP Guard Middleware
+## Step 5.8: Diagnostics & GUI Launch Tools
 
-> Circuit breaker + panic button for MCP tool access.
-> Model: [`McpGuardModel`](02-infrastructure.md) | REST: [§4.6](04-rest-api.md) | GUI: [§6f.8](06f-gui-settings.md)
-
-### Guard Check Flow
-
-```
-MCP Tool Call
-  → guardCheck()
-    → POST /api/v1/mcp-guard/check
-      → [locked?]           → MCP error: "MCP guard is locked: {reason}"
-      → [enabled + OK?]     → increment counter → execute tool
-      → [threshold hit?]    → auto-lock + MCP error: "Rate limit exceeded"
-      → [disabled?]         → skip check → execute tool
-```
-
-### Middleware Implementation
-
-```typescript
-// mcp-server/src/middleware/mcp-guard.ts
-
-const API_BASE = process.env.ZORIVEST_API_URL ?? 'http://localhost:8765';
-
-interface GuardCheckResult {
-  allowed: boolean;
-  reason?: string;
-}
-
-export async function guardCheck(): Promise<GuardCheckResult> {
-  // Session token injected via getAuthHeaders() — same auth model as all other REST calls
-  const res = await fetch(`${API_BASE}/api/v1/mcp-guard/check`, {
-    method: 'POST',
-    headers: { 'Content-Type': 'application/json', ...getAuthHeaders() },
-  });
-  return res.json();
-}
-
-/**
- * Wraps an MCP tool handler with guard check.
- * If guard denies, returns MCP error content instead of executing.
- */
-export function withGuard<T>(
-  handler: (args: T) => Promise<McpResult>
-): (args: T) => Promise<McpResult> {
-  return async (args: T) => {
-    const check = await guardCheck();
-    if (!check.allowed) {
-      return {
-        content: [{
-          type: 'text' as const,
-          text: `⛔ MCP guard blocked this call: ${check.reason}. Unlock via GUI → Settings → MCP Guard, or via zorivest_emergency_unlock tool.`,
-        }],
-        isError: true,
-      };
-    }
-    return handler(args);
-  };
-}
-```
-
-### Emergency Stop Tool
-
-```typescript
-// mcp-server/src/tools/guard-tools.ts
-
-import { McpServer } from '@modelcontextprotocol/sdk/server/mcp.js';
-import { z } from 'zod';
-
-const API_BASE = process.env.ZORIVEST_API_URL ?? 'http://localhost:8765';
-
-export function registerGuardTools(server: McpServer) {
-  server.tool(
-    'zorivest_emergency_stop',
-    'Emergency: Lock all MCP tool access. Use if you detect runaway behavior or a loop.',
-    { reason: z.string().default('agent_self_lock') },
-    async ({ reason }) => {
-      const res = await fetch(`${API_BASE}/api/v1/mcp-guard/lock`, {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json', ...getAuthHeaders() },
-        body: JSON.stringify({ reason }),
-      });
-      const data = await res.json();
-      return {
-        content: [{
-          type: 'text' as const,
-          text: `🔒 MCP tools locked. Reason: "${reason}". Unlock via GUI → Settings → MCP Guard, or via zorivest_emergency_unlock tool.`,
-        }],
-      };
-    }
-  );
-
-  server.tool(
-    'zorivest_emergency_unlock',
-    'Unlock MCP tools after an emergency stop. Requires confirmation token.',
-    { confirm: z.literal('UNLOCK') },
-    async () => {
-      const res = await fetch(`${API_BASE}/api/v1/mcp-guard/unlock`, {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json', ...getAuthHeaders() },
-      });
-      const data = await res.json();
-      return {
-        content: [{
-          type: 'text' as const,
-          text: data.is_locked
-            ? `⚠️ Unlock failed — guard is still locked. Check REST API logs.`
-            : `🟢 MCP tools unlocked. Guard is active and accepting calls.`,
-        }],
-      };
-    }
-  );
-}
-```
-
-### Registration
-
-```typescript
-// mcp-server/src/index.ts  (additions)
-
-import { registerGuardTools } from './tools/guard-tools.js';
-import { withGuard } from './middleware/mcp-guard.js';
-
-// Register guard tool (emergency stop is NOT itself guarded — always available)
-registerGuardTools(server);
-
-// Wrap existing tool handlers with guard middleware
-// (Applied during registration in registerTradeTools, registerMarketDataTools, etc.)
-```
-
-### Vitest Tests
-
-```typescript
-// mcp-server/tests/guard.test.ts
-
-import { describe, it, expect, vi } from 'vitest';
-
-describe('MCP Guard Middleware', () => {
-  it('allows tool execution when guard is disabled', async () => {
-    vi.mocked(fetch).mockResolvedValueOnce(
-      new Response(JSON.stringify({ allowed: true }))
-    );
-    const handler = withGuard(async () => ({
-      content: [{ type: 'text' as const, text: 'ok' }],
-    }));
-    const result = await handler({});
-    expect(result.content[0].text).toBe('ok');
-  });
-
-  it('blocks tool execution when guard is locked', async () => {
-    vi.mocked(fetch).mockResolvedValueOnce(
-      new Response(JSON.stringify({ allowed: false, reason: 'manual' }))
-    );
-    const handler = withGuard(async () => ({
-      content: [{ type: 'text' as const, text: 'ok' }],
-    }));
-    const result = await handler({});
-    expect(result.isError).toBe(true);
-    expect(result.content[0].text).toContain('MCP guard blocked');
-  });
-
-  it('emergency stop tool calls lock endpoint', async () => {
-    vi.mocked(fetch).mockResolvedValueOnce(
-      new Response(JSON.stringify({ is_locked: true }))
-    );
-    // Import and invoke the handler directly
-    const { registerGuardTools } = await import('../src/tools/guard-tools.js');
-    const mockServer = { tool: vi.fn() };
-    registerGuardTools(mockServer as any);
-    // Extract the emergency_stop handler (first registered tool)
-    const [, , , handler] = mockServer.tool.mock.calls[0];
-    const result = await handler({ reason: 'test-lock' });
-    expect(fetch).toHaveBeenCalledWith(
-      expect.stringContaining('/mcp-guard/lock'),
-      expect.objectContaining({
-        method: 'POST',
-        body: JSON.stringify({ reason: 'test-lock' }),
-      })
-    );
-    expect(result.content[0].text).toContain('MCP tools locked');
-  });
-
-  it('emergency unlock tool calls unlock endpoint', async () => {
-    vi.mocked(fetch).mockResolvedValueOnce(
-      new Response(JSON.stringify({ is_locked: false }))
-    );
-    const { registerGuardTools } = await import('../src/tools/guard-tools.js');
-    const mockServer = { tool: vi.fn() };
-    registerGuardTools(mockServer as any);
-    // Extract the emergency_unlock handler (second registered tool)
-    const [, , , handler] = mockServer.tool.mock.calls[1];
-    const result = await handler({ confirm: 'UNLOCK' });
-    expect(fetch).toHaveBeenCalledWith(
-      expect.stringContaining('/mcp-guard/unlock'),
-      expect.objectContaining({ method: 'POST' })
-    );
-    expect(result.content[0].text).toContain('MCP tools unlocked');
-  });
-
-  it('blocks tool execution when rate limit exceeded', async () => {
-    vi.mocked(fetch).mockResolvedValueOnce(
-      new Response(JSON.stringify({ allowed: false, reason: 'rate_limit_exceeded' }))
-    );
-    const handler = withGuard(async () => ({
-      content: [{ type: 'text' as const, text: 'ok' }],
-    }));
-    const result = await handler({});
-    expect(result.isError).toBe(true);
-    expect(result.content[0].text).toContain('rate_limit_exceeded');
-  });
-});
-```
-
-## Step 5.8: `zorivest_diagnose` MCP Tool
-
-> Self-diagnostics tool that agents can call to debug connectivity, check backend health, and inspect runtime state. Inspired by Pomera's `pomera_diagnose` ([`_mcp-manager-architecture.md`](../../_inspiration/_mcp-manager-architecture.md#performance-metrics-coremcpmetricspy)).
-
-Returns:
-- Backend connectivity (Python API health check)
-- Database status (unlocked/locked, SQLCipher connected)
-- Version info (version string + resolution context: `frozen|installed|dev`)
-- Guard state (enabled/locked, calls in window, lock reason)
-- Configured market data providers (name + status, **never reveals API keys**)
-- MCP server uptime, tool count, Node.js version
-- Performance metrics summary (if verbose + metrics middleware active — see Step 5.9)
+> **Spec location:** [05b-mcp-zorivest-diagnostics.md](05b-mcp-zorivest-diagnostics.md) (`zorivest_diagnose`, `zorivest_launch_gui`, `zorivest_service_status`, `zorivest_service_restart`, `zorivest_service_logs`)
 
 > [!IMPORTANT]
-> This tool is **NOT guarded** — it must always be callable, even when the MCP guard is locked (same pattern as `zorivest_emergency_stop`/`zorivest_emergency_unlock`).
+> `zorivest_diagnose` is **NOT guarded** — it must always be callable, even when the MCP guard is locked (same pattern as `zorivest_emergency_stop`/`zorivest_emergency_unlock`).
 
-```typescript
-// mcp-server/src/tools/diagnostics-tools.ts
+### GUI Discovery (4 methods, tried in order)
 
-import { McpServer } from '@modelcontextprotocol/sdk/server/mcp.js';
-import { z } from 'zod';
-import { authState } from '../auth/bootstrap.js';
-import { metricsCollector } from '../middleware/metrics.js';
+| # | Method | How it finds the GUI |
+|---|---|---|
+| 1 | Packaged Electron app | Check standard install paths (`%LOCALAPPDATA%/Programs/Zorivest` on Windows, `/Applications/Zorivest.app` on macOS, `/usr/bin/zorivest` on Linux) |
+| 2 | Development mode | Navigate from MCP server dir → repo root → `ui/` → check for `package.json` |
+| 3 | PATH lookup | `which zorivest` / `where zorivest` — system-installed binary |
+| 4 | Environment variable | `ZORIVEST_GUI_PATH` → custom install location |
 
-/** Non-throwing auth header helper for diagnostics (always-callable tool). */
-function getAuthHeadersSafe(): Record<string, string> {
-  return authState.sessionToken
-    ? { 'Authorization': `Bearer ${authState.sessionToken}` }
-    : {};
-}
+### Cross-Platform Process Detachment
 
-const API_BASE = process.env.ZORIVEST_API_URL ?? 'http://localhost:8765/api/v1';
+> [!WARNING]
+> Python-level subprocess flags (`creationflags`, `start_new_session`) do NOT fully escape IDE-spawned MCP server contexts. OS shell commands are required.
 
-export function registerDiagnosticsTools(server: McpServer) {
-  server.tool(
-    'zorivest_diagnose',
-    'Runtime diagnostics. Returns backend health, DB status, guard state, provider availability, and performance metrics. Never reveals API keys.',
-    {
-      verbose: z.boolean().default(false).describe(
-        'Include per-tool latency percentiles (p50/p95/p99) and payload sizes'
-      ),
-    },
-    async ({ verbose }) => {
-      const safeFetch = async (url: string, opts?: RequestInit) => {
-        try {
-          const res = await fetch(url, opts);
-          return res.json();
-        } catch {
-          return null;
-        }
-      };
+| Platform | Strategy | Why |
+|---|---|---|
+| **Windows** | `start "" "zorivest.exe"` via `child_process.exec` | `start` fully detaches from IDE process tree |
+| **macOS** | `open -a Zorivest` or `nohup ... &` | `open` is macOS-native app launcher |
+| **Linux** | `setsid zorivest > /dev/null 2>&1 &` | `setsid` creates new session leader |
 
-      const [health, version, guard, providers] = await Promise.all([
-        safeFetch(`${API_BASE}/health`),
-        safeFetch(`${API_BASE}/version/`),
-        safeFetch(`${API_BASE}/mcp-guard/status`, { headers: getAuthHeadersSafe() }),
-        safeFetch(`${API_BASE}/market-data/providers`, { headers: getAuthHeadersSafe() }),
-      ]);
-
-      const report = {
-        backend: {
-          reachable: health !== null,
-          status: health?.status ?? 'unreachable',
-        },
-        version: version ?? { version: 'unknown', context: 'unknown' },
-        database: { unlocked: health?.database_unlocked ?? false },
-        guard: guard ?? { status: 'unavailable' },
-        providers: (providers ?? []).map((p: any) => ({
-          name: p.name,
-          enabled: p.is_enabled,
-          connected: p.has_key,
-          // NOTE: Never include api_key or secret fields
-        })),
-        mcp_server: {
-          uptime_minutes: metricsCollector.getUptimeMinutes(),
-          tool_count: server.getRegisteredToolCount?.() ?? 'unknown',
-          node_version: process.version,
-        },
-        metrics: metricsCollector.getSummary(verbose),
-      };
-
-      return {
-        content: [{
-          type: 'text' as const,
-          text: JSON.stringify(report, null, 2),
-        }],
-      };
-    }
-  );
-}
-```
+---
 
 ## Step 5.9: Per-Tool Performance Metrics Middleware
 
-> In-memory metrics collector tracking per-tool latency, call counts, error rates, and payload sizes. Inspired by Pomera's `core/mcp/metrics.py` ([`_mcp-manager-architecture.md`](../../_inspiration/_mcp-manager-architecture.md#performance-metrics-coremcpmetricspy)).
+> In-memory metrics collector tracking per-tool latency, call counts, error rates, and payload sizes.
 
 ### What's Collected
 
@@ -864,242 +521,21 @@ export function withMetrics<T>(
 // handler → withMetrics('tool_name', handler)
 ```
 
-## Step 5.10: `zorivest_launch_gui` MCP Tool
-
-> Allows AI agents to launch the Zorivest GUI. If the GUI is not installed, opens the download page and returns structured setup instructions to the agent. Inspired by Pomera's `pomera_launch_gui` ([`_mcp-manager-architecture.md`](../../_inspiration/_mcp-manager-architecture.md#remote-gui-launch-via-mcp-pomera_launch_gui)).
-
-### GUI Discovery (4 methods, tried in order)
-
-| # | Method | How it finds the GUI |
-|---|---|---|
-| 1 | Packaged Electron app | Check standard install paths (`%LOCALAPPDATA%/Programs/Zorivest` on Windows, `/Applications/Zorivest.app` on macOS, `/usr/bin/zorivest` on Linux) |
-| 2 | Development mode | Navigate from MCP server dir → repo root → `ui/` → check for `package.json` |
-| 3 | PATH lookup | `which zorivest` / `where zorivest` — system-installed binary |
-| 4 | Environment variable | `ZORIVEST_GUI_PATH` → custom install location |
-
-### Cross-Platform Process Detachment
-
-> [!WARNING]
-> Python-level subprocess flags (`creationflags`, `start_new_session`) do NOT fully escape IDE-spawned MCP server contexts. OS shell commands are required. See Pomera's implementation notes in [`_mcp-manager-architecture.md`](../../_inspiration/_mcp-manager-architecture.md#cross-platform-process-detachment).
-
-| Platform | Strategy | Why |
-|---|---|---|
-| **Windows** | `start "" "zorivest.exe"` via `child_process.exec` | `start` fully detaches from IDE process tree |
-| **macOS** | `open -a Zorivest` or `nohup ... &` | `open` is macOS-native app launcher |
-| **Linux** | `setsid zorivest > /dev/null 2>&1 &` | `setsid` creates new session leader |
-
-### Not-Installed Fallback Flow
-
-When the GUI executable is not found at any discovery path:
-
-1. **Opens the GitHub releases page** in the user's default browser
-2. **Returns structured setup instructions to the agent** so the agent can guide the user through installation:
-
-```json
-{
-  "gui_found": false,
-  "message": "Zorivest GUI is not installed. A browser window has been opened to the download page.",
-  "setup_instructions": {
-    "desktop_app": {
-      "description": "Download the Zorivest desktop app (recommended)",
-      "url": "https://github.com/matbanik/zorivest/releases/latest",
-      "windows": "Download and run the .exe installer from the releases page",
-      "macos": "Download and open the .dmg from the releases page",
-      "linux": "Download and run the .AppImage from the releases page"
-    },
-    "from_source": {
-      "description": "Run from source (developers)",
-      "steps": [
-        "git clone https://github.com/matbanik/zorivest",
-        "cd zorivest/ui",
-        "npm install",
-        "npm run dev"
-      ]
-    },
-    "env_hint": "Set ZORIVEST_GUI_PATH=/path/to/zorivest to use a custom install location"
-  }
-}
-```
-
-### Tool Parameters
-
-| Parameter | Type | Default | Description |
-|---|---|---|---|
-| `wait_for_close` | bool | `false` | If true, blocks until GUI process exits |
-
-### Implementation
+## Step 5.10: Registration Index
 
 ```typescript
-// mcp-server/src/tools/gui-tools.ts
+// mcp-server/src/index.ts
 
-import { McpServer } from '@modelcontextprotocol/sdk/server/mcp.js';
-import { z } from 'zod';
-import { exec } from 'child_process';
-import { existsSync } from 'fs';
-import { join } from 'path';
-
-const RELEASES_URL = 'https://github.com/matbanik/zorivest/releases/latest';
-
-interface GuiDiscoveryResult {
-  found: boolean;
-  path: string | null;
-  method: 'installed' | 'dev' | 'path' | 'env' | null;
-}
-
-function getStandardInstallPaths(): string[] {
-  const platform = process.platform;
-  if (platform === 'win32') {
-    return [
-      join(process.env.LOCALAPPDATA ?? '', 'Programs', 'Zorivest', 'Zorivest.exe'),
-      join(process.env.PROGRAMFILES ?? '', 'Zorivest', 'Zorivest.exe'),
-    ];
-  } else if (platform === 'darwin') {
-    return ['/Applications/Zorivest.app'];
-  } else {
-    return ['/usr/bin/zorivest', '/usr/local/bin/zorivest'];
-  }
-}
-
-function resolveDevModePath(): string | null {
-  // Navigate from mcp-server/ → repo root → ui/package.json
-  const repoRoot = join(__dirname, '..', '..', '..');
-  const uiPkg = join(repoRoot, 'ui', 'package.json');
-  return existsSync(uiPkg) ? join(repoRoot, 'ui') : null;
-}
-
-function findInPath(name: string): string | null {
-  const cmd = process.platform === 'win32' ? 'where' : 'which';
-  try {
-    const { execSync } = require('child_process');
-    return execSync(`${cmd} ${name}`, { encoding: 'utf-8' }).trim().split('\n')[0];
-  } catch {
-    return null;
-  }
-}
-
-function discoverGui(): GuiDiscoveryResult {
-  // Method 1: Standard install paths
-  for (const p of getStandardInstallPaths()) {
-    if (existsSync(p)) return { found: true, path: p, method: 'installed' };
-  }
-  // Method 2: Development mode
-  const devPath = resolveDevModePath();
-  if (devPath) return { found: true, path: devPath, method: 'dev' };
-  // Method 3: PATH lookup
-  const pathResult = findInPath('zorivest');
-  if (pathResult) return { found: true, path: pathResult, method: 'path' };
-  // Method 4: Environment variable
-  const envPath = process.env.ZORIVEST_GUI_PATH;
-  if (envPath && existsSync(envPath)) return { found: true, path: envPath, method: 'env' };
-
-  return { found: false, path: null, method: null };
-}
-
-function launchDetached(target: string, isDev: boolean): void {
-  const platform = process.platform;
-  if (isDev) {
-    // Dev mode: run npm run dev in the ui/ directory
-    const cmd = platform === 'win32'
-      ? `start "" cmd /c "cd /d ${target} && npm run dev"`
-      : `cd "${target}" && nohup npm run dev > /dev/null 2>&1 &`;
-    exec(cmd, { windowsHide: true });
-    return;
-  }
-  // Production: launch the packaged executable
-  if (platform === 'win32') {
-    exec(`start "" "${target}"`, { windowsHide: true });
-  } else if (platform === 'darwin') {
-    exec(`open "${target}"`);
-  } else {
-    exec(`setsid "${target}" > /dev/null 2>&1 &`);
-  }
-}
-
-function openInBrowser(url: string): void {
-  const cmd = process.platform === 'win32' ? 'start' :
-              process.platform === 'darwin' ? 'open' : 'xdg-open';
-  exec(`${cmd} ${url}`);
-}
-
-export function registerGuiTools(server: McpServer) {
-  server.tool(
-    'zorivest_launch_gui',
-    'Launch the Zorivest desktop GUI. If not installed, opens the download page and returns setup instructions the agent can relay to the user.',
-    {
-      wait_for_close: z.boolean().default(false).describe(
-        'If true, blocks until GUI process exits'
-      ),
-    },
-    async ({ wait_for_close }) => {
-      const discovery = discoverGui();
-
-      if (!discovery.found) {
-        openInBrowser(RELEASES_URL);
-        return {
-          content: [{
-            type: 'text' as const,
-            text: JSON.stringify({
-              gui_found: false,
-              message: 'Zorivest GUI is not installed. A browser window has been opened to the download page.',
-              setup_instructions: {
-                desktop_app: {
-                  description: 'Download the Zorivest desktop app (recommended)',
-                  url: RELEASES_URL,
-                  windows: 'Download and run the .exe installer from the releases page',
-                  macos: 'Download and open the .dmg from the releases page',
-                  linux: 'Download and run the .AppImage from the releases page',
-                },
-                from_source: {
-                  description: 'Run from source (developers)',
-                  steps: [
-                    'git clone https://github.com/matbanik/zorivest',
-                    'cd zorivest/ui',
-                    'npm install',
-                    'npm run dev',
-                  ],
-                },
-                env_hint: 'Set ZORIVEST_GUI_PATH=/path/to/zorivest to use a custom install location',
-              },
-            }, null, 2),
-          }],
-        };
-      }
-
-      // GUI found — launch it
-      if (wait_for_close) {
-        // Foreground mode: spawn and wait for exit
-        const { execSync } = require('child_process');
-        try {
-          execSync(`"${discovery.path!}"`, { stdio: 'ignore', windowsHide: true });
-        } catch {
-          // GUI closed with non-zero exit — ignore
-        }
-      } else {
-        launchDetached(discovery.path!, discovery.method === 'dev');
-      }
-
-      return {
-        content: [{
-          type: 'text' as const,
-          text: JSON.stringify({
-            gui_found: true,
-            method: discovery.method,
-            message: `Zorivest GUI launched via ${discovery.method} (${discovery.path}).`,
-          }),
-        }],
-      };
-    }
-  );
-}
-```
-
-### Registration
-
-```typescript
-// mcp-server/src/index.ts  (additions)
-
+import { registerSettingsTools } from './tools/settings-tools.js';
+import { registerGuardTools } from './tools/guard-tools.js';
 import { registerDiagnosticsTools } from './tools/diagnostics-tools.js';
 import { registerGuiTools } from './tools/gui-tools.js';
+import { registerTradeTools } from './tools/trade-tools.js';
+import { registerMarketDataTools } from './tools/market-data-tools.js';
+import { registerExpansionTools } from './tools/expansion-tools.js';
+import { registerSchedulingTools } from './tools/scheduling-tools.js';
+import { registerServiceTools } from './tools/service.js';
+import { withGuard } from './middleware/mcp-guard.js';
 
 // Unguarded tools (always available, even when guard is locked)
 registerGuardTools(server);
@@ -1108,11 +544,53 @@ registerGuiTools(server);
 
 // Guarded tools get both middleware wrappers:
 // withMetrics('create_trade', withGuard(handler))
+registerSettingsTools(server);
+registerTradeTools(server);
+registerMarketDataTools(server);
+registerExpansionTools(server);
+registerSchedulingTools(server);
+registerServiceTools(server);
 ```
 
-## Step 5.11: Vitest Tests for New Tools
+## Step 5.10a: Expansion Tools
+
+> **Spec location:** [05c-mcp-trade-analytics.md](05c-mcp-trade-analytics.md) (analytics tools), [05f-mcp-accounts.md](05f-mcp-accounts.md) (broker/banking tools), [05i-mcp-behavioral.md](05i-mcp-behavioral.md) (behavioral tools)
+
+### Expansion Tool Registry
+
+| Tool Name | Source §§ | Category File |
+|-----------|----------|---------------|
+| `sync_broker` | §1, §2 | [05f](05f-mcp-accounts.md) |
+| `list_brokers` | §1, §24, §25 | [05f](05f-mcp-accounts.md) |
+| `get_round_trips` | §3 | [05c](05c-mcp-trade-analytics.md) |
+| `resolve_identifiers` | §5 | [05f](05f-mcp-accounts.md) |
+| `enrich_trade_excursion` | §7 | [05c](05c-mcp-trade-analytics.md) |
+| `detect_options_strategy` | §8 | [05c](05c-mcp-trade-analytics.md) |
+| `get_fee_breakdown` | §9 | [05c](05c-mcp-trade-analytics.md) |
+| `score_execution_quality` | §10 | [05c](05c-mcp-trade-analytics.md) |
+| `estimate_pfof_impact` | §11 | [05c](05c-mcp-trade-analytics.md) |
+| `get_expectancy_metrics` | §13 | [05c](05c-mcp-trade-analytics.md) |
+| `simulate_drawdown` | §14 | [05c](05c-mcp-trade-analytics.md) |
+| `get_strategy_breakdown` | §21 | [05c](05c-mcp-trade-analytics.md) |
+| `get_sqn` | §15 | [05c](05c-mcp-trade-analytics.md) |
+| `get_cost_of_free` | §22 | [05c](05c-mcp-trade-analytics.md) |
+| `ai_review_trade` | §12 | [05c](05c-mcp-trade-analytics.md) |
+| `track_mistake` | §17 | [05i](05i-mcp-behavioral.md) |
+| `get_mistake_summary` | §17 | [05i](05i-mcp-behavioral.md) |
+| `link_trade_journal` | §16 | [05i](05i-mcp-behavioral.md) |
+| `import_bank_statement` | §26 | [05f](05f-mcp-accounts.md) |
+| `import_broker_csv` | §18 | [05f](05f-mcp-accounts.md) |
+| `import_broker_pdf` | §19 | [05f](05f-mcp-accounts.md) |
+| `list_bank_accounts` | §26 | [05f](05f-mcp-accounts.md) |
+
+> [!NOTE]
+> **Name Authority (CR2-3):** The canonical tool names are those defined in the category files. All downstream references must use the canonical names.
+
+## Step 5.10b: Vitest Tests
 
 ### Diagnostics Tests
+
+> **Spec location:** [05b-mcp-zorivest-diagnostics.md](05b-mcp-zorivest-diagnostics.md) for tool contracts. Test patterns below.
 
 ```typescript
 // mcp-server/tests/diagnostics.test.ts
@@ -1165,23 +643,14 @@ import { describe, it, expect, vi } from 'vitest';
 describe('zorivest_launch_gui', () => {
   it('returns setup instructions when GUI is not found', async () => {
     // Mock discoverGui → { found: false }
-    // invoke handler
-    // expect(result.gui_found).toBe(false);
-    // expect(result.setup_instructions.desktop_app.url).toContain('releases');
-    // expect(exec).toHaveBeenCalledWith(expect.stringContaining('releases'));
   });
 
   it('launches GUI when found at standard path', async () => {
     // Mock discoverGui → { found: true, path: 'C:/...', method: 'installed' }
-    // invoke handler
-    // expect(result.gui_found).toBe(true);
-    // expect(exec).toHaveBeenCalledWith(expect.stringContaining('start'));
   });
 
   it('uses npm run dev in development mode', async () => {
     // Mock discoverGui → { found: true, path: '/repo/ui', method: 'dev' }
-    // invoke handler
-    // expect(exec command).toContain('npm run dev');
   });
 });
 ```
@@ -1253,6 +722,235 @@ describe('withMetrics wrapper', () => {
 });
 ```
 
+---
+
+## Step 5.11: Toolset Configuration
+
+> **Spec location:** [05j-mcp-discovery.md](05j-mcp-discovery.md) (meta-tools, confirmation tokens)
+
+Toolsets group related MCP tools into named categories for selective loading. This is the primary mechanism for keeping the active tool count within IDE limits.
+
+### Toolset Definitions (Authoritative)
+
+| Toolset | Category File(s) | Tools | Default Loaded | Description |
+|---------|-----------------|-------|---------------|-------------|
+| `core` | 05a, 05b | 11 | ✅ Always | Settings, emergency stop/unlock, diagnostics, GUI launch, service tools |
+| `discovery` | 05j | 4 | ✅ Always | Meta-tools for toolset browsing, enabling, and confirmation tokens |
+| `trade-analytics` | 05c | 19 | ✅ Default | Trade CRUD, screenshots, analytics, reports |
+| `trade-planning` | 05c, 05d | 3 | ✅ Default | Position calculator, trade plans (includes `create_trade` cross-tagged from 05c) |
+| `market-data` | 05e | 7 | ⬜ Deferred | Stock quotes, news, SEC filings, ticker search |
+| `accounts` | 05f | 8 | ⬜ Deferred | Account management, broker sync, CSV import |
+| `scheduling` | 05g | 6 | ⬜ Deferred | Policy CRUD, pipeline execution, scheduler status |
+| `tax` | 05h | 8 | ⬜ Deferred | Tax estimation, wash sales, lot management, harvesting |
+| `behavioral` | 05i | 3 | ⬜ Deferred | Mistake tracking, expectancy, Monte Carlo |
+
+**Default active tools:** `core` + `discovery` + `trade-analytics` + `trade-planning` = **37 tools** (fits under Cursor's 40-tool limit).
+
+### `--toolsets` CLI Flag
+
+Users and IDE configurations specify which toolsets to load at startup:
+
+```bash
+# Default (core + discovery always loaded, plus defaults)
+npx @zorivest/mcp-server --api-url http://localhost:8765
+
+# Explicit toolset selection
+npx @zorivest/mcp-server --toolsets trade-analytics,market-data,accounts
+
+# All toolsets (not recommended for Cursor/Windsurf)
+npx @zorivest/mcp-server --toolsets all
+```
+
+`core` and `discovery` are **always loaded** regardless of the `--toolsets` flag (15 tools minimum).
+
+### `toolset-config.json`
+
+Persistent toolset preferences file (optional, overridden by `--toolsets` flag):
+
+```json
+{
+  "defaultToolsets": ["trade-analytics", "trade-planning"],
+  "clientOverrides": {
+    "cursor": ["trade-analytics"],
+    "claude-code": ["all"]
+  }
+}
+```
+
+---
+
+## Step 5.12: Adaptive Client Detection
+
+During the MCP `initialize` handshake, the server inspects the client's declared capabilities to select the optimal tool surfacing strategy.
+
+### Detection Flowchart
+
+```
+Server starts → receives initialize request from IDE
+  ├─ Client is Anthropic (Claude Code, Claude Desktop, API)
+  │  → Mark deferred toolsets with defer_loading: true
+  │  → Expose Tool Search meta-tool
+  │  → 15 core + discovery tools always loaded
+  │  → Remaining tools discoverable via BM25/regex search
+  │
+  ├─ Client supports tools.listChanged (Gemini CLI, Cline, Antigravity)
+  │  → Expose meta-tools: list_available_toolsets, describe_toolset, enable_toolset
+  │  → Start with default toolsets (37 core tools)
+  │  → Agent dynamically loads categories via notifications/tools/list_changed
+  │
+  └─ Client is capability-limited (Cursor, Windsurf)
+      → Use --toolsets flag / env var to pre-select categories
+      → Load only selected toolsets (stays under 40-tool limit)
+      → No dynamic changes during session
+```
+
+### Client Identification
+
+| Signal | Where | Example Values |
+|--------|-------|---------------|
+| `clientInfo.name` | MCP `initialize` request | `"claude-code"`, `"cursor"`, `"windsurf"`, `"cline"`, `"antigravity"` |
+| `capabilities.tools.listChanged` | MCP `initialize` request | `true` / absent |
+| `ZORIVEST_CLIENT_MODE` | Environment variable | `anthropic`, `dynamic`, `static` (manual override) |
+
+### Mode Mapping
+
+| `clientInfo.name` | Detected Mode | Rationale |
+|-------------------|--------------|----------|
+| `claude-code`, `claude-desktop` | `anthropic` | Supports `defer_loading` + Tool Search |
+| `cline`, `roo-code`, `antigravity`, `gemini-cli` | `dynamic` | Supports `tools.listChanged` notifications |
+| `cursor`, `windsurf` | `static` | No dynamic tool changes; pre-select via `--toolsets` |
+| (unknown) | `static` | Safe default — respects IDE limits |
+
+The `ZORIVEST_CLIENT_MODE` env var overrides auto-detection for testing or edge cases.
+
+---
+
+## Step 5.13: Adaptive Design Patterns
+
+Six optimization patterns adapt server behavior per detected client mode. Patterns A, B, D, E are implemented in this session; Patterns C (composites) and F (PTC) are deferred to Sessions 5 and 6.
+
+### Pattern A: Adaptive Response Compression
+
+Tool results are adjusted based on client context budget:
+
+| Client Type | Response Mode | Behavior |
+|-------------|--------------|----------|
+| Anthropic (200K context) | `detailed` | Full JSON: metadata, audit fields, nested objects |
+| Gemini (2M context) | `detailed` | Full payloads — can afford them |
+| Cursor / Windsurf (tight budget) | `concise` | Strip UUIDs, timestamps, raw audit data; key fields only |
+
+A session-level `responseFormat` flag is set during `initialize` and checked by every tool handler.
+
+### Pattern B: Tiered Tool Descriptions
+
+| Client Type | Description Tier | Length |
+|-------------|-----------------|--------|
+| Has Tool Search (Anthropic) | **Rich** — "when to use" / "when NOT to use" / examples / discriminators | 200-400 chars |
+| Eager-loaded (all others) | **Minimal** — verb + noun + one discriminator | 50-100 chars |
+
+Richer descriptions improve Tool Search discovery accuracy. For eager-loaded clients, shorter descriptions save tokens.
+
+### Pattern D: Adaptive Server Instructions
+
+MCP `server instructions` field provides per-client chaining guidance:
+
+| Client Type | Instruction Focus |
+|-------------|------------------|
+| Anthropic | "Use tool_search to discover tools. Prefer sequential execution. For multi-metric analysis, use code_execution to batch calls." |
+| Dynamic | "Available categories: [list]. Use list_available_toolsets/enable_toolset to load categories on demand." |
+| Static | "You have [N] tools from [X, Y] categories. Other categories require server restart with different --toolsets flag." |
+
+### Pattern E: Safety Confirmation Adaptation
+
+> [!CAUTION]
+> **Critical for financial trading.** Different clients handle `destructiveHint` differently.
+
+| Client Type | Safety Mechanism |
+|-------------|------------------|
+| Annotation-aware (Claude Code, Roo Code) | IDE-driven approval flow. `destructiveHint: true` → IDE prompts user. |
+| Annotation-unaware (Cursor, others) | **Server-side 2-step gate**: destructive tools require a `confirmation_token`. Token obtained from `get_confirmation_token` tool ([05j](05j-mcp-discovery.md)). Forces 2-call execution. |
+
+Destructive tools requiring confirmation: `zorivest_emergency_stop`, `create_trade`, `sync_broker`, `disconnect_market_provider`, `zorivest_service_restart`.
+
+> **Cross-reference:** REST endpoint `POST /api/v1/confirmation-tokens` specified in [Phase 4](04-rest-api.md) (Session 4).
+
+---
+
+## Step 5.14: Tool Registration Flow
+
+The updated registration flow composes annotations, guard, and metrics middleware:
+
+```typescript
+// mcp-server/src/registration.ts
+
+import { McpServer } from '@modelcontextprotocol/sdk/server/mcp.js';
+import { toolsetRegistry } from './toolsets/registry.js';
+
+export function registerToolsForClient(
+  server: McpServer,
+  clientMode: 'anthropic' | 'dynamic' | 'static',
+  requestedToolsets: string[]
+): void {
+  // 1. Always register core + discovery (alwaysLoaded)
+  for (const ts of toolsetRegistry.getAll()) {
+    if (ts.alwaysLoaded) {
+      ts.register(server);
+      toolsetRegistry.markLoaded(ts.name);
+    }
+  }
+
+  // 2. Register requested/default toolsets
+  const toLoad = requestedToolsets.length > 0
+    ? requestedToolsets
+    : toolsetRegistry.getDefaults();
+
+  for (const name of toLoad) {
+    const ts = toolsetRegistry.get(name);
+    if (ts && !ts.loaded) {
+      if (clientMode === 'anthropic') {
+        // Mark as deferred — Anthropic Tool Search will index them
+        ts.registerDeferred(server);
+      } else {
+        ts.register(server);
+        toolsetRegistry.markLoaded(name);
+      }
+    }
+  }
+}
+```
+
+### Annotation Registration
+
+Each tool is registered with its annotation object from the `#### Annotations` block:
+
+```typescript
+server.tool(
+  'get_settings',
+  'Read all user settings or a specific setting by key.',
+  { key: z.string().optional() },
+  handler,
+  {
+    annotations: {
+      readOnlyHint: true,
+      destructiveHint: false,
+      idempotentHint: true,
+    },
+  }
+);
+```
+
+### Middleware Composition Order
+
+```
+Tool call → withMetrics() → withGuard() → withConfirmation() → handler
+```
+
+- `withMetrics()` — always applied (records latency, payload size, errors)
+- `withGuard()` — applied to all guarded tools (not applied to emergency stop/unlock, diagnose)
+- `withConfirmation()` — applied to destructive tools on annotation-unaware clients only
+
+---
+
 ## Exit Criteria
 
 - All Vitest tests pass
@@ -1265,15 +963,45 @@ describe('withMetrics wrapper', () => {
 - `zorivest_launch_gui` returns setup instructions and opens browser when GUI is not installed
 - `MetricsCollector` accurately computes latency percentiles and error rates
 - `withMetrics()` composes correctly with `withGuard()`
+- Expansion MCP tools delegate correctly to REST endpoints
+- `zorivest_service_status` returns health + process metrics when backend is up
+- `zorivest_service_restart` triggers graceful shutdown and polls for recovery
+- `zorivest_service_logs` returns log directory path and file listing
+- All tools have MCP annotation blocks (`readOnlyHint`, `destructiveHint`, `idempotentHint`)
+- `--toolsets` flag correctly filters tool registration (default ≤ 40 tools)
+- Client detection selects appropriate mode (anthropic/dynamic/static)
+- Meta-tools (`list_available_toolsets`, `describe_toolset`, `enable_toolset`) return accurate state
+- `get_confirmation_token` issues valid 60s tokens for destructive operations
+- `enable_toolset` sends `notifications/tools/list_changed` on dynamic clients
+- `enable_toolset` returns guidance on static clients
 
 ## Outputs
 
-- TypeScript MCP tools (trade/image): `create_trade`, `list_trades`, `attach_screenshot`, `get_trade_screenshots`, `calculate_position_size`, `get_screenshot`
-- TypeScript MCP tools (market data, from Phase 8): `get_stock_quote`, `get_market_news`, `search_ticker`, `get_sec_filings`, `list_market_providers`, `test_market_provider`, `disconnect_market_provider`
-- TypeScript MCP tools (settings): `get_settings`, `update_settings`
-- TypeScript MCP tools (guard): `zorivest_emergency_stop`, `zorivest_emergency_unlock`
-- TypeScript MCP tools (diagnostics): `zorivest_diagnose`
-- TypeScript MCP tools (GUI): `zorivest_launch_gui`
-- MCP guard middleware: `withGuard()` wrapper, `guardCheck()` REST client
-- MCP metrics middleware: `withMetrics()` wrapper, `MetricsCollector` class
+- **Tool specs**: 68 tools across 10 category files (see [Category Files](#category-files) above)
+- **Shared infrastructure** (this file):
+  - MCP guard middleware: `withGuard()` wrapper, `guardCheck()` REST client
+  - MCP metrics middleware: `withMetrics()` wrapper, `MetricsCollector` class
+  - Auth bootstrap: `bootstrapAuth()`, `getAuthHeaders()`
+  - Toolset registry: `ToolsetRegistry` class, `--toolsets` CLI flag
+  - Client detection: `detectClientMode()`, `ZORIVEST_CLIENT_MODE` env var
+  - Adaptive patterns: response compression, tiered descriptions, server instructions, safety confirmation
+  - Registration flow: `registerToolsForClient()` with annotation composition
 - Vitest test suite with mocked `fetch()`
+
+## MCP SDK Compatibility
+
+> [!IMPORTANT]
+> The `@modelcontextprotocol/sdk` is pinned to `^1.26.0` in the [dependency manifest](dependency-manifest.md). All code in this file targets the v1.x API surface.
+
+| Aspect | Our Target | Notes |
+|--------|-----------|-------|
+| Import path | `@modelcontextprotocol/sdk/server/mcp.js` | v1.x convenience import |
+| Tool registration | `server.tool(name, desc, schema, handler)` | Convenience API; `registerTool()` is also available |
+| Tool output | `content: [{ type: 'text', text: ... }]` | Structured `outputSchema` support available in v1.25+ but not yet adopted |
+| Zod schemas | `z.string()`, `z.number()`, etc. | Zod is the schema library for tool input validation |
+
+### Migration Rules
+
+- **Do not upgrade past v1.x** without updating all `server.tool(...)` calls and import paths
+- **Run `tsc --noEmit`** after any SDK version bump to verify compilation
+- **Add CI smoke test**: compile MCP server bootstrap against locked SDK version

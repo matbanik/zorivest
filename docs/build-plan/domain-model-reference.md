@@ -22,6 +22,8 @@ The domain is organized around **five temporal concerns** plus **two tool module
 │  ├── currency: str              (e.g., "USD")                          │
 │  ├── is_tax_advantaged: bool    (IRA/401K = True)                      │
 │  ├── notes: str                                                         │
+│  ├── sub_accounts: list[str]   (optional sub-account identifiers, §26) │
+│  ├── balance_source: BalanceSource (MANUAL/CSV_IMPORT/OFX_IMPORT, §26) │
 │  └── balance_snapshots: list[BalanceSnapshot]                          │
 │                                                                         │
 │  BalanceSnapshot                                                        │
@@ -100,9 +102,9 @@ The domain is organized around **five temporal concerns** plus **two tool module
 │  ├── id: int (PK)                                                       │
 │  ├── owner_type: str  ("trade" | "report" | "plan")                   │
 │  ├── owner_id: str    (FK to the owning entity)                        │
-│  ├── data: bytes      (raw image)                                       │
-│  ├── thumbnail: bytes (pre-generated)                                   │
-│  ├── mime_type: str                                                     │
+│  ├── data: bytes      (standardized WebP)                               │
+│  ├── thumbnail: bytes (pre-generated WebP)                              │
+│  ├── mime_type: str    (always "image/webp")                            │
 │  ├── caption: str                                                       │
 │  ├── width / height: int                                                │
 │  ├── file_size: int                                                     │
@@ -211,6 +213,127 @@ The domain is organized around **five temporal concerns** plus **two tool module
 │  └── Output: account_risk_1r, risk_per_share, share_size,             │
 │              position_size, position_to_account_pct,                    │
 │              reward_risk_ratio, potential_profit                        │
+│                                                                         │
+│  ══ ANALYTICS & ENRICHMENT (post-trade analysis, auto-calculations) ═══ │
+│                                                                         │
+│  RoundTrip  (groups executions into entry→exit pairs)                  │
+│  ├── id: int (PK)                                                       │
+│  ├── account_id: str (FK → Account)                                    │
+│  ├── instrument: str                                                    │
+│  ├── direction: TradeAction  (BOT = long round-trip, SLD = short)      │
+│  ├── entry_executions: list[str] (FK → Trade.exec_id)                  │
+│  ├── exit_executions: list[str] (FK → Trade.exec_id)                   │
+│  ├── entry_avg_price: Decimal                                           │
+│  ├── exit_avg_price: Decimal                                            │
+│  ├── total_quantity: float                                              │
+│  ├── realized_pnl: Decimal  (computed from avg prices × quantity)      │
+│  ├── total_commission: Decimal                                          │
+│  ├── opened_at: datetime  (earliest entry execution time)              │
+│  ├── closed_at: datetime  (latest exit execution time, nullable)       │
+│  ├── status: RoundTripStatus  ←── enum: OPEN | CLOSED | PARTIAL       │
+│  └── holding_period_seconds: int  (computed)                            │
+│  Source: Build Plan Expansion §3                                        │
+│  Priority: P1 — Core for reliable trade history normalization           │
+│                                                                         │
+│  ExcursionMetrics  (1:1 extension on Trade — computed from bar data)   │
+│  ├── trade_exec_id: str (FK → Trade.exec_id, unique)                  │
+│  ├── mfe_dollars: Decimal    (Maximum Favorable Excursion in $)        │
+│  ├── mfe_pct: float          (MFE as % of entry price)                 │
+│  ├── mae_dollars: Decimal    (Maximum Adverse Excursion in $)          │
+│  ├── mae_pct: float          (MAE as % of entry price)                 │
+│  ├── bso_pct: float          (Best Scale Out % — exit efficiency)      │
+│  ├── data_source: str        (which market data provider supplied bars) │
+│  └── computed_at: datetime                                              │
+│  Source: Build Plan Expansion §7 (merged with TJS §3)                   │
+│  Priority: P1 — High-value auto-enrichment; requires market data bars   │
+│                                                                         │
+│  IdentifierMapping  (CUSIP/ISIN/SEDOL → ticker resolution cache)       │
+│  ├── id: int (PK)                                                       │
+│  ├── id_type: IdentifierType  ←── enum: CUSIP | ISIN | SEDOL | FIGI   │
+│  ├── id_value: str                                                      │
+│  ├── ticker: str              (resolved ticker symbol)                  │
+│  ├── exchange: str            (e.g., "NYSE", "NASDAQ")                  │
+│  ├── security_type: str       (e.g., "Common Stock", "ETF")            │
+│  ├── source: str              (e.g., "openfigi", "finnhub", "manual")  │
+│  ├── confidence: float        (0.0-1.0)                                 │
+│  ├── resolved_at: datetime                                              │
+│  └── expires_at: datetime     (cache TTL — delisted securities don't)  │
+│  Source: Build Plan Expansion §5                                        │
+│  Priority: P2 — Needed for IBKR FlexQuery imports with CUSIP codes      │
+│                                                                         │
+│  TransactionLedger  (per-trade fee decomposition)                      │
+│  ├── id: int (PK)                                                       │
+│  ├── trade_exec_id: str (FK → Trade.exec_id)                          │
+│  ├── fee_type: FeeType  ←── enum: COMMISSION | EXCHANGE | REGULATORY  │
+│  │     | ECN | CLEARING | PLATFORM | OTHER                             │
+│  ├── amount: Decimal                                                    │
+│  ├── currency: str  (default "USD")                                     │
+│  └── description: str  (e.g., "SEC Transaction Fee")                   │
+│  Source: Build Plan Expansion §9 (merged with TJS §7)                   │
+│  Priority: P1 — High analytical value for fee optimization              │
+│                                                                         │
+│  OptionsStrategy  (multi-leg options grouping)                          │
+│  ├── id: int (PK)                                                       │
+│  ├── name: str                (auto-detected or user-assigned)          │
+│  ├── strategy_type: StrategyType  ←── enum: VERTICAL | IRON_CONDOR    │
+│  │     | BUTTERFLY | CALENDAR | STRADDLE | STRANGLE | CUSTOM           │
+│  ├── underlying: str          (e.g., "SPY")                             │
+│  ├── leg_exec_ids: list[str]  (FK → Trade.exec_id)                    │
+│  ├── net_debit_credit: Decimal  (total premium paid/received)          │
+│  ├── max_profit: Decimal      (theoretical, computed from strikes)     │
+│  ├── max_loss: Decimal        (theoretical)                             │
+│  ├── breakeven_prices: list[Decimal]                                    │
+│  └── created_at: datetime                                               │
+│  Source: Build Plan Expansion §8                                        │
+│  Priority: P2 — Required for accurate options P&L                       │
+│                                                                         │
+│  MistakeEntry  (trade mistake categorization with cost attribution)    │
+│  ├── id: int (PK)                                                       │
+│  ├── trade_id: str (FK → Trade.exec_id)                                │
+│  ├── category: MistakeCategory  ←── enum: EARLY_EXIT | LATE_EXIT      │
+│  │     | OVERSIZED | NO_STOP | REVENGE_TRADE | FOMO_ENTRY              │
+│  │     | IGNORED_PLAN | OVERTRADING | CHASING | OTHER                   │
+│  ├── estimated_cost: Decimal  (what the mistake cost in $)             │
+│  ├── notes: str               (user reflection)                         │
+│  ├── auto_detected: bool      (True if classified by rule, not user)   │
+│  └── created_at: datetime                                               │
+│  Source: Build Plan Expansion §17 (new from TJS §5)                     │
+│  Priority: P1 — Strong behavior-change feedback loop                    │
+│                                                                         │
+│  BrokerModel  (broker constraint configuration)                        │
+│  ├── broker_id: str (PK)      (e.g., "ibkr_pro", "alpaca_paper")      │
+│  ├── name: str                (display name)                            │
+│  ├── pdt_rule: bool           (Pattern Day Trader restriction applies) │
+│  ├── pdt_threshold: Decimal   ($25,000 for US brokers)                 │
+│  ├── settlement_days: int     (T+1 for US equities and listed options) │
+│  ├── max_leverage: dict       ({AssetClass: Decimal})                  │
+│  ├── routing_type: RoutingType ←── enum: PFOF | DMA | HYBRID          │
+│  ├── commission_schedule: dict (fee structure per asset class)          │
+│  ├── supported_order_types: list[str]                                   │
+│  ├── supported_asset_classes: list[str]                                 │
+│  └── trading_hours: dict      (market open/close, pre/post windows)    │
+│  Source: Build Plan Expansion §23                                       │
+│  Priority: P2 — Start minimal (PDT, settlement, leverage)               │
+│                                                                         │
+│  BankTransaction  (imported bank statement transaction)                │
+│  ├── id: int (PK)                                                       │
+│  ├── account_id: str (FK → Account)                                    │
+│  ├── date: date               (transaction date)                        │
+│  ├── post_date: date          (settlement date, optional)              │
+│  ├── description: str         (payee / memo from bank)                  │
+│  ├── amount: Decimal          (positive = credit, negative = debit)    │
+│  ├── category: TransactionCategory ←── enum: DEPOSIT | WITHDRAWAL     │
+│  │     | TRANSFER_IN | TRANSFER_OUT | FEE | INTEREST | DIVIDEND        │
+│  │     | ACH_DEBIT | ACH_CREDIT | WIRE_IN | WIRE_OUT | CHECK           │
+│  │     | CARD_PURCHASE | REFUND | ATM | OTHER                          │
+│  ├── reference_id: str        (check #, FITID from OFX, internal ref) │
+│  ├── dedup_hash: str          (MD5 of date+desc+amount for dedup)      │
+│  ├── source: BalanceSource    ←── enum: MANUAL | CSV_IMPORT            │
+│  │     | OFX_IMPORT | QIF_IMPORT | PDF_IMPORT | AGENT_SUBMIT           │
+│  ├── import_batch_id: str     (groups transactions from same import)    │
+│  └── created_at: datetime                                               │
+│  Source: Build Plan Expansion §26                                       │
+│  Priority: P1 (phased — 26A: CSV+OFX, 26B: QIF, 26C: PDF+CAMT)        │
 │                                                                         │
 │  ══ TAX ESTIMATOR (comprehensive tax toolset for active traders) ══════ │
 │                                                                         │

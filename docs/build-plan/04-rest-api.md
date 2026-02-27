@@ -110,9 +110,65 @@ async def upload_image(exec_id: str, file: UploadFile = File(...),
     data = await file.read()
     result = service.attach_image(AttachImageCommand(
         owner_type="trade", owner_id=exec_id, image_data=data,
-        mime_type=file.content_type, caption=caption,
+        mime_type=file.content_type, caption=caption,  # advisory — service normalizes to image/webp after standardization
     ))
     return {"image_id": result.image_id}
+
+
+# ── Trade report routes ──────────────────────────────────────
+
+class CreateReportRequest(BaseModel):
+    setup_quality: Literal["A", "B", "C", "D", "F"]
+    execution_quality: Literal["A", "B", "C", "D", "F"]
+    followed_plan: bool
+    emotional_state: str
+    lessons_learned: Optional[str] = None
+    tags: list[str] = []
+
+@trade_router.post("/{exec_id}/report", status_code=201)
+async def create_report(exec_id: str, body: CreateReportRequest,
+                        service = Depends(get_report_service)):
+    """Create post-trade TradeReport for a trade."""
+    return service.create(exec_id, body.model_dump())
+
+@trade_router.get("/{exec_id}/report")
+async def get_report_for_trade(exec_id: str,
+                                service = Depends(get_report_service)):
+    """Fetch TradeReport linked to a specific trade."""
+    report = service.get_for_trade(exec_id)
+    if not report:
+        raise HTTPException(404, "Report not found for this trade")
+    return report
+```
+
+## Step 4.1c: Trade Plan Routes
+
+```python
+# packages/api/src/zorivest_api/routes/trade_plans.py
+
+from fastapi import APIRouter, Depends
+from pydantic import BaseModel, Field
+from typing import Literal, Optional
+
+plan_router = APIRouter(prefix="/api/v1/trade-plans", tags=["trade-plans"])
+
+class CreateTradePlanRequest(BaseModel):
+    ticker: str
+    direction: Literal["long", "short"]
+    conviction: Literal["high", "medium", "low"]
+    strategy_name: str
+    entry: float = Field(gt=0)
+    stop: float = Field(gt=0)
+    target: float = Field(gt=0)
+    conditions: str
+    timeframe: str
+    account_id: Optional[str] = None
+
+@plan_router.post("/", status_code=201)
+async def create_trade_plan(body: CreateTradePlanRequest,
+                             service = Depends(get_trade_plan_service)):
+    """Create forward-looking TradePlan with computed risk_reward_ratio."""
+    return service.create(body.model_dump())
 ```
 
 ## Step 4.1b: Image Routes (Global Access)
@@ -138,7 +194,7 @@ async def get_image_metadata(image_id: int,
 async def get_image_thumbnail(image_id: int, max_size: int = 200,
                               service: ImageService = Depends(get_image_service)):
     thumb_bytes = service.get_thumbnail(image_id, max_size)
-    return Response(content=thumb_bytes, media_type="image/png")
+    return Response(content=thumb_bytes, media_type="image/webp")
 
 @image_router.get("/{image_id}/full")
 async def get_image_full(image_id: int,
@@ -163,7 +219,7 @@ def test_upload_and_retrieve_image(client):
     # Upload image
     response = client.post(
         "/api/v1/trades/T001/images",
-        files={"file": ("screenshot.png", b"\x89PNG...", "image/png")},
+        files={"file": ("screenshot.webp", b"RIFF\x00\x00WEBP...", "image/webp")},
         data={"caption": "Entry screenshot"},
     )
     assert response.status_code == 200
@@ -172,7 +228,7 @@ def test_upload_and_retrieve_image(client):
     # Get thumbnail
     response = client.get(f"/api/v1/images/{image_id}/thumbnail?max_size=150")  # global image route
     assert response.status_code == 200
-    assert response.headers["content-type"] == "image/png"
+    assert response.headers["content-type"] == "image/webp"
 ```
 
 ## Step 4.3: Settings Routes
@@ -363,7 +419,7 @@ async def ingest_log(entry: LogEntry):
 
 ## Step 4.5: Auth / Unlock Routes (Envelope Encryption)
 
-Database unlock endpoint for MCP standalone mode. Uses envelope encryption: API key → Argon2id KDF → KEK → unwrap DEK → `PRAGMA key`.
+Database unlock endpoint for the MCP server. Uses envelope encryption: API key → Argon2id KDF → KEK → unwrap DEK → `PRAGMA key`.
 
 ```python
 # packages/api/src/zorivest_api/routes/auth.py
@@ -587,6 +643,9 @@ def test_guard_check_counter_resets_after_window(client):
     assert result["allowed"] is True  # counter reset
 ```
 
+> [!NOTE]
+> **MCP Discovery & Toolset tools** (`list_available_toolsets`, `describe_toolset`, `enable_toolset`, `get_confirmation_token`) operate entirely within the TypeScript MCP server layer and do not call any Python REST endpoints. They are defined in [05j-mcp-discovery.md](05j-mcp-discovery.md). The `ToolsetRegistry` is an in-memory TypeScript module with no backend persistence.
+
 ## Step 4.7: Version Route
 
 > Exposes runtime version and resolution context for diagnostics (see [Phase 7 §7.1](07-distribution.md)). No authentication required (localhost-only).
@@ -639,6 +698,368 @@ def test_version_format_is_semver(client):
     assert re.match(r"^\d+\.\d+\.\d+", version)
 ```
 
+## Step 4.8: Build Plan Expansion Routes
+
+> Source: [Build Plan Expansion Ideas](../../_inspiration/import_research/Build%20Plan%20Expansion%20Ideas.md) §1–§26
+
+### Route Summary Table
+
+| Route Group | Prefix | Source §§ | Methods |
+|-------------|--------|----------|---------|
+| Brokers | `/api/v1/brokers` | §1, §2, §24, §25 | `GET /`, `POST /{id}/sync`, `GET /{id}/positions` |
+| Analytics | `/api/v1/analytics` | §10–§15, §21, §22 | `GET /expectancy`, `/drawdown`, `/sqn`, `/execution-quality`, `/pfof-report`, `/strategy-breakdown`, `/cost-of-free` |
+| Round-Trips | `/api/v1/round-trips` | §3 | `GET /`, `GET /{id}` |
+| Identifiers | `/api/v1/identifiers` | §5 | `POST /resolve` (batch) |
+| Import | `/api/v1/import` | §18, §19 | `POST /csv`, `POST /pdf` |
+| Banking | `/api/v1/banking` | §26 | `POST /import`, `GET /accounts`, `POST /transactions`, `PUT /accounts/{id}/balance` |
+| Mistakes | `/api/v1/mistakes` | §17 | `POST /`, `GET /?trade_id=`, `GET /summary` |
+| Fees | `/api/v1/fees` | §9 | `GET /summary?account_id=&period=` |
+
+### Broker Routes (§1, §2, §24, §25)
+
+```python
+# packages/api/src/zorivest_api/routes/brokers.py
+
+broker_router = APIRouter(prefix="/api/v1/brokers", tags=["brokers"])
+
+@broker_router.get("/")
+async def list_brokers(service = Depends(get_broker_service)):
+    """List configured broker adapters with sync status."""
+    ...
+
+@broker_router.post("/{broker_id}/sync", status_code=200)
+async def sync_broker(broker_id: str, service = Depends(get_broker_service)):
+    """Trigger full account sync from broker API."""
+    ...
+
+@broker_router.get("/{broker_id}/positions")
+async def get_broker_positions(broker_id: str, service = Depends(get_broker_service)):
+    """Fetch current positions from broker."""
+    ...
+```
+
+### Analytics Routes (§10–§15, §21, §22)
+
+```python
+# packages/api/src/zorivest_api/routes/analytics.py
+
+analytics_router = APIRouter(prefix="/api/v1/analytics", tags=["analytics"])
+
+@analytics_router.get("/expectancy")
+async def get_expectancy(account_id: str | None = None, period: str = "all",
+                         service = Depends(get_expectancy_service)):
+    """Win rate, avg win/loss, expectancy per trade, Kelly %."""
+    ...
+
+@analytics_router.get("/drawdown")
+async def get_drawdown_table(account_id: str | None = None,
+                             simulations: int = 10000,
+                             service = Depends(get_drawdown_service)):
+    """Monte Carlo drawdown probability table."""
+    ...
+
+@analytics_router.get("/execution-quality")
+async def get_execution_quality(trade_id: str | None = None,
+                                 service = Depends(get_eq_service)):
+    """Execution quality scores (gated on NBBO data availability)."""
+    ...
+
+@analytics_router.get("/pfof-report")
+async def get_pfof_report(account_id: str, period: str = "ytd",
+                           service = Depends(get_pfof_service)):
+    """PFOF impact analysis report — labeled as ESTIMATE."""
+    ...
+
+@analytics_router.get("/strategy-breakdown")
+async def get_strategy_breakdown(account_id: str | None = None,
+                                  service = Depends(get_strategy_service)):
+    """P&L breakdown by strategy name."""
+    ...
+
+@analytics_router.get("/sqn")
+async def get_sqn(account_id: str | None = None,
+                   period: str = "all",
+                   service = Depends(get_sqn_service)):
+    """System Quality Number (SQN) — Van Tharp metric. Grade: Holy Grail/Excellent/Good/Average/Poor."""
+    ...
+
+@analytics_router.get("/cost-of-free")
+async def get_cost_of_free(account_id: str | None = None,
+                             period: str = "ytd",
+                             service = Depends(get_cost_service)):
+    """'Cost of Free' report — total hidden costs of PFOF routing + fees."""
+    ...
+
+@analytics_router.post("/ai-review")
+async def ai_review_trade(body: dict,
+                           service = Depends(get_ai_review_service)):
+    """Multi-persona AI trade review. Opt-in with budget cap."""
+    ...
+```
+
+### Trade Journal Linking Route (§16)
+
+```python
+# packages/api/src/zorivest_api/routes/trades.py  (additions)
+
+@trade_router.post("/{exec_id}/journal-link")
+async def link_trade_journal(exec_id: str, body: dict,
+                              service = Depends(get_trade_report_service)):
+    """Bidirectional trade ↔ journal entry link."""
+    ...
+```
+
+### Banking Routes (§26)
+
+```python
+# packages/api/src/zorivest_api/routes/banking.py
+
+banking_router = APIRouter(prefix="/api/v1/banking", tags=["banking"])
+
+@banking_router.post("/import")
+async def import_bank_statement(file: UploadFile = File(...),
+                                 account_id: str = Form(...),
+                                 format_hint: str = Form("auto"),
+                                 service = Depends(get_bank_service)):
+    """Import bank statement file (CSV, OFX, QIF). Returns import summary."""
+    ...
+
+@banking_router.get("/accounts")
+async def list_bank_accounts(service = Depends(get_bank_service)):
+    """List bank accounts with balance and last updated."""
+    ...
+
+@banking_router.post("/transactions")
+async def submit_bank_transactions(body: list,
+                                    service = Depends(get_bank_service)):
+    """Submit bank transactions (agent bypass path)."""
+    ...
+
+@banking_router.put("/accounts/{account_id}/balance")
+async def update_bank_balance(account_id: str, body: dict,
+                               service = Depends(get_bank_service)):
+    """Manual balance update for bank account."""
+    ...
+```
+
+### Import, Mistakes, Fees Routes (§18, §19, §17, §9)
+
+```python
+# packages/api/src/zorivest_api/routes/import_.py
+
+import_router = APIRouter(prefix="/api/v1/import", tags=["import"])
+
+@import_router.post("/csv")
+async def import_broker_csv(file: UploadFile = File(...),
+                             broker_hint: str = Form("auto"),
+                             account_id: str = Form(...),
+                             service = Depends(get_import_service)):
+    """Import broker CSV file. Auto-detects broker format."""
+    ...
+
+@import_router.post("/pdf")
+async def import_broker_pdf(file: UploadFile = File(...),
+                              account_id: str = Form(...),
+                              service = Depends(get_pdf_service)):
+    """Import broker PDF statement. Extracts tables via pdfplumber."""
+    ...
+
+# packages/api/src/zorivest_api/routes/mistakes.py
+
+mistakes_router = APIRouter(prefix="/api/v1/mistakes", tags=["mistakes"])
+
+@mistakes_router.post("/", status_code=201)
+async def track_mistake(body: dict, service = Depends(get_mistake_service)):
+    """Tag a trade with a mistake category and estimated cost."""
+    ...
+
+@mistakes_router.get("/summary")
+async def mistake_summary(account_id: str | None = None,
+                           period: str = "ytd",
+                           service = Depends(get_mistake_service)):
+    """Summary: mistakes by category, total cost, trend."""
+    ...
+
+# packages/api/src/zorivest_api/routes/fees.py
+
+fees_router = APIRouter(prefix="/api/v1/fees", tags=["fees"])
+
+@fees_router.get("/summary")
+async def fee_summary(account_id: str | None = None,
+                       period: str = "ytd",
+                       service = Depends(get_ledger_service)):
+    """Fee breakdown by type, broker, and % of P&L."""
+    ...
+```
+
+## Step 4.9: Tax Routes
+
+> Tax computation and lot management endpoints consumd by MCP tools in [05h-mcp-tax.md](05h-mcp-tax.md).
+
+```python
+# packages/api/src/zorivest_api/routes/tax.py
+
+from fastapi import APIRouter, Depends, HTTPException
+from pydantic import BaseModel, Field
+from typing import Optional, Literal
+
+tax_router = APIRouter(prefix="/api/v1/tax", tags=["tax"])
+
+
+# ── Request / Response schemas ──────────────────────────────
+
+class SimulateTaxRequest(BaseModel):
+    ticker: str
+    action: Literal["sell", "cover"]
+    quantity: int = Field(ge=1)
+    price: float = Field(gt=0)
+    account_id: str
+    cost_basis_method: Literal["fifo", "lifo", "specific_id", "avg_cost"] = "fifo"
+
+class EstimateTaxRequest(BaseModel):
+    tax_year: int
+    account_id: Optional[str] = None
+    filing_status: Literal["single", "married_joint", "married_separate", "head_of_household"] = "single"
+    include_unrealized: bool = False
+
+class WashSaleRequest(BaseModel):
+    account_id: str
+    ticker: Optional[str] = None
+    date_range_start: Optional[str] = None
+    date_range_end: Optional[str] = None
+
+class RecordPaymentRequest(BaseModel):
+    quarter: Literal["Q1", "Q2", "Q3", "Q4"]
+    tax_year: int
+    payment_amount: float = Field(gt=0)
+    confirm: bool
+
+
+# ── Tax simulation ──────────────────────────────────────────
+
+@tax_router.post("/simulate", status_code=200)
+async def simulate_tax_impact(body: SimulateTaxRequest,
+                               service = Depends(get_tax_service)):
+    """Pre-trade what-if tax simulation.
+    Returns lot-level close preview, ST/LT split, estimated tax, wash risk, hold-savings."""
+    return service.simulate_impact(body)
+
+
+# ── Tax estimation ──────────────────────────────────────────
+
+@tax_router.post("/estimate", status_code=200)
+async def estimate_tax(body: EstimateTaxRequest,
+                        service = Depends(get_tax_service)):
+    """Compute overall tax estimate from profile + trading data.
+    Returns federal + state estimate with bracket breakdown."""
+    return service.estimate(body)
+
+
+# ── Wash sale detection ─────────────────────────────────────
+
+@tax_router.post("/wash-sales", status_code=200)
+async def find_wash_sales(body: WashSaleRequest,
+                           service = Depends(get_tax_service)):
+    """Detect wash sale chains/conflicts within 30-day windows.
+    Returns wash sale chains with disallowed amounts and affected tickers."""
+    return service.find_wash_sales(body)
+
+
+# ── Tax lot management ──────────────────────────────────────
+
+@tax_router.get("/lots", status_code=200)
+async def get_tax_lots(account_id: str,
+                       ticker: Optional[str] = None,
+                       status: Literal["open", "closed", "all"] = "all",
+                       sort_by: Literal["acquired_date", "cost_basis", "gain_loss"] = "acquired_date",
+                       service = Depends(get_tax_service)):
+    """List tax lots with basis, holding period, and gain/loss fields."""
+    return service.get_lots(account_id, ticker, status, sort_by)
+
+
+# ── Quarterly estimates ─────────────────────────────────────
+
+@tax_router.get("/quarterly", status_code=200)
+async def get_quarterly_estimate(quarter: Literal["Q1", "Q2", "Q3", "Q4"],
+                                  tax_year: int,
+                                  estimation_method: Literal["annualized", "actual", "prior_year"] = "annualized",
+                                  service = Depends(get_tax_service)):
+    """Compute quarterly estimated tax payment obligations (read-only).
+    Returns required/paid/due/penalty/due_date."""
+    return service.quarterly_estimate(quarter, tax_year, estimation_method)
+
+@tax_router.post("/quarterly/payment", status_code=200)
+async def record_quarterly_tax_payment(body: RecordPaymentRequest,
+                                        service = Depends(get_tax_service)):
+    """Record an actual quarterly tax payment. Requires confirm=true."""
+    if not body.confirm:
+        raise HTTPException(400, "confirm must be true")
+    return service.record_payment(body)
+
+
+# ── Loss harvesting ─────────────────────────────────────────
+
+@tax_router.get("/harvest", status_code=200)
+async def harvest_losses(account_id: Optional[str] = None,
+                          min_loss_threshold: float = 0.0,
+                          exclude_wash_risk: bool = False,
+                          service = Depends(get_tax_service)):
+    """Scan portfolio for harvestable losses.
+    Returns ranked opportunities + wash-risk annotations + totals."""
+    return service.harvest_scan(account_id, min_loss_threshold, exclude_wash_risk)
+
+
+# ── YTD summary ─────────────────────────────────────────────
+
+@tax_router.get("/ytd-summary", status_code=200)
+async def get_ytd_tax_summary(tax_year: int,
+                               account_id: Optional[str] = None,
+                               service = Depends(get_tax_service)):
+    """Year-to-date tax summary dashboard data.
+    Returns aggregated ST/LT, wash adjustments, estimated tax."""
+    return service.ytd_summary(tax_year, account_id)
+```
+
+### Step 4.9 Tests
+
+```python
+# tests/e2e/test_tax_api.py
+
+def test_simulate_tax_impact(client):
+    response = client.post("/api/v1/tax/simulate", json={
+        "ticker": "SPY", "action": "sell", "quantity": 100,
+        "price": 500.0, "account_id": "DU123", "cost_basis_method": "fifo"
+    })
+    assert response.status_code == 200
+    data = response.json()
+    assert "estimated_tax" in data
+    assert "lots" in data
+
+def test_get_tax_lots(client):
+    response = client.get("/api/v1/tax/lots?account_id=DU123")
+    assert response.status_code == 200
+
+def test_quarterly_estimate(client):
+    response = client.get("/api/v1/tax/quarterly?quarter=Q1&tax_year=2026")
+    assert response.status_code == 200
+    assert "required" in response.json()
+
+def test_record_payment_requires_confirm(client):
+    response = client.post("/api/v1/tax/quarterly/payment", json={
+        "quarter": "Q1", "tax_year": 2026, "payment_amount": 5000, "confirm": False
+    })
+    assert response.status_code == 400
+
+def test_harvest_losses(client):
+    response = client.get("/api/v1/tax/harvest")
+    assert response.status_code == 200
+    assert "opportunities" in response.json()
+
+def test_ytd_summary(client):
+    response = client.get("/api/v1/tax/ytd-summary?tax_year=2026")
+    assert response.status_code == 200
+```
+
 ## Exit Criteria
 
 - All e2e tests pass with FastAPI `TestClient`
@@ -648,6 +1069,8 @@ def test_version_format_is_semver(client):
 - Trade list supports `account_id` filter and `sort` parameter
 - MCP guard lock/unlock cycle and threshold updates work end-to-end
 - Version endpoint returns valid SemVer and resolution context
+- Service status endpoint returns process metrics (PID, uptime, memory, CPU)
+- Graceful shutdown endpoint triggers backend restart via OS service wrapper
 
 ## Outputs
 
@@ -661,3 +1084,18 @@ def test_version_format_is_semver(client):
 - Logging route for frontend metric ingestion
 - Full CRUD endpoints with pagination, filtering, and sorting
 - E2E tests using `TestClient`
+- Service routes (`GET /service/status`, `POST /service/graceful-shutdown`) — see [Phase 10](10-service-daemon.md)
+
+### Build Plan Expansion Routes
+
+- Broker adapter routes (`GET /brokers`, `POST /brokers/{id}/sync`, `GET /brokers/{id}/positions`) — §1, §2, §24, §25
+- Analytics routes (expectancy, drawdown, SQN, execution quality, PFOF, strategy breakdown, cost-of-free, AI review) — §10–§15, §21, §22
+- Round-trip routes (`GET /round-trips`) — §3
+- Identifier resolution route (`POST /identifiers/resolve`) — §5
+- Trade journal linking route (`POST /trades/{exec_id}/journal-link`) — §16
+- CSV/PDF import routes (`POST /import/csv`, `POST /import/pdf`) — §18, §19
+- Banking routes (import, accounts, transactions, balance update) — §26
+- Mistake tracking routes (`POST /mistakes`, `GET /summary`) — §17
+- Fee summary route (`GET /fees/summary`) — §9
+
+

@@ -70,6 +70,9 @@ Rules:
 - Run targeted tests after each change.
 - Run full blocking validation before declaring complete:
   - `.\validate.ps1`
+- **Evidence-first completion:** `task.md` items may never be marked `[x]` unless the handoff or walkthrough contains a complete evidence bundle (changed files + commands executed + test results + artifact references).
+- **No-deferral rule:** Items containing `TODO`, `FIXME`, `NotImplementedError`, or placeholder stubs may not be marked `[x]`. Blocked items must use status `[B]` with a linked follow-up task in the handoff.
+- **Anti-placeholder enforcement:** Before declaring complete, run `rg "TODO|FIXME|NotImplementedError" packages/ src/` and resolve any matches.
 - Save session summary and next steps to `pomera_notes` with title `Memory/Session/Zorivest-{task}-{date}`.
 - Update `.agent/context/current-focus.md` with new state.
 - Human approval is required before merge/release/deploy.

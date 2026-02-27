@@ -199,6 +199,80 @@ Use **Lightweight Charts** (same library used for financial charts elsewhere in 
 
 ---
 
+## Build Plan Expansion: Account Enhancements
+
+> Source: [Build Plan Expansion Ideas](../../_inspiration/import_research/Build%20Plan%20Expansion%20Ideas.md) §1, §24, §25, §26
+
+### Bank Statement Import Panel (§26)
+
+Added to the Account Detail right pane for BANK and SAVINGS account types:
+
+```
+┌─────────────────────────────────────────────────────────────────┐
+│  Import Bank Statement                                          │
+│                                                                 │
+│  ┌───────────────────────────────────────────────────────────┐ │
+│  │ Drag & drop a bank statement file here                    │ │
+│  │ or [Browse...]                                            │ │
+│  │                                                            │ │
+│  │ Supported: CSV, OFX/QFX, QIF                              │ │
+│  └───────────────────────────────────────────────────────────┘ │
+│                                                                 │
+│  Format:  [Auto-detect ▼]                                      │
+│  Bank:    [Auto-detect ▼]   ← auto-detected from CSV headers  │
+│                                                                 │
+│  [Import]  ← triggers POST /api/v1/banking/import              │
+│                                                                 │
+│  Last import: Jan 15, 2025 — 42 transactions (2 duplicates)    │
+└─────────────────────────────────────────────────────────────────┘
+```
+
+### Broker Sync Button Enhancements (§1, §24, §25)
+
+The existing "Fetch from API" button in the Account Review Wizard is enhanced for multiple broker types:
+
+| Account Broker | Button Label | Action |
+|---------------|-------------|--------|
+| Interactive Brokers | "Fetch from IBKR" | Calls IBKR FlexQuery adapter |
+| Alpaca (§24) | "Fetch from Alpaca" | Calls Alpaca REST adapter |
+| Tradier (§25) | "Fetch from Tradier" | Calls Tradier REST adapter |
+| Other/Manual | (no button) | Manual entry only |
+
+> The button dynamically adapts to the broker type configured for the account. Multiple broker adapters can be configured per account.
+
+### Transaction History Tab (§26)
+
+For BANK/SAVINGS accounts, a new "Transactions" tab appears in the Account Detail panel:
+
+```
+┌─────────────────────────────────────────────────────────────────┐
+│  Transactions — Checking (Chase)                                │
+│                                                                 │
+│  ┌────────────┬────────────────────────┬──────────┬──────────┐ │
+│  │ Date       │ Description            │ Amount   │ Category │ │
+│  ├────────────┼────────────────────────┼──────────┼──────────┤ │
+│  │ Jan 15     │ ACH Transfer - Savings │ +$500.00 │ Transfer │ │
+│  │ Jan 14     │ Amazon.com             │ -$42.99  │ Purchase │ │
+│  │ Jan 13     │ Payroll Deposit        │ +$3,200  │ ACH Cred │ │
+│  │ Jan 12     │ Gas Station            │ -$45.00  │ Purchase │ │
+│  └────────────┴────────────────────────┴──────────┴──────────┘ │
+│                                                                 │
+│  Source: OFX Import  ·  Batch: 2025-01-15-001                  │
+└─────────────────────────────────────────────────────────────────┘
+```
+
+### New React Components
+
+| Component | Source §§ | Description |
+|-----------|----------|-------------|
+| `BankImportPanel` | §26 | Drag-and-drop statement import with format detection |
+| `TransactionHistoryTable` | §26 | Bank transaction list with category badges |
+| `BrokerSyncButton` | §1, §24, §25 | Dynamic broker-aware fetch button |
+| `ColumnMappingWizard` | §26 | Manual CSV column mapping for unrecognized bank formats |
+| `ManualTransactionForm` | §26 | Manual bank transaction entry form (date, amount, description, category) |
+
+---
+
 ## Exit Criteria
 
 - Account CRUD page displays all accounts with type icons and latest balances
@@ -216,3 +290,12 @@ Use **Lightweight Charts** (same library used for financial charts elsewhere in 
 - Account Review wizard with progress bar, skip, and API fetch
 - Balance sparkline using Lightweight Charts
 - Portfolio total computed from latest balance snapshots
+
+### Build Plan Expansion Components
+
+- `BankImportPanel` — drag-and-drop bank statement import (§26)
+- `TransactionHistoryTable` — bank transaction list with categories (§26)
+- `BrokerSyncButton` — dynamic broker-specific fetch button (§1, §24, §25)
+- `ColumnMappingWizard` — manual CSV column mapping for unrecognized bank formats (§26)
+- `ManualTransactionForm` — manual bank transaction entry form (§26)
+

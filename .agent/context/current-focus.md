@@ -1,6 +1,6 @@
 # Current Focus — Zorivest
 
-> Last updated: 2026-02-18
+> Last updated: 2026-02-27
 
 ## Active Phase
 
@@ -45,3 +45,16 @@ Begin Phase 1 Domain implementation using the new role-based workflow.
 - [x] `_inspiration/scheduling_research/2/` three-model synthesis completed (`chatgpt-prompt-2`, `claude-prompt-2`, `gemini-prompt-2`) with Opus comparison; deliverable saved in `_inspiration/scheduling_research/2/codex-composite-pipeline-step-chain-synthesis.md`, handoff in `.agent/context/handoffs/2026-02-19-scheduling-research-2-composite.md`
 - [x] `2026-02-19-phase9-build-plan.md` critically reviewed against `_inspiration/scheduling_research/`; findings saved in `.agent/context/handoffs/2026-02-20-phase9-plan-vs-scheduling-research-critical-review.md`
 - [x] `docs/build-plan/` detailed planning critically reviewed; findings saved in `.agent/context/handoffs/2026-02-20-docs-build-plan-detailed-critical-review.md`
+- [x] `docs/build-plan/image-architecture.md` WebP-standardization updates critically reviewed for cross-plan alignment; findings saved in `.agent/context/handoffs/2026-02-20-image-architecture-webp-critical-review.md`
+- [x] `_inspiration/import_research/Build Plan Expansion Ideas.md` critically reviewed with independent web validation and Zorivest-fit scoring; findings saved in `.agent/context/handoffs/2026-02-20-build-plan-expansion-ideas-critical-review.md`
+- [x] `_inspiration/import_research/Build Plan Expansion - Implementation Plan.md` critically reviewed for derivation quality vs source ideas; findings saved in `.agent/context/handoffs/2026-02-21-build-plan-expansion-implementation-plan-derivation-critical-review.md`
+- [x] `docs/build-plan/` critically reviewed for alignment with `_inspiration/import_research/Build Plan Expansion - Implementation Plan.md`; findings saved in `.agent/context/handoffs/2026-02-21-docs-build-plan-vs-expansion-implementation-plan-critical-review.md`
+- [x] `docs/build-plan/` critically reviewed for implementation execution risks after latest updates; findings saved in `.agent/context/handoffs/2026-02-21-docs-build-plan-critical-review-execution-risks.md`
+- [x] Web research completed for feature-validation rigor + anti-drift/anti-fake-completion planning controls; findings saved in `.agent/context/handoffs/2026-02-21-docs-build-plan-feature-validation-and-agentic-integrity-research.md`
+- [x] `docs/build-plan/` critically reviewed for `10-service-daemon.md` integration + platform behavior validity; findings saved in `.agent/context/handoffs/2026-02-21-docs-build-plan-service-daemon-integration-critical-review.md`
+- [x] `docs/build-plan/` critically reviewed for GUI↔MCP feature parity and contract drift; findings saved in `.agent/context/handoffs/2026-02-21-docs-build-plan-gui-mcp-parity-critical-review.md`
+- [x] `.agent/context/handoffs/2026-02-26-mcp-session3-plan.md` critically reviewed against `docs/build-plan/` cross-cutting index/strategy files; findings saved in `.agent/context/handoffs/2026-02-27-docs-build-plan-mcp-session3-plan-critical-review.md`
+- [x] `.agent/context/handoffs/2026-02-26-mcp-session4-plan.md` + `.agent/context/handoffs/2026-02-26-mcp-session4-walkthrough.md` critically reviewed against `docs/build-plan/`; findings saved in `.agent/context/handoffs/2026-02-27-docs-build-plan-mcp-session4-plan-critical-review.md`
+- [x] `.agent/context/handoffs/2026-02-26-mcp-session6-plan.md` + `.agent/context/handoffs/2026-02-26-mcp-session6-walkthrough.md` critically reviewed against `docs/build-plan/`; findings saved in `.agent/context/handoffs/2026-02-27-docs-build-plan-mcp-session6-plan-critical-review.md`
+- [x] MCP Session 2/3/4/6 open issues re-check completed; closure matrix and remaining open items saved in `.agent/context/handoffs/2026-02-27-docs-build-plan-mcp-open-issues-recheck.md`
+- [x] Remaining open MCP docs issues patched (Session 3 baseline note + Session 6 semantic verification guards); patch handoff saved in `.agent/context/handoffs/2026-02-27-docs-build-plan-mcp-open-issues-patch.md`
