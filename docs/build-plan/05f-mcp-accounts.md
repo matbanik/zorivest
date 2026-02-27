@@ -230,7 +230,7 @@ Generate a read-only account staleness checklist for balance review.
     last_updated: string | null;
   }
 
-  // DRAFT — Planned tool
+  // Specified — registered in build plan
   server.tool(
     'get_account_review_checklist',
     'Generate a read-only account staleness checklist. Returns accounts with stale balances and suggested update actions.',

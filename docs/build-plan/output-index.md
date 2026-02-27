@@ -136,7 +136,7 @@ Canonical registry of **every computed or derived output** the system produces �
 | 4.3 | Wash Sale Adjustments | $ | `ytd_summary.wash_sale_adjustments` | 🖥️🔌 | `GET /tax/ytd-summary` | 📋 | [06g](06g-gui-tax.md) |
 | 4.4 | Estimated Tax | $ | `ST × marginal + LT × lt_rate` | 🖥️🔌 | `GET /tax/ytd-summary` | 📋 | [06g](06g-gui-tax.md) |
 | 4.5 | Loss Carryforward | $ | `ytd_summary.capital_loss_carryforward` | 🖥️🔌 | `GET /tax/ytd-summary` | 📋 | [06g](06g-gui-tax.md) |
-| 4.6 | Harvestable Losses | $ | `harvest_losses().total` | 🖥️🔌 | `GET /tax/harvest` | 📋 | [06g](06g-gui-tax.md) |
+| 4.6 | Harvestable Losses | $ | `harvest_losses().total` | 🖥️🔌 | `GET /tax/harvest` | ✅ | [06g](06g-gui-tax.md) |
 | 4.7 | Tax Alpha Savings | $ | `ytd_summary.tax_alpha` | 🖥️🔌 | `GET /tax/ytd-summary` | 📋 | [06g](06g-gui-tax.md) |
 | 4.8 | P&L by Symbol breakdown | table | Per-ticker ST/LT/Total gains | 🖥️🔌 | `GET /tax/ytd-summary?group_by=symbol` | 📋 | [06g](06g-gui-tax.md) |
 

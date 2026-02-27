@@ -2,7 +2,7 @@
 
 > Part of [Phase 5: MCP Server](05-mcp-server.md) | Category: `tax`
 >
-> All 8 tools are **Planned** — draft specs below. Input/output derived from [06g-gui-tax.md](06g-gui-tax.md) and [mcp-planned-readiness.md](mcp-planned-readiness.md).
+> All 8 tools are **Specified** — draft specs below. Input/output derived from [06g-gui-tax.md](06g-gui-tax.md) and [mcp-planned-readiness.md](mcp-planned-readiness.md).
 
 ## Tools
 
@@ -13,7 +13,7 @@ Pre-trade what-if tax simulation for a proposed sale.
 > Also categorized as `calculator`, `trade-planning` — primary spec lives here.
 
 ```typescript
-  // DRAFT — Planned tool
+  // Specified — registered in build plan
   server.tool(
     'simulate_tax_impact',
     'Simulate the tax impact of a proposed trade before execution. Shows lot-level close preview, short/long-term capital gains split, estimated tax, wash sale risk, and hold-for-savings hints.',
@@ -68,7 +68,7 @@ Compute overall tax estimate from profile and trading data.
 > Also categorized as `calculator` — primary spec lives here.
 
 ```typescript
-  // DRAFT — Planned tool
+  // Specified — registered in build plan
   server.tool(
     'estimate_tax',
     'Compute overall estimated tax liability from the tax profile and realized gains/losses. Returns federal + state breakdown with effective rate.',
@@ -122,7 +122,7 @@ Detect wash sale chains and conflicts.
 > Also categorized as `trade-analytics` — primary spec lives here.
 
 ```typescript
-  // DRAFT — Planned tool
+  // Specified — registered in build plan
   server.tool(
     'find_wash_sales',
     'Scan trades for wash sale rule violations within the 30-day window. Returns detected chains with affected lots and disallowed loss amounts.',
@@ -167,7 +167,7 @@ Detect wash sale chains and conflicts.
 List/inspect lots for tax-aware lot selection.
 
 ```typescript
-  // DRAFT — Planned tool
+  // Specified — registered in build plan
   server.tool(
     'get_tax_lots',
     'List tax lots for a position, showing cost basis, holding period, gain/loss, and eligibility for each lot selection method.',
@@ -205,7 +205,7 @@ List/inspect lots for tax-aware lot selection.
 - `lots[]` — each: `{lot_id, ticker, quantity, cost_basis, date_acquired, holding_period_days, is_long_term, current_value, unrealized_gain_loss}`
 - `summary` — total lots, total basis, total unrealized
 **Side Effects:** None (read-only)
-**REST Dependency:** `POST /api/v1/tax/lots`
+**REST Dependency:** `GET /api/v1/tax/lots`
 
 ---
 
@@ -214,7 +214,7 @@ List/inspect lots for tax-aware lot selection.
 Compute quarterly estimated tax payment obligations (read-only).
 
 ```typescript
-  // DRAFT — Planned tool
+  // Specified — registered in build plan
   server.tool(
     'get_quarterly_estimate',
     'Compute quarterly estimated tax payment obligations. Returns required amounts, cumulative totals, and underpayment penalties.',
@@ -262,7 +262,7 @@ Compute quarterly estimated tax payment obligations (read-only).
 Record a quarterly estimated tax payment.
 
 ```typescript
-  // DRAFT — Planned tool
+  // Specified — registered in build plan
   server.tool(
     'record_quarterly_tax_payment',
     'Record an actual estimated tax payment for a quarter. Requires confirmation.',
@@ -309,7 +309,7 @@ Scan portfolio for harvestable tax losses.
 > Also categorized as `trade-analytics` — primary spec lives here.
 
 ```typescript
-  // DRAFT — Planned tool
+  // Specified — registered in build plan
   server.tool(
     'harvest_losses',
     'Scan portfolio for tax-loss harvesting opportunities. Returns ranked losses with wash sale risk annotations.',
@@ -356,7 +356,7 @@ Scan portfolio for harvestable tax losses.
 Return year-to-date tax summary dashboard data.
 
 ```typescript
-  // DRAFT — Planned tool
+  // Specified — registered in build plan
   server.tool(
     'get_ytd_tax_summary',
     'Year-to-date tax summary for dashboard display. Aggregates realized gains, wash sale adjustments, and estimated tax across all accounts.',

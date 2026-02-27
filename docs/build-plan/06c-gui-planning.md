@@ -87,11 +87,11 @@ Each item in the left pane shows:
 
 | Method | Endpoint | Purpose |
 |--------|----------|---------|
-| `GET` | `/api/v1/plans` | List all plans (with filters) |
-| `POST` | `/api/v1/plans` | Create new plan |
-| `GET` | `/api/v1/plans/{id}` | Get plan detail |
-| `PUT` | `/api/v1/plans/{id}` | Update plan |
-| `DELETE` | `/api/v1/plans/{id}` | Delete plan |
+| `GET` | `/api/v1/trade-plans` | List all plans (with filters) |
+| `POST` | `/api/v1/trade-plans` | Create new plan |
+| `GET` | `/api/v1/trade-plans/{id}` | Get plan detail |
+| `PUT` | `/api/v1/trade-plans/{id}` | Update plan |
+| `DELETE` | `/api/v1/trade-plans/{id}` | Delete plan |
 
 ---
 

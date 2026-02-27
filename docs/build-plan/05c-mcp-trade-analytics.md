@@ -566,14 +566,14 @@ Classify multi-leg options structure from executions.
 
 ---
 
-## Planned Tools
+## Report Tools
 
 ### `create_report` [Specified]
 
 Create a post-trade TradeReport via MCP.
 
 ```typescript
-  // DRAFT — Planned tool
+  // Specified — registered in build plan
   server.tool(
     'create_report',
     'Create a post-trade review report for a completed trade. Records execution quality assessment, plan adherence, emotional state, and lessons learned.',
@@ -614,7 +614,7 @@ Create a post-trade TradeReport via MCP.
 **Input:** `trade_id`, `setup_quality` (A–F), `execution_quality` (A–F), `followed_plan` (bool), `emotional_state`, optional `lessons_learned`, `tags[]`
 **Output:** JSON with created report ID + echoed fields
 **Side Effects:** Writes TradeReport
-**REST Dependency:** `POST /api/v1/trades/{id}/report` — not yet specified in [04-rest-api.md](04-rest-api.md)
+**REST Dependency:** `POST /api/v1/trades/{id}/report` — specified in [04-rest-api.md](04-rest-api.md) Step 4.1a
 **Domain Model:** `TradeReport` — [01-domain-layer.md](01-domain-layer.md)
 
 ---
@@ -624,7 +624,7 @@ Create a post-trade TradeReport via MCP.
 Fetch report linked to a specific trade.
 
 ```typescript
-  // DRAFT — Planned tool
+  // Specified — registered in build plan
   server.tool(
     'get_report_for_trade',
     'Retrieve the post-trade review report for a specific trade execution.',

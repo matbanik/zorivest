@@ -513,9 +513,9 @@ These inputs are triggered automatically by the system, IDE agent calls, or sche
 | 18.5 | Plaid Webhook | Account balance update | `webhook` | Plaid sends balance/transaction updates | 🔗 | 📋 | [02](02-infrastructure.md) |
 | 18.6 | OAuth Token Refresh | Token renewal | `timer` | Background refresh before token expiry | 🔗 | 📋 | [02](02-infrastructure.md) |
 | 18.7 | Agent Quote Lookup | `get_stock_quote` via MCP | `agent_call` | IDE agent queries a ticker price on behalf of user | 🤖 | ✅ | [08](08-market-data.md), [05](05-mcp-server.md) |
-| 18.8 | Agent Tax Simulation | `simulate_tax_impact` via MCP | `agent_call` | IDE agent runs tax what-if during chat | 🤖 | 📋 | [matrix](build-priority-matrix.md) |
-| 18.9 | Agent Loss Harvesting | `harvest_losses` via MCP | `agent_call` | IDE agent identifies loss harvesting opportunities | 🤖 | 📋 | [matrix](build-priority-matrix.md) |
-| 18.10 | Agent Trade Plan | `create_trade_plan` via MCP | `agent_call` | IDE agent creates a plan during research | 🤖 | 🔶 | [01](01-domain-layer.md) |
+| 18.8 | Agent Tax Simulation | `simulate_tax_impact` via MCP | `agent_call` | IDE agent runs tax what-if during chat | 🤖 | ✅ | [05h](05h-mcp-tax.md) |
+| 18.9 | Agent Loss Harvesting | `harvest_losses` via MCP | `agent_call` | IDE agent identifies loss harvesting opportunities | 🤖 | ✅ | [05h](05h-mcp-tax.md) |
+| 18.10 | Agent Trade Plan | `create_trade_plan` via MCP | `agent_call` | IDE agent creates a plan during research | 🤖 | ✅ | [05d](05d-mcp-trade-planning.md) |
 | 18.11 | Agent Pipeline Trigger | `run_pipeline` via MCP | `agent_call` | IDE agent triggers a report pipeline on demand | 🤖 | ✅ | [09](09-scheduling.md), [05](05-mcp-server.md) |
 | 18.12 | Quarterly Deadline Alert | Auto-generated notification | `timer` | System alerts when IRS quarterly deadline approaches | ⏰ | 📋 | [matrix](build-priority-matrix.md) |
 | 18.13 | Wash Sale Auto-Detect | Trade triggers wash check | `event` | Every new trade auto-checks 61-day wash sale window | 🔗 | ✅ | [01](01-domain-layer.md), [matrix](build-priority-matrix.md) |

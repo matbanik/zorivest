@@ -55,7 +55,7 @@ Create a forward-looking TradePlan from agent research.
 > **Draft spec** — requires review before implementation. Input schema derived from `TradePlan` domain model ([01-domain-layer.md](01-domain-layer.md)).
 
 ```typescript
-  // DRAFT — Planned tool, not yet registered
+  // Specified — registered in build plan
   server.tool(
     'create_trade_plan',
     'Create a forward-looking trade plan from agent research. Records the thesis, entry/stop/target levels, and strategy rationale before execution.',
@@ -96,7 +96,7 @@ Create a forward-looking TradePlan from agent research.
 **Output:** JSON with created plan ID, computed `risk_reward_ratio`, `status` (defaults to `"draft"`)
 **Side Effects:** Writes TradePlan to database
 **Error Posture:** Returns validation error on missing required fields; rejects if identical active plan exists for same ticker
-**REST Dependency:** `POST /api/v1/trade-plans` — not yet specified in [04-rest-api.md](04-rest-api.md)
+**REST Dependency:** `POST /api/v1/trade-plans` — specified in [04-rest-api.md](04-rest-api.md) Step 4.1c
 **Domain Model:** `TradePlan` — exists in [01-domain-layer.md](01-domain-layer.md)
 
 ---

@@ -69,9 +69,9 @@ Canonical registry of **every GUI action** (buttons, triggers, keyboard shortcut
 
 | # | Action | Trigger | REST | MCP | Status | Plan Files |
 |---|--------|---------|------|-----|--------|------------|
-| 5.1 | Create plan | 🔘 | `POST /api/v1/plans` | `create_trade_plan` | 🔶 | [01](01-domain-layer.md), [06c](06c-gui-planning.md) |
-| 5.2 | Update plan | 🔘 | `PUT /api/v1/plans/{id}` | — | 🔶 | [01](01-domain-layer.md), [06c](06c-gui-planning.md) |
-| 5.3 | Delete plan | 🔘 | `DELETE /api/v1/plans/{id}` | — | 🔶 | [01](01-domain-layer.md), [06c](06c-gui-planning.md) |
+| 5.1 | Create plan | 🔘 | `POST /api/v1/trade-plans` | `create_trade_plan` | ✅ | [01](01-domain-layer.md), [06c](06c-gui-planning.md) |
+| 5.2 | Update plan | 🔘 | `PUT /api/v1/trade-plans/{id}` | — | 🔶 | [01](01-domain-layer.md), [06c](06c-gui-planning.md) |
+| 5.3 | Delete plan | 🔘 | `DELETE /api/v1/trade-plans/{id}` | — | 🔶 | [01](01-domain-layer.md), [06c](06c-gui-planning.md) |
 | 5.4 | Change status (DRAFT→ACTIVE→EXECUTED) | 🔘 | `PATCH /api/v1/plans/{id}/status` | — | 🔶 | [06c](06c-gui-planning.md) |
 | 5.5 | Link plan to trade | 🔘 | `PUT /api/v1/plans/{id}` (set trade_id) | — | 🔶 | [06c](06c-gui-planning.md) |
 
@@ -207,7 +207,7 @@ Canonical registry of **every GUI action** (buttons, triggers, keyboard shortcut
 
 | # | Action | Trigger | REST | MCP | Status | Plan Files |
 |---|--------|---------|------|-----|--------|------------|
-| 18.1 | Simulate | 🔘 | `POST /api/v1/tax/simulate` | `simulate_tax_impact` (pending matrix item 76) | 📋 | [06g](06g-gui-tax.md) |
+| 18.1 | Simulate | 🔘 | `POST /api/v1/tax/simulate` | `simulate_tax_impact` | ✅ | [06g](06g-gui-tax.md) |
 | 18.2 | Save scenario | 🔘 | — (session state) | — | 📋 | [06g](06g-gui-tax.md) |
 | 18.3 | Compare scenarios | 🔘 | — (client-side) | — | 📋 | [06g](06g-gui-tax.md) |
 
@@ -217,7 +217,7 @@ Canonical registry of **every GUI action** (buttons, triggers, keyboard shortcut
 
 | # | Action | Trigger | REST | MCP | Status | Plan Files |
 |---|--------|---------|------|-----|--------|------------|
-| 19.1 | Scan portfolio | 🔘 | `GET /api/v1/tax/harvest` | `harvest_losses` (pending matrix item 76) | 📋 | [06g](06g-gui-tax.md) |
+| 19.1 | Scan portfolio | 🔘 | `GET /api/v1/tax/harvest` | `harvest_losses` | ✅ | [06g](06g-gui-tax.md) |
 | 19.2 | Simulate (per row) | 🔘 | `POST /api/v1/tax/simulate` | — | 📋 | [06g](06g-gui-tax.md) |
 | 19.3 | Sell (per row) | 🔘 | — (opens order flow) | — | 📋 | [06g](06g-gui-tax.md) |
 

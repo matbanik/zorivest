@@ -243,7 +243,7 @@
 | Order | What | Tests First? | Notes |
 |-------|------|-------------|-------|
 | **75** | Tax REST API endpoints (FastAPI) | ✅ Yes | `/tax/estimate`, `/tax/wash-sales`, `/tax/simulate`, `/tax/lots`, `/tax/quarterly`, `/tax/harvest`, `/tax/ytd-summary` |
-| **76** | Tax MCP tool registration (`registerTaxTools`) | ✅ Yes | 7 tools: `estimate_tax`, `find_wash_sales`, `simulate_tax_impact`, `get_tax_lots`, `quarterly_estimate`, `harvest_losses`, `get_ytd_tax_summary` |
+| **76** | Tax MCP tool registration (`registerTaxTools`) | ✅ Yes | 8 tools: `estimate_tax`, `find_wash_sales`, `simulate_tax_impact`, `get_tax_lots`, `get_quarterly_estimate`, `record_quarterly_tax_payment`, `harvest_losses`, `get_ytd_tax_summary` |
 | **77** | Year-end tax position summary | ✅ Yes | MCP: `get_ytd_tax_summary`. Aggregate dashboard |
 | **78** | Deferred loss carryover report | ✅ Yes | Real P&L vs reported P&L, trapped losses in chains |
 | **79** | Tax alpha savings summary | ✅ Yes | YTD savings from lot optimization + loss harvesting |
