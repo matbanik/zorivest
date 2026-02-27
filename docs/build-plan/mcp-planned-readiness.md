@@ -160,7 +160,7 @@ A tool is **Specified** when it has:
 
 | Metric | Count |
 |--------|-------|
-| Total annotation blocks | 65 |
+| Total annotation blocks | 69 |
 | Files annotated | 10 (`05a`–`05j`) |
 | Destructive tools | 4 (`emergency_stop`, `service_restart`, `disconnect_market_provider`, `sync_broker`) |
 | Toolsets defined | 8 (`core`, `trade-analytics`, `trade-planning`, `market-data`, `accounts`, `scheduling`, `tax`, `behavioral`) |

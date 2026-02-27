@@ -190,7 +190,7 @@ Read logging configuration for runtime log controls.
 > Depends on [Phase 1A logging architecture](01a-logging.md). Input schema and handler may be adjusted during Phase 1A implementation.
 
 ```typescript
-  // DRAFT — Not yet registered in build plan
+  // Specified — registered in build plan
   server.tool(
     'get_log_settings',
     'Read logging.* settings for per-feature runtime log level controls. Returns current log levels for each feature module.',
@@ -234,7 +234,7 @@ Update per-feature runtime log levels.
 > Depends on [Phase 1A logging architecture](01a-logging.md). Valid feature modules and level values may be adjusted during Phase 1A implementation.
 
 ```typescript
-  // DRAFT — Not yet registered in build plan
+  // Specified — registered in build plan
   server.tool(
     'update_log_level',
     'Update runtime log level for a specific feature module. Valid levels: DEBUG, INFO, WARNING, ERROR.',

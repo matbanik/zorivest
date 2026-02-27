@@ -72,8 +72,8 @@ Canonical registry of **every GUI action** (buttons, triggers, keyboard shortcut
 | 5.1 | Create plan | 🔘 | `POST /api/v1/trade-plans` | `create_trade_plan` | ✅ | [01](01-domain-layer.md), [06c](06c-gui-planning.md) |
 | 5.2 | Update plan | 🔘 | `PUT /api/v1/trade-plans/{id}` | — | 🔶 | [01](01-domain-layer.md), [06c](06c-gui-planning.md) |
 | 5.3 | Delete plan | 🔘 | `DELETE /api/v1/trade-plans/{id}` | — | 🔶 | [01](01-domain-layer.md), [06c](06c-gui-planning.md) |
-| 5.4 | Change status (DRAFT→ACTIVE→EXECUTED) | 🔘 | `PATCH /api/v1/plans/{id}/status` | — | 🔶 | [06c](06c-gui-planning.md) |
-| 5.5 | Link plan to trade | 🔘 | `PUT /api/v1/plans/{id}` (set trade_id) | — | 🔶 | [06c](06c-gui-planning.md) |
+| 5.4 | Change status (DRAFT→ACTIVE→EXECUTED) | 🔘 | `PATCH /api/v1/trade-plans/{id}/status` | — | 🔶 | [06c](06c-gui-planning.md) |
+| 5.5 | Link plan to trade | 🔘 | `PUT /api/v1/trade-plans/{id}` (set trade_id) | — | 🔶 | [06c](06c-gui-planning.md) |
 
 ---
 

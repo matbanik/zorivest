@@ -328,7 +328,7 @@ When viewing a trade's detail panel, a "Journal" tab provides post-trade analysi
 | `setup_quality` | `rating` (1–5 stars) | user input | Star rating component |
 | `execution_quality` | `rating` (1–5 stars) | user input | Star rating component |
 | `followed_plan` | `select` | Yes / No / Partially / N/A | Links to TradePlan if Yes |
-| `linked_plan_id` | `select` | populated from `/api/v1/plans` | Optional — shows only if followed_plan != N/A |
+| `linked_plan_id` | `select` | populated from `/api/v1/trade-plans` | Optional — shows only if followed_plan != N/A |
 | `emotional_state` | `select` | predefined enum | Confident, Fearful, Greedy, Impulsive, Hesitant, Calm |
 | `lessons_learned` | `textarea` | user input | Free-text journaling |
 | `tags` | `tag-input` | user input | Chip-style tag input with autocomplete from existing tags |

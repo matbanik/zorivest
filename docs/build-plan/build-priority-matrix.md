@@ -234,7 +234,7 @@
 |-------|------|-------------|-------|
 | **70** | `QuarterlyEstimate` entity + safe harbor calc | ✅ Yes | 90% current OR 100%/110% prior year. Recommend lower |
 | **71** | Annualized income method (Form 2210 Sched AI) | ✅ Yes | Proportional quarterly payments for fluctuating income |
-| **72** | Quarterly due date tracker + underpayment penalty | ✅ Yes | MCP: `quarterly_estimate`. 4 deadlines + penalty accrual |
+| **72** | Quarterly due date tracker + underpayment penalty | ✅ Yes | MCP: `get_quarterly_estimate`. 4 deadlines + penalty accrual |
 | **73** | Marginal tax rate calculator (federal + state) | ✅ Yes | Effective + marginal rate from AGI + filing status |
 | **74** | NIIT (3.8% surtax) threshold alert | ✅ Yes | Flag when MAGI approaches $200K/$250K threshold |
 
