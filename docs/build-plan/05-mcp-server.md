@@ -86,7 +86,7 @@ See [Testing Strategy](testing-strategy.md) for full MCP testing approaches.
 ## Step 5.6: MCP Guard Middleware
 
 > Circuit breaker + panic button for MCP tool access.
-> Model: [`McpGuardModel`](02-infrastructure.md) | REST: [§4.6](04-rest-api.md) | GUI: [§6f.8](06f-gui-settings.md)
+> Model: [`McpGuardModel`](02-infrastructure.md) | REST: [04g-api-system.md](04g-api-system.md) | GUI: [§6f.8](06f-gui-settings.md)
 >
 > **Tool specs:** `zorivest_emergency_stop`, `zorivest_emergency_unlock` → [05a-mcp-zorivest-settings.md](05a-mcp-zorivest-settings.md)
 
@@ -195,7 +195,7 @@ describe('MCP Guard Middleware', () => {
 
 ## Step 5.7: MCP Auth Bootstrap
 
-The MCP server must unlock the encrypted database before any tools can function. The auth handshake uses the envelope encryption architecture defined in [Phase 4 §4.5](04-rest-api.md).
+The MCP server must unlock the encrypted database before any tools can function. The auth handshake uses the envelope encryption architecture defined in [04c-api-auth.md](04c-api-auth.md).
 
 ### Boot Sequence
 
@@ -872,7 +872,7 @@ MCP `server instructions` field provides per-client chaining guidance:
 
 Destructive tools requiring confirmation: `zorivest_emergency_stop`, `create_trade`, `sync_broker`, `disconnect_market_provider`, `zorivest_service_restart`.
 
-> **Cross-reference:** REST endpoint `POST /api/v1/confirmation-tokens` specified in [Phase 4](04-rest-api.md) (Session 4).
+> **Cross-reference:** REST endpoint `POST /api/v1/confirmation-tokens` specified in [04c-api-auth.md](04c-api-auth.md).
 
 ---
 

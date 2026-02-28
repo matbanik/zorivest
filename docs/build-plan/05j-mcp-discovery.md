@@ -246,7 +246,7 @@ Generate a time-limited confirmation token for destructive operations. Required 
 **Side Effects:** Creates a time-limited token on the server (60s TTL)
 **Error Posture:** Returns error if action is not a recognized destructive tool
 
-> **Cross-reference:** REST endpoint `POST /api/v1/confirmation-tokens` specified in [Phase 4](04-rest-api.md) (Session 4).
+> **Cross-reference:** REST endpoint `POST /api/v1/confirmation-tokens` specified in [04c-api-auth.md](04c-api-auth.md).
 
 ---
 

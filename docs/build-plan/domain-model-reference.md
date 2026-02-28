@@ -123,12 +123,12 @@ The domain is organized around **five temporal concerns** plus **two tool module
 │                                                                         │
 │  DisplayMode  (GUI state — not persisted per-trade, persisted as       │
 │  │             user preference in settings)                            │
-│  ├── dollar_visible: bool (default True)                               │
+│  ├── hide_dollars: bool (default False)                                │
 │  │   └── When False: ALL dollar amounts masked as "••••••"             │
 │  │       Affects: balances, P&L, position sizes, risk amounts,         │
 │  │       trade prices, commissions — every $ value in the GUI          │
 │  │                                                                      │
-│  ├── percent_visible: bool (default True)                              │
+│  ├── hide_percentages: bool (default False)                            │
 │  │   └── When False: ALL percentage values masked as "••%"             │
 │  │       Can be hidden independently from dollars                      │
 │  │                                                                      │
@@ -202,7 +202,7 @@ The domain is organized around **five temporal concerns** plus **two tool module
 │  │  • Progress bar: "Account 2 of 5"                                  │
 │  │  • Keyboard shortcut: Tab → enter amount → Enter → next            │
 │  │  • Total Portfolio updates live as each account is confirmed        │
-│  │  • MCP tool: `start_account_review` returns guided prompts         │
+│  │  • MCP tool: `get_account_review_checklist` returns guided prompts   │
 │  │  • Can also be triggered on schedule (e.g., daily at market close)  │
 │  └── Priority: P0 — core feature, built with Account entity            │
 │                                                                         │

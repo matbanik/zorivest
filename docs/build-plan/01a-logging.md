@@ -125,7 +125,7 @@ from zorivest_infra.logging import get_feature_logger
 logger = get_feature_logger("trades")  # → logging.getLogger("zorivest.trades")
 logger.info("Trade created", extra={"trade_id": "T001", "symbol": "SPY"})
 
-# ✅ ALLOWED — module loggers for utility/diagnostic logging (routes to app.jsonl)
+# ✅ ALLOWED — module loggers for utility/diagnostic logging (routes to misc.jsonl)
 import logging
 logger = logging.getLogger(__name__)  # → zorivest_infra.repos.trade_repo
 logger.debug("Cache miss for trade lookup")
@@ -255,6 +255,7 @@ import logging
 import logging.handlers
 import os
 import queue
+import sys
 from pathlib import Path
 from typing import Optional
 
@@ -294,7 +295,7 @@ def get_log_directory() -> Path:
     """Resolve platform-appropriate log directory."""
     if os.name == "nt":
         base = Path(os.environ.get("LOCALAPPDATA", Path.home() / "AppData" / "Local"))
-    elif os.uname().sysname == "Darwin":
+    elif sys.platform == "darwin":
         base = Path.home() / "Library" / "Application Support"
     else:
         base = Path(os.environ.get("XDG_DATA_HOME", Path.home() / ".local" / "share"))

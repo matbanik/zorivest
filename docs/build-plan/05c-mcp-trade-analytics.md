@@ -614,7 +614,7 @@ Create a post-trade TradeReport via MCP.
 **Input:** `trade_id`, `setup_quality` (A–F), `execution_quality` (A–F), `followed_plan` (bool), `emotional_state`, optional `lessons_learned`, `tags[]`
 **Output:** JSON with created report ID + echoed fields
 **Side Effects:** Writes TradeReport
-**REST Dependency:** `POST /api/v1/trades/{id}/report` — specified in [04-rest-api.md](04-rest-api.md) Step 4.1a
+**REST Dependency:** `POST /api/v1/trades/{id}/report` — specified in [04a-api-trades.md](04a-api-trades.md)
 **Domain Model:** `TradeReport` — [01-domain-layer.md](01-domain-layer.md)
 
 ---
@@ -712,7 +712,7 @@ server.tool(
 |---------|--------|
 | `create_trade`, `list_trades` | Trade CRUD — different safety posture (write vs read-only) |
 | `attach_screenshot`, `get_trade_screenshots`, `get_screenshot` | Image management — different I/O patterns (multipart/base64) |
-| `create_report`, `get_report_for_trade` | Report CRUD — planned, different write semantics |
+| `create_report`, `get_report_for_trade` | Report CRUD — different write semantics |
 
 ### Composite generation
 
@@ -765,7 +765,7 @@ annotations: {
 | `create_trade`, `list_trades` | Write operations — require individual safety gates |
 | `enrich_trade_excursion` | Writes computed MFE/MAE/BSO metrics (`readOnlyHint: false`) |
 | `attach_screenshot`, `get_trade_screenshots`, `get_screenshot` | Binary I/O — not suitable for batch text responses |
-| `create_report`, `get_report_for_trade` | Write + planned — not yet implemented |
+| `create_report`, `get_report_for_trade` | Write — different safety posture from read-only analytics |
 
 ---
 

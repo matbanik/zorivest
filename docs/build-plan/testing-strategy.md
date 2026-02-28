@@ -234,25 +234,113 @@ omit = ["*/tests/*", "*/__pycache__/*"]
 ## Build Plan Expansion Test Entries
 
 > Source: [Build Plan Expansion Ideas](../../_inspiration/import_research/Build%20Plan%20Expansion%20Ideas.md) §1–§26
+>
+> [!NOTE]
+> **Services are consolidated** — see [Phase 3](03-service-layer.md) for the full architecture. Pure-math analytics are now domain functions in `domain/analytics/`, not services.
 
-### Python Unit Tests (Expansion Services)
+### Python Unit Tests (Consolidated Services)
 
 | Service | Test Module | Key Assertions |
 |---------|-------------|----------------|
-| `ExpectancyService` (§13) | `test_expectancy_service.py` | Win rate, avg win/loss, Kelly % with known trade datasets |
-| `DrawdownService` (§14) | `test_drawdown_service.py` | Monte Carlo simulation with seed reproducibility |
-| `ExcursionService` (§7) | `test_excursion_service.py` | MFE/MAE/BSO calculations from synthetic bar data |
-| `RoundTripService` (§3) | `test_round_trip_service.py` | Entry→exit pairing, P&L aggregation, holding period |
-| `MistakeTrackingService` (§17) | `test_mistakes_service.py` | Category assignment, cost attribution, summary |
-| `TransactionLedgerService` (§9) | `test_ledger_service.py` | Fee decomposition by type, broker, period |
-| `DeduplicationService` (§6) | `test_dedup_service.py` | Exact-match and fuzzy-match duplicate detection |
-| `IdentifierResolverService` (§5) | `test_identifier_service.py` | CUSIP→ticker mapping, cache hit behavior |
-| `OptionsGroupingService` (§8) | `test_options_grouping.py` | Multi-leg strategy detection (iron condor, straddle) |
-| `BankImportService` (§26) | `test_bank_import_service.py` | OFX/CSV/QIF parsing, duplicate filtering |
-| `SQNService` (§15) | `test_sqn_service.py` | SQN calculation, grade classification (Holy Grail/Excellent/Good/Average/Poor) |
-| `CostOfFreeService` (§22) | `test_cost_of_free_service.py` | Hidden cost aggregation from PFOF + fee data |
-| `PDFImportService` (§19) | `test_pdf_import_service.py` | `pdfplumber` extraction, table normalization |
-| `TradeReportService` (§16) | `test_trade_report_service.py` | Bidirectional journal linking, orphan detection |
+| `TradeService` (incl dedup, round-trips) | `test_trade_service.py` | Trade create, exec_id dedup, fingerprint dedup, round-trip matching |
+| `ImportService` (incl CSV, OFX, QIF, PDF) | `test_import_service.py` | Parser detection, format dispatch, dedup during import |
+| `TaxService` | `test_tax_service.py` | Tax estimation, wash sales, lot matching, quarterly estimates |
+| `AnalyticsService` (thin orchestrator) | `test_analytics_service.py` | Data fetch + delegation to pure functions |
+| `ReportService` (incl trade plans) | `test_report_service.py` | Report CRUD, journal linking, trade plan creation |
+| `ReviewService` (mistakes + AI) | `test_review_service.py` | Mistake classification, AI budget enforcement |
+| `MarketDataService` | `test_market_data_service.py` | Identifier resolution, options grouping |
+
+### Pure Domain Function Tests (No Mocks, No UoW)
+
+| Function | Test Module | Key Assertions |
+|----------|-------------|----------------|
+| `calculate_expectancy()` | `test_analytics_expectancy.py` | Win rate, avg win/loss, Kelly % with known datasets |
+| `drawdown_probability_table()` | `test_analytics_drawdown.py` | Monte Carlo with seed reproducibility |
+| `calculate_sqn()` | `test_analytics_sqn.py` | SQN calculation, grade classification |
+| `calculate_mfe_mae()` | `test_analytics_excursion.py` | MFE/MAE/BSO from synthetic bar data |
+| `score_execution()` | `test_analytics_quality.py` | NBBO scoring, grade assignment |
+| `analyze_pfof()` | `test_analytics_pfof.py` | PFOF cost estimation |
+| `analyze_costs()` | `test_analytics_costs.py` | Hidden cost aggregation |
+| `breakdown_by_strategy()` | `test_analytics_strategy.py` | Strategy P&L breakdown |
+| `trade_fingerprint()` | `test_trade_fingerprint.py` | Hash determinism, collision resistance |
+
+### Hypothesis Property-Based Tests (Math Invariants)
+
+> **Dependency**: `hypothesis` (add to `[project.optional-dependencies]` test group)
+
+All pure analytics functions get property-based tests in `tests/unit/test_analytics_properties.py`:
+
+| Function | Invariant | Strategy |
+|----------|-----------|----------|
+| `calculate_expectancy()` | Result is always finite; win_rate ∈ [0, 1]; positive when all trades win | `st.lists(st.floats(allow_nan=False), min_size=1)` |
+| `drawdown_probability_table()` | max_drawdown_median ≤ 0; equals 0 for monotonically increasing equity | `st.lists(st.floats(min_value=-1e4, max_value=1e4), min_size=2)` |
+| `calculate_sqn()` | SQN sign matches expectancy sign (when σ > 0); scales with √N | `st.lists(st.floats(), min_size=5)` |
+| Kelly fraction | Always ≤ 1.0; ≤ 0 when sum of returns is negative | Derived from expectancy |
+| MFE/MAE | MAE ≤ 0; MFE ≥ 0; for winners MFE ≥ P&L; for losers \|MAE\| ≥ \|P&L\| | `st.floats()` for prices + bar data |
+
+### Math Service Testing Taxonomy
+
+| Function | Example-Based | Property-Based | Golden-File | Edge Cases |
+|----------|:---:|:---:|:---:|:---:|
+| `calculate_expectancy()` | ✅ Essential | ✅ Essential | 🔶 Recommended | ✅ Essential |
+| `drawdown_probability_table()` | ✅ Essential | ✅ Essential | 🔶 Recommended | ✅ Essential |
+| `calculate_sqn()` | ✅ Essential | ✅ Essential | ❌ Unnecessary | ✅ Essential |
+| `calculate_mfe_mae()` | ✅ Essential | 🔶 Recommended | ❌ Unnecessary | ✅ Essential |
+
+### In-Memory SQLite Integration Tests
+
+> [!IMPORTANT]
+> **Mock-only service tests are insufficient** for services that touch the database. TaxService, ImportService, and TradeService MUST have in-memory SQLite integration tests to catch SQL bugs, ORM errors, and constraint violations that mocks cannot detect.
+
+```python
+# tests/integration/conftest.py — In-memory SQLite fixture for service integration tests
+
+import pytest
+from sqlalchemy import create_engine
+from sqlalchemy.orm import sessionmaker
+from zorivest_infra.database.models import Base
+from zorivest_infra.database.unit_of_work import SqlAlchemyUnitOfWork
+
+
+@pytest.fixture
+def integration_uow():
+    """Real UoW against in-memory SQLite — same schema, zero disk I/O."""
+    engine = create_engine("sqlite:///:memory:")
+    engine.execute("PRAGMA journal_mode=wal")
+    Base.metadata.create_all(engine)
+    Session = sessionmaker(bind=engine)
+    return SqlAlchemyUnitOfWork(session_factory=Session)
+```
+
+| Test Module | Target Service | What Mocks Can't Catch |
+|-------------|---------------|------------------------|
+| `test_tax_service_integration.py` | TaxService | Wash sale 30-day boundary (SQL date math), FIFO lot ordering |
+| `test_import_service_integration.py` | ImportService | Foreign key constraints, dedup hash collision handling |
+| `test_trade_service_integration.py` | TradeService | Fingerprint dedup across concurrent creates |
+
+### Synthetic Fixture Corpus (Import Testing)
+
+| Format | Count | Variants |
+|--------|-------|----------|
+| CSV (broker) | 5–8 files | IBKR FlexQuery, TD Ameritrade, Fidelity, Schwab, Alpaca |
+| OFX/QFX | 4–6 files | Chase, Wells Fargo, Citi, BoA |
+| QIF | 3–5 files | Quicken export, GnuCash export |
+| PDF | 3–4 files | Monthly statement, annual tax summary, trade confirmation |
+
+Fixture location: `tests/fixtures/import/`
+
+### Tax Test Organization (Scenario-Based)
+
+Complex services get scenario-based test files instead of one monolithic file:
+
+```
+tests/integration/tax/
+├── test_wash_sales.py          # 30-day window, chain detection
+├── test_lots.py                # FIFO/LIFO ordering, basis tracking
+├── test_quarterly_estimates.py # Q1–Q4 estimation methods
+├── test_harvest_scan.py        # Loss harvesting opportunities
+└── test_ytd_summary.py         # Year-to-date aggregation
+```
 
 ### TypeScript MCP Tests (Expansion Tools)
 

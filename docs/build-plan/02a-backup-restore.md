@@ -54,7 +54,7 @@ class AppDefaultModel(Base):
 | `display.percent_mode` | `daily` | str | display | Percentage display mode |
 | `backup.auto_interval_seconds` | `300` | int | backup | Automatic backup interval (5 minutes) |
 | `backup.auto_change_threshold` | `100` | int | backup | Change count that triggers backup |
-| `backup.compression_enabled` | `true` | bool | backup | Enable gzip compression for auto backups |
+| `backup.compression_enabled` | `true` | bool | backup | Enable compression for auto backups |
 | `backup.max_age_days` | `90` | int | backup | Maximum age before backup is pruned |
 | `ui.theme` | `dark` | str | ui | Light/dark theme preference |
 | `ui.activePage` | `/` | str | ui | Last active route |
@@ -266,21 +266,6 @@ class SettingsValidator:
             return ValidationResult(valid=False, errors=[f"Unknown setting: {key}"],
                                     key=key, raw_value=raw_value)
 
-    def _resolve_spec(self, key: str) -> Optional["SettingSpec"]:
-        """Look up spec by exact key, then fall back to glob patterns (e.g., ui.panel.*.collapsed)."""
-        spec = self._registry.get(key)
-        if spec is not None:
-            return spec
-        # Glob fallback: replace middle segments with * and try matching
-        parts = key.split(".")
-        for i in range(len(parts)):
-            pattern_parts = parts[:i] + ["*"] + parts[i+1:]
-            pattern_key = ".".join(pattern_parts)
-            spec = self._registry.get(pattern_key)
-            if spec is not None:
-                return spec
-        return None
-
         # Stage 1: Type validation
         type_errors = self._validate_type(raw_value, spec)
         if type_errors:
@@ -297,6 +282,21 @@ class SettingsValidator:
         security_errors = self._validate_security(raw_value, spec)
         return ValidationResult(valid=len(security_errors) == 0,
                                 errors=security_errors, key=key, raw_value=raw_value)
+
+    def _resolve_spec(self, key: str) -> Optional["SettingSpec"]:
+        """Look up spec by exact key, then fall back to glob patterns (e.g., ui.panel.*.collapsed)."""
+        spec = self._registry.get(key)
+        if spec is not None:
+            return spec
+        # Glob fallback: replace middle segments with * and try matching
+        parts = key.split(".")
+        for i in range(len(parts)):
+            pattern_parts = parts[:i] + ["*"] + parts[i+1:]
+            pattern_key = ".".join(pattern_parts)
+            spec = self._registry.get(pattern_key)
+            if spec is not None:
+                return spec
+        return None
 
     def validate_bulk(self, settings: dict[str, Any]) -> dict[str, list[str]]:
         """Validate multiple settings. Returns dict of key → errors (empty if all valid)."""
@@ -702,9 +702,11 @@ User clicks "Restore Backup"
 class ConfigExportService:
     """Build/parse JSON config exports using the settings registry as allowlist."""
 
-    def __init__(self, registry: dict[str, SettingSpec], resolver: SettingsResolver):
+    def __init__(self, registry: dict[str, SettingSpec], resolver: SettingsResolver,
+                 app_version: str = "0.1.0"):
         self._registry = registry
         self._resolver = resolver
+        self._app_version = app_version
 
     def build_export(self, user_settings: dict[str, str],
                      defaults: dict[str, str]) -> dict:
@@ -926,13 +928,13 @@ class TestBackupRestoreCycle:
         assert backup_path.exists()
         assert backup_path.suffix == ".zvbak"
 
-        # 3. Verify backup
-        verify = recovery.verify_backup(backup_path, passphrase)
+        # 3. Verify backup (uses session-held passphrase from __init__)
+        verify = recovery.verify_backup(backup_path)
         assert verify.status == "valid"
 
         # 4. Corrupt live database
-        # 5. Restore from backup
-        result = recovery.restore_backup(backup_path, passphrase)
+        # 5. Restore from backup (uses session-held passphrase)
+        result = recovery.restore_backup(backup_path)
         assert result.status == "success"
 
         # 6. Verify data integrity after restore
@@ -940,8 +942,9 @@ class TestBackupRestoreCycle:
 
     def test_restore_wrong_passphrase_fails(self):
         """Restore with wrong passphrase fails gracefully."""
+        bad_recovery = BackupRecoveryManager(..., passphrase="wrong-passphrase")
         with pytest.raises(InvalidPassphraseError):
-            recovery.restore_backup(backup_path, "wrong-passphrase")
+            bad_recovery.restore_backup(backup_path)
 
     def test_manifest_hash_mismatch_detected(self):
         """Tampered backup file is detected during verification."""

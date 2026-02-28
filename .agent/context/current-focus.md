@@ -1,25 +1,32 @@
 # Current Focus — Zorivest
 
-> Last updated: 2026-02-27
+> Last updated: 2026-02-28
 
 ## Active Phase
 
-**Phase 1 — Domain Layer (P0)**
+**Phase 1 + 1A — Domain Layer + Logging (P0) — Dual-Agent Execution**
 
 ## Current Priority
 
-Begin Phase 1 Domain implementation using the new role-based workflow.
+Execute Phase 1 + 1A using the dual-agent workflow (Opus 4.6 implementation → GPT 5.3 Codex validation). Work is broken into 11 Manageable Execution Units (MEUs). See `.agent/context/meu-registry.md` for full registry.
+
+## Agent Configuration
+
+| Agent | Role | Config File | Workflow |
+|-------|------|------------|----------|
+| Opus 4.6 (Antigravity) | Implementation (orchestrator, coder, tester) | `CLAUDE.md` | `.agent/workflows/tdd-implementation.md` |
+| GPT 5.3 Codex | Validation (reviewer, guardrail) | `AGENTS.md` | `.agent/workflows/validation-review.md` |
+| Handoff Protocol | — | — | `.agent/workflows/meu-handoff.md` |
 
 ## Next Steps
 
-1. Start first scoped task with orchestrated workflow:
-   - Use `.agent/workflows/orchestrated-delivery.md`
-   - Create task handoff from `.agent/context/handoffs/TEMPLATE.md`
-2. Begin Phase 1 implementation:
-   - Trade entity + unit tests
-   - Account entity + unit tests
-   - PositionSizeCalculator refinement + edge case tests
-   - Port interfaces (TradeRepository, ImageRepository, AbstractUnitOfWork)
+1. **Pilot MEU-1 (Calculator)** — validates entire dual-agent workflow:
+   - Opus: write `test_calculator.py` + `calculator.py` using TDD
+   - Codex: run tests, adversarial review, evidence bundle
+   - Human: approve pilot results before scaling
+2. After pilot validated, execute remaining MEUs in parallel tracks:
+   - Track A (Phase 1): MEU-2 through MEU-8
+   - Track B (Phase 1A): MEU-1A through MEU-3A
 
 ## Recently Completed
 
@@ -58,3 +65,7 @@ Begin Phase 1 Domain implementation using the new role-based workflow.
 - [x] `.agent/context/handoffs/2026-02-26-mcp-session6-plan.md` + `.agent/context/handoffs/2026-02-26-mcp-session6-walkthrough.md` critically reviewed against `docs/build-plan/`; findings saved in `.agent/context/handoffs/2026-02-27-docs-build-plan-mcp-session6-plan-critical-review.md`
 - [x] MCP Session 2/3/4/6 open issues re-check completed; closure matrix and remaining open items saved in `.agent/context/handoffs/2026-02-27-docs-build-plan-mcp-open-issues-recheck.md`
 - [x] Remaining open MCP docs issues patched (Session 3 baseline note + Session 6 semantic verification guards); patch handoff saved in `.agent/context/handoffs/2026-02-27-docs-build-plan-mcp-open-issues-patch.md`
+- [x] `docs/build-plan/03-service-layer.md` + cross-plan wholeness critically reviewed via workflow; findings saved in `.agent/context/handoffs/2026-02-27-build-plan-03-service-layer-wholeness-critical-review.md`
+- [x] `docs/build-plan/04-rest-api.md` + Phase 03/05 contract wholeness critically reviewed via workflow; findings saved in `.agent/context/handoffs/2026-02-27-build-plan-04-rest-api-wholeness-critical-review.md`
+- [x] Re-check completed for `docs/build-plan/04-rest-api.md` wholeness fixes; results saved in `.agent/context/handoffs/2026-02-27-build-plan-04-rest-api-wholeness-recheck.md`
+- [x] Final re-check completed for `docs/build-plan/04-rest-api.md` wholeness fixes; results saved in `.agent/context/handoffs/2026-02-27-build-plan-04-rest-api-wholeness-final-recheck.md`

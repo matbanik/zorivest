@@ -4,6 +4,9 @@ All 12 formerly-Planned tools are now **Specified** — full MCP contracts, REST
 
 > **Status: ✅ Complete.** All tools now have draft `server.tool()` specs in their category files ([05c](05c-mcp-trade-analytics.md)–[05h](05h-mcp-tax.md)), REST endpoint specs in [04-rest-api.md](04-rest-api.md), and service layer methods in [03-service-layer.md](03-service-layer.md).
 
+> [!NOTE]
+> **Contract alignment applied 2026-02-27.** Tax tool enum values (05h), trade plan schemas (05d), and missing analytics routes (04) were corrected to ensure Phase 05 Zod schemas exactly match Phase 04 Pydantic canonical models. Confirmation token endpoint (`POST /api/v1/confirmation-tokens`) added to Phase 04. See [critical review handoff](../../.agent/context/handoffs/2026-02-27-build-plan-04-rest-api-wholeness-critical-review.md).
+
 ## What "Specified" Means
 
 A tool is **Specified** when it has:
@@ -50,7 +53,7 @@ A tool is **Specified** when it has:
 | Input schema | ✅ Zod: ticker, direction, conviction, strategy, entry/stop/target, conditions, timeframe, account_id |
 | Output shape | ✅ Created plan with computed `risk_reward_ratio`, status |
 | REST dependency | ✅ `POST /api/v1/trade-plans` — specified in [04-rest-api.md](04-rest-api.md) |
-| Service layer | ✅ `TradePlanService.create()` — specified in [03-service-layer.md](03-service-layer.md) |
+| Service layer | ✅ `ReportService.create_trade_plan()` — specified in [03-service-layer.md](03-service-layer.md) |
 
 ---
 
@@ -72,7 +75,7 @@ A tool is **Specified** when it has:
 | Owner file | ✅ [05h-mcp-tax.md](05h-mcp-tax.md) |
 | Input schema | ✅ Zod: ticker, action, quantity, price, account_id, cost_basis_method |
 | Output shape | ✅ Lot-level preview, ST/LT split, estimated tax, wash risk, hold-savings |
-| REST dependency | ✅ `POST /api/v1/tax/simulate` — specified in [04-rest-api.md](04-rest-api.md) Step 4.9 |
+| REST dependency | ✅ `POST /api/v1/tax/simulate` — specified in [04f-api-tax.md](04f-api-tax.md) |
 
 ---
 
@@ -83,7 +86,7 @@ A tool is **Specified** when it has:
 | Owner file | ✅ [05h-mcp-tax.md](05h-mcp-tax.md) |
 | Input schema | ✅ Zod: tax_year, account_id, filing_status, include_unrealized |
 | Output shape | ✅ Federal + state tax estimate with bracket breakdown |
-| REST dependency | ✅ `POST /api/v1/tax/estimate` — specified in [04-rest-api.md](04-rest-api.md) Step 4.9 |
+| REST dependency | ✅ `POST /api/v1/tax/estimate` — specified in [04f-api-tax.md](04f-api-tax.md) |
 
 ---
 
@@ -94,7 +97,7 @@ A tool is **Specified** when it has:
 | Owner file | ✅ [05h-mcp-tax.md](05h-mcp-tax.md) |
 | Input schema | ✅ Zod: account_id, ticker, date_range_start, date_range_end |
 | Output shape | ✅ Wash sale chains with disallowed amounts, affected tickers |
-| REST dependency | ✅ `POST /api/v1/tax/wash-sales` — specified in [04-rest-api.md](04-rest-api.md) Step 4.9 |
+| REST dependency | ✅ `POST /api/v1/tax/wash-sales` — specified in [04f-api-tax.md](04f-api-tax.md) |
 
 ---
 
@@ -105,7 +108,7 @@ A tool is **Specified** when it has:
 | Owner file | ✅ [05h-mcp-tax.md](05h-mcp-tax.md) |
 | Input schema | ✅ Zod: account_id, ticker, status, sort_by |
 | Output shape | ✅ Lot list with basis/holding/gain fields + summary |
-| REST dependency | ✅ `GET /api/v1/tax/lots` — specified in [04-rest-api.md](04-rest-api.md) Step 4.9 |
+| REST dependency | ✅ `GET /api/v1/tax/lots` — specified in [04f-api-tax.md](04f-api-tax.md) |
 
 ---
 
@@ -116,7 +119,7 @@ A tool is **Specified** when it has:
 | Owner file | ✅ [05h-mcp-tax.md](05h-mcp-tax.md) |
 | Input schema | ✅ Zod: quarter, tax_year, estimation_method |
 | Output shape | ✅ Required/paid/due/penalty/due_date |
-| REST dependency | ✅ `GET /api/v1/tax/quarterly` — specified in [04-rest-api.md](04-rest-api.md) Step 4.9 |
+| REST dependency | ✅ `GET /api/v1/tax/quarterly` — specified in [04f-api-tax.md](04f-api-tax.md) |
 
 ---
 
@@ -127,7 +130,7 @@ A tool is **Specified** when it has:
 | Owner file | ✅ [05h-mcp-tax.md](05h-mcp-tax.md) |
 | Input schema | ✅ Zod: quarter, tax_year, payment_amount, confirm |
 | Output shape | ✅ Recorded payment + updated cumulative totals |
-| REST dependency | ✅ `POST /api/v1/tax/quarterly/payment` — specified in [04-rest-api.md](04-rest-api.md) Step 4.9 |
+| REST dependency | ✅ `POST /api/v1/tax/quarterly/payment` — specified in [04f-api-tax.md](04f-api-tax.md) |
 
 ---
 
@@ -138,7 +141,7 @@ A tool is **Specified** when it has:
 | Owner file | ✅ [05h-mcp-tax.md](05h-mcp-tax.md) |
 | Input schema | ✅ Zod: account_id, min_loss_threshold, exclude_wash_risk |
 | Output shape | ✅ Ranked opportunities + totals + wash risk |
-| REST dependency | ✅ `GET /api/v1/tax/harvest` — specified in [04-rest-api.md](04-rest-api.md) Step 4.9 |
+| REST dependency | ✅ `GET /api/v1/tax/harvest` — specified in [04f-api-tax.md](04f-api-tax.md) |
 
 ---
 
@@ -149,7 +152,7 @@ A tool is **Specified** when it has:
 | Owner file | ✅ [05h-mcp-tax.md](05h-mcp-tax.md) |
 | Input schema | ✅ Zod: tax_year, account_id |
 | Output shape | ✅ Aggregated YTD summary (ST/LT, wash adjustments, estimates) |
-| REST dependency | ✅ `GET /api/v1/tax/ytd-summary` — specified in [04-rest-api.md](04-rest-api.md) Step 4.9 |
+| REST dependency | ✅ `GET /api/v1/tax/ytd-summary` — specified in [04f-api-tax.md](04f-api-tax.md) |
 
 ---
 

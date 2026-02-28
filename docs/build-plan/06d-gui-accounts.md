@@ -82,7 +82,7 @@ Build the Account Management surface: a list+detail page for Account CRUD, the A
 
 ## Account Review Wizard
 
-> **Source**: [Domain Model Reference](domain-model-reference.md) `AccountReview` process spec. A guided step-by-step wizard for updating all account balances in sequence. Can be triggered from the Accounts page, command palette (`Account Review` action), or programmatically via MCP (`start_account_review` tool).
+> **Source**: [Domain Model Reference](domain-model-reference.md) `AccountReview` process spec. A guided step-by-step wizard for updating all account balances in sequence. Can be triggered from the Accounts page, command palette (`Account Review` action), or programmatically via MCP (`get_account_review_checklist` tool).
 
 ### Layout — Step View
 
@@ -158,7 +158,7 @@ Build the Account Management surface: a list+detail page for Account CRUD, the A
 | **Progress bar** | Shows "Account N of M" with visual progress indicator |
 | **Keyboard shortcuts** | `Tab` → enter amount → `Enter` → next account |
 | **Live total** | Running portfolio total updates as each account is confirmed |
-| **MCP integration** | `start_account_review` tool returns guided prompts for AI agents |
+| **MCP integration** | `get_account_review_checklist` tool returns guided prompts for AI agents |
 | **Scheduled trigger** | Can be auto-triggered on schedule (e.g., daily at market close) |
 
 ### REST Endpoints Consumed

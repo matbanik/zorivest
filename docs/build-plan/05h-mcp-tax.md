@@ -19,12 +19,12 @@ Pre-trade what-if tax simulation for a proposed sale.
     'Simulate the tax impact of a proposed trade before execution. Shows lot-level close preview, short/long-term capital gains split, estimated tax, wash sale risk, and hold-for-savings hints.',
     {
       ticker: z.string().describe('Instrument symbol to simulate selling'),
-      action: z.enum(['SELL', 'COVER']).describe('Sale type'),
+      action: z.enum(['sell', 'cover']).describe('Sale type'),
       quantity: z.number().describe('Number of shares/contracts to sell'),
       price: z.number().describe('Expected sale price per share'),
       account_id: z.string().describe('Account holding the position'),
-      cost_basis_method: z.enum(['FIFO', 'LIFO', 'HIFO', 'SPEC_ID', 'AVG_COST'])
-        .default('FIFO')
+      cost_basis_method: z.enum(['fifo', 'lifo', 'specific_id', 'avg_cost'])
+        .default('fifo')
         .describe('Lot selection method for basis calculation'),
     },
     async (body) => {
@@ -47,7 +47,7 @@ Pre-trade what-if tax simulation for a proposed sale.
 - `toolset`: tax
 - `alwaysLoaded`: false
 
-**Input:** `ticker`, `action`, `quantity`, `price`, `account_id`, `cost_basis_method` (default FIFO)
+**Input:** `ticker`, `action` (sell/cover), `quantity`, `price`, `account_id`, `cost_basis_method` (default fifo)
 **Output:** JSON with:
 - `lots_to_close[]` — per-lot detail (shares, basis, gain/loss, holding_period, wash_risk)
 - `summary` — total proceeds, total basis, realized_gain, st_gain, lt_gain
@@ -77,7 +77,7 @@ Compute overall tax estimate from profile and trading data.
         .describe('Tax year to estimate (defaults to current year)'),
       account_id: z.string().optional()
         .describe('Optional account filter; omit for all accounts'),
-      filing_status: z.enum(['single', 'married_filing_jointly', 'married_filing_separately', 'head_of_household'])
+      filing_status: z.enum(['single', 'married_joint', 'married_separate', 'head_of_household'])
         .optional()
         .describe('Override filing status (uses profile default if omitted)'),
       include_unrealized: z.boolean().default(false)
@@ -127,7 +127,7 @@ Detect wash sale chains and conflicts.
     'find_wash_sales',
     'Scan trades for wash sale rule violations within the 30-day window. Returns detected chains with affected lots and disallowed loss amounts.',
     {
-      account_id: z.string().optional().describe('Filter to specific account'),
+      account_id: z.string().describe('Account to scan for wash sales'),
       ticker: z.string().optional().describe('Filter to specific ticker'),
       date_range_start: z.string().optional().describe('ISO date to start scan (default: start of tax year)'),
       date_range_end: z.string().optional().describe('ISO date to end scan (default: today)'),
@@ -152,7 +152,7 @@ Detect wash sale chains and conflicts.
 - `toolset`: tax
 - `alwaysLoaded`: false
 
-**Input:** optional `account_id`, `ticker`, `date_range_start`, `date_range_end`
+**Input:** `account_id` (required), optional `ticker`, `date_range_start`, `date_range_end`
 **Output:** JSON with:
 - `wash_sales[]` — each: `{sell_trade, buy_trade, disallowed_loss, adjusted_basis, wash_window}`
 - `total_disallowed` — sum of all disallowed losses
@@ -176,16 +176,14 @@ List/inspect lots for tax-aware lot selection.
       ticker: z.string().optional().describe('Filter to specific ticker (omit for all positions)'),
       status: z.enum(['open', 'closed', 'all']).default('open')
         .describe('Lot status filter'),
-      sort_by: z.enum(['date_acquired', 'cost_basis', 'gain_loss', 'holding_period'])
-        .default('date_acquired')
+      sort_by: z.enum(['acquired_date', 'cost_basis', 'gain_loss'])
+        .default('acquired_date')
         .describe('Sort order for returned lots'),
     },
-    async (body) => {
-      const res = await fetch(`${API_BASE}/tax/lots`, {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify(body),
-      });
+    async ({ account_id, ticker, status, sort_by }) => {
+      const params = new URLSearchParams({ account_id, status, sort_by });
+      if (ticker) params.set('ticker', ticker);
+      const res = await fetch(`${API_BASE}/tax/lots?${params}`);
       const data = await res.json();
       return { content: [{ type: 'text' as const, text: JSON.stringify(data, null, 2) }] };
     }
@@ -200,7 +198,7 @@ List/inspect lots for tax-aware lot selection.
 - `toolset`: tax
 - `alwaysLoaded`: false
 
-**Input:** `account_id`, optional `ticker`, `status` (default `"open"`), `sort_by` (default `"date_acquired"`)
+**Input:** `account_id`, optional `ticker`, `status` (default `"open"`), `sort_by` (default `"acquired_date"`)
 **Output:** JSON with:
 - `lots[]` — each: `{lot_id, ticker, quantity, cost_basis, date_acquired, holding_period_days, is_long_term, current_value, unrealized_gain_loss}`
 - `summary` — total lots, total basis, total unrealized
@@ -221,7 +219,7 @@ Compute quarterly estimated tax payment obligations (read-only).
     {
       quarter: z.enum(['Q1', 'Q2', 'Q3', 'Q4']).describe('Tax quarter'),
       tax_year: z.number().default(new Date().getFullYear()),
-      estimation_method: z.enum(['annualized', 'prior_year_safe_harbor', 'actual_to_date'])
+      estimation_method: z.enum(['annualized', 'actual', 'prior_year'])
         .default('annualized')
         .describe('Method for computing required payment'),
     },

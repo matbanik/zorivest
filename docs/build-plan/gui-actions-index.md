@@ -59,9 +59,9 @@ Canonical registry of **every GUI action** (buttons, triggers, keyboard shortcut
 
 | # | Action | Trigger | REST | MCP | Status | Plan Files |
 |---|--------|---------|------|-----|--------|------------|
-| 4.1 | Save report | 🔘 | `POST /api/v1/reports` | — | ✅ | [04](04-rest-api.md), [06b](06b-gui-trades.md) |
-| 4.2 | Update report | 🔘 | `PUT /api/v1/reports/{id}` | — | ✅ | [04](04-rest-api.md), [06b](06b-gui-trades.md) |
-| 4.3 | Delete report | 🔘 | `DELETE /api/v1/reports/{id}` | — | ✅ | [04](04-rest-api.md), [06b](06b-gui-trades.md) |
+| 4.1 | Save report | 🔘 | `POST /api/v1/trades/{exec_id}/report` | `create_report` | ✅ | [04](04-rest-api.md), [05c](05c-mcp-trade-analytics.md), [06b](06b-gui-trades.md) |
+| 4.2 | Update report | 🔘 | `PUT /api/v1/trades/{exec_id}/report` | — | ✅ | [04](04-rest-api.md), [06b](06b-gui-trades.md) |
+| 4.3 | Delete report | 🔘 | `DELETE /api/v1/trades/{exec_id}/report` | — | ✅ | [04](04-rest-api.md), [06b](06b-gui-trades.md) |
 
 ---
 
@@ -70,10 +70,10 @@ Canonical registry of **every GUI action** (buttons, triggers, keyboard shortcut
 | # | Action | Trigger | REST | MCP | Status | Plan Files |
 |---|--------|---------|------|-----|--------|------------|
 | 5.1 | Create plan | 🔘 | `POST /api/v1/trade-plans` | `create_trade_plan` | ✅ | [01](01-domain-layer.md), [06c](06c-gui-planning.md) |
-| 5.2 | Update plan | 🔘 | `PUT /api/v1/trade-plans/{id}` | — | 🔶 | [01](01-domain-layer.md), [06c](06c-gui-planning.md) |
-| 5.3 | Delete plan | 🔘 | `DELETE /api/v1/trade-plans/{id}` | — | 🔶 | [01](01-domain-layer.md), [06c](06c-gui-planning.md) |
-| 5.4 | Change status (DRAFT→ACTIVE→EXECUTED) | 🔘 | `PATCH /api/v1/trade-plans/{id}/status` | — | 🔶 | [06c](06c-gui-planning.md) |
-| 5.5 | Link plan to trade | 🔘 | `PUT /api/v1/trade-plans/{id}` (set trade_id) | — | 🔶 | [06c](06c-gui-planning.md) |
+| 5.2 | Update plan | 🔘 | `PUT /api/v1/trade-plans/{id}` | — | ✅ | [01](01-domain-layer.md), [04](04-rest-api.md), [06c](06c-gui-planning.md) |
+| 5.3 | Delete plan | 🔘 | `DELETE /api/v1/trade-plans/{id}` | — | ✅ | [01](01-domain-layer.md), [04](04-rest-api.md), [06c](06c-gui-planning.md) |
+| 5.4 | Change status (DRAFT→ACTIVE→EXECUTED) | 🔘 | `PATCH /api/v1/trade-plans/{id}/status` | — | ✅ | [04](04-rest-api.md), [06c](06c-gui-planning.md) |
+| 5.5 | Link plan to trade | 🔘 | `PUT /api/v1/trade-plans/{id}` (set trade_id) | — | ✅ | [04](04-rest-api.md), [06c](06c-gui-planning.md) |
 
 ---
 
@@ -81,11 +81,11 @@ Canonical registry of **every GUI action** (buttons, triggers, keyboard shortcut
 
 | # | Action | Trigger | REST | MCP | Status | Plan Files |
 |---|--------|---------|------|-----|--------|------------|
-| 6.1 | Create watchlist | 🔘 | `POST /api/v1/watchlists` | — | 🔶 | [01](01-domain-layer.md), [06c](06c-gui-planning.md) |
-| 6.2 | Delete watchlist | 🔘 | `DELETE /api/v1/watchlists/{id}` | — | 🔶 | [01](01-domain-layer.md), [06c](06c-gui-planning.md) |
-| 6.3 | Add item | 🔘 | `POST /api/v1/watchlists/{id}/items` | — | 🔶 | [01](01-domain-layer.md), [06c](06c-gui-planning.md) |
-| 6.4 | Remove item | 🔘 | `DELETE /api/v1/watchlists/{id}/items/{ticker}` | — | 🔶 | [06c](06c-gui-planning.md) |
-| 6.5 | Bulk add (comma-separated) | 🔘 | `POST /api/v1/watchlists/{id}/items/bulk` | — | 🔶 | [06c](06c-gui-planning.md) |
+| 6.1 | Create watchlist | 🔘 | `POST /api/v1/watchlists` | — | ✅ | [01](01-domain-layer.md), [06c](06c-gui-planning.md) |
+| 6.2 | Delete watchlist | 🔘 | `DELETE /api/v1/watchlists/{id}` | — | ✅ | [01](01-domain-layer.md), [06c](06c-gui-planning.md) |
+| 6.3 | Add item | 🔘 | `POST /api/v1/watchlists/{id}/items` | — | ✅ | [01](01-domain-layer.md), [06c](06c-gui-planning.md) |
+| 6.4 | Remove item | 🔘 | `DELETE /api/v1/watchlists/{id}/items/{ticker}` | — | ✅ | [06c](06c-gui-planning.md) |
+| 6.5 | Bulk add (comma-separated) | 🔘 | `POST /api/v1/watchlists/{id}/items/bulk` | — | ✅ | [06c](06c-gui-planning.md) |
 
 ---
 
@@ -103,10 +103,10 @@ Canonical registry of **every GUI action** (buttons, triggers, keyboard shortcut
 
 | # | Action | Trigger | REST | MCP | Status | Plan Files |
 |---|--------|---------|------|-----|--------|------------|
-| 8.1 | Start wizard | 🔘 | — (client-side flow) | — | 🔶 | [06d](06d-gui-accounts.md) |
-| 8.2 | Skip account | 🔘 | — (advance to next) | — | 🔶 | [06d](06d-gui-accounts.md) |
-| 8.3 | Update balance (manual) | 🔘 | `POST /api/v1/accounts/{id}/balances` | — | 🔶 | [06d](06d-gui-accounts.md) |
-| 8.4 | Fetch balance via API | 🔘 | broker-specific API call | — | 🔶 | [06d](06d-gui-accounts.md) |
+| 8.1 | Start wizard | 🔘 | — (client-side flow) | — | ✅ | [06d](06d-gui-accounts.md) |
+| 8.2 | Skip account | 🔘 | — (advance to next) | — | ✅ | [06d](06d-gui-accounts.md) |
+| 8.3 | Update balance (manual) | 🔘 | `POST /api/v1/accounts/{id}/balances` | — | ✅ | [04](04-rest-api.md), [06d](06d-gui-accounts.md) |
+| 8.4 | Fetch balance via API | 🔘 | broker-specific API call | — | ✅ | [06d](06d-gui-accounts.md) |
 
 ---
 
@@ -133,8 +133,8 @@ Canonical registry of **every GUI action** (buttons, triggers, keyboard shortcut
 
 | # | Action | Trigger | REST | MCP | Status | Plan Files |
 |---|--------|---------|------|-----|--------|------------|
-| 11.1 | Select preset | 🔘 dropdown | — (client auto-fill) | — | 📋 | [06f](06f-gui-settings.md) |
-| 11.2 | Test & Save | 🔘 | `POST /api/v1/email/test` | — | 📋 | [06f](06f-gui-settings.md) |
+| 11.1 | Select preset | 🔘 dropdown | — (client auto-fill) | — | ✅ | [06f](06f-gui-settings.md) |
+| 11.2 | Test & Save | 🔘 | `POST /api/v1/email/test` | — | ✅ | [04](04-rest-api.md), [06f](06f-gui-settings.md) |
 
 ---
 
@@ -166,7 +166,7 @@ Canonical registry of **every GUI action** (buttons, triggers, keyboard shortcut
 |---|--------|---------|------|-----|--------|------------|
 | 14.1 | Emergency Stop (lock) | 🔘 | `POST /api/v1/mcp-guard/lock` | `zorivest_emergency_stop` | ✅ | [04](04-rest-api.md), [05](05-mcp-server.md), [06f](06f-gui-settings.md) |
 | 14.2 | Unlock MCP tools | 🔘 | `POST /api/v1/mcp-guard/unlock` | `zorivest_emergency_unlock` | ✅ | [04](04-rest-api.md), [05](05-mcp-server.md), [06f](06f-gui-settings.md) |
-| 14.3 | Save threshold config | 🔘 | `PUT /api/v1/mcp-guard` | — | ✅ | [04](04-rest-api.md), [06f](06f-gui-settings.md) |
+| 14.3 | Save threshold config | 🔘 | `PUT /api/v1/mcp-guard/config` | — | ✅ | [04](04-rest-api.md), [06f](06f-gui-settings.md) |
 
 ---
 
@@ -188,10 +188,10 @@ Canonical registry of **every GUI action** (buttons, triggers, keyboard shortcut
 
 | # | Action | Trigger | REST | MCP | Status | Plan Files |
 |---|--------|---------|------|-----|--------|------------|
-| 16.1 | Close specific lot | 🔘 | `POST /api/v1/tax/lots/{lot_id}/close` | — | 📋 | [06g](06g-gui-tax.md) |
-| 16.2 | Reassign cost basis method | 🔘 | `PUT /api/v1/tax/lots/{lot_id}/reassign` | — | 📋 | [06g](06g-gui-tax.md) |
-| 16.3 | View linked trades | 🔘 | — (navigate to trade detail) | — | 📋 | [06g](06g-gui-tax.md) |
-| 16.4 | Apply method to all lots | 🔘 | batch reassign | — | 📋 | [06g](06g-gui-tax.md) |
+| 16.1 | Close specific lot | 🔘 | `POST /api/v1/tax/lots/{lot_id}/close` | — | ✅ | [04](04-rest-api.md), [06g](06g-gui-tax.md) |
+| 16.2 | Reassign cost basis method | 🔘 | `PUT /api/v1/tax/lots/{lot_id}/reassign` | — | ✅ | [04](04-rest-api.md), [06g](06g-gui-tax.md) |
+| 16.3 | View linked trades | 🔘 | — (navigate to trade detail) | — | ✅ | [06g](06g-gui-tax.md) |
+| 16.4 | Apply method to all lots | 🔘 | batch reassign | — | ✅ | [04](04-rest-api.md), [06g](06g-gui-tax.md) |
 
 ---
 
@@ -199,7 +199,7 @@ Canonical registry of **every GUI action** (buttons, triggers, keyboard shortcut
 
 | # | Action | Trigger | REST | MCP | Status | Plan Files |
 |---|--------|---------|------|-----|--------|------------|
-| 17.1 | Scan Now | 🔘 | `POST /api/v1/tax/wash-sales/scan` | — | 📋 | [06g](06g-gui-tax.md) |
+| 17.1 | Scan Now | 🔘 | `POST /api/v1/tax/wash-sales/scan` | — | ✅ | [04](04-rest-api.md), [06g](06g-gui-tax.md) |
 
 ---
 
@@ -208,8 +208,8 @@ Canonical registry of **every GUI action** (buttons, triggers, keyboard shortcut
 | # | Action | Trigger | REST | MCP | Status | Plan Files |
 |---|--------|---------|------|-----|--------|------------|
 | 18.1 | Simulate | 🔘 | `POST /api/v1/tax/simulate` | `simulate_tax_impact` | ✅ | [06g](06g-gui-tax.md) |
-| 18.2 | Save scenario | 🔘 | — (session state) | — | 📋 | [06g](06g-gui-tax.md) |
-| 18.3 | Compare scenarios | 🔘 | — (client-side) | — | 📋 | [06g](06g-gui-tax.md) |
+| 18.2 | Save scenario | 🔘 | — (session state) | — | ✅ | [06g](06g-gui-tax.md) |
+| 18.3 | Compare scenarios | 🔘 | — (client-side) | — | ✅ | [06g](06g-gui-tax.md) |
 
 ---
 
@@ -218,8 +218,8 @@ Canonical registry of **every GUI action** (buttons, triggers, keyboard shortcut
 | # | Action | Trigger | REST | MCP | Status | Plan Files |
 |---|--------|---------|------|-----|--------|------------|
 | 19.1 | Scan portfolio | 🔘 | `GET /api/v1/tax/harvest` | `harvest_losses` | ✅ | [06g](06g-gui-tax.md) |
-| 19.2 | Simulate (per row) | 🔘 | `POST /api/v1/tax/simulate` | — | 📋 | [06g](06g-gui-tax.md) |
-| 19.3 | Sell (per row) | 🔘 | — (opens order flow) | — | 📋 | [06g](06g-gui-tax.md) |
+| 19.2 | Simulate (per row) | 🔘 | `POST /api/v1/tax/simulate` | — | ✅ | [04](04-rest-api.md), [06g](06g-gui-tax.md) |
+| 19.3 | Sell (per row) | 🔘 | — (opens order flow) | — | ✅ | [06g](06g-gui-tax.md) |
 
 ---
 
@@ -227,7 +227,7 @@ Canonical registry of **every GUI action** (buttons, triggers, keyboard shortcut
 
 | # | Action | Trigger | REST | MCP | Status | Plan Files |
 |---|--------|---------|------|-----|--------|------------|
-| 20.1 | Record payment | 🔘 | `POST /api/v1/tax/quarterly` | — | 📋 | [06g](06g-gui-tax.md) |
+| 20.1 | Record payment | 🔘 | `POST /api/v1/tax/quarterly` | — | ✅ | [04](04-rest-api.md), [06g](06g-gui-tax.md) |
 
 ---
 
@@ -235,7 +235,7 @@ Canonical registry of **every GUI action** (buttons, triggers, keyboard shortcut
 
 | # | Action | Trigger | REST | MCP | Status | Plan Files |
 |---|--------|---------|------|-----|--------|------------|
-| 21.1 | Run audit | 🔘 | `POST /api/v1/tax/audit` | — | 📋 | [06g](06g-gui-tax.md) |
+| 21.1 | Run audit | 🔘 | `POST /api/v1/tax/audit` | — | ✅ | [04](04-rest-api.md), [06g](06g-gui-tax.md) |
 
 ---
 
@@ -311,9 +311,9 @@ Canonical registry of **every GUI action** (buttons, triggers, keyboard shortcut
 |----------|-------|
 | Total GUI actions | 97 (incl. 5 superseded) |
 | Sections | 26 |
-| ✅ Defined (full contract) | 62 |
-| 🔶 Domain modeled | 14 |
-| 📋 Planned | 21 |
+| ✅ Defined (full contract) | 92 |
+| 🔶 Domain modeled | 0 |
+| 📋 Planned | 0 |
 | ⛔ Superseded | 5 |
 | Actions with REST endpoints | 66 |
 | Actions with MCP equivalents | 19 |

@@ -131,14 +131,14 @@ Canonical registry of **every computed or derived output** the system produces �
 
 | # | Output | Type | Source Field | Surface | Source Endpoint | Status | Plan Files |
 |---|--------|------|-------------|---------|-----------------|--------|------------|
-| 4.1 | ST Gains YTD | $ | `ytd_summary.st_gains` | 🖥️🔌 | `GET /tax/ytd-summary` | 📋 | [06g](06g-gui-tax.md) |
-| 4.2 | LT Gains YTD | $ | `ytd_summary.lt_gains` | 🖥️🔌 | `GET /tax/ytd-summary` | 📋 | [06g](06g-gui-tax.md) |
-| 4.3 | Wash Sale Adjustments | $ | `ytd_summary.wash_sale_adjustments` | 🖥️🔌 | `GET /tax/ytd-summary` | 📋 | [06g](06g-gui-tax.md) |
-| 4.4 | Estimated Tax | $ | `ST × marginal + LT × lt_rate` | 🖥️🔌 | `GET /tax/ytd-summary` | 📋 | [06g](06g-gui-tax.md) |
-| 4.5 | Loss Carryforward | $ | `ytd_summary.capital_loss_carryforward` | 🖥️🔌 | `GET /tax/ytd-summary` | 📋 | [06g](06g-gui-tax.md) |
-| 4.6 | Harvestable Losses | $ | `harvest_losses().total` | 🖥️🔌 | `GET /tax/harvest` | ✅ | [06g](06g-gui-tax.md) |
-| 4.7 | Tax Alpha Savings | $ | `ytd_summary.tax_alpha` | 🖥️🔌 | `GET /tax/ytd-summary` | 📋 | [06g](06g-gui-tax.md) |
-| 4.8 | P&L by Symbol breakdown | table | Per-ticker ST/LT/Total gains | 🖥️🔌 | `GET /tax/ytd-summary?group_by=symbol` | 📋 | [06g](06g-gui-tax.md) |
+| 4.1 | ST Gains YTD | $ | `ytd_summary.st_gains` | 🖥️🔌 | `GET /tax/ytd-summary` | ✅ | [04](04-rest-api.md), [06g](06g-gui-tax.md) |
+| 4.2 | LT Gains YTD | $ | `ytd_summary.lt_gains` | 🖥️🔌 | `GET /tax/ytd-summary` | ✅ | [04](04-rest-api.md), [06g](06g-gui-tax.md) |
+| 4.3 | Wash Sale Adjustments | $ | `ytd_summary.wash_sale_adjustments` | 🖥️🔌 | `GET /tax/ytd-summary` | ✅ | [04](04-rest-api.md), [06g](06g-gui-tax.md) |
+| 4.4 | Estimated Tax | $ | `ST × marginal + LT × lt_rate` | 🖥️🔌 | `GET /tax/ytd-summary` | ✅ | [04](04-rest-api.md), [06g](06g-gui-tax.md) |
+| 4.5 | Loss Carryforward | $ | `ytd_summary.capital_loss_carryforward` | 🖥️🔌 | `GET /tax/ytd-summary` | ✅ | [04](04-rest-api.md), [06g](06g-gui-tax.md) |
+| 4.6 | Harvestable Losses | $ | `harvest_losses().total` | 🖥️🔌 | `GET /tax/harvest` | ✅ | [04](04-rest-api.md), [06g](06g-gui-tax.md) |
+| 4.7 | Tax Alpha Savings | $ | `ytd_summary.tax_alpha` | 🖥️🔌 | `GET /tax/ytd-summary` | ✅ | [04](04-rest-api.md), [06g](06g-gui-tax.md) |
+| 4.8 | P&L by Symbol breakdown | table | Per-ticker ST/LT/Total gains | 🖥️🔌 | `GET /tax/ytd-summary?group_by=symbol` | ✅ | [04](04-rest-api.md), [06g](06g-gui-tax.md) |
 
 ---
 
@@ -146,11 +146,11 @@ Canonical registry of **every computed or derived output** the system produces �
 
 | # | Output | Type | Computation | Surface | Source | Status | Plan Files |
 |---|--------|------|-------------|---------|--------|--------|------------|
-| 5.1 | Gain/Loss | $ | `(proceeds - cost_basis) × quantity` | 🖥️🔌 | `GET /tax/lots` | 📋 | [06g](06g-gui-tax.md) |
-| 5.2 | Holding period days | # | `close_date - open_date` (or current date if open) | 🖥️🔌 | `GET /tax/lots` | 📋 | [06g](06g-gui-tax.md) |
-| 5.3 | ST/LT classification | Enum | `≥ 366 days` → LT, else ST | 🖥️🔌 | `GET /tax/lots` | 📋 | [06g](06g-gui-tax.md) |
-| 5.4 | Days-to-LT countdown | # | `366 - holding_period_days` (for open lots) | 🖥️ | client-side | 📋 | [06g](06g-gui-tax.md) |
-| 5.5 | Adjusted basis | $ | `original_basis + wash_sale_adjustment` | 🖥️🔌 | `GET /tax/lots/{id}` | 📋 | [06g](06g-gui-tax.md) |
+| 5.1 | Gain/Loss | $ | `(proceeds - cost_basis) × quantity` | 🖥️🔌 | `GET /tax/lots` | ✅ | [04](04-rest-api.md), [06g](06g-gui-tax.md) |
+| 5.2 | Holding period days | # | `close_date - open_date` (or current date if open) | 🖥️🔌 | `GET /tax/lots` | ✅ | [04](04-rest-api.md), [06g](06g-gui-tax.md) |
+| 5.3 | ST/LT classification | Enum | `≥ 366 days` → LT, else ST | 🖥️🔌 | `GET /tax/lots` | ✅ | [04](04-rest-api.md), [06g](06g-gui-tax.md) |
+| 5.4 | Days-to-LT countdown | # | `366 - holding_period_days` (for open lots) | 🖥️ | client-side | ✅ | [06g](06g-gui-tax.md) |
+| 5.5 | Adjusted basis | $ | `original_basis + wash_sale_adjustment` | 🖥️🔌 | `GET /tax/lots/{id}` | ✅ | [04](04-rest-api.md), [06g](06g-gui-tax.md) |
 
 ---
 
@@ -158,13 +158,13 @@ Canonical registry of **every computed or derived output** the system produces �
 
 | # | Output | Type | Source | Surface | Endpoint | Status | Plan Files |
 |---|--------|------|--------|---------|----------|--------|------------|
-| 6.1 | Active chain count | # | aggregated | 🖥️🔌 | `GET /tax/wash-sales` | 📋 | [06g](06g-gui-tax.md) |
-| 6.2 | Total trapped amount | $ | sum of `deferred_amount` | 🖥️🔌 | `GET /tax/wash-sales` | 📋 | [06g](06g-gui-tax.md) |
-| 6.3 | Cross-account chain count | # | chains spanning multiple accounts | 🖥️🔌 | `GET /tax/wash-sales` | 📋 | [06g](06g-gui-tax.md) |
-| 6.4 | Chain event timeline | list | chronological: disallowed → absorbed → released | 🖥️🔌 | `GET /tax/wash-sales/{id}` | 📋 | [06g](06g-gui-tax.md) |
-| 6.5 | Prevention alert | Text | "Wait N days" or "Safe to sell" | 🖥️ | computed from latest purchase | 📋 | [06g](06g-gui-tax.md) |
-| 6.6 | IRA permanent loss flag | Bool | wash sale triggered by IRA purchase | 🖥️🔌 | `GET /tax/wash-sales/{id}` | 📋 | [06g](06g-gui-tax.md) |
-| 6.7 | DRIP conflict alert | Text | DRIP auto-purchase within wash window | 🖥️ | computed | 📋 | [06g](06g-gui-tax.md) |
+| 6.1 | Active chain count | # | aggregated | 🖥️🔌 | `GET /tax/wash-sales` | ✅ | [04](04-rest-api.md), [06g](06g-gui-tax.md) |
+| 6.2 | Total trapped amount | $ | sum of `deferred_amount` | 🖥️🔌 | `GET /tax/wash-sales` | ✅ | [04](04-rest-api.md), [06g](06g-gui-tax.md) |
+| 6.3 | Cross-account chain count | # | chains spanning multiple accounts | 🖥️🔌 | `GET /tax/wash-sales` | ✅ | [04](04-rest-api.md), [06g](06g-gui-tax.md) |
+| 6.4 | Chain event timeline | list | chronological: disallowed → absorbed → released | 🖥️🔌 | `GET /tax/wash-sales/{id}` | ✅ | [04](04-rest-api.md), [06g](06g-gui-tax.md) |
+| 6.5 | Prevention alert | Text | "Wait N days" or "Safe to sell" | 🖥️ | computed from latest purchase | ✅ | [06g](06g-gui-tax.md) |
+| 6.6 | IRA permanent loss flag | Bool | wash sale triggered by IRA purchase | 🖥️🔌 | `GET /tax/wash-sales/{id}` | ✅ | [04](04-rest-api.md), [06g](06g-gui-tax.md) |
+| 6.7 | DRIP conflict alert | Text | DRIP auto-purchase within wash window | 🖥️ | computed | ✅ | [06g](06g-gui-tax.md) |
 
 ---
 
@@ -172,14 +172,14 @@ Canonical registry of **every computed or derived output** the system produces �
 
 | # | Output | Type | Source | Surface | Endpoint | Status | Plan Files |
 |---|--------|------|--------|---------|----------|--------|------------|
-| 7.1 | Lots closed (breakdown) | table | which lots selected by method | 🖥️🤖🔌 | `POST /tax/simulate` | 📋 | [06g](06g-gui-tax.md) |
-| 7.2 | Per-lot gain/loss | $ | `(price - lot.cost_basis) × lot.quantity` | 🖥️🤖🔌 | `POST /tax/simulate` | 📋 | [06g](06g-gui-tax.md) |
-| 7.3 | ST/LT classification per lot | Enum | `lot.is_long_term` + days held | 🖥️🤖🔌 | `POST /tax/simulate` | 📋 | [06g](06g-gui-tax.md) |
-| 7.4 | Short-term tax estimate | $ | `st_gain × marginal_rate` | 🖥️🤖🔌 | `POST /tax/simulate` | 📋 | [06g](06g-gui-tax.md) |
-| 7.5 | Long-term tax estimate | $ | `lt_gain × lt_rate` | 🖥️🤖🔌 | `POST /tax/simulate` | 📋 | [06g](06g-gui-tax.md) |
-| 7.6 | Total estimated tax | $ | `st_tax + lt_tax` | 🖥️🤖🔌 | `POST /tax/simulate` | 📋 | [06g](06g-gui-tax.md) |
-| 7.7 | Hold-savings tip | Text | "Wait N days → save $X" (Module C6) | 🖥️🤖🔌 | `POST /tax/simulate` | 📋 | [06g](06g-gui-tax.md) |
-| 7.8 | Wash sale risk flag | Bool | conflict with existing chain (Module B8) | 🖥️🤖🔌 | `POST /tax/simulate` | 📋 | [06g](06g-gui-tax.md) |
+| 7.1 | Lots closed (breakdown) | table | which lots selected by method | 🖥️🤖🔌 | `POST /tax/simulate` | ✅ | [04](04-rest-api.md), [06g](06g-gui-tax.md) |
+| 7.2 | Per-lot gain/loss | $ | `(price - lot.cost_basis) × lot.quantity` | 🖥️🤖🔌 | `POST /tax/simulate` | ✅ | [04](04-rest-api.md), [06g](06g-gui-tax.md) |
+| 7.3 | ST/LT classification per lot | Enum | `lot.is_long_term` + days held | 🖥️🤖🔌 | `POST /tax/simulate` | ✅ | [04](04-rest-api.md), [06g](06g-gui-tax.md) |
+| 7.4 | Short-term tax estimate | $ | `st_gain × marginal_rate` | 🖥️🤖🔌 | `POST /tax/simulate` | ✅ | [04](04-rest-api.md), [06g](06g-gui-tax.md) |
+| 7.5 | Long-term tax estimate | $ | `lt_gain × lt_rate` | 🖥️🤖🔌 | `POST /tax/simulate` | ✅ | [04](04-rest-api.md), [06g](06g-gui-tax.md) |
+| 7.6 | Total estimated tax | $ | `st_tax + lt_tax` | 🖥️🤖🔌 | `POST /tax/simulate` | ✅ | [04](04-rest-api.md), [06g](06g-gui-tax.md) |
+| 7.7 | Hold-savings tip | Text | "Wait N days → save $X" (Module C6) | 🖥️🤖🔌 | `POST /tax/simulate` | ✅ | [04](04-rest-api.md), [06g](06g-gui-tax.md) |
+| 7.8 | Wash sale risk flag | Bool | conflict with existing chain (Module B8) | 🖥️🤖🔌 | `POST /tax/simulate` | ✅ | [04](04-rest-api.md), [06g](06g-gui-tax.md) |
 
 ---
 
@@ -187,12 +187,12 @@ Canonical registry of **every computed or derived output** the system produces �
 
 | # | Output | Type | Source | Surface | Endpoint | Status | Plan Files |
 |---|--------|------|--------|---------|----------|--------|------------|
-| 8.1 | Unrealized loss per ticker | $ | `(current_price - cost_basis) × qty` | 🖥️🤖🔌 | `GET /tax/harvest` | 📋 | [06g](06g-gui-tax.md) |
-| 8.2 | Wash risk per ticker | Enum | Safe / DRIP conflict / 30-day window / IRA | 🖥️🤖🔌 | `GET /tax/harvest` | 📋 | [06g](06g-gui-tax.md) |
-| 8.3 | Replacement suggestions | list | correlated non-identical securities (Module C3) | 🖥️🤖🔌 | `GET /tax/harvest` | 📋 | [06g](06g-gui-tax.md) |
-| 8.4 | Total harvestable (safe) | $ | sum of safe-only losses | 🖥️🤖🔌 | `GET /tax/harvest` | 📋 | [06g](06g-gui-tax.md) |
-| 8.5 | Total harvestable (all) | $ | sum of all unrealized losses | 🖥️🤖🔌 | `GET /tax/harvest` | 📋 | [06g](06g-gui-tax.md) |
-| 8.6 | Estimated tax savings | $ | `total_safe × marginal_rate` | 🖥️🤖🔌 | `GET /tax/harvest` | 📋 | [06g](06g-gui-tax.md) |
+| 8.1 | Unrealized loss per ticker | $ | `(current_price - cost_basis) × qty` | 🖥️🤖🔌 | `GET /tax/harvest` | ✅ | [04](04-rest-api.md), [06g](06g-gui-tax.md) |
+| 8.2 | Wash risk per ticker | Enum | Safe / DRIP conflict / 30-day window / IRA | 🖥️🤖🔌 | `GET /tax/harvest` | ✅ | [04](04-rest-api.md), [06g](06g-gui-tax.md) |
+| 8.3 | Replacement suggestions | list | correlated non-identical securities (Module C3) | 🖥️🤖🔌 | `GET /tax/harvest` | ✅ | [04](04-rest-api.md), [06g](06g-gui-tax.md) |
+| 8.4 | Total harvestable (safe) | $ | sum of safe-only losses | 🖥️🤖🔌 | `GET /tax/harvest` | ✅ | [04](04-rest-api.md), [06g](06g-gui-tax.md) |
+| 8.5 | Total harvestable (all) | $ | sum of all unrealized losses | 🖥️🤖🔌 | `GET /tax/harvest` | ✅ | [04](04-rest-api.md), [06g](06g-gui-tax.md) |
+| 8.6 | Estimated tax savings | $ | `total_safe × marginal_rate` | 🖥️🤖🔌 | `GET /tax/harvest` | ✅ | [04](04-rest-api.md), [06g](06g-gui-tax.md) |
 
 ---
 
@@ -200,12 +200,12 @@ Canonical registry of **every computed or derived output** the system produces �
 
 | # | Output | Type | Source | Surface | Endpoint | Status | Plan Files |
 |---|--------|------|--------|---------|----------|--------|------------|
-| 9.1 | Required payment per quarter | $ | method-dependent calculation | 🖥️🤖🔌 | `GET /tax/quarterly` | 📋 | [06g](06g-gui-tax.md) |
-| 9.2 | Quarter status | Enum | PAID / OVER / DUE / UPCOMING | 🖥️🔌 | `GET /tax/quarterly` | 📋 | [06g](06g-gui-tax.md) |
-| 9.3 | Shortfall amount | $ | `required - actual` | 🖥️🔌 | `GET /tax/quarterly` | 📋 | [06g](06g-gui-tax.md) |
-| 9.4 | Underpayment penalty estimate | $ | `shortfall × (fed_rate + 3%) / 4` | 🖥️🔌 | `GET /tax/quarterly` | 📋 | [06g](06g-gui-tax.md) |
-| 9.5 | Safe harbor method comparison | table | 4 methods side-by-side | 🖥️🔌 | `GET /tax/quarterly/compare` | 📋 | [06g](06g-gui-tax.md) |
-| 9.6 | Due date per quarter | date | Apr 15, Jun 15, Sep 15, Jan 15 | 🖥️🔌 | `GET /tax/quarterly` | 📋 | [06g](06g-gui-tax.md) |
+| 9.1 | Required payment per quarter | $ | method-dependent calculation | 🖥️🤖🔌 | `GET /tax/quarterly` | ✅ | [04](04-rest-api.md), [06g](06g-gui-tax.md) |
+| 9.2 | Quarter status | Enum | PAID / OVER / DUE / UPCOMING | 🖥️🔌 | `GET /tax/quarterly` | ✅ | [04](04-rest-api.md), [06g](06g-gui-tax.md) |
+| 9.3 | Shortfall amount | $ | `required - actual` | 🖥️🔌 | `GET /tax/quarterly` | ✅ | [04](04-rest-api.md), [06g](06g-gui-tax.md) |
+| 9.4 | Underpayment penalty estimate | $ | `shortfall × (fed_rate + 3%) / 4` | 🖥️🔌 | `GET /tax/quarterly` | ✅ | [04](04-rest-api.md), [06g](06g-gui-tax.md) |
+| 9.5 | Safe harbor method comparison | table | 4 methods side-by-side | 🖥️🔌 | `GET /tax/quarterly/compare` | ✅ | [04](04-rest-api.md), [06g](06g-gui-tax.md) |
+| 9.6 | Due date per quarter | date | Apr 15, Jun 15, Sep 15, Jan 15 | 🖥️🔌 | `GET /tax/quarterly` | ✅ | [04](04-rest-api.md), [06g](06g-gui-tax.md) |
 
 ---
 
@@ -213,12 +213,12 @@ Canonical registry of **every computed or derived output** the system produces �
 
 | # | Output | Type | Severity | Surface | Endpoint | Status | Plan Files |
 |---|--------|------|----------|---------|----------|--------|------------|
-| 10.1 | Missing cost basis | Text | 🔴 Error | 🖥️🔌 | `POST /tax/audit` | 📋 | [06g](06g-gui-tax.md) |
-| 10.2 | Duplicate exec_id | Text | 🔴 Error | 🖥️🔌 | `POST /tax/audit` | 📋 | [06g](06g-gui-tax.md) |
-| 10.3 | Impossible price | Text | 🟡 Warning | 🖥️🔌 | `POST /tax/audit` | 📋 | [06g](06g-gui-tax.md) |
-| 10.4 | Corporate action gap | Text | 🟡 Warning | 🖥️🔌 | `POST /tax/audit` | 📋 | [06g](06g-gui-tax.md) |
-| 10.5 | Orphaned lot | Text | 🟡 Warning | 🖥️🔌 | `POST /tax/audit` | 📋 | [06g](06g-gui-tax.md) |
-| 10.6 | Missing account | Text | 🔴 Error | 🖥️🔌 | `POST /tax/audit` | 📋 | [06g](06g-gui-tax.md) |
+| 10.1 | Missing cost basis | Text | 🔴 Error | 🖥️🔌 | `POST /tax/audit` | ✅ | [04](04-rest-api.md), [06g](06g-gui-tax.md) |
+| 10.2 | Duplicate exec_id | Text | 🔴 Error | 🖥️🔌 | `POST /tax/audit` | ✅ | [04](04-rest-api.md), [06g](06g-gui-tax.md) |
+| 10.3 | Impossible price | Text | 🟡 Warning | 🖥️🔌 | `POST /tax/audit` | ✅ | [04](04-rest-api.md), [06g](06g-gui-tax.md) |
+| 10.4 | Corporate action gap | Text | 🟡 Warning | 🖥️🔌 | `POST /tax/audit` | ✅ | [04](04-rest-api.md), [06g](06g-gui-tax.md) |
+| 10.5 | Orphaned lot | Text | 🟡 Warning | 🖥️🔌 | `POST /tax/audit` | ✅ | [04](04-rest-api.md), [06g](06g-gui-tax.md) |
+| 10.6 | Missing account | Text | 🔴 Error | 🖥️🔌 | `POST /tax/audit` | ✅ | [04](04-rest-api.md), [06g](06g-gui-tax.md) |
 
 ---
 
@@ -226,9 +226,9 @@ Canonical registry of **every computed or derived output** the system produces �
 
 | # | Output | Type | Source | Surface | Endpoint | Status | Plan Files |
 |---|--------|------|--------|---------|----------|--------|------------|
-| 11.1 | Balance history sparkline | chart | time-series of snapshots | 🖥️ | `GET /accounts/{id}/balances` | 🔶 | [06d](06d-gui-accounts.md) |
+| 11.1 | Balance history sparkline | chart | time-series of snapshots | 🖥️ | `GET /accounts/{id}/balances` | ✅ | [06d](06d-gui-accounts.md) |
 | 11.2 | Net worth (all accounts) | $ | sum of latest balance per account | 🖥️🔌 | `GET /accounts` | ✅ | [06d](06d-gui-accounts.md) |
-| 11.3 | Tax-advantaged total | $ | sum for IRA/401k accounts only | 🖥️ | client-side aggregation | 🔶 | [06d](06d-gui-accounts.md) |
+| 11.3 | Tax-advantaged total | $ | sum for IRA/401k accounts only | 🖥️ | client-side aggregation | ✅ | [06d](06d-gui-accounts.md) |
 
 ---
 
@@ -311,22 +311,22 @@ Canonical registry of **every computed or derived output** the system produces �
 
 | # | Output | Type | Source | Surface | Endpoint | Status | Plan Files |
 |---|--------|------|--------|---------|----------|--------|------------|
-| 17.1 | Expectancy metrics (win rate, Kelly %) | Object | `ExpectancyService` | 🖥️🤖🔌 | `GET /analytics/expectancy` | 📋 | [04](04-rest-api.md), [05](05-mcp-server.md) |
-| 17.2 | Monte Carlo drawdown table | Object | `DrawdownService` | 🖥️🤖🔌 | `GET /analytics/drawdown` | 📋 | [04](04-rest-api.md), [05](05-mcp-server.md) |
-| 17.3 | MFE/MAE/BSO excursion metrics | Object | `ExcursionService` | 🖥️🤖🔌 | `POST /analytics/excursion/{id}` | 📋 | [04](04-rest-api.md), [05](05-mcp-server.md) |
-| 17.4 | Fee breakdown by type | Object | `TransactionLedgerService` | 🖥️🤖🔌 | `GET /fees/summary` | 📋 | [04](04-rest-api.md), [05](05-mcp-server.md) |
-| 17.5 | Execution quality grade (A–F) | Enum | `ExecutionQualityService` | 🖥️🤖🔌 | `GET /analytics/execution-quality` | 📋 | [04](04-rest-api.md), [05](05-mcp-server.md) |
-| 17.6 | PFOF impact estimate | Object | `PFOFAnalysisService` | 🖥️🤖🔌 | `GET /analytics/pfof-report` | 📋 | [04](04-rest-api.md), [05](05-mcp-server.md) |
-| 17.7 | Strategy P&L breakdown | Object | `StrategyBreakdownService` | 🖥️🤖🔌 | `GET /analytics/strategy-breakdown` | 📋 | [04](04-rest-api.md), [05](05-mcp-server.md) |
-| 17.8 | Mistake summary (by category) | Object | `MistakeTrackingService` | 🖥️🤖🔌 | `GET /mistakes/summary` | 📋 | [04](04-rest-api.md), [05](05-mcp-server.md) |
-| 17.9 | Round-trip list (open/closed) | List | `RoundTripService` | 🖥️🤖🔌 | `GET /round-trips` | 📋 | [04](04-rest-api.md), [05](05-mcp-server.md) |
-| 17.10 | Options strategy detection | Object | `OptionsGroupingService` | 🖥️🤖🔌 | `POST /analytics/options-strategy` | 📋 | [04](04-rest-api.md), [05](05-mcp-server.md) |
-| 17.11 | Bank statement import result | Object | `BankImportService` | 🖥️🤖🔌 | `POST /banking/import` | 📋 | [04](04-rest-api.md), [05](05-mcp-server.md) |
-| 17.12 | Identifier resolution (batch) | List | `IdentifierResolverService` | 🤖🔌 | `POST /identifiers/resolve` | 📋 | [04](04-rest-api.md), [05](05-mcp-server.md) |
-| 17.13 | Broker sync result | Object | `BrokerAdapterService` | 🖥️🤖🔌 | `POST /brokers/{id}/sync` | 📋 | [04](04-rest-api.md), [05](05-mcp-server.md) |
-| 17.14 | SQN value + grade | Object | `SQNService` | 🖥️🤖🔌 | `GET /analytics/sqn` | 📋 | [04](04-rest-api.md), [05](05-mcp-server.md) |
-| 17.15 | Monthly P&L calendar grid | Object | Client-side from trades | 🖥️ | computed locally | 📋 | [06b](06b-gui-trades.md) |
-| 17.16 | Cost of Free breakdown | Object | `CostOfFreeService` | 🖥️🤖🔌 | `GET /analytics/cost-of-free` | 📋 | [04](04-rest-api.md), [05](05-mcp-server.md) |
+| 17.1 | Expectancy metrics (win rate, Kelly %) | Object | `AnalyticsService` | 🖥️🤖🔌 | `GET /analytics/expectancy` | ✅ | [04](04-rest-api.md), [05](05-mcp-server.md) |
+| 17.2 | Monte Carlo drawdown table | Object | `AnalyticsService` | 🖥️🤖🔌 | `GET /analytics/drawdown` | ✅ | [04](04-rest-api.md), [05](05-mcp-server.md) |
+| 17.3 | MFE/MAE/BSO excursion metrics | Object | `AnalyticsService` | 🖥️🤖🔌 | `POST /analytics/excursion/{id}` | ✅ | [04](04-rest-api.md), [05](05-mcp-server.md) |
+| 17.4 | Fee breakdown by type | Object | `AnalyticsService` | 🖥️🤖🔌 | `GET /fees/summary` | ✅ | [04](04-rest-api.md), [05](05-mcp-server.md) |
+| 17.5 | Execution quality grade (A–F) | Enum | `AnalyticsService` | 🖥️🤖🔌 | `GET /analytics/execution-quality` | ✅ | [04](04-rest-api.md), [05](05-mcp-server.md) |
+| 17.6 | PFOF impact estimate | Object | `AnalyticsService` | 🖥️🤖🔌 | `GET /analytics/pfof-report` | ✅ | [04](04-rest-api.md), [05](05-mcp-server.md) |
+| 17.7 | Strategy P&L breakdown | Object | `AnalyticsService` | 🖥️🤖🔌 | `GET /analytics/strategy-breakdown` | ✅ | [04](04-rest-api.md), [05](05-mcp-server.md) |
+| 17.8 | Mistake summary (by category) | Object | `ReviewService` | 🖥️🤖🔌 | `GET /mistakes/summary` | ✅ | [04](04-rest-api.md), [05](05-mcp-server.md) |
+| 17.9 | Round-trip list (open/closed) | List | `TradeService` | 🖥️🤖🔌 | `GET /round-trips` | ✅ | [04](04-rest-api.md), [05](05-mcp-server.md) |
+| 17.10 | Options strategy detection | Object | `MarketDataService` | 🖥️🤖🔌 | `POST /analytics/options-strategy` | ✅ | [04](04-rest-api.md), [05](05-mcp-server.md) |
+| 17.11 | Bank statement import result | Object | `ImportService` | 🖥️🤖🔌 | `POST /banking/import` | ✅ | [04](04-rest-api.md), [05](05-mcp-server.md) |
+| 17.12 | Identifier resolution (batch) | List | `MarketDataService` | 🤖🔌 | `POST /identifiers/resolve` | ✅ | [04](04-rest-api.md), [05](05-mcp-server.md) |
+| 17.13 | Broker sync result | Object | `ImportService` | 🖥️🤖🔌 | `POST /brokers/{id}/sync` | ✅ | [04](04-rest-api.md), [05](05-mcp-server.md) |
+| 17.14 | SQN value + grade | Object | `AnalyticsService` | 🖥️🤖🔌 | `GET /analytics/sqn` | ✅ | [04](04-rest-api.md), [05](05-mcp-server.md) |
+| 17.15 | Monthly P&L calendar grid | Object | Client-side from trades | 🖥️ | computed locally | ✅ | [06b](06b-gui-trades.md) |
+| 17.16 | Cost of Free breakdown | Object | `AnalyticsService` | 🖥️🤖🔌 | `GET /analytics/cost-of-free` | ✅ | [04](04-rest-api.md), [05](05-mcp-server.md) |
 
 ---
 
@@ -373,9 +373,9 @@ Canonical registry of **every computed or derived output** the system produces �
 |----------|-------|
 | Total computed outputs | 173 |
 | Sections | 23 (incl. sub-sections 1a–1d) |
-| ✅ Defined (full contract) | 109 |
-| 🔶 Domain modeled | 2 |
-| 📋 Planned | 62 |
+| ✅ Defined (full contract) | 173 |
+| 🔶 Domain modeled | 0 |
+| 📋 Planned | 0 |
 | Calculator outputs (§1–§2) | 57 |
 | Tax outputs (§4–§10) | 46 |
 | Trade/account outputs (§3, §11) | 7 |

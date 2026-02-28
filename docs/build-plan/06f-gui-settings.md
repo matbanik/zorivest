@@ -547,7 +547,7 @@ All settings pages gain a "Reset to Default" capability:
 ## 6f.8: MCP Guard Settings
 
 > Circuit breaker + panic button for MCP tool access.
-> Model: [`McpGuardModel`](02-infrastructure.md) | REST: [§4.6](04-rest-api.md) | MCP middleware: [§5.6](05-mcp-server.md)
+> Model: [`McpGuardModel`](02-infrastructure.md) | REST: [04g-api-system.md](04g-api-system.md) | MCP middleware: [§5.6](05-mcp-server.md)
 
 ### Wireframe
 

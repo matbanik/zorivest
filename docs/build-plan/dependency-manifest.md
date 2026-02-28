@@ -12,8 +12,8 @@ pip install uv                              # or: curl -LsSf https://astral.sh/u
 uv init --name zorivest
 
 # Phase 1: Core (zero external deps for domain)
-# Only pytest for testing
-uv add --dev pytest pytest-asyncio pytest-mock factory-boy
+# Only pytest for testing (Pydantic is NOT used in Phase 1; added in Phase 4 with FastAPI)
+uv add --dev pytest pytest-asyncio pytest-mock factory-boy hypothesis
 
 # Phase 2: Infrastructure
 uv add --package zorivest-infra sqlalchemy sqlcipher3 argon2-cffi alembic "pillow>=11.1"
@@ -21,14 +21,14 @@ uv add --package zorivest-infra sqlalchemy sqlcipher3 argon2-cffi alembic "pillo
 # Phase 2A: Backup/Restore & Settings Defaults
 uv add --package zorivest-infra pyzipper
 
-# Phase 3: Services (no new deps — uses core + infra)
+# Phase 3: Services (uses hypothesis for property-based testing of domain analytics)
 
 # Phase 4: REST API
 uv add --package zorivest-api fastapi uvicorn pydantic httpx
 
 # Cross-cutting (Python)
 # Phase 1A (Logging): zero external dependencies — stdlib only
-uv add --dev ruff bandit pip-audit
+uv add --dev ruff bandit pip-audit pyright   # Linting, security, audit, type checking
 
 # ── TypeScript side (npm/pnpm) ──────────────────────────────
 
@@ -49,8 +49,8 @@ npm install -D @testing-library/react playwright
 cd ..
 
 # Phase 7: Distribution & Release
-uv add --dev pyinstaller                    # Bundle Python backend (must be in uv lockfile for `uv run`)
-uv add --dev pip-audit twine                # Dependency audit + package validation
+uv add --dev pyinstaller twine              # Bundle Python backend + package validation
+# pip-audit already installed as cross-cutting dev dep (Phase 1A block)
 # electron-builder already installed as dev dep in ui/
 # NOTE: npm >= 11.5.1 required for OIDC trusted publishing
 
@@ -73,7 +73,7 @@ cd ui && npm install @vscode/sudo-prompt && cd ..   # Windows UAC elevation for 
 |-------|---------|-----------------|
 | 0 | tooling | `uv` |
 | 1 | `zorivest-core` | None (pure Python) |
-| 1 (dev) | testing | `pytest`, `pytest-asyncio`, `pytest-mock`, `factory-boy` |
+| 1 (dev) | testing | `pytest`, `pytest-asyncio`, `pytest-mock`, `factory-boy`, `hypothesis` |
 | 2 | `zorivest-infra` | `sqlalchemy`, `sqlcipher3`, `argon2-cffi`, `alembic`, `pillow>=11.1` |
 | 2A | `zorivest-infra` (backup) | `pyzipper` |
 | 3 | `zorivest-core` (services) | No new deps |

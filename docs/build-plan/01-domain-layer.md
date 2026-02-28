@@ -6,7 +6,7 @@
 
 ## Goal
 
-Establish the monorepo structure, define all domain entities, value objects, ports (Protocol interfaces), DTOs/commands, and the position size calculator logic. No runtime infrastructure dependencies (no database, no network). Commands/DTOs use Pydantic for validation.
+Establish the monorepo structure, define all domain entities, value objects, ports (Protocol interfaces), DTOs/commands, and the position size calculator logic. No runtime infrastructure dependencies (no database, no network). Commands/DTOs use `dataclasses` with manual validation in Phase 1; Pydantic validation is added in Phase 4 when `pydantic` is installed alongside FastAPI.
 
 ## Step 1.1: Scaffold the Monorepo
 
@@ -31,41 +31,39 @@ zorivest/
 │   │       │   ├── events.py          # TradeCreated, BalanceUpdated, ImageAttached, PlanCreated
 │   │       │   ├── calculator.py      # Position size calculator (pure math)
 │   │       │   ├── tax_estimator.py   # Tax estimation logic (pure math)
-│   │       │   └── exceptions.py      # DomainError, ValidationError
+│   │       │   ├── exceptions.py      # ZorivestError hierarchy (see Phase 3)
+│   │       │   ├── trades/            # Trade domain logic
+│   │       │   │   ├── __init__.py
+│   │       │   │   └── identity.py    # trade_fingerprint() — dedup hash
+│   │       │   └── analytics/         # Pure-math functions (no UoW, no state)
+│   │       │       ├── __init__.py
+│   │       │       ├── expectancy.py   # calculate_expectancy(trades) → ExpectancyResult
+│   │       │       ├── drawdown.py     # drawdown_probability_table(trades, sims) → DrawdownResult
+│   │       │       ├── sqn.py          # calculate_sqn(trades) → SQNResult
+│   │       │       ├── excursion.py    # calculate_mfe_mae(trade, bars) → ExcursionResult
+│   │       │       ├── execution_quality.py  # score_execution(trade, nbbo) → QualityResult
+│   │       │       ├── pfof.py         # analyze_pfof(trades, period) → PFOFResult
+│   │       │       ├── cost_of_free.py # analyze_costs(trades) → CostResult
+│   │       │       ├── strategy.py     # breakdown_by_strategy(trades) → list[StrategyResult]
+│   │       │       └── results.py      # All frozen dataclass result types
 │   │       ├── application/
 │   │       │   ├── __init__.py
-│   │       │   ├── ports.py           # Protocol interfaces (Repository, UoW)
+│   │       │   ├── ports.py           # Protocol interfaces (Repository, UoW, ImportParser)
 │   │       │   ├── commands.py        # CreateTrade, AttachImage, CreatePlan, etc.
 │   │       │   ├── queries.py         # GetTrade, ListTrades, GetImage, etc.
 │   │       │   └── dtos.py           # Data transfer objects
-│   │       └── services/
+│   │       └── services/             # ~10 consolidated services (see Phase 3)
 │   │           ├── __init__.py
-│   │           ├── trade_service.py
-│   │           ├── account_service.py
-│   │           ├── image_service.py    # Screenshot management
-│   │           ├── watchlist_service.py    # (Future) Watchlist management
-│   │           ├── tradeplan_service.py   # (Future) Trade plan management
-│   │           ├── report_service.py      # Trade meta review / reports
-│   │           ├── portfolio_service.py   # Total portfolio balance, % of portfolio calculations
-│   │           ├── display_service.py     # Display mode management ($ hide, % hide, % mode)
-│   │           ├── account_review_service.py  # Guided balance update workflow
-│   │           ├── calculator_service.py
-│   │           ├── tax_service.py         # Tax estimation orchestration
-│   │           ├── broker_adapter_service.py  # Unified broker sync (Build Plan Expansion §1, §2)
-│   │           ├── round_trip_service.py      # Execution matching (Build Plan Expansion §3)
-│   │           ├── dedup_service.py           # Hash + exec_id dedup (Build Plan Expansion §6)
-│   │           ├── excursion_service.py       # MFE/MAE/BSO enrichment (Build Plan Expansion §7)
-│   │           ├── identifier_service.py      # CUSIP/ISIN/SEDOL resolver (Build Plan Expansion §5)
-│   │           ├── options_grouping_service.py # Multi-leg strategy detection (Build Plan Expansion §8)
-│   │           ├── ledger_service.py          # Fee decomposition (Build Plan Expansion §9)
-│   │           ├── execution_quality_service.py # NBBO scoring (Build Plan Expansion §10)
-│   │           ├── pfof_service.py            # PFOF impact analysis (Build Plan Expansion §11)
-│   │           ├── ai_review_service.py       # Multi-persona AI review (Build Plan Expansion §12)
-│   │           ├── expectancy_service.py      # Expectancy & edge metrics (Build Plan Expansion §13)
-│   │           ├── drawdown_service.py        # Monte Carlo drawdown probability (Build Plan Expansion §14)
-│   │           ├── mistake_service.py         # Mistake tracking + cost attr (Build Plan Expansion §17)
-│   │           ├── strategy_breakdown_service.py # Strategy P&L breakdown (Build Plan Expansion §21)
-│   │           └── bank_import_service.py     # Bank statement import (Build Plan Expansion §26)
+│   │           ├── trade_service.py        # Trade lifecycle + dedup + round-trip matching
+│   │           ├── import_service.py      # Unified import (CSV, PDF, OFX, QIF) + Strategy parsers
+│   │           ├── tax_service.py         # Tax computation (8 cohesive methods)
+│   │           ├── analytics_service.py   # Thin orchestrator → domain/analytics/ pure functions
+│   │           ├── account_service.py     # Account management + balance snapshots
+│   │           ├── image_service.py       # Chart/screenshot management
+│   │           ├── report_service.py      # Reports + journal linking + trade plans
+│   │           ├── review_service.py      # Mistake tracking + AI review (behavioral)
+│   │           ├── market_data_service.py # Identifier resolution + options grouping
+│   │           └── system_service.py      # Backup, config export, calculator wrapper
 │   ├── infrastructure/
 │   │   ├── pyproject.toml
 │   │   └── src/zorivest_infra/
@@ -192,9 +190,9 @@ class ImageOwnerType(StrEnum):
 
 class DisplayModeFlag(StrEnum):
     """GUI display privacy toggles — stored in user settings."""
-    DOLLAR_VISIBLE = "dollar_visible"       # Show/hide all $ amounts
-    PERCENT_VISIBLE = "percent_visible"     # Show/hide all % values
-    PERCENT_MODE = "percent_mode"           # Show % of total portfolio alongside $
+    HIDE_DOLLARS = "hide_dollars"            # Privacy mode — hide all $ amounts
+    HIDE_PERCENTAGES = "hide_percentages"    # Privacy mode — hide all % values
+    PERCENT_MODE = "percent_mode"            # Show % of total portfolio alongside $
 
 # ── Build Plan Expansion enums ──────────────────────────────────────────
 
@@ -475,10 +473,10 @@ class ImageRepository(Protocol):
     def get_thumbnail(self, image_id: int, max_size: int = 200) -> bytes: ...
 
 
-class AbstractUnitOfWork(Protocol):
+class UnitOfWork(Protocol):
     trades: TradeRepository
     images: ImageRepository
-    def __enter__(self) -> "AbstractUnitOfWork": ...
+    def __enter__(self) -> "UnitOfWork": ...
     def __exit__(self, *args) -> None: ...
     def commit(self) -> None: ...
     def rollback(self) -> None: ...

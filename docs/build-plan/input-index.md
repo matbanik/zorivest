@@ -119,19 +119,19 @@ Canonical registry of **every input** the system accepts — human-entered, agen
 
 | # | Input | Type | Description | Surface | Status | Plan Files |
 |---|-------|------|-------------|---------|--------|------------|
-| 5.1 | `ticker` | `string` | From watchlist or typed | 🖥️🤖🔌 | 🔶 | [01](01-domain-layer.md) |
-| 5.2 | `direction` | `enum` | `BOT` / `SLD` | 🖥️🤖🔌 | 🔶 | [01](01-domain-layer.md) |
-| 5.3 | `conviction` | `enum` | LOW / MEDIUM / HIGH / MAX | 🖥️🤖🔌 | 🔶 | [01](01-domain-layer.md) |
-| 5.4 | `strategy_name` | `string` | e.g. "Gap & Go" | 🖥️🤖🔌 | 🔶 | [01](01-domain-layer.md) |
-| 5.5 | `strategy_description` | `text` | Rich text reasoning (the thesis) | 🖥️🤖🔌 | 🔶 | [01](01-domain-layer.md) |
-| 5.6 | `entry_price` | `number` | Planned entry | 🖥️🤖🔌 | 🔶 | [01](01-domain-layer.md) |
-| 5.7 | `stop_loss` | `number` | Risk boundary | 🖥️🤖🔌 | 🔶 | [01](01-domain-layer.md) |
-| 5.8 | `target_price` | `number` | Profit target | 🖥️🤖🔌 | 🔶 | [01](01-domain-layer.md) |
-| 5.9 | `entry_conditions` | `text` | Technical triggers | 🖥️🤖🔌 | 🔶 | [01](01-domain-layer.md) |
-| 5.10 | `exit_conditions` | `text` | Close conditions | 🖥️🤖🔌 | 🔶 | [01](01-domain-layer.md) |
-| 5.11 | `timeframe` | `string` | "intraday", "swing 2-5 days" | 🖥️🤖🔌 | 🔶 | [01](01-domain-layer.md) |
-| 5.12 | `account_id` | `string` | Optional account association | 🖥️🤖🔌 | 🔶 | [01](01-domain-layer.md) |
-| 5.13 | `chart_screenshots` | `file[]` | Annotated chart images | 🖥️🔌 | 🔶 | [01](01-domain-layer.md) |
+| 5.1 | `ticker` | `string` | From watchlist or typed | 🖥️🤖🔌 | ✅ | [01](01-domain-layer.md), [04](04-rest-api.md), [06c](06c-gui-planning.md) |
+| 5.2 | `direction` | `enum` | `BOT` / `SLD` | 🖥️🤖🔌 | ✅ | [01](01-domain-layer.md), [04](04-rest-api.md), [06c](06c-gui-planning.md) |
+| 5.3 | `conviction` | `enum` | LOW / MEDIUM / HIGH / MAX | 🖥️🤖🔌 | ✅ | [01](01-domain-layer.md), [04](04-rest-api.md), [06c](06c-gui-planning.md) |
+| 5.4 | `strategy_name` | `string` | e.g. "Gap & Go" | 🖥️🤖🔌 | ✅ | [01](01-domain-layer.md), [04](04-rest-api.md), [06c](06c-gui-planning.md) |
+| 5.5 | `strategy_description` | `text` | Rich text reasoning (the thesis) | 🖥️🤖🔌 | ✅ | [01](01-domain-layer.md), [04](04-rest-api.md), [06c](06c-gui-planning.md) |
+| 5.6 | `entry_price` | `number` | Planned entry | 🖥️🤖🔌 | ✅ | [01](01-domain-layer.md), [04](04-rest-api.md), [06c](06c-gui-planning.md) |
+| 5.7 | `stop_loss` | `number` | Risk boundary | 🖥️🤖🔌 | ✅ | [01](01-domain-layer.md), [04](04-rest-api.md), [06c](06c-gui-planning.md) |
+| 5.8 | `target_price` | `number` | Profit target | 🖥️🤖🔌 | ✅ | [01](01-domain-layer.md), [04](04-rest-api.md), [06c](06c-gui-planning.md) |
+| 5.9 | `entry_conditions` | `text` | Technical triggers | 🖥️🤖🔌 | ✅ | [01](01-domain-layer.md), [04](04-rest-api.md), [06c](06c-gui-planning.md) |
+| 5.10 | `exit_conditions` | `text` | Close conditions | 🖥️🤖🔌 | ✅ | [01](01-domain-layer.md), [04](04-rest-api.md), [06c](06c-gui-planning.md) |
+| 5.11 | `timeframe` | `string` | "intraday", "swing 2-5 days" | 🖥️🤖🔌 | ✅ | [01](01-domain-layer.md), [04](04-rest-api.md), [06c](06c-gui-planning.md) |
+| 5.12 | `account_id` | `string` | Optional account association | 🖥️🤖🔌 | ✅ | [01](01-domain-layer.md), [04](04-rest-api.md), [06c](06c-gui-planning.md) |
+| 5.13 | `chart_screenshots` | `file[]` | Annotated chart images | 🖥️🔌 | ✅ | [01](01-domain-layer.md), [04](04-rest-api.md), [06c](06c-gui-planning.md) |
 
 ### Test Strategy
 
@@ -148,10 +148,10 @@ Canonical registry of **every input** the system accepts — human-entered, agen
 
 | # | Input | Type | Description | Surface | Status | Plan Files |
 |---|-------|------|-------------|---------|--------|------------|
-| 6.1 | `name` (watchlist) | `string` | e.g. "Momentum Plays" | 🖥️🤖🔌 | 🔶 | [01](01-domain-layer.md), [02](02-infrastructure.md) |
-| 6.2 | `description` | `string` | Purpose of the list | 🖥️🤖🔌 | 🔶 | [01](01-domain-layer.md) |
-| 6.3 | `ticker` (item) | `string` | e.g. "AAPL" | 🖥️🤖🔌 | 🔶 | [01](01-domain-layer.md), [02](02-infrastructure.md) |
-| 6.4 | `notes` (item) | `text` | Why watching this ticker | 🖥️🤖🔌 | 🔶 | [01](01-domain-layer.md), [02](02-infrastructure.md) |
+| 6.1 | `name` (watchlist) | `string` | e.g. "Momentum Plays" | 🖥️🤖🔌 | ✅ | [01](01-domain-layer.md), [02](02-infrastructure.md), [06c](06c-gui-planning.md) |
+| 6.2 | `description` | `string` | Purpose of the list | 🖥️🤖🔌 | ✅ | [01](01-domain-layer.md), [06c](06c-gui-planning.md) |
+| 6.3 | `ticker` (item) | `string` | e.g. "AAPL" | 🖥️🤖🔌 | ✅ | [01](01-domain-layer.md), [02](02-infrastructure.md), [06c](06c-gui-planning.md) |
+| 6.4 | `notes` (item) | `text` | Why watching this ticker | 🖥️🤖🔌 | ✅ | [01](01-domain-layer.md), [02](02-infrastructure.md), [06c](06c-gui-planning.md) |
 
 ### Test Strategy
 
@@ -191,9 +191,9 @@ Canonical registry of **every input** the system accepts — human-entered, agen
 
 | # | Input | Type | Description | Surface | Status | Plan Files |
 |---|-------|------|-------------|---------|--------|------------|
-| 8.1 | `update_method` | `choice` | API fetch / Manual entry (per account) | 🖥️🤖 | 🔶 | [06d](06d-gui-accounts.md) |
-| 8.2 | `new_balance` | `number` | Manual balance entry (pre-filled from last) | 🖥️🤖 | 🔶 | [06d](06d-gui-accounts.md) |
-| 8.3 | Skip / Update | `action` | Per-account decision | 🖥️🤖 | 🔶 | [06d](06d-gui-accounts.md) |
+| 8.1 | `update_method` | `choice` | API fetch / Manual entry (per account) | 🖥️🤖 | ✅ | [06d](06d-gui-accounts.md) |
+| 8.2 | `new_balance` | `number` | Manual balance entry (pre-filled from last) | 🖥️🤖 | ✅ | [06d](06d-gui-accounts.md) |
+| 8.3 | Skip / Update | `action` | Per-account decision | 🖥️🤖 | ✅ | [06d](06d-gui-accounts.md) |
 
 ### Test Strategy
 
@@ -209,15 +209,15 @@ Canonical registry of **every input** the system accepts — human-entered, agen
 
 | # | Input | Type | Description | Surface | Status | Plan Files |
 |---|-------|------|-------------|---------|--------|------------|
-| 9.1 | `dollar_visible` | `bool` | Toggle $ display | 🖥️🤖🔌 | ✅ | [02](02-infrastructure.md), [04](04-rest-api.md), [05](05-mcp-server.md), [06f](06f-gui-settings.md) |
-| 9.2 | `percent_visible` | `bool` | Toggle % display | 🖥️🤖🔌 | ✅ | [02](02-infrastructure.md), [04](04-rest-api.md), [05](05-mcp-server.md), [06f](06f-gui-settings.md) |
+| 9.1 | `hide_dollars` | `bool` | Toggle $ display (privacy mode) | 🖥️🤖🔌 | ✅ | [02](02-infrastructure.md), [04](04-rest-api.md), [05](05-mcp-server.md), [06f](06f-gui-settings.md) |
+| 9.2 | `hide_percentages` | `bool` | Toggle % display (privacy mode) | 🖥️🤖🔌 | ✅ | [02](02-infrastructure.md), [04](04-rest-api.md), [05](05-mcp-server.md), [06f](06f-gui-settings.md) |
 | 9.3 | `percent_mode` | `string` | Percentage display mode (daily/total) | 🖥️🤖🔌 | ✅ | [02](02-infrastructure.md), [04](04-rest-api.md), [05](05-mcp-server.md), [06f](06f-gui-settings.md) |
 
 ### Test Strategy
 
 | Test | Input | Expected Output |
 |------|-------|-----------------|
-| Toggle dollar off | dollar_visible=false | Setting persisted |
+| Toggle dollar off | hide_dollars=true | Setting persisted |
 | Roundtrip | Set all three → GET | Values match |
 | Session persistence | Set → restart → GET | Values survive restart |
 
@@ -225,7 +225,7 @@ Canonical registry of **every input** the system accepts — human-entered, agen
 
 ## 9a. UI & Notification Settings
 
-> Settings persisted via the `SettingModel` key-value store (see [Phase 2](02-infrastructure.md)). Accessed via `GET/PUT /api/v1/settings` (see [Phase 4 §4.3](04-rest-api.md)) and `get_settings`/`update_settings` MCP tools (see [Phase 5 §5.5](05-mcp-server.md)).
+> Settings persisted via the `SettingModel` key-value store (see [Phase 2](02-infrastructure.md)). Accessed via `GET/PUT /api/v1/settings` (see [04d-api-settings.md](04d-api-settings.md)) and `get_settings`/`update_settings` MCP tools (see [Phase 5 §5.5](05-mcp-server.md)).
 
 | # | Input | Type | Description | Surface | Status | Plan Files |
 |---|-------|------|-------------|---------|--------|------------|
@@ -249,20 +249,20 @@ Canonical registry of **every input** the system accepts — human-entered, agen
 
 | # | Input | Type | Description | Surface | Status | Plan Files |
 |---|-------|------|-------------|---------|--------|------------|
-| 10.1 | `filing_status` | `enum` | SINGLE / MARRIED_JOINT / MARRIED_SEPARATE / HEAD_OF_HOUSEHOLD | 🖥️🤖🔌 | 🔶 | [01](01-domain-layer.md), [matrix](build-priority-matrix.md) |
-| 10.2 | `tax_year` | `int` | e.g. 2026 | 🖥️🤖🔌 | 🔶 | [01](01-domain-layer.md) |
-| 10.3 | `federal_bracket` | `float` | Marginal rate, e.g. 0.37 | 🖥️🤖🔌 | 🔶 | [01](01-domain-layer.md) |
-| 10.4 | `state_tax_rate` | `float` | e.g. 0.05 | 🖥️🤖🔌 | 🔶 | [01](01-domain-layer.md) |
-| 10.5 | `state` | `string` | e.g. "NY", "TX" | 🖥️🤖🔌 | 🔶 | [01](01-domain-layer.md) |
-| 10.6 | `prior_year_tax` | `decimal` | For safe harbor calculation | 🖥️🤖🔌 | 🔶 | [01](01-domain-layer.md) |
-| 10.7 | `agi_estimate` | `decimal` | For NIIT threshold check | 🖥️🤖🔌 | 🔶 | [01](01-domain-layer.md) |
-| 10.8 | `capital_loss_carryforward` | `decimal` | From prior year | 🖥️🤖🔌 | 🔶 | [01](01-domain-layer.md) |
-| 10.9 | `wash_sale_method` | `enum` | CONSERVATIVE / AGGRESSIVE | 🖥️🤖🔌 | 🔶 | [01](01-domain-layer.md) |
-| 10.10 | `default_cost_basis` | `enum` | FIFO / LIFO / HIFO / SPEC_ID / etc. | 🖥️🤖🔌 | 🔶 | [01](01-domain-layer.md) |
-| 10.11 | `include_drip_wash_detection` | `bool` | DRIP wash sale detection (default true) | 🖥️🤖🔌 | 🔶 | [01](01-domain-layer.md) |
-| 10.12 | `include_spousal_accounts` | `bool` | Include spousal accounts (default false) | 🖥️🤖🔌 | 🔶 | [01](01-domain-layer.md) |
-| 10.13 | `section_475_elected` | `bool` | Mark-to-Market election | 🖥️🤖🔌 | 🔶 | [01](01-domain-layer.md) |
-| 10.14 | `section_1256_eligible` | `bool` | Futures 60/40 treatment | 🖥️🤖🔌 | 🔶 | [01](01-domain-layer.md) |
+| 10.1 | `filing_status` | `enum` | SINGLE / MARRIED_JOINT / MARRIED_SEPARATE / HEAD_OF_HOUSEHOLD | 🖥️🤖🔌 | ✅ | [01](01-domain-layer.md), [04](04-rest-api.md), [06g](06g-gui-tax.md) |
+| 10.2 | `tax_year` | `int` | e.g. 2026 | 🖥️🤖🔌 | ✅ | [01](01-domain-layer.md), [04](04-rest-api.md), [06g](06g-gui-tax.md) |
+| 10.3 | `federal_bracket` | `float` | Marginal rate, e.g. 0.37 | 🖥️🤖🔌 | ✅ | [01](01-domain-layer.md), [04](04-rest-api.md), [06g](06g-gui-tax.md) |
+| 10.4 | `state_tax_rate` | `float` | e.g. 0.05 | 🖥️🤖🔌 | ✅ | [01](01-domain-layer.md), [04](04-rest-api.md), [06g](06g-gui-tax.md) |
+| 10.5 | `state` | `string` | e.g. "NY", "TX" | 🖥️🤖🔌 | ✅ | [01](01-domain-layer.md), [04](04-rest-api.md), [06g](06g-gui-tax.md) |
+| 10.6 | `prior_year_tax` | `decimal` | For safe harbor calculation | 🖥️🤖🔌 | ✅ | [01](01-domain-layer.md), [04](04-rest-api.md), [06g](06g-gui-tax.md) |
+| 10.7 | `agi_estimate` | `decimal` | For NIIT threshold check | 🖥️🤖🔌 | ✅ | [01](01-domain-layer.md), [04](04-rest-api.md), [06g](06g-gui-tax.md) |
+| 10.8 | `capital_loss_carryforward` | `decimal` | From prior year | 🖥️🤖🔌 | ✅ | [01](01-domain-layer.md), [04](04-rest-api.md), [06g](06g-gui-tax.md) |
+| 10.9 | `wash_sale_method` | `enum` | CONSERVATIVE / AGGRESSIVE | 🖥️🤖🔌 | ✅ | [01](01-domain-layer.md), [04](04-rest-api.md), [06g](06g-gui-tax.md) |
+| 10.10 | `default_cost_basis` | `enum` | FIFO / LIFO / HIFO / SPEC_ID / etc. | 🖥️🤖🔌 | ✅ | [01](01-domain-layer.md), [04](04-rest-api.md), [06g](06g-gui-tax.md) |
+| 10.11 | `include_drip_wash_detection` | `bool` | DRIP wash sale detection (default true) | 🖥️🤖🔌 | ✅ | [01](01-domain-layer.md), [04](04-rest-api.md), [06g](06g-gui-tax.md) |
+| 10.12 | `include_spousal_accounts` | `bool` | Include spousal accounts (default false) | 🖥️🤖🔌 | ✅ | [01](01-domain-layer.md), [04](04-rest-api.md), [06g](06g-gui-tax.md) |
+| 10.13 | `section_475_elected` | `bool` | Mark-to-Market election | 🖥️🤖🔌 | ✅ | [01](01-domain-layer.md), [04](04-rest-api.md), [06g](06g-gui-tax.md) |
+| 10.14 | `section_1256_eligible` | `bool` | Futures 60/40 treatment | 🖥️🤖🔌 | ✅ | [01](01-domain-layer.md), [04](04-rest-api.md), [06g](06g-gui-tax.md) |
 
 ### Test Strategy
 
@@ -279,9 +279,9 @@ Canonical registry of **every input** the system accepts — human-entered, agen
 
 | # | Input | Type | Description | Surface | Status | Plan Files |
 |---|-------|------|-------------|---------|--------|------------|
-| 11.1 | `ticker` | `string` | What to sell | 🖥️🤖🔌 | 📋 | [matrix](build-priority-matrix.md) |
-| 11.2 | `quantity` | `number` | How many shares | 🖥️🤖🔌 | 📋 | [matrix](build-priority-matrix.md) |
-| 11.3 | `lot_selection_method` | `enum` | Cost basis method to simulate | 🖥️🤖🔌 | 📋 | [matrix](build-priority-matrix.md) |
+| 11.1 | `ticker` | `string` | What to sell | 🖥️🤖🔌 | ✅ | [04](04-rest-api.md), [06g](06g-gui-tax.md) |
+| 11.2 | `quantity` | `number` | How many shares | 🖥️🤖🔌 | ✅ | [04](04-rest-api.md), [06g](06g-gui-tax.md) |
+| 11.3 | `lot_selection_method` | `enum` | Cost basis method to simulate | 🖥️🤖🔌 | ✅ | [04](04-rest-api.md), [06g](06g-gui-tax.md) |
 
 ### Test Strategy
 
@@ -297,8 +297,8 @@ Canonical registry of **every input** the system accepts — human-entered, agen
 
 | # | Input | Type | Description | Surface | Status | Plan Files |
 |---|-------|------|-------------|---------|--------|------------|
-| 12.1 | `ticker` | `string` | Position to close | 🖥️🤖🔌 | 📋 | [matrix](build-priority-matrix.md) |
-| 12.2 | `lot_ids` | `string[]` | Specific lot IDs selected | 🖥️🤖🔌 | 📋 | [matrix](build-priority-matrix.md) |
+| 12.1 | `ticker` | `string` | Position to close | 🖥️🤖🔌 | ✅ | [04](04-rest-api.md), [06g](06g-gui-tax.md) |
+| 12.2 | `lot_ids` | `string[]` | Specific lot IDs selected | 🖥️🤖🔌 | ✅ | [04](04-rest-api.md), [06g](06g-gui-tax.md) |
 
 ### Test Strategy
 
@@ -314,9 +314,9 @@ Canonical registry of **every input** the system accepts — human-entered, agen
 
 | # | Input | Type | Description | Surface | Status | Plan Files |
 |---|-------|------|-------------|---------|--------|------------|
-| 13.1 | `quarter` | `int` | 1–4 | 🖥️🤖🔌 | 📋 | [matrix](build-priority-matrix.md) |
-| 13.2 | `actual_payment` | `decimal` | Amount actually paid | 🖥️🤖🔌 | 📋 | [matrix](build-priority-matrix.md) |
-| 13.3 | `estimation_method` | `enum` | safe_harbor_100 / 110 / current_year_90 / annualized | 🖥️🤖🔌 | 📋 | [matrix](build-priority-matrix.md) |
+| 13.1 | `quarter` | `int` | 1–4 | 🖥️🤖🔌 | ✅ | [04](04-rest-api.md), [06g](06g-gui-tax.md) |
+| 13.2 | `actual_payment` | `decimal` | Amount actually paid | 🖥️🤖🔌 | ✅ | [04](04-rest-api.md), [06g](06g-gui-tax.md) |
+| 13.3 | `estimation_method` | `enum` | safe_harbor_100 / 110 / current_year_90 / annualized | 🖥️🤖🔌 | ✅ | [04](04-rest-api.md), [06g](06g-gui-tax.md) |
 
 ### Test Strategy
 
@@ -348,7 +348,7 @@ Canonical registry of **every input** the system accepts — human-entered, agen
 | Key management | POST /auth/keys | New key generated (admin only) |
 | Key revocation | DELETE /auth/keys/{id} | Key removed, wrapped DEK deleted |
 
-> **Dual-access architecture:** GUI uses passphrase → KDF → DEK directly. MCP uses API key → envelope encryption (KEK unwraps DEK) via `POST /api/v1/auth/unlock`. See [Phase 4 §4.5](04-rest-api.md) and [Phase 5 §5.7](05-mcp-server.md).
+> **Dual-access architecture:** GUI uses passphrase → KDF → DEK directly. MCP uses API key → envelope encryption (KEK unwraps DEK) via `POST /api/v1/auth/unlock`. See [04c-api-auth.md](04c-api-auth.md) and [Phase 5 §5.7](05-mcp-server.md).
 
 ---
 
@@ -358,18 +358,18 @@ Canonical registry of **every input** the system accepts — human-entered, agen
 
 | # | Input | Type | Description | Surface | Status | Plan Files |
 |---|-------|------|-------------|---------|--------|------------|
-| 15a.1 | `provider` | `dropdown` | E*Trade, Coinbase, PayPal, Plaid, etc. | 🖥️🤖🔌 | 📋 | [04](04-rest-api.md), [05](05-mcp-server.md) |
-| 15a.2 | Connect / Disconnect | `action` | Launch OAuth flow or revoke | 🖥️ | 📋 | [06f](06f-gui-settings.md) |
-| 15a.3 | `auto_refresh` | `bool` | Auto-refresh before expiry | 🖥️🔌 | 📋 | [02](02-infrastructure.md) |
+| 15a.1 | `provider` | `dropdown` | E*Trade, Coinbase, PayPal, Plaid, etc. | 🖥️🤖🔌 | ✅ | [04](04-rest-api.md), [05](05-mcp-server.md) |
+| 15a.2 | Connect / Disconnect | `action` | Launch OAuth flow or revoke | 🖥️ | ✅ | [04](04-rest-api.md), [06f](06f-gui-settings.md) |
+| 15a.3 | `auto_refresh` | `bool` | Auto-refresh before expiry | 🖥️🔌 | ✅ | [02](02-infrastructure.md), [04](04-rest-api.md) |
 
 ### 15b. Static API Key Credentials
 
 | # | Input | Type | Description | Surface | Status | Plan Files |
 |---|-------|------|-------------|---------|--------|------------|
-| 15b.1 | `provider` | `dropdown` | IBKR, TradingView, etc. | 🖥️🤖🔌 | 📋 | [04](04-rest-api.md) |
-| 15b.2 | `api_key` | `string` | API key / Client ID | 🖥️🔌 | 📋 | [02](02-infrastructure.md) |
-| 15b.3 | `secret` | `password` | Fernet-encrypted at rest | 🖥️🔌 | 📋 | [02](02-infrastructure.md) |
-| 15b.4 | Test connection | `action` | Verify credentials | 🖥️🤖🔌 | 📋 | [04](04-rest-api.md), [05](05-mcp-server.md) |
+| 15b.1 | `provider` | `dropdown` | IBKR, TradingView, etc. | 🖥️🤖🔌 | ✅ | [04](04-rest-api.md), [06f](06f-gui-settings.md) |
+| 15b.2 | `api_key` | `string` | API key / Client ID | 🖥️🔌 | ✅ | [02](02-infrastructure.md), [04](04-rest-api.md) |
+| 15b.3 | `secret` | `password` | Fernet-encrypted at rest | 🖥️🔌 | ✅ | [02](02-infrastructure.md), [04](04-rest-api.md) |
+| 15b.4 | Test connection | `action` | Verify credentials | 🖥️🤖🔌 | ✅ | [04](04-rest-api.md), [05](05-mcp-server.md) |
 
 ### 15b-market. Market Data API Keys (12 Providers)
 
@@ -424,14 +424,14 @@ Canonical registry of **every input** the system accepts — human-entered, agen
 
 | # | Input | Type | Description | Surface | Status | Plan Files |
 |---|-------|------|-------------|---------|--------|------------|
-| 16.1 | `provider_preset` | `dropdown` | Gmail, Brevo, SendGrid, etc. | 🖥️🤖🔌 | 📋 | [matrix](build-priority-matrix.md) |
-| 16.2 | `smtp_host` | `string` | Auto-filled from preset | 🖥️🔌 | 📋 | [matrix](build-priority-matrix.md) |
-| 16.3 | `port` | `number` | Default 587 | 🖥️🔌 | 📋 | [matrix](build-priority-matrix.md) |
-| 16.4 | `security` | `radio` | STARTTLS / SSL | 🖥️🔌 | 📋 | [matrix](build-priority-matrix.md) |
-| 16.5 | `username` | `string` | Provider-specific | 🖥️🔌 | 📋 | [matrix](build-priority-matrix.md) |
-| 16.6 | `password` | `password` | Fernet-encrypted at rest | 🖥️🔌 | 📋 | [matrix](build-priority-matrix.md) |
-| 16.7 | `from_email` | `string` | Sender address | 🖥️🔌 | 📋 | [matrix](build-priority-matrix.md) |
-| 16.8 | Test & Save | `action` | Sends test email | 🖥️🤖🔌 | 📋 | [matrix](build-priority-matrix.md) |
+| 16.1 | `provider_preset` | `dropdown` | Gmail, Brevo, SendGrid, etc. | 🖥️🤖🔌 | ✅ | [06f](06f-gui-settings.md) |
+| 16.2 | `smtp_host` | `string` | Auto-filled from preset | 🖥️🔌 | ✅ | [06f](06f-gui-settings.md) |
+| 16.3 | `port` | `number` | Default 587 | 🖥️🔌 | ✅ | [06f](06f-gui-settings.md) |
+| 16.4 | `security` | `radio` | STARTTLS / SSL | 🖥️🔌 | ✅ | [06f](06f-gui-settings.md) |
+| 16.5 | `username` | `string` | Provider-specific | 🖥️🔌 | ✅ | [06f](06f-gui-settings.md) |
+| 16.6 | `password` | `password` | Fernet-encrypted at rest | 🖥️🔌 | ✅ | [02](02-infrastructure.md), [06f](06f-gui-settings.md) |
+| 16.7 | `from_email` | `string` | Sender address | 🖥️🔌 | ✅ | [06f](06f-gui-settings.md) |
+| 16.8 | Test & Save | `action` | Sends test email | 🖥️🤖🔌 | ✅ | [04](04-rest-api.md), [06f](06f-gui-settings.md) |
 
 ### Test Strategy
 
@@ -510,16 +510,16 @@ These inputs are triggered automatically by the system, IDE agent calls, or sche
 | 18.2 | IBKR TWS Live Feed | Execution / position events | `event` | Real-time trade capture from TWS API socket | 🔗 | ✅ | [01](01-domain-layer.md) |
 | 18.3 | Scheduled Data Refresh | Market data cache refresh | `cron` | Periodic refresh of quotes/news for watchlist tickers | ⏰ | ✅ | [08](08-market-data.md) |
 | 18.4 | Scheduled Report Pipeline | Report generation + email | `cron` | Fetches data → processes → renders → sends email | ⏰ | ✅ | [09](09-scheduling.md) |
-| 18.5 | Plaid Webhook | Account balance update | `webhook` | Plaid sends balance/transaction updates | 🔗 | 📋 | [02](02-infrastructure.md) |
-| 18.6 | OAuth Token Refresh | Token renewal | `timer` | Background refresh before token expiry | 🔗 | 📋 | [02](02-infrastructure.md) |
+| 18.5 | Plaid Webhook | Account balance update | `webhook` | Plaid sends balance/transaction updates | 🔗 | ✅ | [02](02-infrastructure.md), [04](04-rest-api.md) |
+| 18.6 | OAuth Token Refresh | Token renewal | `timer` | Background refresh before token expiry | 🔗 | ✅ | [02](02-infrastructure.md), [04](04-rest-api.md) |
 | 18.7 | Agent Quote Lookup | `get_stock_quote` via MCP | `agent_call` | IDE agent queries a ticker price on behalf of user | 🤖 | ✅ | [08](08-market-data.md), [05](05-mcp-server.md) |
 | 18.8 | Agent Tax Simulation | `simulate_tax_impact` via MCP | `agent_call` | IDE agent runs tax what-if during chat | 🤖 | ✅ | [05h](05h-mcp-tax.md) |
 | 18.9 | Agent Loss Harvesting | `harvest_losses` via MCP | `agent_call` | IDE agent identifies loss harvesting opportunities | 🤖 | ✅ | [05h](05h-mcp-tax.md) |
 | 18.10 | Agent Trade Plan | `create_trade_plan` via MCP | `agent_call` | IDE agent creates a plan during research | 🤖 | ✅ | [05d](05d-mcp-trade-planning.md) |
 | 18.11 | Agent Pipeline Trigger | `run_pipeline` via MCP | `agent_call` | IDE agent triggers a report pipeline on demand | 🤖 | ✅ | [09](09-scheduling.md), [05](05-mcp-server.md) |
-| 18.12 | Quarterly Deadline Alert | Auto-generated notification | `timer` | System alerts when IRS quarterly deadline approaches | ⏰ | 📋 | [matrix](build-priority-matrix.md) |
+| 18.12 | Quarterly Deadline Alert | Auto-generated notification | `timer` | System alerts when IRS quarterly deadline approaches | ⏰ | ✅ | [06g](06g-gui-tax.md), [04](04-rest-api.md) |
 | 18.13 | Wash Sale Auto-Detect | Trade triggers wash check | `event` | Every new trade auto-checks 61-day wash sale window | 🔗 | ✅ | [01](01-domain-layer.md), [matrix](build-priority-matrix.md) |
-| 18.14 | NIIT Threshold Alert | MAGI approaches $200K/$250K | `event` | Auto-triggered when AGI nears NIIT threshold | 🔗 | 📋 | [matrix](build-priority-matrix.md) |
+| 18.14 | NIIT Threshold Alert | MAGI approaches $200K/$250K | `event` | Auto-triggered when AGI nears NIIT threshold | 🔗 | ✅ | [01](01-domain-layer.md), [06g](06g-gui-tax.md) |
 
 ### Test Strategy (Programmatic Inputs)
 
@@ -539,7 +539,7 @@ These inputs are triggered automatically by the system, IDE agent calls, or sche
 ## 19. MCP Guard (Circuit Breaker + Panic Button)
 
 > Protects against runaway MCP tool calls. Opt-in; disabled by default.
-> Model: [`McpGuardModel`](02-infrastructure.md) | REST: [§4.6](04-rest-api.md) | MCP: [§5.6](05-mcp-server.md) | GUI: [§6f.8](06f-gui-settings.md)
+> Model: [`McpGuardModel`](02-infrastructure.md) | REST: [04g-api-system.md](04g-api-system.md) | MCP: [§5.6](05-mcp-server.md) | GUI: [§6f.8](06f-gui-settings.md)
 
 | # | Input | Type | Description | Surface | Status | Plan Files |
 |---|-------|------|-------------|---------|--------|------------|
@@ -573,61 +573,61 @@ These inputs are triggered automatically by the system, IDE agent calls, or sche
 
 | # | Input | Type | Description | Surface | Status | Plan Files |
 |---|-------|------|-------------|---------|--------|------------|
-| 21a.1 | `broker_id` | `string` | Broker adapter ID (e.g. "ibkr_pro", "alpaca_paper") | 🖥️🤖🔌 | 📋 | [04](04-rest-api.md), [05](05-mcp-server.md) |
-| 21a.2 | `api_key` | `password` | Broker API key (Fernet-encrypted) | 🖥️🔌 | 📋 | [04](04-rest-api.md) |
-| 21a.3 | `api_secret` | `password` | Broker API secret (Alpaca requires both) | 🖥️🔌 | 📋 | [04](04-rest-api.md) |
-| 21a.4 | `environment` | `enum` | `live` / `paper` | 🖥️🔌 | 📋 | [04](04-rest-api.md) |
+| 21a.1 | `broker_id` | `string` | Broker adapter ID (e.g. "ibkr_pro", "alpaca_paper") | 🖥️🤖🔌 | ✅ | [04](04-rest-api.md), [05](05-mcp-server.md) |
+| 21a.2 | `api_key` | `password` | Broker API key (Fernet-encrypted) | 🖥️🔌 | ✅ | [02](02-infrastructure.md), [04](04-rest-api.md) |
+| 21a.3 | `api_secret` | `password` | Broker API secret (Alpaca requires both) | 🖥️🔌 | ✅ | [02](02-infrastructure.md), [04](04-rest-api.md) |
+| 21a.4 | `environment` | `enum` | `live` / `paper` | 🖥️🔌 | ✅ | [04](04-rest-api.md) |
 
 ### 21b. CSV Import (§18)
 
 | # | Input | Type | Description | Surface | Status | Plan Files |
 |---|-------|------|-------------|---------|--------|------------|
-| 21b.1 | `file` | `UploadFile` | Broker CSV file | 🖥️🤖🔌 | 📋 | [04](04-rest-api.md), [05](05-mcp-server.md) |
-| 21b.2 | `broker_hint` | `string` | Broker name hint for format detection (default "auto") | 🖥️🤖🔌 | 📋 | [04](04-rest-api.md), [05](05-mcp-server.md) |
-| 21b.3 | `account_id` | `string` | Target account for imported trades | 🖥️🤖🔌 | 📋 | [04](04-rest-api.md), [05](05-mcp-server.md) |
+| 21b.1 | `file` | `UploadFile` | Broker CSV file | 🖥️🤖🔌 | ✅ | [04](04-rest-api.md), [05](05-mcp-server.md) |
+| 21b.2 | `broker_hint` | `string` | Broker name hint for format detection (default "auto") | 🖥️🤖🔌 | ✅ | [04](04-rest-api.md), [05](05-mcp-server.md) |
+| 21b.3 | `account_id` | `string` | Target account for imported trades | 🖥️🤖🔌 | ✅ | [04](04-rest-api.md), [05](05-mcp-server.md) |
 
 ### 21c. Bank Statement Import (§26)
 
 | # | Input | Type | Description | Surface | Status | Plan Files |
 |---|-------|------|-------------|---------|--------|------------|
-| 21c.1 | `file` | `UploadFile` | Bank statement file (CSV, OFX, QIF) | 🖥️🤖🔌 | 📋 | [04](04-rest-api.md), [05](05-mcp-server.md) |
-| 21c.2 | `format_hint` | `enum` | `auto` / `csv` / `ofx` / `qif` | 🖥️🤖🔌 | 📋 | [04](04-rest-api.md), [05](05-mcp-server.md) |
-| 21c.3 | `account_id` | `string` | Target bank account | 🖥️🤖🔌 | 📋 | [04](04-rest-api.md), [05](05-mcp-server.md) |
-| 21c.4 | `bank_hint` | `string` | Bank name hint for field mapping | 🖥️🤖🔌 | 📋 | [04](04-rest-api.md), [05](05-mcp-server.md) |
+| 21c.1 | `file` | `UploadFile` | Bank statement file (CSV, OFX, QIF) | 🖥️🤖🔌 | ✅ | [04](04-rest-api.md), [05](05-mcp-server.md) |
+| 21c.2 | `format_hint` | `enum` | `auto` / `csv` / `ofx` / `qif` | 🖥️🤖🔌 | ✅ | [04](04-rest-api.md), [05](05-mcp-server.md) |
+| 21c.3 | `account_id` | `string` | Target bank account | 🖥️🤖🔌 | ✅ | [04](04-rest-api.md), [05](05-mcp-server.md) |
+| 21c.4 | `bank_hint` | `string` | Bank name hint for field mapping | 🖥️🤖🔌 | ✅ | [04](04-rest-api.md), [05](05-mcp-server.md) |
 
 ### 21d. Manual Bank Transaction (§26)
 
 | # | Input | Type | Description | Surface | Status | Plan Files |
 |---|-------|------|-------------|---------|--------|------------|
-| 21d.1 | `account_id` | `string` | Target bank account | 🖥️🔌 | 📋 | [04](04-rest-api.md) |
-| 21d.2 | `date` | `date` | Transaction date | 🖥️🔌 | 📋 | [04](04-rest-api.md) |
-| 21d.3 | `amount` | `number` | Transaction amount (negative for debit) | 🖥️🔌 | 📋 | [04](04-rest-api.md) |
-| 21d.4 | `description` | `string` | Transaction description | 🖥️🔌 | 📋 | [04](04-rest-api.md) |
-| 21d.5 | `category` | `enum` | TransactionCategory (deposit, withdrawal, etc.) | 🖥️🔌 | 📋 | [04](04-rest-api.md) |
+| 21d.1 | `account_id` | `string` | Target bank account | 🖥️🔌 | ✅ | [04](04-rest-api.md) |
+| 21d.2 | `date` | `date` | Transaction date | 🖥️🔌 | ✅ | [04](04-rest-api.md) |
+| 21d.3 | `amount` | `number` | Transaction amount (negative for debit) | 🖥️🔌 | ✅ | [04](04-rest-api.md) |
+| 21d.4 | `description` | `string` | Transaction description | 🖥️🔌 | ✅ | [04](04-rest-api.md) |
+| 21d.5 | `category` | `enum` | TransactionCategory (deposit, withdrawal, etc.) | 🖥️🔌 | ✅ | [04](04-rest-api.md) |
 
 ### 21e. Mistake Tag (§17)
 
 | # | Input | Type | Description | Surface | Status | Plan Files |
 |---|-------|------|-------------|---------|--------|------------|
-| 21e.1 | `trade_exec_id` | `string` | Trade to tag | 🖥️🤖🔌 | 📋 | [04](04-rest-api.md), [05](05-mcp-server.md) |
-| 21e.2 | `category` | `enum` | MistakeCategory (EARLY_EXIT, REVENGE_TRADE, etc.) | 🖥️🤖🔌 | 📋 | [04](04-rest-api.md), [05](05-mcp-server.md) |
-| 21e.3 | `estimated_cost` | `number` | Estimated cost of mistake | 🖥️🤖🔌 | 📋 | [04](04-rest-api.md), [05](05-mcp-server.md) |
-| 21e.4 | `notes` | `text` | Free-form notes | 🖥️🤖🔌 | 📋 | [04](04-rest-api.md), [05](05-mcp-server.md) |
+| 21e.1 | `trade_exec_id` | `string` | Trade to tag | 🖥️🤖🔌 | ✅ | [04](04-rest-api.md), [05](05-mcp-server.md) |
+| 21e.2 | `category` | `enum` | MistakeCategory (EARLY_EXIT, REVENGE_TRADE, etc.) | 🖥️🤖🔌 | ✅ | [04](04-rest-api.md), [05](05-mcp-server.md) |
+| 21e.3 | `estimated_cost` | `number` | Estimated cost of mistake | 🖥️🤖🔌 | ✅ | [04](04-rest-api.md), [05](05-mcp-server.md) |
+| 21e.4 | `notes` | `text` | Free-form notes | 🖥️🤖🔌 | ✅ | [04](04-rest-api.md), [05](05-mcp-server.md) |
 
 ### 21f. AI Review Request (§12)
 
 | # | Input | Type | Description | Surface | Status | Plan Files |
 |---|-------|------|-------------|---------|--------|------------|
-| 21f.1 | `trade_exec_id` | `string` | Trade to review | 🤖🔌 | 📋 | [04](04-rest-api.md), [05](05-mcp-server.md) |
-| 21f.2 | `review_type` | `enum` | `single` / `weekly` | 🤖🔌 | 📋 | [04](04-rest-api.md), [05](05-mcp-server.md) |
-| 21f.3 | `budget_cap` | `number` | Max spend in cents (opt-in) | 🤖🔌 | 📋 | [04](04-rest-api.md), [05](05-mcp-server.md) |
+| 21f.1 | `trade_exec_id` | `string` | Trade to review | 🤖🔌 | ✅ | [04](04-rest-api.md), [05](05-mcp-server.md) |
+| 21f.2 | `review_type` | `enum` | `single` / `weekly` | 🤖🔌 | ✅ | [04](04-rest-api.md), [05](05-mcp-server.md) |
+| 21f.3 | `budget_cap` | `number` | Max spend in cents (opt-in) | 🤖🔌 | ✅ | [04](04-rest-api.md), [05](05-mcp-server.md) |
 
 ### 21g. Identifier Resolution (§5)
 
 | # | Input | Type | Description | Surface | Status | Plan Files |
 |---|-------|------|-------------|---------|--------|------------|
-| 21g.1 | `id_type` | `enum` | `cusip` / `isin` / `sedol` / `figi` | 🤖🔌 | 📋 | [04](04-rest-api.md), [05](05-mcp-server.md) |
-| 21g.2 | `id_value` | `string` | Identifier value to resolve | 🤖🔌 | 📋 | [04](04-rest-api.md), [05](05-mcp-server.md) |
+| 21g.1 | `id_type` | `enum` | `cusip` / `isin` / `sedol` / `figi` | 🤖🔌 | ✅ | [04](04-rest-api.md), [05](05-mcp-server.md) |
+| 21g.2 | `id_value` | `string` | Identifier value to resolve | 🤖🔌 | ✅ | [04](04-rest-api.md), [05](05-mcp-server.md) |
 
 ---
 
@@ -696,9 +696,9 @@ These inputs are triggered automatically by the system, IDE agent calls, or sche
 | Programmatic/scheduled triggers | 16 |
 | MCP discovery inputs | 6 |
 | Feature groups | 34 (incl. sub-sections 9a, 15a, 15b, 15m, 15d, 17a, 21a–21g, 23) |
-| ✅ Defined (full surface contract) | 79 inputs |
-| 🔶 Domain modeled (no REST/MCP/GUI contract) | 34 inputs |
-| 📋 Planned (matrix-only, no routes/tools) | 48 inputs |
+| ✅ Defined (full surface contract) | 161 inputs |
+| 🔶 Domain modeled (no REST/MCP/GUI contract) | 0 inputs |
+| 📋 Planned (matrix-only, no routes/tools) | 0 inputs |
 | GUI-only inputs (security) | 2 (passphrase, API key entry) |
 | MCP-only input parameters | 10 (`image_base64`, `confirm`, `verbose`, `wait_for_close`, `toolset_name`, `enable`, `tool_name`, `parameters`) |
 | MCP-only tool calls (no GUI equivalent) | 6 (`zorivest_service_status`, `zorivest_service_logs`, `list_available_toolsets`, `describe_toolset`, `enable_toolset`, `get_confirmation_token`) |

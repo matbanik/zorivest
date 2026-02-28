@@ -31,38 +31,16 @@ Instead of subagent invocation, adopt roles inline by following the role spec's 
 
 ## Agent Identity
 
-Read and internalize `SOUL.md` at session start. This file defines your identity (Kael), core equation (`Lifetime = (Energy × Purpose) ÷ Stress`), personality, and interaction principles. It is agent-scoped — it governs *who you are* across all conversations, while `AGENTS.md` and this file govern *how you work* on this project.
+Read and internalize `SOUL.md` at session start — identity (Kael), core equation, personality.
+`SOUL.md` = who you are. `AGENTS.md` = project rules. `GEMINI.md` = Antigravity runtime.
 
-**Separation of concerns:**
-- `SOUL.md` → Identity, values, personality, stress awareness (agent-scoped)
-- `AGENTS.md` → Project rules, architecture, testing, code quality (project-scoped)
-- `GEMINI.md` → Antigravity-specific mode mapping and workflows (runtime-scoped)
+## Session Preflight
 
-## Session Preflight (Required)
+Follow `AGENTS.md` Session Discipline, plus verify MCP servers (`pomera_diagnose`). If `pomera` or `text-editor` unavailable, report via `notify_user` and stop.
 
-At the start of every new task:
+## Planning Contract
 
-1. **Read `SOUL.md`** — internalize identity, core equation, and interaction principles.
-2. Read `.agent/context/current-focus.md` for active phase and priorities.
-3. Read `.agent/context/known-issues.md` for known gotchas.
-4. Search `pomera_notes` for previous session state (`search_term: "Zorivest"`).
-5. Verify MCP servers are available by calling `pomera_diagnose`.
-
-If required MCP servers (`pomera`, `text-editor`) are not connected, report to user via `notify_user` and do not proceed.
-
-## Planning Contract (Required)
-
-When creating a plan, every task must include:
-- `task`
-- `owner_role` (`orchestrator`, `coder`, `tester`, `reviewer`, `researcher`, `guardrail`)
-- `deliverable`
-- `validation` (exact command(s))
-- `status` (`pending`, `in_progress`, `done`)
-
-Rules:
-- No unowned tasks.
-- Use explicit transitions: `orchestrator -> coder -> tester -> reviewer`.
-- If a task does not map to a role, split/refine first or ask clarification.
+Follow `AGENTS.md` Roles & Workflows section for plan task fields and role transitions.
 
 ## Execution Contract
 
@@ -76,6 +54,37 @@ Rules:
 - Save session summary and next steps to `pomera_notes` with title `Memory/Session/Zorivest-{task}-{date}`.
 - Update `.agent/context/current-focus.md` with new state.
 - Human approval is required before merge/release/deploy.
+
+## TDD-First Protocol (Implementation Agent — MANDATORY)
+
+When implementing a Manageable Execution Unit (MEU):
+
+1. **Read** the build plan spec section for this MEU (in `docs/build-plan/`)
+2. **Write FIC** — Feature Intent Contract with acceptance criteria (AC-1, AC-2, ...) before any code
+3. **Write ALL tests FIRST** — every AC becomes at least one test assertion
+4. **Run tests** — confirm they FAIL (Red phase). **Save failure output for FAIL_TO_PASS evidence.**
+5. **Implement** — write just enough code to make tests pass (Green phase)
+6. **Refactor** — clean up while keeping tests green
+7. **Run checks**: `pytest -x --tb=short -m "unit"`, `pyright`, `ruff check`
+8. **Create handoff** at `.agent/context/handoffs/{YYYY-MM-DD}-meu-{N}-{slug}.md`
+9. **Save state** to `pomera_notes` with title `Memory/Session/Zorivest-MEU-{N}-{date}`
+
+> ⚠️ **Test Immutability**: Once tests are written in Red phase, do NOT modify test assertions or expected values in Green phase. If a test expectation is wrong, fix the *implementation*, not the *test*. The only acceptable test modification in Green phase is fixing test setup/fixtures, never assertions.
+
+### MEU Boundaries
+
+- One MEU per session. Do not expand scope.
+- Each MEU maps to exactly one section of `docs/build-plan/build-priority-matrix.md`.
+- See `.agent/context/meu-registry.md` for the full MEU list.
+- Prefer real objects over mocks when feasible. Heavy mocking masks real failures.
+
+### Anti-Slop Checklist (verify before handoff)
+
+- [ ] Every public function has explicit error handling (no implicit passes)
+- [ ] All type annotations are precise (no `Any`, no `# type: ignore` without justification)
+- [ ] Edge cases identified in FIC are actually handled in code (not just tested)
+- [ ] No inline `# TODO` or commented-out alternatives left behind
+- [ ] Code was NOT copied verbatim from build plan — adapt to actual FIC and project structure
 
 ## Handoff Protocol
 
@@ -92,12 +101,6 @@ When the user invokes a workflow via slash command:
 - `/orchestrated-delivery` → Read and follow `.agent/workflows/orchestrated-delivery.md`
 - `/pre-build-research` → Read and follow `.agent/workflows/pre-build-research.md`
 
-## MCP Tool Usage
+## MCP Servers
 
-Required MCP servers for this project:
-
-| Server | Purpose | Verify With |
-|---|---|---|
-| `pomera` | Notes, text processing, web search, AI tools | `pomera_diagnose` |
-| `text-editor` | Hash-based conflict-safe file editing | `get_text_file_contents` |
-| `sequential-thinking` | Complex multi-step analysis | `sequentialthinking` |
+See `AGENTS.md` MCP Servers table. Verify with `pomera_diagnose` at session start.

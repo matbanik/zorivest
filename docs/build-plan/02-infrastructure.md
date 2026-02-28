@@ -13,7 +13,7 @@ Implement concrete SQLCipher database, SQLAlchemy models (including image storag
 ```python
 # packages/infrastructure/src/zorivest_infra/database/models.py
 
-from sqlalchemy import Column, Integer, String, Float, DateTime, Text, LargeBinary, ForeignKey, Boolean
+from sqlalchemy import Column, Integer, String, Float, Numeric, DateTime, Text, LargeBinary, ForeignKey, Boolean
 from sqlalchemy.orm import DeclarativeBase, relationship
 
 class Base(DeclarativeBase):
@@ -29,8 +29,8 @@ class TradeModel(Base):
     quantity = Column(Float, nullable=False)
     price = Column(Float, nullable=False)
     account_id = Column(String, ForeignKey("accounts.account_id"), nullable=False)
-    commission = Column(Float, default=0.0)
-    realized_pnl = Column(Float, default=0.0)
+    commission = Column(Numeric(15, 6), default=0.0)
+    realized_pnl = Column(Numeric(15, 6), default=0.0)
 
     images = relationship("ImageModel", primaryjoin="and_(ImageModel.owner_type=='trade', foreign(ImageModel.owner_id)==TradeModel.exec_id)", viewonly=True)
     report = relationship("TradeReportModel", back_populates="trade", uselist=False)
@@ -139,7 +139,7 @@ class BalanceSnapshotModel(Base):
     id = Column(Integer, primary_key=True, autoincrement=True)
     account_id = Column(String, ForeignKey("accounts.account_id"), nullable=False)
     datetime = Column(DateTime, nullable=False)
-    balance = Column(Float, nullable=False)
+    balance = Column(Numeric(15, 6), nullable=False)
 
     account_rel = relationship("AccountModel", back_populates="balance_snapshots")
 
@@ -156,7 +156,7 @@ class SettingModel(Base):
     # Key convention (namespaced dot notation):
     # ui.theme, ui.activePage, ui.panel.*.collapsed, ui.sidebar.width
     # notification.{category}.enabled  (success|info|warning|confirmation)
-    # display.dollar_visible, display.percent_visible, display.percent_mode
+    # display.hide_dollars, display.hide_percentages, display.percent_mode
 
 
 class AppDefaultModel(Base):
@@ -231,8 +231,8 @@ class RoundTripModel(Base):  # §3
     entry_avg_price = Column(Float, nullable=False)
     exit_avg_price = Column(Float, nullable=True)
     total_quantity = Column(Float, nullable=False)
-    realized_pnl = Column(Float, nullable=True)
-    total_commission = Column(Float, default=0.0)
+    realized_pnl = Column(Numeric(15, 6), nullable=True)
+    total_commission = Column(Numeric(15, 6), default=0.0)
     opened_at = Column(DateTime, nullable=False)
     closed_at = Column(DateTime, nullable=True)
     status = Column(String(10), default="open")                # RoundTripStatus
@@ -244,9 +244,9 @@ class ExcursionMetricsModel(Base):  # §7
     __tablename__ = "excursion_metrics"
 
     trade_exec_id = Column(String, ForeignKey("trades.exec_id"), primary_key=True)
-    mfe_dollars = Column(Float, nullable=True)
+    mfe_dollars = Column(Numeric(15, 6), nullable=True)
     mfe_pct = Column(Float, nullable=True)
-    mae_dollars = Column(Float, nullable=True)
+    mae_dollars = Column(Numeric(15, 6), nullable=True)
     mae_pct = Column(Float, nullable=True)
     bso_pct = Column(Float, nullable=True)
     data_source = Column(String, nullable=True)
@@ -276,7 +276,7 @@ class TransactionLedgerModel(Base):  # §9
     id = Column(Integer, primary_key=True, autoincrement=True)
     trade_exec_id = Column(String, ForeignKey("trades.exec_id"), nullable=False, index=True)
     fee_type = Column(String(20), nullable=False)              # FeeType
-    amount = Column(Float, nullable=False)
+    amount = Column(Numeric(15, 6), nullable=False)
     currency = Column(String(3), default="USD")
     description = Column(Text, nullable=True)
 
@@ -290,9 +290,9 @@ class OptionsStrategyModel(Base):  # §8
     strategy_type = Column(String(20), nullable=False)         # StrategyType
     underlying = Column(String, nullable=False, index=True)
     leg_exec_ids = Column(Text, nullable=False)                # JSON list of exec_ids
-    net_debit_credit = Column(Float, nullable=True)
-    max_profit = Column(Float, nullable=True)
-    max_loss = Column(Float, nullable=True)
+    net_debit_credit = Column(Numeric(15, 6), nullable=True)
+    max_profit = Column(Numeric(15, 6), nullable=True)
+    max_loss = Column(Numeric(15, 6), nullable=True)
     breakeven_prices = Column(Text, nullable=True)             # JSON list of decimals
     created_at = Column(DateTime, nullable=False)
 
@@ -304,7 +304,7 @@ class MistakeEntryModel(Base):  # §17
     id = Column(Integer, primary_key=True, autoincrement=True)
     trade_id = Column(String, ForeignKey("trades.exec_id"), nullable=False, index=True)
     category = Column(String(30), nullable=False)              # MistakeCategory
-    estimated_cost = Column(Float, nullable=True)
+    estimated_cost = Column(Numeric(15, 6), nullable=True)
     notes = Column(Text, nullable=True)
     auto_detected = Column(Boolean, default=False)
     created_at = Column(DateTime, nullable=False)
@@ -317,7 +317,7 @@ class BrokerConfigModel(Base):  # §23
     broker_id = Column(String, primary_key=True)
     name = Column(String, nullable=False)
     pdt_rule = Column(Boolean, default=True)
-    pdt_threshold = Column(Float, default=25000.0)
+    pdt_threshold = Column(Numeric(15, 6), default=25000.0)
     settlement_days = Column(Integer, default=1)               # T+1 for US equities
     max_leverage = Column(Text, nullable=True)                 # JSON dict
     routing_type = Column(String(10), nullable=True)           # RoutingType
@@ -338,7 +338,7 @@ class BankTransactionModel(Base):  # §26
     date = Column(DateTime, nullable=False)
     post_date = Column(DateTime, nullable=True)
     description = Column(Text, nullable=False)
-    amount = Column(Float, nullable=False)
+    amount = Column(Numeric(15, 6), nullable=False)
     category = Column(String(30), nullable=True)               # TransactionCategory
     reference_id = Column(String, nullable=True)
     dedup_hash = Column(String(32), nullable=False, index=True)
@@ -359,7 +359,25 @@ class BankImportConfigModel(Base):  # §26
     updated_at = Column(DateTime, nullable=True)
 ```
 
+> [!WARNING]
+> **Financial precision**: All monetary columns use `Numeric(15, 6)` to avoid IEEE-754 rounding in tax calculations and aggregations. This applies to: `commission`, `realized_pnl`, `balance`, `amount`, `net_debit_credit`, `max_profit`, `max_loss`, `total_commission`, `mfe_dollars`, `mae_dollars`, `estimated_cost`, `pdt_threshold`. Display-only columns (`price`, `quantity`, `entry_avg_price`, `exit_avg_price`, `total_quantity`, `entry_price`, `stop_loss`, `target_price`, `confidence`, `mfe_pct`, `mae_pct`, `bso_pct`) remain `Float`.
+> See [SQLAlchemy Numeric docs](https://docs.sqlalchemy.org/en/20/core/type_basics.html#sqlalchemy.types.Numeric).
+
 ## Step 2.2: Repository Integration Tests
+
+> [!IMPORTANT]
+> **SQLite WAL Mode (Required):** Enable WAL journaling for concurrent read/write support, critical for PySide6 background tasks (analytics, imports). Set during connection factory initialization:
+> ```python
+> engine = create_engine(url, connect_args={"check_same_thread": False})
+> 
+> @event.listens_for(engine, "connect")
+> def set_sqlite_pragmas(dbapi_conn, connection_record):
+>     cursor = dbapi_conn.cursor()
+>     cursor.execute("PRAGMA journal_mode=wal")
+>     cursor.execute("PRAGMA synchronous=NORMAL")
+>     cursor.close()
+> ```
+> **Per-thread Sessions:** SQLite connections cannot be shared across threads. Each `QThread` / `QThreadPool` worker must create its own Session from the `session_factory`. Never pass a Session across thread boundaries.
 
 ```python
 # tests/integration/test_repositories.py
@@ -373,10 +391,15 @@ from zorivest_infra.database.repositories import SqlAlchemyTradeRepository, SqlA
 @pytest.fixture
 def session():
     """In-memory SQLite for fast integration tests."""
-    engine = create_engine("sqlite://", echo=False)
+    engine = create_engine("sqlite://", echo=False,
+                           connect_args={"check_same_thread": False})
     Base.metadata.create_all(engine)
     with Session(engine) as session:
         yield session
+
+# NOTE: In-memory SQLite cannot test WAL mode (WAL requires a file-based DB).
+# A dedicated test_wal_concurrency.py should use a tmp_path file-based DB
+# and verify PRAGMA journal_mode=wal returns "wal" after the connect event fires.
 
 class TestTradeRepository:
     def test_save_and_get(self, session):
@@ -403,7 +426,7 @@ class TestImageRepository:
         trade_repo.save(make_trade(exec_id="TRADE1"))
         
         img_repo = SqlAlchemyImageRepository(session)
-        image_id = img_repo.save("TRADE1", make_stored_image(b"RIFF\x00\x00\x00\x00WEBP_data"))
+        image_id = img_repo.save("trade", "TRADE1", make_stored_image(b"RIFF\x00\x00\x00\x00WEBP_data"))
         session.commit()
         
         retrieved = img_repo.get(image_id)
@@ -415,12 +438,12 @@ class TestImageRepository:
         trade_repo = SqlAlchemyTradeRepository(session)
         trade_repo.save(make_trade(exec_id="TRADE1"))
         img_repo = SqlAlchemyImageRepository(session)
-        img_repo.save("TRADE1", make_stored_image(b"RIFF\x00\x00\x00\x00WEBP_img1"))
-        img_repo.save("TRADE1", make_stored_image(b"RIFF\x00\x00\x00\x00WEBP_img2"))
-        img_repo.save("TRADE1", make_stored_image(b"RIFF\x00\x00\x00\x00WEBP_img3"))
+        img_repo.save("trade", "TRADE1", make_stored_image(b"RIFF\x00\x00\x00\x00WEBP_img1"))
+        img_repo.save("trade", "TRADE1", make_stored_image(b"RIFF\x00\x00\x00\x00WEBP_img2"))
+        img_repo.save("trade", "TRADE1", make_stored_image(b"RIFF\x00\x00\x00\x00WEBP_img3"))
         session.commit()
 
-        images = img_repo.get_for_trade("TRADE1")
+        images = img_repo.get_for_owner("trade", "TRADE1")
         assert len(images) == 3
 
     def test_thumbnail_generation(self, session):
@@ -428,7 +451,7 @@ class TestImageRepository:
         trade_repo.save(make_trade(exec_id="TRADE1"))
         img_repo = SqlAlchemyImageRepository(session)
         original_data = b"RIFF\x00\x00\x00\x00WEBP_screenshot_data_here"
-        image_id = img_repo.save("TRADE1", make_stored_image(original_data))
+        image_id = img_repo.save("trade", "TRADE1", make_stored_image(original_data))
         session.commit()
         # get thumbnail
         thumbnail = img_repo.get_thumbnail(image_id, max_size=200)
@@ -465,7 +488,7 @@ class TestSqlCipherConnection:
 
 ## Exit Criteria
 
-**Run `pytest tests/unit/ tests/integration/` — all should pass.**
+**Run `pytest tests/unit/ tests/integration/` — all should pass, including WAL concurrency tests (`test_wal_concurrency.py`).**
 
 ## Test Plan
 
@@ -474,6 +497,7 @@ class TestSqlCipherConnection:
 | `tests/integration/test_repositories.py` | Trade + Image repos with in-memory SQLite |
 | `tests/integration/test_database_connection.py` | SQLCipher encryption, Argon2 KDF |
 | `tests/integration/test_unit_of_work.py` | Transaction commit/rollback |
+| `tests/integration/test_wal_concurrency.py` | WAL mode enabled on file-based DB, per-thread session isolation |
 
 ## Outputs
 
