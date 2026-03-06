@@ -36,15 +36,29 @@ pytest -x --tb=long -v
 ```
 
 // turbo
-Run type checking:
+Run type checking (scope to touched packages per active phase):
 ```bash
-pyright packages/core/src/
+# Phase 1+1A: packages/core/src/
+# Phase 2+:   packages/core/src/ packages/infra/src/
+# Phase 4+:   packages/core/src/ packages/infra/src/ packages/api/src/
+# Phase 5+:   add mcp-server/ (use tsc --noEmit, vitest, eslint instead)
+pyright packages/core/src/    # ← adjust per active phase
 ```
 
 // turbo
 Run linting:
 ```bash
-ruff check packages/core/src/
+# Same phase scope as above
+ruff check packages/core/src/ # ← adjust per active phase
+```
+
+// turbo
+**Phase 5+ only** — Run TypeScript/MCP validation:
+```bash
+# Skip this block for Phases 1–4
+cd mcp-server && npx tsc --noEmit   # Type-check MCP server
+npx vitest run                       # MCP tool tests
+npx eslint src/                      # MCP linting
 ```
 
 Record all output.

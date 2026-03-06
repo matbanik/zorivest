@@ -72,7 +72,7 @@ BUILD ORDER (left to right):
 | 7 | [Distribution](07-distribution.md) | All | Versioning architecture, CI/CD pipelines (ci/release/publish/test-release), code signing, auto-update, OIDC publishing, rollback procedures |
 | 8 | [Market Data](08-market-data.md) | Phase 2, 3, 4 | 12-provider aggregation, encryption, MCP tools |
 | 9 | [Scheduling & Pipelines](09-scheduling.md) | Phase 2, 3, 4, 5, 8 | Policy engine, pipeline runner, APScheduler, 5 stages, 6 MCP tools |
-| 10 | [Service Daemon](10-service-daemon.md) | Phase 4, 7 | Cross-platform OS service (WinSW/launchd/systemd), ServiceManager, 3 MCP tools |
+| 10 | [Service Daemon](10-service-daemon.md) | Phase 4, 7, 9 | Cross-platform OS service (WinSW/launchd/systemd), ServiceManager, 3 MCP tools |
 
 ## Golden Rules
 

@@ -16,7 +16,7 @@
 | **3b** | Display mode service ($ hide, % hide, % mode) | ✅ Yes | Nothing | Formatting logic, mask functions |
 | **3c** | Account Review workflow (guided balance update) | ✅ Yes | Account entities | Step-through logic, API vs manual, dedup |
 | **4** | Port interfaces (Protocols) | No tests needed | Nothing | Type definitions only |
-| **5** | Commands & DTOs | ✅ Yes | Nothing | Pydantic validation |
+| **5** | Commands & DTOs | ✅ Yes | Nothing | Dataclass validation (Pydantic deferred to Phase 4) |
 | **6** | Service layer (trade, account, image, calculator) | ✅ Yes | Ports only | Mock repositories |
 | **7** | SQLAlchemy models (all tables) | ✅ Yes | SQLAlchemy | In-memory SQLite |
 | **8** | Repository implementations | ✅ Yes | Models | In-memory SQLite |

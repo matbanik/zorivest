@@ -11,6 +11,9 @@ The build order follows the **dependency rule**: inner layers first, outer layer
 ```
 Domain → Infrastructure → Services → REST API → MCP Server → GUI → Distribution
   (1)        (2)            (3)         (4)         (5)        (6)       (7)
+                                                    ↑                    ↑
+                                              Market Data(8)    Scheduling(9)
+                                                                Service Daemon(10)
 ```
 
 ---
@@ -21,13 +24,17 @@ Domain → Infrastructure → Services → REST API → MCP Server → GUI → D
 |-------|------|------|------------|-----------------|
 | 0 | [Build Order Overview](build-plan/00-overview.md) | `00-overview.md` | — | Dependency diagram, golden rules |
 | 1 | [Domain Layer](build-plan/01-domain-layer.md) | `01-domain-layer.md` | Nothing | Entities, calculator, ports, enums |
+| 1A | [Logging](build-plan/01a-logging.md) | `01a-logging.md` | Nothing | QueueHandler/Listener, JSONL, per-feature routing |
 | 2 | [Infrastructure](build-plan/02-infrastructure.md) | `02-infrastructure.md` | Phase 1 | SQLCipher DB, SQLAlchemy repos, UoW |
+| 2A | [Backup/Restore](build-plan/02a-backup-restore.md) | `02a-backup-restore.md` | Phase 2 | Encrypted backup, settings resolver |
 | 3 | [Service Layer](build-plan/03-service-layer.md) | `03-service-layer.md` | Phases 1–2 | Trade/Image/Account services |
 | 4 | [REST API](build-plan/04-rest-api.md) | `04-rest-api.md` | Phase 3 | FastAPI routes, TestClient tests |
-| 5 | [MCP Server](build-plan/05-mcp-server.md) | `05-mcp-server.md` | Phase 4 | TypeScript MCP tools, Vitest |
-| 6 | [GUI](build-plan/06-gui.md) | `06-gui.md` | Phase 4 | Electron + React desktop app |
+| 5 | [MCP Server](build-plan/05-mcp-server.md) | `05-mcp-server.md` | Phase 4, 8 | TypeScript MCP tools, Vitest |
+| 6 | [GUI](build-plan/06-gui.md) | `06-gui.md` | Phase 4, 8 | Electron + React desktop app |
 | 7 | [Distribution](build-plan/07-distribution.md) | `07-distribution.md` | All | Electron Builder, PyPI, npm |
-| 8 | [Market Data](build-plan/08-market-data.md) | `08-market-data.md` | Phases 2–4 | 9 market data providers, API key encryption, MCP tools |
+| 8 | [Market Data](build-plan/08-market-data.md) | `08-market-data.md` | Phases 2–4 | 12 market data providers, API key encryption, MCP tools |
+| 9 | [Scheduling & Pipelines](build-plan/09-scheduling.md) | `09-scheduling.md` | Phases 2–5, 8 | Policy engine, pipeline runner, APScheduler |
+| 10 | [Service Daemon](build-plan/10-service-daemon.md) | `10-service-daemon.md` | Phases 4, 7, 9 | Cross-platform OS service, ServiceManager |
 
 ---
 
@@ -40,7 +47,7 @@ Domain → Infrastructure → Services → REST API → MCP Server → GUI → D
 | [Image Architecture](build-plan/image-architecture.md) | `image-architecture.md` | BLOB vs filesystem, processing pipeline, validation |
 | [Dependency Manifest](build-plan/dependency-manifest.md) | `dependency-manifest.md` | Install order by phase, version requirements |
 | [Build Priority Matrix](build-plan/build-priority-matrix.md) | `build-priority-matrix.md` | P0–P3 tables with P1.5 market data, complete 68-item build order |
-| [Market Data API Reference](../_inspiration/_market_tools_api-architecture.md) | `_inspiration/` | Source patterns for 9-provider connectivity |
+| [Market Data API Reference](../_inspiration/_market_tools_api-architecture.md) | `_inspiration/` | Source patterns for 12-provider connectivity |
 
 ---
 
@@ -49,13 +56,17 @@ Domain → Infrastructure → Services → REST API → MCP Server → GUI → D
 | Phase | Status | Last Updated |
 |-------|--------|--------------|
 | 1 — Domain Layer | 🟡 In Progress | 2026-02-14 |
+| 1A — Logging | ⚪ Not Started | — |
 | 2 — Infrastructure | ⚪ Not Started | — |
+| 2A — Backup/Restore | ⚪ Not Started | — |
 | 3 — Service Layer | ⚪ Not Started | — |
 | 4 — REST API | ⚪ Not Started | — |
 | 5 — MCP Server | ⚪ Not Started | — |
 | 6 — GUI | ⚪ Not Started | — |
 | 7 — Distribution | ⚪ Not Started | — |
 | 8 — Market Data | ⚪ Not Started | — |
+| 9 — Scheduling | ⚪ Not Started | — |
+| 10 — Service Daemon | ⚪ Not Started | — |
 
 ---
 

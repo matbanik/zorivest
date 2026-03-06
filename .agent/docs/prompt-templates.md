@@ -8,10 +8,21 @@
 
 ```
 Read SOUL.md, AGENTS.md, and GEMINI.md.
+Read .agent/context/current-focus.md and .agent/context/known-issues.md.
 Read .agent/context/meu-registry.md and locate MEU-{N} ({slug}).
 Read the build plan section at docs/build-plan/{XX}-{section}.md §{X.X}.
 
-Use /tdd-implementation workflow to implement MEU-{N}.
+Task: implement MEU-{N} only.
+In scope: {one behavior slice — copy from MEU registry}.
+Out of scope: {explicit exclusions}.
+
+Start in PLANNING mode. Create an implementation plan with:
+1. Feature Intent Contract (FIC) with acceptance criteria.
+2. Test plan (which tests, which files).
+3. Exact validation commands for this MEU.
+4. Handoff file path: .agent/context/handoffs/{date}-meu-{N}-{slug}.md
+
+After plan approval, switch to /tdd-implementation workflow.
 ```
 
 ---

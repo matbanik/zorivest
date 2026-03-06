@@ -1,6 +1,6 @@
 # Phase 6f: GUI — Settings Pages
 
-> Part of [Zorivest Build Plan](../BUILD_PLAN.md) | Prerequisites: [Phase 4](04-rest-api.md), [Phase 2A](02a-backup-restore.md) | Parent: [Phase 6 GUI](06-gui.md) | Outputs: [Phase 7](07-distribution.md)
+> Part of [Zorivest Build Plan](../BUILD_PLAN.md) | Prerequisites: [Phase 4](04-rest-api.md), [Phase 2A](02a-backup-restore.md), [Phase 8](08-market-data.md), [Phase 10](10-service-daemon.md) | Parent: [Phase 6 GUI](06-gui.md) | Outputs: [Phase 7](07-distribution.md)
 
 ---
 

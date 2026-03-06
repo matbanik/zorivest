@@ -53,8 +53,8 @@ Follow `AGENTS.md` Roles & Workflows section for plan task fields and role trans
 - **Time is not a constraint.** Do not optimize for speed over quality.
 - **Token usage is not a constraint** (subscription-based). Do not truncate or skip work.
 - Run targeted tests after each change.
-- Run full blocking validation before declaring complete:
-  - `.\validate.ps1`
+- **MEU gate** (per-session): targeted `pytest`, `pyright`, `ruff`, and anti-placeholder scan scoped to touched packages/files.
+- **Phase gate** (phase exit only): run `.\validate.ps1` when ALL MEUs in a phase are complete. Do NOT run it as a MEU-level gate — it validates the full repo and will fail until later phases are scaffolded.
 - **Evidence-first completion:** `task.md` items may never be marked `[x]` unless the handoff or walkthrough contains a complete evidence bundle (changed files + commands executed + test results + artifact references).
 - **No-deferral rule:** Items containing `TODO`, `FIXME`, `NotImplementedError`, or placeholder stubs may not be marked `[x]`. Blocked items must use status `[B]` with a linked follow-up task in the handoff.
 - **Anti-placeholder enforcement:** Before declaring complete, run `rg "TODO|FIXME|NotImplementedError" packages/ src/` and resolve any matches.
@@ -115,8 +115,14 @@ At session end, create or update a handoff file:
 
 When the user invokes a workflow via slash command:
 
+- `/execution-session` → Read and follow `.agent/workflows/execution-session.md`
 - `/orchestrated-delivery` → Read and follow `.agent/workflows/orchestrated-delivery.md`
 - `/pre-build-research` → Read and follow `.agent/workflows/pre-build-research.md`
+- `/tdd-implementation` → Read and follow `.agent/workflows/tdd-implementation.md`
+- `/validation-review` → Read and follow `.agent/workflows/validation-review.md`
+- `/planning-corrections` → Read and follow `.agent/workflows/planning-corrections.md`
+- `/critical-review-feedback` → Read and follow `.agent/workflows/critical-review-feedback.md`
+- `/meu-handoff` → Read and follow `.agent/workflows/meu-handoff.md`
 
 ## MCP Servers
 

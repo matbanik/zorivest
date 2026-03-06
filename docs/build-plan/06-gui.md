@@ -1,6 +1,6 @@
 # Phase 6: GUI (Electron + React)
 
-> Part of [Zorivest Build Plan](../BUILD_PLAN.md) | Prerequisites: [Phase 4](04-rest-api.md) | Market Data Settings page requires [Phase 8](08-market-data.md) | Outputs: [Phase 7](07-distribution.md)
+> Part of [Zorivest Build Plan](../BUILD_PLAN.md) | Prerequisites: [Phase 4](04-rest-api.md), [Phase 8](08-market-data.md) | Scheduling page requires [Phase 9](09-scheduling.md) | Service Manager requires [Phase 10](10-service-daemon.md) | Outputs: [Phase 7](07-distribution.md)
 
 ---
 

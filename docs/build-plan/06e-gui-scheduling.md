@@ -1,6 +1,6 @@
 # Phase 6e: GUI — Scheduling & Pipelines
 
-> Part of [Phase 6: GUI](06-gui.md) | Prerequisites: [Phase 4](04-rest-api.md) | Outputs: [Phase 7](07-distribution.md)
+> Part of [Phase 6: GUI](06-gui.md) | Prerequisites: [Phase 4](04-rest-api.md), [Phase 9](09-scheduling.md) | Outputs: [Phase 7](07-distribution.md)
 
 ---
 

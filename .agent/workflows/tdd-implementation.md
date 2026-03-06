@@ -8,7 +8,7 @@ Use this workflow when implementing a Manageable Execution Unit (MEU). Opus is t
 
 ## Prerequisites
 
-- Read `CLAUDE.md` for project config
+- Read `GEMINI.md` for project config
 - Read `SOUL.md` for identity
 - Read `.agent/context/meu-registry.md` for MEU scope
 - Read `.agent/context/current-focus.md` for active phase
@@ -60,8 +60,13 @@ pytest tests/unit/test_{module}.py -x --tb=short -v
 // turbo
 Run type checking and linting:
 ```bash
-pyright packages/core/src/
-ruff check packages/core/src/
+# Scope to touched packages (expand as phases grow):
+# Phase 1+1A: packages/core/src/
+# Phase 2+:   packages/core/src/ packages/infra/src/
+# Phase 4+:   packages/core/src/ packages/infra/src/ packages/api/src/
+# Phase 5+:   add mcp-server/ (tsc --noEmit, vitest, eslint)
+pyright packages/core/src/    # ← adjust per active phase
+ruff check packages/core/src/ # ← adjust per active phase
 ```
 
 ### 6. Full Test Suite
