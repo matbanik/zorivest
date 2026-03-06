@@ -26,6 +26,7 @@ Own one scoped task from intake to completion. Select the minimum set of roles, 
 5. Maintain handoff notes in `.agent/context/handoffs/` using `.agent/context/handoffs/TEMPLATE.md`.
 6. Require explicit human approval before merge, release, or deploy actions.
 7. Require blocking validation checks to pass before declaring done.
+8. During PLANNING, check `.agent/skills/` for relevant skill files that match the task's target packages. Load applicable skills into context.
 
 ## Must Not Do
 

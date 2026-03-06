@@ -2,7 +2,7 @@
 
 > **Date**: {YYYY-MM-DD}
 > **MEU(s) Completed**: {list}
-> **Prompt Used**: `docs/execution/prompts/{YYYY-MM-DD}-{slug}.md`
+> **Prompt Used**: `docs/execution/prompts/{YYYY-MM-DD}-meu-{N}-{slug}.md`
 
 ---
 
@@ -109,4 +109,12 @@ EXAMPLE: {before → after}
 | Time to first green test | ___ |
 | Tests added | ___ |
 | Codex findings | ___ |
+| Handoff Score (X/7) | ___ |
+| Rule Adherence (%) | ___ |
 | Prompt→commit time | ___ |
+
+### Rules Sampled for Adherence Check
+| Rule | Source | Followed? |
+|------|--------|-----------|
+| _{rule description}_ | AGENTS.md §X | Yes/No |
+| _{rule description}_ | GEMINI.md §X | Yes/No |

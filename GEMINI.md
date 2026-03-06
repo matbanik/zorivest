@@ -41,7 +41,7 @@ Follow `AGENTS.md` Session Discipline, plus verify MCP servers (`pomera_diagnose
 ## Quality-First Policy
 
 > [!IMPORTANT]
-> Quality, wisdom, and expert-level experience metrics are above all other considerations. Time and token usage are NOT constraints — they must never influence design decisions, implementation depth, or verification thoroughness. If a task requires extended analysis, deeper research, or more comprehensive testing, do it without hesitation.
+> Quality, wisdom, and expert-level experience metrics are above all other considerations. They must never be compromised by time pressure or expedience. If a task requires extended analysis, deeper research, or more comprehensive testing, do it without hesitation.
 
 ## Planning Contract
 
@@ -49,18 +49,13 @@ Follow `AGENTS.md` Roles & Workflows section for plan task fields and role trans
 
 ## Execution Contract
 
-- One task per session; do not combine unrelated work streams.
-- **Time is not a constraint.** Do not optimize for speed over quality.
-- **Token usage is not a constraint** (subscription-based). Do not truncate or skip work.
+- Follow `AGENTS.md` §Session Discipline for session rules, time/token policy, and session end protocol.
 - Run targeted tests after each change.
 - **MEU gate** (per-session): targeted `pytest`, `pyright`, `ruff`, and anti-placeholder scan scoped to touched packages/files.
 - **Phase gate** (phase exit only): run `.\tools\validate.ps1` when ALL MEUs in a phase are complete. Do NOT run it as a MEU-level gate — it validates the full repo and will fail until later phases are scaffolded.
 - **Evidence-first completion:** `task.md` items may never be marked `[x]` unless the handoff or walkthrough contains a complete evidence bundle (changed files + commands executed + test results + artifact references).
 - **No-deferral rule:** Items containing `TODO`, `FIXME`, `NotImplementedError`, or placeholder stubs may not be marked `[x]`. Blocked items must use status `[B]` with a linked follow-up task in the handoff.
 - **Anti-placeholder enforcement:** Before declaring complete, run `rg "TODO|FIXME|NotImplementedError" packages/ src/` and resolve any matches.
-- Save session summary and next steps to `pomera_notes` with title `Memory/Session/Zorivest-{task}-{date}`.
-- Update `.agent/context/current-focus.md` with new state.
-- Human approval is required before merge/release/deploy.
 
 ## Dual-Agent Workflow
 
@@ -84,7 +79,6 @@ When implementing a Manageable Execution Unit (MEU):
 6. **Refactor** — clean up while keeping tests green
 7. **Run checks**: `pytest -x --tb=short -m "unit"`, `pyright`, `ruff check`
 8. **Create handoff** at `.agent/context/handoffs/{YYYY-MM-DD}-meu-{N}-{slug}.md`
-9. **Save state** to `pomera_notes` with title `Memory/Session/Zorivest-MEU-{N}-{date}`
 
 > ⚠️ **Test Immutability**: Once tests are written in Red phase, do NOT modify test assertions or expected values in Green phase. If a test expectation is wrong, fix the *implementation*, not the *test*. The only acceptable test modification in Green phase is fixing test setup/fixtures, never assertions.
 
@@ -109,7 +103,6 @@ At session end, create or update a handoff file:
 
 - Path: `.agent/context/handoffs/{YYYY-MM-DD}-{task-slug}.md`
 - Template: `.agent/context/handoffs/TEMPLATE.md`
-- Also save to `pomera_notes` for cross-session searchability
 
 ## Workflow Invocation
 

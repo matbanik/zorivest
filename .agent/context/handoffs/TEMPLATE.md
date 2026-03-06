@@ -24,7 +24,7 @@
 ## Coder Output
 
 - Changed files:
-- Design notes:
+- Design notes / ADRs referenced:
 - Commands run:
 - Results:
 

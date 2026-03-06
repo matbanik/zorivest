@@ -6,7 +6,7 @@ description: Structured execution + meta-reflection workflow for daily build ses
 
 Use this workflow at the start of each build session. It orchestrates four phases: **Prompt → Plan → Execute → Reflect** — creating a feedback loop that makes each successive session faster and higher quality.
 
-All files use **`{YYYY-MM-DD}-{slug}`** naming, consistent with `.agent/context/handoffs/`.
+All files use **`{YYYY-MM-DD}-{slug}`** naming, consistent with `.agent/context/handoffs/`. Prompts use **`{YYYY-MM-DD}-meu-{N}-{slug}.md`** to scope each session to a single MEU.
 
 // turbo-all
 
@@ -20,9 +20,9 @@ All files use **`{YYYY-MM-DD}-{slug}`** naming, consistent with `.agent/context/
 
 ### 1. Load Session Prompt
 
-Read the session's execution prompt from `docs/execution/prompts/{YYYY-MM-DD}-{slug}.md`.
+Read the session's execution prompt from `docs/execution/prompts/{YYYY-MM-DD}-meu-{N}-{slug}.md`.
 
-If no prompt exists for today, inform the user and stop. The human orchestrator creates prompts; you execute them.
+If no prompt exists for today, inform the user and stop. Agent A (GPT-5.4) drafts prompts; the human may tune them before execution.
 
 ### 2. Check Previous Reflections
 
@@ -115,10 +115,10 @@ Write a 10-line outline for the next session's prompt:
 Append a row to `docs/execution/metrics.md` using the existing table format:
 
 ```markdown
-| {YYYY-MM-DD} | MEU-{N} | {count} | {duration} | {count} | {count} | {duration} | {notes} |
+| {YYYY-MM-DD} | MEU-{N} | {count} | {duration} | {count} | {count} | {X}/7 | {N}% | {duration} | {notes} |
 ```
 
-The columns are: Date, MEU(s), Tool Calls, Time to First Green, Tests Added, Codex Findings, Prompt→Commit (min), Notes.
+The columns are: Date, MEU(s), Tool Calls, Time to First Green, Tests Added, Codex Findings, Handoff Score (X/7), Rule Adherence (%), Prompt→Commit (min), Notes.
 
 ### 6. Save Session State
 
@@ -142,7 +142,7 @@ Present the human with:
 
 ```
 ┌─────────────────────────────────────────────────────┐
-│  Human creates prompt in docs/execution/prompts/    │
+│  Agent A drafts MEU prompt; human tunes           │
 └───────────┬─────────────────────────────────────────┘
             ▼
 ┌─────────────────────────────────────────────────────┐

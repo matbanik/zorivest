@@ -12,10 +12,11 @@ Implement only the requested change, keep architecture boundaries intact, and pr
 
 1. `.agent/context/handoffs/{task}.md` (latest task handoff)
 2. `AGENTS.md`
-3. `.agent/docs/architecture.md`
-4. `.agent/docs/domain-model.md`
-5. `.agent/docs/testing-strategy.md`
-6. Files directly impacted by the task
+3. `docs/decisions/` (scan README index for relevant ADRs)
+4. `.agent/docs/architecture.md`
+5. `.agent/docs/domain-model.md`
+6. `.agent/docs/testing-strategy.md`
+7. Files directly impacted by the task
 
 ## Must Do
 

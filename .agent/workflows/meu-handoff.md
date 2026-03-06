@@ -60,6 +60,14 @@ Build plan reference: [link to docs/build-plan/XX-section.md]
 | AC-1 | tests/unit/test_xxx.py | test_yyy |
 | AC-2 | tests/unit/test_xxx.py | test_zzz |
 
+## Design Decisions & Known Risks
+
+- **Decision**: {what you chose} — **Reasoning**: {why, in 1-2 sentences} — **ADR**: {ADR-NNNN if created, or "inline" if minor}
+- **Assumption**: {any assumption made during implementation}
+- **Risk**: {any edge cases not fully covered}
+
+> For decisions affecting cross-package boundaries or rejecting plausible alternatives, create a formal ADR at `docs/decisions/`. Reference it here by number.
+
 ## Changed Files
 
 | File | Action | Description |
@@ -73,12 +81,6 @@ Build plan reference: [link to docs/build-plan/XX-section.md]
 | `pytest tests/unit/test_xxx.py -x -v` | PASS (N tests) | All green |
 | `pyright packages/core/src/` | PASS | No errors |
 | `ruff check packages/core/src/` | PASS | No warnings |
-
-## Design Decisions & Known Risks
-
-- **Decision**: {what you chose} — **Reasoning**: {why, in 1-2 sentences}
-- **Assumption**: {any assumption made during implementation}
-- **Risk**: {any edge cases not fully covered}
 
 ## FAIL_TO_PASS Evidence
 

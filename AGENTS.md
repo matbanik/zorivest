@@ -55,6 +55,7 @@ Hybrid monorepo — see `.agent/docs/architecture.md` for full details.
 
 Six deterministic roles in `.agent/roles/`: orchestrator, coder, tester, reviewer, researcher, guardrail.
 Canonical workflow: `.agent/workflows/orchestrated-delivery.md`.
+Skills (on-demand): `.agent/skills/` — load per task scope during PLANNING (see README inside).
 
 Every plan task must have: `task`, `owner_role`, `deliverable`, `validation` (exact commands), `status`.
 Role transitions must be explicit: `orchestrator → coder → tester → reviewer`.
