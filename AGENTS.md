@@ -7,7 +7,7 @@ For Antigravity-specific rules, see `GEMINI.md`. For identity, see `SOUL.md`.
 
 ```bash
 # Validation (blocking — must pass before proceeding)
-.\validate.ps1                          # Full validation pipeline
+.\tools\validate.ps1                    # Full validation pipeline
 pytest tests/unit/                      # Python unit tests
 npx vitest run                          # TypeScript unit tests
 pyright packages/                       # Python type check

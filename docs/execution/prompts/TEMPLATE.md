@@ -102,9 +102,9 @@ uv run ruff check packages/core/src tests
 rg "TODO|FIXME|NotImplementedError|pass\s+#\s*placeholder" packages tests
 ```
 
-Run `.\validate.ps1` only as an informational probe after the MEU gate above.
+Run `.\tools\validate.ps1` only as an informational probe after the MEU gate above.
 
-If `.\validate.ps1` fails because unrelated repo surfaces are intentionally out of scope, do not widen scope. Record the exact failure in the handoff under known risks and stop at `ready_for_review`.
+If `.\tools\validate.ps1` fails because unrelated repo surfaces are intentionally out of scope, do not widen scope. Record the exact failure in the handoff under known risks and stop at `ready_for_review`.
 
 ### F. Handoff and State
 
@@ -153,7 +153,7 @@ After the implementation and handoff are complete:
    - what slowed the session down
    - what instructions were ambiguous
    - what should change in the next prompt
-   - whether `validate.ps1` was usable as a MEU gate or only as a later checkpoint
+   - whether `tools/validate.ps1` was usable as a MEU gate or only as a later checkpoint
 
 ---
 
