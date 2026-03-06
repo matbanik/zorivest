@@ -39,7 +39,7 @@ export function registerDiscoveryTools(server: McpServer) {
       return {
         content: [{
           type: 'text' as const,
-          text: JSON.stringify({ toolsets: summary, total_tools: summary.reduce((n, ts) => n + ts.tool_count, 0) }, null, 2),
+          text: JSON.stringify({ success: true, data: { toolsets: summary, total_tools: summary.reduce((n, ts) => n + ts.tool_count, 0) }, error: null }, null, 2),
         }],
       };
     }
@@ -78,7 +78,7 @@ Get detailed information about a specific toolset including all tool names and d
         return {
           content: [{
             type: 'text' as const,
-            text: `Unknown toolset "${toolset_name}". Use list_available_toolsets to see available groups.`,
+            text: JSON.stringify({ success: false, data: null, error: `Unknown toolset "${toolset_name}". Use list_available_toolsets to see available groups.` }),
           }],
           isError: true,
         };
@@ -96,7 +96,7 @@ Get detailed information about a specific toolset including all tool names and d
       return {
         content: [{
           type: 'text' as const,
-          text: JSON.stringify(detail, null, 2),
+          text: JSON.stringify({ success: true, data: detail, error: null }, null, 2),
         }],
       };
     }
@@ -135,7 +135,7 @@ Dynamically activate a toolset for the current session. Only available on client
         return {
           content: [{
             type: 'text' as const,
-            text: `Unknown toolset "${toolset_name}". Use list_available_toolsets to see available groups.`,
+            text: JSON.stringify({ success: false, data: null, error: `Unknown toolset "${toolset_name}". Use list_available_toolsets to see available groups.` }),
           }],
           isError: true,
         };
@@ -144,7 +144,7 @@ Dynamically activate a toolset for the current session. Only available on client
         return {
           content: [{
             type: 'text' as const,
-            text: `Toolset "${toolset_name}" is already loaded (${ts.tools.length} tools).`,
+            text: JSON.stringify({ success: true, data: { toolset: toolset_name, status: 'already_loaded', tool_count: ts.tools.length }, error: null }),
           }],
         };
       }
@@ -153,7 +153,7 @@ Dynamically activate a toolset for the current session. Only available on client
         return {
           content: [{
             type: 'text' as const,
-            text: `Dynamic tool loading is not supported by your IDE. Restart the MCP server with --toolsets ${toolset_name} to include this category.`,
+            text: JSON.stringify({ success: false, data: null, error: `Dynamic tool loading is not supported by your IDE. Restart the MCP server with --toolsets ${toolset_name} to include this category.` }),
           }],
           isError: true,
         };
@@ -169,7 +169,7 @@ Dynamically activate a toolset for the current session. Only available on client
       return {
         content: [{
           type: 'text' as const,
-          text: `✅ Toolset "${toolset_name}" enabled (${ts.tools.length} tools). Tools are now available.`,
+          text: JSON.stringify({ success: true, data: { toolset: toolset_name, status: 'enabled', tool_count: ts.tools.length }, error: null }),
         }],
       };
     }

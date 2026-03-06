@@ -6,13 +6,13 @@
 
 ## Goal
 
-Build the trade planning surface: a Trade Plan page for thesis-driven pre-trade research, a Watchlist page for monitoring tickers, and a Position Calculator form for risk sizing. All pages follow the **list+detail split layout** pattern (see [Notes Architecture](../_notes-architecture.md)).
+Build the trade planning surface: a Trade Plan page for thesis-driven pre-trade research, a Watchlist page for monitoring tickers, and a Position Calculator form for risk sizing. All pages follow the **list+detail split layout** pattern (see [Notes Architecture](../../_inspiration/_notes-architecture.md)).
 
 ---
 
 ## Trade Plan Page
 
-> **Source**: [Domain Model Reference](domain-model-reference.md) `TradePlan` entity, [Input Index §5](input-index.md). Follows the list+detail split layout pattern from the [Notes Architecture](../_notes-architecture.md).
+> **Source**: [Domain Model Reference](domain-model-reference.md) `TradePlan` entity, [Input Index §5](input-index.md). Follows the list+detail split layout pattern from the [Notes Architecture](../../_inspiration/_notes-architecture.md).
 
 ### Layout
 

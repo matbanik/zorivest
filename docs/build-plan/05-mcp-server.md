@@ -280,7 +280,7 @@ export function getAuthHeaders(): Record<string, string> {
 ```
 
 > [!IMPORTANT]
-> The API key in the IDE config is used **once** during bootstrap to obtain a session token. The MCP server never stores the raw API key after bootstrap. If the session expires, the MCP server re-authenticates using the original header value.
+> **Auth lifecycle (HTTP-only, clarified 2026-03-06):** The API key lives in the IDE's MCP config (`Authorization: Bearer zrv_sk_...`). With Streamable HTTP transport, the IDE sends this header on every MCP request. The MCP server extracts the API key from the incoming HTTP request header — it does NOT store the key in memory. On first request, it exchanges the key for a short-lived session token via `POST /auth/unlock`. On session token expiry (401 from Python API), it re-extracts the key from the current incoming request and re-authenticates. This means: no secret storage, no cached credential replay. The session token (not the API key) is cached in memory with TTL.
 
 > [!NOTE]
 > **Design Decision (2026-02-26):** The MCP server always runs as a separate process.
@@ -744,7 +744,12 @@ Toolsets group related MCP tools into named categories for selective loading. Th
 | `tax` | 05h | 8 | ⬜ Deferred | Tax estimation, wash sales, lot management, harvesting |
 | `behavioral` | 05i | 3 | ⬜ Deferred | Mistake tracking, expectancy, Monte Carlo |
 
-**Default active tools:** `core` + `discovery` + `trade-analytics` + `trade-planning` = **37 tools** (fits under Cursor's 40-tool limit).
+**Default active tools:** `core` + `discovery` + `trade-analytics` + `trade-planning` = **37 tools**.
+
+> [!NOTE]
+> **Capability-first sizing (2026-03-06):** The 37-tool default is NOT optimized for Cursor's 40-tool limit. Cursor is the lowest-priority client (see [MCP Rollout Stages](00-overview.md#mcp-rollout-stages)). Dynamic clients (Antigravity, Cline) load all defaults without cap. The 37-tool count is a natural grouping. Static clients with hard limits use `--toolsets` to reduce below their cap.
+>
+> **Rollout scope (2026-03-06):** The 37-tool default is the **Stage 2** target per the [MCP Rollout Stages](00-overview.md#mcp-rollout-stages). Day-1 implementation (Stage 1) starts with **8–12 tools** for the trade CRUD vertical slice. Tools are added incrementally; the full default loadout is reached when all default toolset implementations are complete.
 
 ### `--toolsets` CLI Flag
 
@@ -783,45 +788,54 @@ Persistent toolset preferences file (optional, overridden by `--toolsets` flag):
 
 During the MCP `initialize` handshake, the server inspects the client's declared capabilities to select the optimal tool surfacing strategy.
 
-### Detection Flowchart
+### Detection Flowchart (Capability-First)
+
+> **Design Decision (2026-03-06):** Detection uses capability negotiation from the MCP `initialize` handshake first, then falls back to `clientInfo.name` only when capabilities are absent. This follows the MCP lifecycle spec which defines `clientInfo` as implementation metadata, not the primary contract.
 
 ```
 Server starts → receives initialize request from IDE
-  ├─ Client is Anthropic (Claude Code, Claude Desktop, API)
-  │  → Mark deferred toolsets with defer_loading: true
-  │  → Expose Tool Search meta-tool
-  │  → 15 core + discovery tools always loaded
-  │  → Remaining tools discoverable via BM25/regex search
   │
-  ├─ Client supports tools.listChanged (Gemini CLI, Cline, Antigravity)
-  │  → Expose meta-tools: list_available_toolsets, describe_toolset, enable_toolset
-  │  → Start with default toolsets (37 core tools)
-  │  → Agent dynamically loads categories via notifications/tools/list_changed
+  ├─ Step 1: Check capabilities (primary signal)
+  │  ├─ Has defer_loading support?
+  │  │  → Mode: anthropic (Tool Search, BM25 discovery)
+  │  │  → 15 core + discovery tools loaded, rest deferred
+  │  │
+  │  ├─ Has tools.listChanged support?
+  │  │  → Mode: dynamic (meta-tools for on-demand loading)
+  │  │  → All default toolsets loaded (no artificial cap)
+  │  │  → Agent dynamically loads deferred categories
+  │  │
+  │  └─ Neither capability present?
+  │     → Mode: static (pre-selected via --toolsets flag)
+  │     → Load only selected toolsets
+  │     → No dynamic changes during session
   │
-  └─ Client is capability-limited (Cursor, Windsurf)
-      → Use --toolsets flag / env var to pre-select categories
-      → Load only selected toolsets (stays under 40-tool limit)
-      → No dynamic changes during session
+  └─ Step 2: clientInfo.name fallback (only when capabilities absent)
+     → Used to refine behavior within a mode, not to select the mode
+     → Example: Anthropic client name → enable PTC routing
 ```
 
 ### Client Identification
 
-| Signal | Where | Example Values |
-|--------|-------|---------------|
-| `clientInfo.name` | MCP `initialize` request | `"claude-code"`, `"cursor"`, `"windsurf"`, `"cline"`, `"antigravity"` |
-| `capabilities.tools.listChanged` | MCP `initialize` request | `true` / absent |
-| `ZORIVEST_CLIENT_MODE` | Environment variable | `anthropic`, `dynamic`, `static` (manual override) |
+| Priority | Signal | Where | Purpose |
+|----------|--------|-------|--------|
+| **1 (primary)** | `capabilities.tools.listChanged` | MCP `initialize` | Capability negotiation — determines mode |
+| **1 (primary)** | `capabilities.tools.deferLoading` | MCP `initialize` | Anthropic-specific capability |
+| **2 (fallback)** | `clientInfo.name` | MCP `initialize` | Refine behavior within mode (e.g., PTC routing) |
+| **3 (override)** | `ZORIVEST_CLIENT_MODE` | Environment variable | Manual override for testing |
 
-### Mode Mapping
+### Mode Mapping (Capability-First)
 
-| `clientInfo.name` | Detected Mode | Rationale |
-|-------------------|--------------|----------|
-| `claude-code`, `claude-desktop` | `anthropic` | Supports `defer_loading` + Tool Search |
-| `cline`, `roo-code`, `antigravity`, `gemini-cli` | `dynamic` | Supports `tools.listChanged` notifications |
-| `cursor`, `windsurf` | `static` | No dynamic tool changes; pre-select via `--toolsets` |
-| (unknown) | `static` | Safe default — respects IDE limits |
+| Detected Capability | Detected Mode | clientInfo.name Examples | Rationale |
+|---------------------|--------------|------------------------|-----------|
+| `deferLoading` supported | `anthropic` | `claude-code`, `claude-desktop` | Supports `defer_loading` + Tool Search |
+| `tools.listChanged` supported | `dynamic` | `antigravity`, `cline`, `roo-code`, `gemini-cli` | Supports dynamic tool registration |
+| Neither | `static` | `cursor`, `windsurf`, (unknown) | Safe default — respects IDE limits |
 
 The `ZORIVEST_CLIENT_MODE` env var overrides auto-detection for testing or edge cases.
+
+> [!NOTE]
+> **Day-1 client (2026-03-06):** Antigravity (this agent) is the primary target. It supports `tools.listChanged`, so it gets `dynamic` mode with all default toolsets loaded. No 37-tool Cursor ceiling applies to the day-1 client.
 
 ---
 
@@ -997,8 +1011,29 @@ Tool call → withMetrics() → withGuard() → withConfirmation() → handler
 |--------|-----------|-------|
 | Import path | `@modelcontextprotocol/sdk/server/mcp.js` | v1.x convenience import |
 | Tool registration | `server.tool(name, desc, schema, handler)` | Convenience API; `registerTool()` is also available |
-| Tool output | `content: [{ type: 'text', text: ... }]` | Structured `outputSchema` support available in v1.25+ but not yet adopted |
+| Tool output | `content: [{ type: 'text', text: ... }]` | Day-1: text-only. Phase 5.E: add TypeScript `outputSchema` interfaces for internal contract enforcement. Post SDK #911 resolution: dual-format (`content[].text` + `structuredContent`). Tools MUST always include `content[].text` for backward compatibility, even after adding `structuredContent`. |
 | Zod schemas | `z.string()`, `z.number()`, etc. | Zod is the schema library for tool input validation |
+
+### Standard Response Envelope
+
+All MCP tool responses MUST use a consistent JSON envelope inside `content[].text`. This ensures predictable parsing by tests, reviewers, and future `structuredContent` migration:
+
+```json
+{
+  "success": true,
+  "data": { "...tool-specific payload..." },
+  "error": null
+}
+```
+
+| Field | Type | Description |
+|---|---|---|
+| `success` | `boolean` | Whether the operation completed without error |
+| `data` | `object \| array \| null` | Tool-specific response payload. `null` on error. |
+| `error` | `string \| null` | Error message. `null` on success. |
+
+> [!IMPORTANT]
+> This envelope is mandatory from Stage 1 (Prototype). When `structuredContent` is introduced in Stage 3, the same shape becomes the `structuredContent` payload, and `content[].text` continues to carry `JSON.stringify()` of the same object for backward compatibility.
 
 ### Migration Rules
 

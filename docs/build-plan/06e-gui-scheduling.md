@@ -14,7 +14,7 @@ Build the scheduling and pipeline management surface. This system is **primarily
 
 ## Schedule Management Page
 
-> **Source**: [Input Index §17](input-index.md). Follows the list+detail split layout pattern from the [Notes Architecture](../_notes-architecture.md).
+> **Source**: [Input Index §17](input-index.md). Follows the list+detail split layout pattern from the [Notes Architecture](../../_inspiration/_notes-architecture.md).
 
 ### Layout
 

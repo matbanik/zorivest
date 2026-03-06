@@ -2,7 +2,7 @@
 
 > **Status**: Research Complete — Pending Integration into BUILD_PLAN.md  
 > **Date**: 2026-02-12  
-> **Related**: [DESIGN_PROPOSAL.md](file:///p:/zorivest/DESIGN_PROPOSAL.md) · [APPLICATION_PURPOSE.md](file:///p:/zorivest/APPLICATION_PURPOSE.md) · [BUILD_PLAN.md](file:///p:/zorivest/BUILD_PLAN.md)
+> **Related**: [DESIGN_PROPOSAL.md](DESIGN_PROPOSAL.md) · [APPLICATION_PURPOSE.md](APPLICATION_PURPOSE.md) · [BUILD_PLAN.md](../docs/BUILD_PLAN.md)
 
 ---
 

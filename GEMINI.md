@@ -38,6 +38,11 @@ Read and internalize `SOUL.md` at session start — identity (Kael), core equati
 
 Follow `AGENTS.md` Session Discipline, plus verify MCP servers (`pomera_diagnose`). If `pomera` or `text-editor` unavailable, report via `notify_user` and stop.
 
+## Quality-First Policy
+
+> [!IMPORTANT]
+> Quality, wisdom, and expert-level experience metrics are above all other considerations. Time and token usage are NOT constraints — they must never influence design decisions, implementation depth, or verification thoroughness. If a task requires extended analysis, deeper research, or more comprehensive testing, do it without hesitation.
+
 ## Planning Contract
 
 Follow `AGENTS.md` Roles & Workflows section for plan task fields and role transitions.
@@ -45,6 +50,8 @@ Follow `AGENTS.md` Roles & Workflows section for plan task fields and role trans
 ## Execution Contract
 
 - One task per session; do not combine unrelated work streams.
+- **Time is not a constraint.** Do not optimize for speed over quality.
+- **Token usage is not a constraint** (subscription-based). Do not truncate or skip work.
 - Run targeted tests after each change.
 - Run full blocking validation before declaring complete:
   - `.\validate.ps1`
@@ -54,6 +61,16 @@ Follow `AGENTS.md` Roles & Workflows section for plan task fields and role trans
 - Save session summary and next steps to `pomera_notes` with title `Memory/Session/Zorivest-{task}-{date}`.
 - Update `.agent/context/current-focus.md` with new state.
 - Human approval is required before merge/release/deploy.
+
+## Dual-Agent Workflow
+
+| Aspect | Decision |
+|---|---|
+| **Reviewer model** | **GPT-5.4** (locked as baseline — do not downgrade) |
+| **Reviewer capability** | Run commands, execute tests, check builds, create handoff docs with test improvements |
+| **Validation priority** | 1. Contract tests pass/fail → 2. Security posture → 3. Adversarial edge cases → 4. Code style consistency → 5. Documentation accuracy |
+
+> The reviewer (GPT-5.4 Codex) runs commands and creates handoff docs for findings. It is not limited to prose-only review — it produces executable evidence.
 
 ## TDD-First Protocol (Implementation Agent — MANDATORY)
 

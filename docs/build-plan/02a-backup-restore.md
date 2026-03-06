@@ -8,7 +8,7 @@
 
 Implement three interconnected features: encrypted database backup/restore, application setting defaults with three-tier resolution, and portable JSON config export/import. This phase extends the infrastructure layer with new models and services before the service layer is built.
 
-> **Architecture reference**: See [`_backup-restore-architecture.md`](../_backup-restore-architecture.md) for the full backup/restore architecture (two-manager design, GFS rotation, restore flow).
+> **Architecture reference**: See [`_backup-restore-architecture.md`](../../_inspiration/_backup-restore-architecture.md) for the full backup/restore architecture (two-manager design, GFS rotation, restore flow).
 
 ---
 
@@ -206,7 +206,7 @@ class SettingsResolver:
 
 Three-stage validation pipeline that runs before any write to `SettingModel`. Pure domain logic — no I/O.
 
-> **Inspired by**: [`_settings-architecture.md`](../_settings-architecture.md) §3 SettingsValidator — multi-level validation with security checks.
+> **Inspired by**: [`_settings-architecture.md`](../../_inspiration/_settings-architecture.md) §3 SettingsValidator — multi-level validation with security checks.
 
 ```python
 # packages/core/src/zorivest_core/domain/settings_validator.py
@@ -373,7 +373,7 @@ class SettingsValidator:
 
 Thread-safe in-memory read cache with TTL-based staleness protection. Eliminates redundant DB reads for frequently-accessed settings (display flags, logging levels).
 
-> **Inspired by**: [`_settings-architecture.md`](../_settings-architecture.md) §2 DatabaseSettingsManager — in-memory cache with write-through invalidation.
+> **Inspired by**: [`_settings-architecture.md`](../../_inspiration/_settings-architecture.md) §2 DatabaseSettingsManager — in-memory cache with write-through invalidation.
 
 ```python
 # packages/core/src/zorivest_core/domain/settings_cache.py
@@ -541,7 +541,7 @@ manifest = {
 
 ### BackupManager (Automatic Backups)
 
-Extends the architecture from [`_backup-restore-architecture.md`](../_backup-restore-architecture.md):
+Extends the architecture from [`_backup-restore-architecture.md`](../../_inspiration/_backup-restore-architecture.md):
 
 ```python
 # packages/infrastructure/src/zorivest_infra/backup/backup_manager.py

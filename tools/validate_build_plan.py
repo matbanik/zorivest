@@ -31,6 +31,7 @@ import sys
 from pathlib import Path
 from dataclasses import dataclass, field
 from typing import Optional
+from urllib.parse import unquote
 
 
 # ─── Configuration ────────────────────────────────────────────────────────
@@ -182,17 +183,25 @@ def check_cross_references(result: ValidationResult) -> None:
         return
 
     existing_files = {f.name for f in BUILD_PLAN_DIR.glob("*.md")}
-    link_pattern = re.compile(r"\[([^\]]+)\]\(([^)]+\.md)\)")
+    link_pattern = re.compile(r"\[([^\]]+)\]\(([^)]+\.md[^)]*)\)")
 
     for md_file in BUILD_PLAN_DIR.glob("*.md"):
         content = md_file.read_text(encoding="utf-8")
         for match in link_pattern.finditer(content):
             link_text, target = match.group(1), match.group(2)
 
-            # Skip links to parent directory (e.g., ../BUILD_PLAN.md)
-            if target.startswith("../"):
-                target_path = BUILD_PLAN_DIR.parent / target.lstrip("../")
-                if not target_path.exists():
+            # Strip anchor fragments (e.g., file.md#section)
+            target_path_str = unquote(target.split("#")[0])
+
+            # Skip absolute URI links (file:///..., http://..., https://...)
+            if re.match(r"^(file|https?|ftp)://", target_path_str):
+                continue
+
+            # Resolve relative paths from the file's directory
+            if target_path_str.startswith("../"):
+                # Handle multi-parent paths (../../_inspiration/..., ../BUILD_PLAN.md, etc.)
+                resolved = (BUILD_PLAN_DIR / target_path_str).resolve()
+                if not resolved.exists():
                     line_num = content[:match.start()].count("\n") + 1
                     result.issues.append(Issue(
                         severity="ERROR",
@@ -204,7 +213,7 @@ def check_cross_references(result: ValidationResult) -> None:
                 continue
 
             # Check sibling file references
-            if target not in existing_files:
+            if target_path_str not in existing_files:
                 line_num = content[:match.start()].count("\n") + 1
                 result.issues.append(Issue(
                     severity="ERROR",

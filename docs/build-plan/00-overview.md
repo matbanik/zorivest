@@ -88,14 +88,27 @@ BUILD ORDER (left to right):
 | [Logging Infrastructure](01a-logging.md) | QueueHandler/Listener, JSONL, per-feature routing, redaction |
 | [Testing Strategy](testing-strategy.md) | MCP testing approaches, test infra, conftest |
 | [Image Architecture](image-architecture.md) | Image storage, processing pipeline, thumbnails |
-| [Backup/Restore Architecture](../_backup-restore-architecture.md) | Two-manager backup design, GFS rotation, restore flow |
+| [Backup/Restore Architecture](../../_inspiration/_backup-restore-architecture.md) | Two-manager backup design, GFS rotation, restore flow |
 | [Dependency Manifest](dependency-manifest.md) | Install order, package versions |
 | [Build Priority Matrix](build-priority-matrix.md) | P0–P3 sequenced build order (136 items) |
 | [Input Index](input-index.md) | Every human, agent, and programmatic input with test strategies |
 | [MCP Discovery & Toolsets](05j-mcp-discovery.md) | Toolset registry, discovery meta-tools, annotations, confirmation tokens |
 | [MCP Tool Index](mcp-tool-index.md) | Complete MCP tool catalog with annotations and toolset membership |
-| [Security Architecture](../_security-architecture.md) | Encryption, sensitive data detection, MCP circuit breaker (reference) |
+| [Security Architecture](../../_inspiration/_security-architecture.md) | Encryption, sensitive data detection, MCP circuit breaker (reference) |
 | [Scheduling Integration Roadmap](../../_inspiration/scheduling_research/scheduling-integration-roadmap.md) | Research synthesis, resolved decisions, library stack |
+
+## MCP Rollout Stages
+
+> **Design Decision (2026-03-06):** Phase 5 (MCP Server) is delivered in three explicit stages. Progression requires evidence that the current stage is stable before expanding scope.
+
+| Stage | Scope | Evidence Gate |
+|---|---|---|
+| **1. Prototype** (MEU 4–5) | 8–12 simplest tools. Antigravity only. Text-only responses (`{success, data, error}` envelope). Pipeline registry + tags exercised but with minimal tool surface. | All tools pass contract tests. Antigravity integration validated. |
+| **2. Single-client production** (MEU 6–8) | Full default toolset (37 tools). BM25 search active. `outputSchema` TypeScript interfaces for internal contracts. Dynamic toolset loading exercised. | All default toolsets pass. BM25 returns relevant results. No regressions from Stage 1. |
+| **3. Multi-client platform** (MEU 9+) | Second+ client targets (VS Code + ChatGPT Codex, Claude Code). Dual-format responses (`text` + `structuredContent`). IDE config template generation. | Multi-client contract tests pass. Dual-format responses validated on 2+ clients. |
+
+> [!NOTE]
+> The 37-tool default loadout in [05-mcp-server.md](05-mcp-server.md) is the **Stage 2 target**, not the day-1 starting point. Implementation begins with 8–12 tools in Stage 1.
 
 ## Execution Integrity Gates
 

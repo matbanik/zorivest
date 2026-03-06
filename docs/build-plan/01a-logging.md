@@ -14,7 +14,7 @@ Implement a centralized, file-only, thread-safe logging infrastructure with per-
 
 ### Correlation with `_logging-architecture.md`
 
-The existing [`_logging-architecture.md`](../_logging-architecture.md) documents Pomera's logging patterns (ErrorService + SettingsErrorHandler). Zorivest adopts the following concepts from that reference:
+The existing [`_logging-architecture.md`](../../_inspiration/_logging-architecture.md) documents Pomera's logging patterns (ErrorService + SettingsErrorHandler). Zorivest adopts the following concepts from that reference:
 
 | Pomera Concept | Zorivest Adaptation |
 |---|---|

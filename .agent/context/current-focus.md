@@ -1,6 +1,6 @@
 # Current Focus — Zorivest
 
-> Last updated: 2026-02-28
+> Last updated: 2026-03-06
 
 ## Active Phase
 
@@ -8,14 +8,14 @@
 
 ## Current Priority
 
-Execute Phase 1 + 1A using the dual-agent workflow (Opus 4.6 implementation → GPT 5.3 Codex validation). Work is broken into 11 Manageable Execution Units (MEUs). See `.agent/context/meu-registry.md` for full registry.
+Execute Phase 1 + 1A using the dual-agent workflow (Opus 4.6 implementation → GPT-5.4 Codex validation). Work is broken into 11 Manageable Execution Units (MEUs). See `.agent/context/meu-registry.md` for full registry.
 
 ## Agent Configuration
 
 | Agent | Role | Config File | Workflow |
 |-------|------|------------|----------|
-| Opus 4.6 (Antigravity) | Implementation (orchestrator, coder, tester) | `CLAUDE.md` | `.agent/workflows/tdd-implementation.md` |
-| GPT 5.3 Codex | Validation (reviewer, guardrail) | `AGENTS.md` | `.agent/workflows/validation-review.md` |
+| Opus 4.6 (Antigravity) | Implementation (orchestrator, coder, tester) | `GEMINI.md` | `.agent/workflows/tdd-implementation.md` |
+| GPT-5.4 Codex | Validation (reviewer, guardrail) | `AGENTS.md` | `.agent/workflows/validation-review.md` |
 | Handoff Protocol | — | — | `.agent/workflows/meu-handoff.md` |
 
 ## Next Steps
@@ -27,6 +27,7 @@ Execute Phase 1 + 1A using the dual-agent workflow (Opus 4.6 implementation → 
 2. After pilot validated, execute remaining MEUs in parallel tracks:
    - Track A (Phase 1): MEU-2 through MEU-8
    - Track B (Phase 1A): MEU-1A through MEU-3A
+3. ✅ **Validation baseline locked to GPT-5.4 Codex** for the reviewer/tester role (resolved 2026-03-06).
 
 ## Recently Completed
 
@@ -69,3 +70,5 @@ Execute Phase 1 + 1A using the dual-agent workflow (Opus 4.6 implementation → 
 - [x] `docs/build-plan/04-rest-api.md` + Phase 03/05 contract wholeness critically reviewed via workflow; findings saved in `.agent/context/handoffs/2026-02-27-build-plan-04-rest-api-wholeness-critical-review.md`
 - [x] Re-check completed for `docs/build-plan/04-rest-api.md` wholeness fixes; results saved in `.agent/context/handoffs/2026-02-27-build-plan-04-rest-api-wholeness-recheck.md`
 - [x] Final re-check completed for `docs/build-plan/04-rest-api.md` wholeness fixes; results saved in `.agent/context/handoffs/2026-02-27-build-plan-04-rest-api-wholeness-final-recheck.md`
+- [x] `docs/build-plan/` critically reviewed from the `friction-inventory.md` perspective with official MCP/Anthropic/OpenAI research and dual-agent implementation guidance; handoff saved in `.agent/context/handoffs/2026-03-06-docs-build-plan-friction-agentic-senior-review.md`
+- [x] 16 reference docs relocated from `docs/` to `_inspiration/`; `docs/build-plan/` links and remaining `_inspiration/` stale references normalized, handoff saved in `.agent/context/handoffs/2026-03-06-docs-inspiration-relocation.md`

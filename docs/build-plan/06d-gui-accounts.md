@@ -6,7 +6,7 @@
 
 ## Goal
 
-Build the Account Management surface: a list+detail page for Account CRUD, the Account Review wizard for guided balance updates, and a balance history view. All pages follow the **list+detail split layout** pattern (see [Notes Architecture](../_notes-architecture.md)).
+Build the Account Management surface: a list+detail page for Account CRUD, the Account Review wizard for guided balance updates, and a balance history view. All pages follow the **list+detail split layout** pattern (see [Notes Architecture](../../_inspiration/_notes-architecture.md)).
 
 ---
 

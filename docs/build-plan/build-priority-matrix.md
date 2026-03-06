@@ -254,5 +254,36 @@
 
 ---
 
+## Research-Enhanced Additions (2026-03-06)
+
+> 10 features from the [MCP ecosystem research synthesis](file:///p:/zorivest/_inspiration/agentic_mcp_research/research-synthesis-correlation.md), placed in build plan execution order by dependency.
+
+### Phase 5: MCP Server — Research Items
+
+| Order | What | Tests First? | Insert After | Notes |
+|-------|------|-------------|-------------|-------|
+| **5.A** | Multi-dimensional tags (Tier 1) | ✅ Yes | Item 13 | Tag schema before any tool registers. Foundation for pipeline, BM25, metrics. |
+| **5.B** | Pipeline stage registry (Tier 1) | ✅ Yes | Item 15e | Named stages need guard/metrics first. Formalizes composition into pluggable registry. |
+| **5.C** | Health check route (Tier 1) | ✅ Yes | Item 15f | `/health` on port 8766. Service daemon needs it for liveness probes. |
+| **5.D** | Schema drift detection CI (Tier 1) | ✅ Yes | Item 14 | Zod ↔ Pydantic comparison. Phase 5 exit criterion, CI formalized in Phase 7. |
+| **5.E** | Structured output schemas (Tier 2) | ✅ Yes | Item 15k | Internal TypeScript interfaces first. Dual-format after SDK #911. |
+| **5.F** | BM25 tool search (Tier 1) | ✅ Yes | Item 15k | Indexes tags from 5.A. Powers Anthropic discovery mode. |
+| **5.G** | Keyword-triggered loading (Tier 2) | ✅ Yes | After 5.F | "tax" mention → suggest `enable_toolset('tax')`. Requires toolsets + client detection. |
+| **5.H** | IDE config templates (Tier 2) | ✅ Yes | After 15k | Auto-generate per-IDE MCP configs. Requires client detection to know IDE types. |
+
+### Post-Phase 8: Market Data — Research Items
+
+| Order | What | Tests First? | Insert After | Notes |
+|-------|------|-------------|-------------|-------|
+| **8.A** | Code mode enhancement (Tier 2) | ✅ Yes | Item 29 | Expand PTC beyond Anthropic analytics. Requires stable tools from Phases 5 + 8. |
+
+### Post-Phase 9: Scheduling — Research Items
+
+| Order | What | Tests First? | Insert After | Notes |
+|-------|------|-------------|-------------|-------|
+| **9.A** | Recursive orchestration (Tier 3) | ✅ Yes | Item 49 | Multi-agent MCP chaining for automated pipelines. Requires scheduling engine maturity. |
+
+---
+
 **The first lines of code you write are `test_calculator.py` and `test_logging_config.py`. Phase 1 and Phase 1A start in parallel — both have zero dependencies.**
 

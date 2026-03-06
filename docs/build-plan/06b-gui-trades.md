@@ -8,7 +8,7 @@
 
 Build the trades page as the primary data surface — a full-featured TanStack Table with inline image badges, a slide-out detail panel for trade entry/editing, a screenshot panel for image management, and a trade report/journal form for post-trade analysis.
 
-All pages follow the **list+detail split layout** pattern (see [Notes Architecture](../_notes-architecture.md) for the reference implementation).
+All pages follow the **list+detail split layout** pattern (see [Notes Architecture](../../_inspiration/_notes-architecture.md) for the reference implementation).
 
 ---
 
