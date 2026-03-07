@@ -119,14 +119,17 @@ else {
 }
 
 Write-Host "=== Evidence Bundle Check ===" -ForegroundColor Yellow
-$latestHandoff = Get-ChildItem -Path ".agent/context/handoffs/" -Filter "2*.md" -ErrorAction SilentlyContinue |
-Sort-Object Name -Descending | Select-Object -First 1
+$latestHandoff = Get-ChildItem -Path ".agent/context/handoffs/" -Filter "*.md" -ErrorAction SilentlyContinue |
+Where-Object { $_.Name -ne "README.md" -and $_.Name -ne "TEMPLATE.md" } |
+Sort-Object LastWriteTime -Descending | Select-Object -First 1
 if ($latestHandoff) {
     $content = Get-Content $latestHandoff.FullName -Raw
     $missingFields = @()
-    if ($content -notmatch "Evidence bundle location:\s*\S") { $missingFields += "Evidence bundle location" }
-    if ($content -notmatch "Pass/fail matrix:\s*\S") { $missingFields += "Pass/fail matrix" }
-    if ($content -notmatch "Commands run:\s*\S") { $missingFields += "Commands run" }
+    # Support both legacy format (Evidence bundle location, Pass/fail matrix, Commands run)
+    # and MEU handoff format (FAIL_TO_PASS Evidence, Commands Executed, Codex Validation Report)
+    if ($content -notmatch "(Evidence bundle location|FAIL_TO_PASS Evidence)") { $missingFields += "Evidence/FAIL_TO_PASS" }
+    if ($content -notmatch "(Pass/fail matrix|Commands Executed)") { $missingFields += "Pass-fail/Commands" }
+    if ($content -notmatch "(Commands run|Codex Validation Report)") { $missingFields += "Commands/Codex Report" }
     if ($missingFields.Count -gt 0) {
         Write-Host "⚠️  Latest handoff ($($latestHandoff.Name)) missing evidence fields:" -ForegroundColor Yellow
         $missingFields | ForEach-Object { Write-Host "   - $_" -ForegroundColor Yellow }
