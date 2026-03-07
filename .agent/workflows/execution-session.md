@@ -68,6 +68,7 @@ Key rules during execution:
 - Follow `.agent/workflows/meu-handoff.md` for handoff creation
 - **Execute all MEUs in the approved project plan**, completing each MEU's TDD cycle before starting the next
 - **Keep the project handoff set explicit**: in multi-MEU projects, `implementation-plan.md` and `task.md` must list the exact handoff path for each MEU so `/critical-review-feedback` can load the full correlated review set instead of only the latest handoff
+- **Keep review continuity explicit**: for a given project plan folder, maintain one rolling `-plan-critical-review.md` file for plan review passes and one rolling `-implementation-critical-review.md` file for project-level implementation critique/recheck passes
 - If a new spec gap appears mid-execution, stop coding, return to planning/research, update the plan with the source-backed resolution, and get approval on the revised plan before continuing
 - **Do not auto-commit** — propose conventional commit messages to the human instead
 

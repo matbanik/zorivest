@@ -48,6 +48,7 @@ Hybrid monorepo — see `.agent/docs/architecture.md` for full details.
 - **Do not bring up time or token usage** in design discussions, trade-off analyses, or implementation decisions. Quality, wisdom, and expert experience are the only optimization targets.
 - **At session start:** Read `SOUL.md`, check `pomera_notes` (`search_term: "Zorivest"`), read `.agent/context/current-focus.md` and `known-issues.md`.
 - **At session end:** Save to `pomera_notes` (`Memory/Session/Zorivest-{project-slug}-{date}`), update `current-focus.md`, create/update handoff(s) at `.agent/context/handoffs/`.
+- **Handoff continuity:** For the same `docs/execution/plans/{YYYY-MM-DD}-{project-slug}/` target, keep plan review in one rolling `-plan-critical-review.md` file and project implementation critique/recheck in one rolling `-implementation-critical-review.md` file. Append updates to the same file instead of creating new `-recheck`, `-final`, or `-approved` variants.
 - **Under-specified build-plan handling:** Never make silent assumptions, silent scope cuts, or silent deferrals. Resolve gaps in this order: (1) local canonical docs (`docs/build-plan/`, linked references, ADRs, approved reflections/handoffs when they establish carry-forward rules), (2) targeted web research against primary/current sources to confirm best practice, (3) explicit human decision only if materially different product behaviors remain plausible, sources conflict, or the decision is irreversible/high-risk.
 - **Human approval** is mandatory before merge, release, or deploy.
 

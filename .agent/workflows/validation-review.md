@@ -150,6 +150,12 @@ Create or append to the handoff artifact:
 - If MEDIUM or LOW, flag for human review even if verdict is "approved"
 ```
 
+Validation continuity rule:
+
+- keep Codex validation updates in the same MEU handoff file
+- append a new dated `Codex Validation Report` section on each review cycle
+- do not create separate validation, recheck, or critique files for the same MEU
+
 ## Verdict Definitions
 
 - **approved**: All checks pass, all AV items pass, all FIC criteria verified. MEU is complete.

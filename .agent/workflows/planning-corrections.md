@@ -34,25 +34,19 @@ The agent discovers the review findings file automatically. The user only needs 
 ### Discovery Steps
 
 ```powershell
-# Step A: Find the most recent originating critical-review handoff
+# Step A: Find the most recent canonical critical-review handoff
 Get-ChildItem .agent/context/handoffs/*critical-review.md |
   Sort-Object LastWriteTime -Descending | Select-Object -First 1
-
-# Step B: Check if follow-up rechecks/corrections exist for that review
-$stem = "<slug-from-step-A>"
-Get-ChildItem .agent/context/handoffs/*$stem*-recheck*.md,
-              .agent/context/handoffs/*$stem*-corrections*.md |
-  Sort-Object LastWriteTime -Descending
 ```
 
 ### Resolution Logic
 
 1. **Primary target**: the most recent `*critical-review.md` file (Step A)
-2. **Chain context**: any `*-recheck*` or `*-corrections*` files that share the same task slug (Step B)
-3. If the chain shows the latest recheck verdict is `approved`, inform the user that no open findings remain
-4. If the chain shows `changes_required`, use the most recent recheck's findings as the working set
+2. **Working context**: use the latest dated update inside that canonical review file as the current state
+3. If the latest update verdict is `approved`, inform the user that no open findings remain
+4. If the latest update verdict is `changes_required`, use that update's findings as the working set
 
-> The glob `*critical-review.md` (no inner wildcard) prevents matching recheck files like `*-critical-review-recheck.md`, avoiding the duplicate-rows problem.
+> Review continuity rule: repeated rechecks stay in the same canonical critical-review file. Do not expect parallel `-recheck` or `-corrections` files for the same plan or implementation thread.
 
 ### Scope Override
 
@@ -64,7 +58,7 @@ If the user provides an explicit review file path, use that instead of auto-disc
 
 ### Step 1: Parse Findings (Orchestrator)
 
-Read the auto-discovered review file (and chain context if present) and extract a structured findings list:
+Read the auto-discovered review file and extract a structured findings list from the latest unresolved review update:
 
 | # | Severity | Summary | File(s) | Line(s) |
 |---|----------|---------|---------|---------|
@@ -144,12 +138,13 @@ rg -n "\.agent/context/handoffs" docs/build-plan/
 
 ### Step 6: Write Handoff (Reviewer)
 
-Create or update a handoff in `.agent/context/handoffs/` that merges the plan + walkthrough:
+Update the same canonical critical-review handoff in `.agent/context/handoffs/`:
 
-- **File name**: `{YYYY-MM-DD}-{original-task-slug}-corrections.md`
-- **Contents**: plan summary, diffs/changes made, verification results, auto-discovered source review path and chain context
+- append a dated `Corrections Applied` or `Recheck` section
+- include plan summary, diffs/changes made, verification results, and the current verdict
+- keep the full review thread in that single file for the target plan or implementation review
 
-Use the combined plan+walkthrough format (not separate files).
+Use the combined plan+walkthrough format inside the existing file rather than creating a parallel corrections artifact.
 
 ---
 
@@ -161,7 +156,7 @@ Use the combined plan+walkthrough format (not separate files).
 4. **Verification must be slug/anchor-aware.** Phrase-only grep is insufficient when headings were renamed. Always check both space form (`foo bar`) and slug form (`foo-bar`).
 5. **Build plan docs must not link into `.agent/`.** Design decisions should be self-contained in the build-plan file, not dependent on session artifacts.
 6. **User approval required before execution.** Plan → approve → execute → verify.
-7. **Resolve the canonical review first.** Always trace back to the originating `*critical-review.md` — do not start from a recheck or corrections file without understanding the full chain.
+7. **Resolve the canonical review first.** Always work from the canonical `*critical-review.md` file and update that same file as the review evolves.
 
 ---
 
@@ -169,7 +164,7 @@ Use the combined plan+walkthrough format (not separate files).
 
 Deliver to the user via `notify_user`:
 
-1. Auto-discovered review target (which file was found, chain context, and resolution logic)
+1. Auto-discovered review target (which canonical file was found and how the latest update was selected)
 2. Verified findings count (confirmed vs refuted)
 3. Corrections plan (for approval)
 4. After execution: verification results + handoff path

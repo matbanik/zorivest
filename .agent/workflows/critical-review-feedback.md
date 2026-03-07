@@ -8,7 +8,13 @@ Use this workflow when you want an adversarial review of either:
 - a new execution plan that has not started yet, or
 - completed work that already produced handoff artifacts
 
-The agent automatically discovers what to review when no paths are provided. For implementation reviews it expands from the seed handoff to the full correlated project handoff set when one project produced multiple MEU handoffs. For plan reviews it selects the newest unstarted execution plan folder and reviews it for accuracy and consistency before implementation begins.
+Review continuity is required:
+
+- keep one rolling review handoff file per execution plan folder for plan-review passes
+- keep one rolling review handoff file per execution plan folder for project-level implementation critique/recheck passes
+- append dated updates to that same file; do not create `-recheck`, `-final`, `-approved`, or similarly fragmented follow-up files for the same target
+
+The agent automatically discovers what to review when no paths are provided. Auto-discovery starts from `docs/execution/plans/` first, then uses correlated handoffs to decide whether the newest plan should be reviewed as a pre-implementation plan or as an implementation artifact set. For implementation reviews it expands from the seed handoff to the full correlated project handoff set when one project produced multiple MEU handoffs. For plan reviews it selects the newest unstarted execution plan folder and reviews it for accuracy and consistency before implementation begins.
 
 This is the workflow for prompts like:
 
@@ -48,6 +54,12 @@ Read these files in order:
 
 The agent discovers the review target automatically. The user only needs to invoke the workflow — no file paths required.
 
+Auto-discovery is **plan-first**:
+
+1. inspect `docs/execution/plans/` for the newest candidate project folder
+2. inspect that plan's `task.md` / `implementation-plan.md`
+3. then check correlated handoffs to determine whether the plan is still unstarted or has moved into implementation review mode
+
 ### Review Modes
 
 Auto-discovery supports two modes:
@@ -58,22 +70,28 @@ Auto-discovery supports two modes:
 ### Discovery Steps
 
 ```powershell
-# 1. Find most recent WORK handoffs (exclude review artifacts to prevent review-of-review)
-Get-ChildItem .agent/context/handoffs/*.md -Exclude README.md,TEMPLATE.md |
-  Where-Object { $_.Name -notmatch '(critical-review|corrections|recheck)' } |
-  Sort-Object LastWriteTime -Descending | Select-Object -First 3
-
-# 2. Find recent execution plan folders
+# 1. Find recent execution plan folders FIRST
 Get-ChildItem docs/execution/plans/ -Directory |
   Sort-Object LastWriteTime -Descending | Select-Object -First 5
 
-# 3. Inspect the newest candidate plan's task state
+# 2. Inspect the newest candidate plan's task state
 Get-Content docs/execution/plans/<candidate>/task.md
+
+# 3. Find most recent WORK handoffs (exclude review artifacts to prevent review-of-review)
+Get-ChildItem .agent/context/handoffs/*.md -Exclude README.md,TEMPLATE.md |
+  Where-Object { $_.Name -notmatch '(critical-review|corrections|recheck)' } |
+  Sort-Object LastWriteTime -Descending | Select-Object -First 10
+
+# 4. Correlate any handoffs to the candidate plan by date/slug/declared handoff paths
+rg -n "<candidate-date>|<candidate-slug>|Create handoff:|Handoff Naming" \
+  .agent/context/handoffs docs/execution/plans/<candidate>
 ```
 
 ### Mode Selection Rule
 
-Choose **plan review mode** when all of the following are true for the newest correlated plan candidate:
+Start from the **newest execution plan folder** as the primary discovery candidate.
+
+Choose **plan review mode** when all of the following are true for that candidate:
 
 1. No correlated work handoff exists yet for that plan
 2. `task.md` shows implementation has not started yet
@@ -85,12 +103,13 @@ Treat a plan as **not started** when file state indicates planning/validation on
 - no MEU handoff paths created by the plan exist yet
 - no task items indicate completed coding, testing, or handoff creation
 
-Otherwise choose **implementation review mode**.
+Otherwise choose **implementation review mode** for that same correlated project.
 
 From the results in implementation review mode:
 
-- **Primary review target**: the most recent work handoff (by `LastWriteTime`)
-- **Secondary scope**: the execution plan folder whose date/slug matches the handoff. If no match, use the most recent plan folder as fallback.
+- **Primary review target**: the work handoff set correlated to the newest plan candidate
+- **Seed handoff**: the most recent correlated work handoff (by `LastWriteTime`)
+- **Secondary scope**: the execution plan folder whose date/slug matches that handoff set. If no match, keep the newest plan folder as the project anchor and explain the fallback.
 - If the handoff references specific files or folders, those become **additional scope**
 
 From the results in plan review mode:
@@ -133,6 +152,20 @@ If the user provides one handoff path from a multi-MEU integrated project but do
 
 If the user provides an execution plan path with no `only` constraint, default to reviewing the full plan folder (`implementation-plan.md` + `task.md`) even if no handoff exists yet.
 
+### Canonical Review File Rule
+
+Derive the review handoff path from the correlated execution plan folder, and reuse it across the full review thread for that target:
+
+- **Plan review mode**: `.agent/context/handoffs/{plan-folder-name}-plan-critical-review.md`
+- **Implementation review mode**: `.agent/context/handoffs/{plan-folder-name}-implementation-critical-review.md`
+
+Examples:
+
+- `docs/execution/plans/2026-03-07-commands-events-analytics/` -> `.agent/context/handoffs/2026-03-07-commands-events-analytics-plan-critical-review.md`
+- `docs/execution/plans/2026-03-07-commands-events-analytics/` -> `.agent/context/handoffs/2026-03-07-commands-events-analytics-implementation-critical-review.md`
+
+If the canonical review file already exists, append a new dated section to it instead of creating another handoff file.
+
 ### Zorivest Build-Plan Default (Required)
 
 When the target artifact describes work on `docs/build-plan/` (including plan/walkthrough/handoff files for build-plan sessions):
@@ -161,7 +194,7 @@ When creating a plan for this workflow, every task must include:
 | Load context and target artifact | `orchestrator` | Scoped review objective + target list | `Get-Content <target>` | `pending` |
 | Run evidence sweeps | `tester` | Command outputs (grep/diff/link checks) | `rg`, `git diff`, file reads | `pending` |
 | Produce findings-first review | `reviewer` | Severity-ranked findings + verdict | Cross-check line references | `pending` |
-| Write review handoff | `reviewer` | `.agent/context/handoffs/{date}-{slug}-critical-review.md` | file created + readable | `pending` |
+| Write or update canonical review handoff | `reviewer` | Canonical review file for the correlated plan folder | file created or updated + readable | `pending` |
 
 ---
 
@@ -169,7 +202,7 @@ When creating a plan for this workflow, every task must include:
 
 ## Step 1: Discover and Scope the Review (Orchestrator)
 
-Run the auto-discovery commands to determine whether this is a **plan review** or an **implementation review**. Identify the target plan folder, then:
+Run the auto-discovery commands to determine whether this is a **plan review** or an **implementation review**. Start from the newest execution plan folder, identify the target plan folder, then:
 
 - if implementation review: identify the seed handoff, verify handoff-plan correlation, and enumerate the full handoff set when the project is multi-MEU
 - if plan review: verify the plan is genuinely unstarted and define the review scope from plan artifacts plus the canonical documents they rely on
@@ -314,11 +347,14 @@ Use the reviewer role output contract and report **findings first**.
 
 ---
 
-## Step 5: Write the Review Handoff (Reviewer)
+## Step 5: Write or Update the Canonical Review Handoff (Reviewer)
 
-Create a new handoff in:
+Write to the canonical review file derived from the correlated plan folder:
 
-`.agent/context/handoffs/{YYYY-MM-DD}-{task-slug}-critical-review.md`
+- **Plan review mode**: `.agent/context/handoffs/{plan-folder-name}-plan-critical-review.md`
+- **Implementation review mode**: `.agent/context/handoffs/{plan-folder-name}-implementation-critical-review.md`
+
+If that file already exists, append a new dated review update section. Do not fork the same review thread into additional `-recheck`, `-approved`, `-final`, or `-corrections` files.
 
 Use `.agent/context/handoffs/TEMPLATE.md`, but for review-only tasks:
 
@@ -333,6 +369,7 @@ Use `.agent/context/handoffs/TEMPLATE.md`, but for review-only tasks:
 3. Findings with file/line references
 4. Explicit verdict (`approved` or `changes_required`)
 5. Concrete follow-up actions
+6. If this is not the first pass, a dated update heading so the other agent can read one file and see the full review history in order
 
 ---
 
@@ -359,6 +396,8 @@ If `.agent/context/current-focus.md` already has unrelated user edits in progres
 7. **Never review a review.** Auto-discovery excludes `*critical-review*`, `*-corrections*`, and `*-recheck*` handoffs as review seeds. Valid targets are work handoffs or unstarted execution plan folders.
 8. **If no implementation handoff exists yet, review the newest unstarted execution plan instead of failing discovery.** This is a plan-accuracy and consistency review, not an implementation validation.
 9. **When plan-review findings require changes, route the fix phase through `/planning-corrections`.** That workflow applies to plan adjustments as well as post-implementation corrections.
+10. **Auto-discovery starts from `docs/execution/plans/` first.** Do not begin by picking the newest handoff unless the user explicitly provides a handoff path.
+11. **One rolling review file per target.** For the same execution plan folder, keep plan-review updates in the same `-plan-critical-review.md` file and implementation-review updates in the same `-implementation-critical-review.md` file.
 
 ---
 
@@ -371,7 +410,7 @@ Return to the user:
 - Open questions / assumptions
 - Review verdict (`changes_required` or `approved`)
 - Residual risk statement
-- Path to the newly created review handoff
+- Path to the created or updated canonical review handoff
 
 If no findings are discovered, say so explicitly and list remaining verification gaps (if any).
 

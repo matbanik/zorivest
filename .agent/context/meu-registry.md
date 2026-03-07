@@ -15,9 +15,9 @@
 | MEU-3 | `entities` | [01 §1.4](../docs/build-plan/01-domain-layer.md) | Trade, Account, BalanceSnapshot, ImageAttachment | ✅ approved |
 | MEU-4 | `value-objects` | [01 §1.2](../docs/build-plan/01-domain-layer.md) | Money, PositionSize, Ticker, Conviction, ImageData | ✅ approved |
 | MEU-5 | `ports` | [01 §1.5](../docs/build-plan/01-domain-layer.md) | Protocol interfaces (TradeRepo, ImageRepo, UoW, BrokerPort) | ✅ approved |
-| MEU-6 | `commands-dtos` | [01 §1.2](../docs/build-plan/01-domain-layer.md) | Commands (CreateTrade, AttachImage) + DTOs | ⬜ pending |
-| MEU-7 | `events` | [01 §1.2](../docs/build-plan/01-domain-layer.md) | Domain events (TradeCreated, BalanceUpdated, etc.) | ⬜ pending |
-| MEU-8 | `analytics` | [01 §1.2](../docs/build-plan/01-domain-layer.md) | Pure analytics functions (expectancy, drawdown, SQN, MFE/MAE, PFOF, cost, strategy) | ⬜ pending |
+| MEU-6 | `commands-dtos` | [01 §1.2](../docs/build-plan/01-domain-layer.md) | Commands (CreateTrade, AttachImage) + DTOs | ✅ approved |
+| MEU-7 | `events` | [01 §1.2](../docs/build-plan/01-domain-layer.md) | Domain events (TradeCreated, BalanceUpdated, etc.) | ✅ approved |
+| MEU-8 | `analytics` | [01 §1.2](../docs/build-plan/01-domain-layer.md) | Pure analytics functions (expectancy, drawdown, SQN, MFE/MAE, PFOF, cost, strategy) | ✅ approved |
 
 ## Phase 1A: Logging Infrastructure (P0, Parallel)
 
