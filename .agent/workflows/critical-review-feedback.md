@@ -1,13 +1,18 @@
----
-description: Reusable findings-first critical review workflow for completed work handoffs, correlated multi-handoff project sets, and related docs/files (consistency, regressions, missing updates, weak verification).
+description: Reusable findings-first critical review workflow for unstarted execution plans, completed work handoffs, correlated multi-handoff project sets, and related docs/files (accuracy, consistency, regressions, missing updates, weak verification).
 ---
 
 # Critical Review Feedback Workflow
 
-Use this workflow when work is already done and you want an adversarial review + feedback handoff (not implementation). The agent automatically discovers what to review — no file paths required — and expands from the seed handoff to the full correlated project handoff set when one project produced multiple MEU handoffs.
+Use this workflow when you want an adversarial review of either:
+
+- a new execution plan that has not started yet, or
+- completed work that already produced handoff artifacts
+
+The agent automatically discovers what to review when no paths are provided. For implementation reviews it expands from the seed handoff to the full correlated project handoff set when one project produced multiple MEU handoffs. For plan reviews it selects the newest unstarted execution plan folder and reviews it for accuracy and consistency before implementation begins.
 
 This is the workflow for prompts like:
 
+- "Review the newest plan before implementation starts"
 - "Critically review the latest handoff"
 - "Check if the claimed changes were actually completed"
 - "Find regressions/missed references after a docs refactor"
@@ -43,6 +48,13 @@ Read these files in order:
 
 The agent discovers the review target automatically. The user only needs to invoke the workflow — no file paths required.
 
+### Review Modes
+
+Auto-discovery supports two modes:
+
+1. **Plan review mode**: the newest execution plan exists but implementation has not started yet
+2. **Implementation review mode**: work handoff artifacts already exist for the target project
+
 ### Discovery Steps
 
 ```powershell
@@ -51,21 +63,47 @@ Get-ChildItem .agent/context/handoffs/*.md -Exclude README.md,TEMPLATE.md |
   Where-Object { $_.Name -notmatch '(critical-review|corrections|recheck)' } |
   Sort-Object LastWriteTime -Descending | Select-Object -First 3
 
-# 2. Find execution plan folder related to the discovered handoff
-#    Match by date prefix or slug from the handoff filename
+# 2. Find recent execution plan folders
 Get-ChildItem docs/execution/plans/ -Directory |
-  Sort-Object LastWriteTime -Descending | Select-Object -First 3
+  Sort-Object LastWriteTime -Descending | Select-Object -First 5
+
+# 3. Inspect the newest candidate plan's task state
+Get-Content docs/execution/plans/<candidate>/task.md
 ```
 
-From the results:
+### Mode Selection Rule
+
+Choose **plan review mode** when all of the following are true for the newest correlated plan candidate:
+
+1. No correlated work handoff exists yet for that plan
+2. `task.md` shows implementation has not started yet
+3. The user did not explicitly request review of a completed handoff or review artifact
+
+Treat a plan as **not started** when file state indicates planning/validation only, for example:
+
+- implementation tasks are still `pending` / unchecked
+- no MEU handoff paths created by the plan exist yet
+- no task items indicate completed coding, testing, or handoff creation
+
+Otherwise choose **implementation review mode**.
+
+From the results in implementation review mode:
 
 - **Primary review target**: the most recent work handoff (by `LastWriteTime`)
 - **Secondary scope**: the execution plan folder whose date/slug matches the handoff. If no match, use the most recent plan folder as fallback.
 - If the handoff references specific files or folders, those become **additional scope**
 
+From the results in plan review mode:
+
+- **Primary review target**: the newest unstarted execution plan folder
+- **Required scope**: `implementation-plan.md`, `task.md`, and any canonical docs/specs those files cite as authority
+- **Additional scope**: registry, prior approved reflections/handoffs, or build-plan docs if the plan depends on them for carry-forward rules
+
 ### Correlation Rule
 
 The agent must correlate the handoff and plan folder — not blindly pair the newest of each. Use the date prefix and slug to match. For example, `2026-03-07-meu-2-enums.md` pairs with `docs/execution/plans/2026-03-07-domain-entities-ports/` if that plan contains MEU-2.
+
+For plan review mode, correlate the plan folder to repository state by confirming that no sibling MEU handoffs have been created yet and that the task file still reflects pre-implementation status.
 
 ### Project-Integrated Handoff Expansion (Required)
 
@@ -93,6 +131,8 @@ If the user provides explicit paths, use those instead of auto-discovery. Auto-d
 
 If the user provides one handoff path from a multi-MEU integrated project but does not explicitly say `only` that file, default to expanding to the full correlated handoff set.
 
+If the user provides an execution plan path with no `only` constraint, default to reviewing the full plan folder (`implementation-plan.md` + `task.md`) even if no handoff exists yet.
+
 ### Zorivest Build-Plan Default (Required)
 
 When the target artifact describes work on `docs/build-plan/` (including plan/walkthrough/handoff files for build-plan sessions):
@@ -117,7 +157,7 @@ When creating a plan for this workflow, every task must include:
 
 | task | owner_role | deliverable | validation | status |
 |---|---|---|---|---|
-| Auto-discover review targets | `orchestrator` | Seed handoff + correlated plan folder + expanded handoff set (if multi-MEU) | `Get-ChildItem` commands above | `pending` |
+| Auto-discover review targets | `orchestrator` | Review mode + target plan folder + seed handoff or unstarted-plan target + expanded handoff set (if multi-MEU) | `Get-ChildItem` commands above + `Get-Content <task.md>` | `pending` |
 | Load context and target artifact | `orchestrator` | Scoped review objective + target list | `Get-Content <target>` | `pending` |
 | Run evidence sweeps | `tester` | Command outputs (grep/diff/link checks) | `rg`, `git diff`, file reads | `pending` |
 | Produce findings-first review | `reviewer` | Severity-ranked findings + verdict | Cross-check line references | `pending` |
@@ -129,7 +169,12 @@ When creating a plan for this workflow, every task must include:
 
 ## Step 1: Discover and Scope the Review (Orchestrator)
 
-Run the auto-discovery commands to identify the seed handoff and correlated plan folder. Verify the handoff–plan correlation before proceeding, then enumerate the full handoff set when the project is multi-MEU. Then define:
+Run the auto-discovery commands to determine whether this is a **plan review** or an **implementation review**. Identify the target plan folder, then:
+
+- if implementation review: identify the seed handoff, verify handoff-plan correlation, and enumerate the full handoff set when the project is multi-MEU
+- if plan review: verify the plan is genuinely unstarted and define the review scope from plan artifacts plus the canonical documents they rely on
+
+Then define:
 
 - **Objective**: what the review is checking (contract drift, missed updates, regressions, validation quality, etc.)
 - **Out-of-scope**: what to exclude
@@ -147,11 +192,11 @@ Also identify the **claimed changes** from every artifact in scope:
 
 Read:
 
-1. Seed handoff / artifact (auto-discovered or user-specified)
+1. Primary target artifact (seed handoff or unstarted plan folder)
 2. Correlated execution plan (`implementation-plan.md` and `task.md` from `docs/execution/plans/`)
-3. Every sibling handoff identified from the correlated project
-4. Claimed files from the full handoff set
-5. Relevant related files likely to drift (indexes, references, downstream links)
+3. Every sibling handoff identified from the correlated project when in implementation review mode
+4. Claimed files from the full handoff set when in implementation review mode
+5. Relevant related files likely to drift (indexes, references, downstream links, registry, prior canon)
 6. Current diffs (`git diff`) for the claimed files when available
 
 For Zorivest build-plan review sessions (required):
@@ -183,11 +228,26 @@ Use fast, reproducible command checks. Prefer `rg`.
 7. **Actual build-plan file changes (Zorivest required when in scope)**
    - Did the claimed changes materially appear in `docs/build-plan/*`, with evidence tied to file lines/state?
 
+### Additional Required Sweep Types (Plan Review Mode)
+
+1. **Plan-task consistency**
+   - Do `implementation-plan.md` and `task.md` describe the same project scope, task order, and outputs?
+2. **Status readiness**
+   - Does file state really indicate not-started work, or has implementation already begun?
+3. **Role/ownership consistency**
+   - Does every task include the required role, deliverable, validation command, and status?
+4. **Validation specificity**
+   - Are validation commands exact, runnable, and scoped to the work described?
+5. **Dependency/order correctness**
+   - Are MEUs sequenced coherently, with no impossible order or missing prerequisites?
+6. **Source-traceability**
+   - Are acceptance criteria and non-spec rules tagged to `Spec`, `Local Canon`, `Research-backed`, or `Human-approved` sources?
+
 ### Suggested Commands (Adapt Per Task)
 
 ```powershell
-# 1) Read the claimed artifact and target files
-Get-Content .agent/context/handoffs/<target>.md
+# 1) Read the primary review artifact and target files
+Get-Content <primary-artifact>
 Get-Content docs/execution/plans/<project>/implementation-plan.md
 
 # 2) Check exact and variant phrases (space + slug forms)
@@ -217,7 +277,7 @@ Use the reviewer role output contract and report **findings first**.
 ### Priorities (in order)
 
 1. Broken behavior/contracts (including broken links/anchors in docs)
-2. Contradictions between handoff claims and actual file state
+2. Contradictions between plan or handoff claims and actual file state
 3. Missed downstream updates (indexes, references, summaries, counts)
 4. Weak or misleading verification evidence
 5. Residual risk / testing gaps
@@ -240,6 +300,17 @@ Use the reviewer role output contract and report **findings first**.
 | DR-5 | Evidence auditability | Commands/diffs are reproducible (not placeholders only) |
 
 > If code changes are also in scope, additionally apply the reviewer role's Adversarial Verification Checklist (AV-1..AV-5).
+
+### Plan Review Checklist (required in plan review mode)
+
+| # | Check | What To Look For |
+|---|---|---|
+| PR-1 | Plan/task alignment | `implementation-plan.md` and `task.md` describe the same scope and order |
+| PR-2 | Not-started confirmation | No file-state evidence that coding/testing/handoffs already began |
+| PR-3 | Task contract completeness | Every task has `task`, `owner_role`, `deliverable`, `validation`, `status` |
+| PR-4 | Validation realism | Commands are specific enough to prove the intended work |
+| PR-5 | Source-backed planning | Rules beyond explicit spec text are tagged to an allowed source basis |
+| PR-6 | Handoff/corrections readiness | Multi-MEU handoff paths are explicit when applicable, and review findings can be resolved via `/planning-corrections` |
 
 ---
 
@@ -285,7 +356,9 @@ If `.agent/context/current-focus.md` already has unrelated user edits in progres
 4. **Do not bury findings behind summaries**; findings come first.
 5. **For Zorivest build-plan work, always inspect and cite actual `docs/build-plan/*` file changes** (or explicit file-state checks when diffs are unavailable). A handoff-only review is invalid.
 6. **When a correlated project produced multiple MEU handoffs, load all of them.** The newest work handoff is only the discovery seed.
-7. **Never review a review.** Auto-discovery excludes `*critical-review*`, `*-corrections*`, and `*-recheck*` handoffs. Only work handoffs are valid targets.
+7. **Never review a review.** Auto-discovery excludes `*critical-review*`, `*-corrections*`, and `*-recheck*` handoffs as review seeds. Valid targets are work handoffs or unstarted execution plan folders.
+8. **If no implementation handoff exists yet, review the newest unstarted execution plan instead of failing discovery.** This is a plan-accuracy and consistency review, not an implementation validation.
+9. **When plan-review findings require changes, route the fix phase through `/planning-corrections`.** That workflow applies to plan adjustments as well as post-implementation corrections.
 
 ---
 
@@ -308,11 +381,12 @@ If no findings are discovered, say so explicitly and list remaining verification
 
 This workflow is part of a three-workflow orchestration cycle:
 
-1. `/create-plan` → plan and execute new work
-2. `/critical-review-feedback` → review completed work (this workflow)
+1. `/create-plan` → plan new work
+2. `/critical-review-feedback` → review a new plan or completed work (this workflow)
 3. `/planning-corrections` → resolve findings from this workflow
 
 When to switch:
 
+- Use this workflow immediately after `/create-plan` when a new plan needs adversarial review before implementation starts.
 - Use `/planning-corrections` if the verdict is `changes_required` and the user wants fixes applied.
 - Use `/create-plan` to start new implementation work.
