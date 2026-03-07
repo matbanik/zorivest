@@ -9,7 +9,7 @@
 
 | MEU | Slug | Build Plan Ref | Description | Status |
 |-----|------|---------------|-------------|--------|
-| MEU-1 | `calculator` | [01 §1.3](../docs/build-plan/01-domain-layer.md) | PositionSizeCalculator + PositionSizeResult | ⬜ pending |
+| MEU-1 | `calculator` | [01 §1.3](../docs/build-plan/01-domain-layer.md) | PositionSizeCalculator + PositionSizeResult | ✅ approved |
 | MEU-2 | `enums` | [01 §1.2](../docs/build-plan/01-domain-layer.md) | All StrEnum definitions (15 enums) | ⬜ pending |
 | MEU-3 | `entities` | [01 §1.4](../docs/build-plan/01-domain-layer.md) | Trade, Account, BalanceSnapshot, ImageAttachment | ⬜ pending |
 | MEU-4 | `value-objects` | [01 §1.2](../docs/build-plan/01-domain-layer.md) | Money, PositionSize, Ticker, Conviction, ImageData | ⬜ pending |

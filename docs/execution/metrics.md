@@ -6,7 +6,7 @@
 
 | Date | MEU(s) | Tool Calls | Time to First Green | Tests Added | Codex Findings | Handoff Score | Rule Adherence | Prompt→Commit (min) | Notes |
 |------|--------|------------|---------------------|-------------|---------------|---------------|----------------|---------------------|-------|
-| 2026-03-06 | MEU-1 | — | — | — | — | —/7 | —% | — | Pilot |
+| 2026-03-06 | MEU-1 | ~50 | ~8 min | 9 | 0 (approved) | 7/7 | 100% | ~15 min | Pilot — bootstrap + TDD validated |
 
 ## Measurement Definitions
 

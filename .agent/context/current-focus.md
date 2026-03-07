@@ -20,10 +20,7 @@ Execute Phase 1 + 1A using the dual-agent workflow (Opus 4.6 implementation → 
 
 ## Next Steps
 
-1. **Pilot MEU-1 (Calculator)** — validates entire dual-agent workflow:
-   - Opus: write `test_calculator.py` + `calculator.py` using TDD
-   - Codex: run tests, adversarial review, evidence bundle
-   - Human: approve pilot results before scaling
+1. **MEU-2 (Enums)** — prompt ready at `docs/execution/prompts/2026-03-07-meu-2-enums.md`; next session should run Opus planning + TDD
 2. After pilot validated, execute remaining MEUs in parallel tracks:
    - Track A (Phase 1): MEU-2 through MEU-8
    - Track B (Phase 1A): MEU-1A through MEU-3A
