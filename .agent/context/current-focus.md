@@ -1,6 +1,6 @@
 # Current Focus — Zorivest
 
-> Last updated: 2026-03-06
+> Last updated: 2026-03-07
 
 ## Active Phase
 
@@ -20,8 +20,8 @@ Execute Phase 1 + 1A using the dual-agent workflow (Opus 4.6 implementation → 
 
 ## Next Steps
 
-1. **MEU-2 (Enums)** — 🟡 ready_for_review, awaiting Codex validation
-2. After validation, run `/create-plan` to scope the next project from pending MEUs
+1. **MEU-2 (Enums)** — ✅ approved on 2026-03-07
+2. Run `/create-plan` to scope the next project from pending MEUs
 3. Track A (Phase 1): MEU-3 through MEU-8
 4. Track B (Phase 1A): MEU-1A through MEU-3A
 5. ✅ **Validation baseline locked to GPT-5.4 Codex** for the reviewer/tester role (resolved 2026-03-06).

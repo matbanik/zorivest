@@ -9,6 +9,8 @@ This document defines the handoff artifact format for passing work between agent
 > **Target size**: 2,000–5,000 tokens per handoff. Reference files by path. Never inline full source code.
 >
 > **Multi-MEU sessions**: A project session produces one handoff per MEU. Each handoff is validated independently by Codex.
+>
+> **Project correlation rule**: In multi-MEU sessions, the correlated `docs/execution/plans/{YYYY-MM-DD}-{project-slug}/implementation-plan.md` and `task.md` must enumerate the full handoff set for the project. `/critical-review-feedback` uses those artifacts to expand review scope from the seed handoff to all sibling handoffs produced by the plan.
 
 ## Handoff Artifact Location
 
@@ -54,8 +56,8 @@ Build plan reference: [link to docs/build-plan/XX-section.md]
 {What must be true for users when this MEU ships}
 
 ### Acceptance Criteria
-- AC-1: {concrete, testable condition}
-- AC-2: {concrete, testable condition}
+- AC-1 (Source: Spec): {concrete, testable condition}
+- AC-2 (Source: Local Canon / Research-backed / Human-approved): {concrete, testable condition}
 - ...
 
 ### Negative Cases
@@ -68,10 +70,13 @@ Build plan reference: [link to docs/build-plan/XX-section.md]
 | AC-1 | tests/unit/test_xxx.py | test_yyy |
 | AC-2 | tests/unit/test_xxx.py | test_zzz |
 
+> Any criterion that is not explicit in the target build-plan section must cite the exact local file path or web source used to resolve it. `Best practice` alone is not acceptable.
+
 ## Design Decisions & Known Risks
 
 - **Decision**: {what you chose} — **Reasoning**: {why, in 1-2 sentences} — **ADR**: {ADR-NNNN if created, or "inline" if minor}
-- **Assumption**: {any assumption made during implementation}
+- **Source Basis**: {exact file path(s) and/or URL(s) that justify non-explicit behavior}
+- **Assumption**: {only if still unresolved and the handoff status is `blocked` or `changes_required`}
 - **Risk**: {any edge cases not fully covered}
 
 > For decisions affecting cross-package boundaries or rejecting plausible alternatives, create a formal ADR at `docs/decisions/`. Reference it here by number.

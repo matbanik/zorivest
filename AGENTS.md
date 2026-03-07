@@ -48,7 +48,7 @@ Hybrid monorepo — see `.agent/docs/architecture.md` for full details.
 - **Do not bring up time or token usage** in design discussions, trade-off analyses, or implementation decisions. Quality, wisdom, and expert experience are the only optimization targets.
 - **At session start:** Read `SOUL.md`, check `pomera_notes` (`search_term: "Zorivest"`), read `.agent/context/current-focus.md` and `known-issues.md`.
 - **At session end:** Save to `pomera_notes` (`Memory/Session/Zorivest-{project-slug}-{date}`), update `current-focus.md`, create/update handoff(s) at `.agent/context/handoffs/`.
-- **Ambiguity:** ALWAYS ask before proceeding. Never make silent assumptions.
+- **Under-specified build-plan handling:** Never make silent assumptions, silent scope cuts, or silent deferrals. Resolve gaps in this order: (1) local canonical docs (`docs/build-plan/`, linked references, ADRs, approved reflections/handoffs when they establish carry-forward rules), (2) targeted web research against primary/current sources to confirm best practice, (3) explicit human decision only if materially different product behaviors remain plausible, sources conflict, or the decision is irreversible/high-risk.
 - **Human approval** is mandatory before merge, release, or deploy.
 
 ## Roles & Workflows
@@ -59,6 +59,7 @@ Skills (on-demand): `.agent/skills/` — load per task scope during PLANNING (se
 
 Every plan task must have: `task`, `owner_role`, `deliverable`, `validation` (exact commands), `status`.
 Role transitions must be explicit: `orchestrator → coder → tester → reviewer`.
+Every acceptance criterion or rule that is not explicit in the target build-plan section must be tagged with its source: `Spec`, `Local Canon`, `Research-backed`, or `Human-approved`. `Best practice` by itself is not an acceptable source label.
 
 ## Testing (TDD)
 

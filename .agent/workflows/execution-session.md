@@ -24,7 +24,7 @@ Artifact naming conventions:
 
 ### 1. Create Project Plan
 
-Run the `/create-plan` workflow (`.agent/workflows/create-plan.md`). This replaces per-session prompt drafting — the agent discovers what's done, identifies what's next, and uses reasoning to scope a coherent project.
+Run the `/create-plan` workflow (`.agent/workflows/create-plan.md`). This replaces per-session prompt drafting — the agent discovers what's done, identifies what's next, runs a spec-sufficiency gate, resolves thin specs via research when needed, and scopes a coherent project.
 
 ### 2. Check Previous Reflections
 
@@ -39,29 +39,20 @@ Antigravity (Opus 4.6) will:
 1. Enter **PLANNING mode** via `task_boundary`
 2. Discover progress from handoffs + meu-registry
 3. Scope the next project from pending build-plan MEUs
-4. Generate `implementation_plan.md` and `task.md` in the brain folder
-5. Present the plan to the human via `notify_user` with `BlockedOnUser: true`
+4. Resolve under-specified requirements via local canonical docs + targeted web research before finalizing the FIC
+5. Generate `implementation_plan.md` and `task.md` in the project folder
+6. Present the plan to the human via `notify_user` with `BlockedOnUser: true`
 
 **Human Review Loop**:
 - The human reviews the generated plan
 - If changes are needed → provide feedback → Antigravity regenerates the plan
 - If approved → proceed to Step 4
 
-**Plan Archival** (after approval, before execution):
-Copy the approved plan artifacts from the brain folder into the project's execution tracking folder:
+**Plan Location** (established during `/create-plan` workflow):
 
-```bash
-# Copy from Antigravity brain folder to project execution/plans/
-mkdir -p docs/execution/plans/{YYYY-MM-DD}-{project-slug}
+The `/create-plan` workflow writes `implementation-plan.md` and `task.md` directly to `docs/execution/plans/{YYYY-MM-DD}-{project-slug}/`. This is the single source of truth — all revisions happen here. No copy step is needed.
 
-cp ~/.gemini/antigravity/brain/{conversation-id}/implementation_plan.md \
-   docs/execution/plans/{YYYY-MM-DD}-{project-slug}/implementation-plan.md
-
-cp ~/.gemini/antigravity/brain/{conversation-id}/task.md \
-   docs/execution/plans/{YYYY-MM-DD}-{project-slug}/task.md
-```
-
-> **Why archive?** Brain folders are per-conversation and not version-controlled. Copying plans into `docs/execution/plans/{YYYY-MM-DD}-{project-slug}/` preserves them in git and allows cross-session comparison of planning quality.
+> **Why here?** Brain folders are per-conversation and not version-controlled. Writing directly to `docs/execution/plans/` preserves plans in git and allows cross-session comparison of planning quality.
 
 ### 4. Execute the Approved Plan
 
@@ -76,11 +67,13 @@ Key rules during execution:
 - Follow `.agent/workflows/tdd-implementation.md` for all TDD work
 - Follow `.agent/workflows/meu-handoff.md` for handoff creation
 - **Execute all MEUs in the approved project plan**, completing each MEU's TDD cycle before starting the next
+- **Keep the project handoff set explicit**: in multi-MEU projects, `implementation-plan.md` and `task.md` must list the exact handoff path for each MEU so `/critical-review-feedback` can load the full correlated review set instead of only the latest handoff
+- If a new spec gap appears mid-execution, stop coding, return to planning/research, update the plan with the source-backed resolution, and get approval on the revised plan before continuing
 - **Do not auto-commit** — propose conventional commit messages to the human instead
 
 ### 5. Meta-Reflection (Post-Execution)
 
-After completing all phases, create the reflection file at `docs/execution/reflections/{YYYY-MM-DD}-{project-slug}-reflection.md` using the template at `docs/execution/reflections/TEMPLATE.md`.
+After Codex validation has completed for the project's MEU handoff set, create the reflection file at `docs/execution/reflections/{YYYY-MM-DD}-{project-slug}-reflection.md` using the template at `docs/execution/reflections/TEMPLATE.md`.
 
 Structure the reflection with these sections:
 

@@ -24,6 +24,7 @@ Perform findings-first review with emphasis on defects, behavioral regressions, 
 4. State explicitly when no critical findings exist.
 5. Update handoff notes with review verdict and required follow-ups.
 6. Complete the Adversarial Verification Checklist for every review.
+7. Reject unsourced acceptance criteria, silent scope narrowing, and deferrals disguised as "best practice".
 
 ## Adversarial Verification Checklist
 
@@ -36,12 +37,14 @@ For each completed task, verify the following and report pass/fail in the handof
 | AV-3 | **Changed paths exercised by assertions** | Changed code paths are not just executed — they are checked by explicit `assert` / `expect` statements. Code coverage alone is insufficient. |
 | AV-4 | **No skipped/xfail masking** | Tests exist but are not blanket-marked `@pytest.mark.skip`, `xfail`, or `it.skip`. Any skip must have a documented reason and tracking issue. |
 | AV-5 | **No unresolved placeholders** | No `TODO`, `FIXME`, `NotImplementedError`, `pass  # placeholder`, or skeleton stubs remain in completed deliverables. |
+| AV-6 | **Source-backed criteria** | Any behavior added beyond explicit build-plan text is traceable to `Local Canon`, `Research-backed`, or `Human-approved` sources. Uncited "best practice" rules fail review. |
 
 ## Must Not Do
 
 1. Do not prioritize style nitpicks over correctness risks.
 2. Do not hide uncertainty; list assumptions and open questions.
 3. Do not approve when blocking risks are unresolved.
+4. Do not approve when the implementation contract depends on unsourced planner assumptions.
 
 ## Output Contract
 

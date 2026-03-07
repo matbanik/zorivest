@@ -9,7 +9,7 @@ Use this workflow for implementation tasks where code is changed.
 ## Default Role Sequence
 
 1. `orchestrator` (required)
-2. `researcher` (optional, only when requirements/patterns are unclear)
+2. `researcher` (conditionally required when requirements are unclear, the build plan is under-specified, or current best-practice confirmation is needed)
 3. `coder` (required)
 4. `tester` (required)
 5. `reviewer` (required)
@@ -27,8 +27,8 @@ Use this workflow for implementation tasks where code is changed.
 ## Task Lifecycle
 
 1. Intake and scope (orchestrator): scope to the approved project plan.
-2. Research if needed (researcher): run `.agent/workflows/pre-build-research.md`.
-3. Implement (coder): minimal changes to satisfy requested behavior.
+2. Research if needed (researcher): run `.agent/workflows/pre-build-research.md` when the contract is incomplete or current best practice must be confirmed.
+3. Implement (coder): complete changes to satisfy the requested behavior and the resolved contract.
 4. Validate (tester): execute blocking checks for touched areas.
 5. Adversarial review (reviewer): findings-first report with severity.
 6. Safety gate (guardrail when triggered): block or clear with notes.
@@ -62,6 +62,7 @@ If implementation is blocked or incomplete, the task status becomes `blocked`, *
    - `pass  # placeholder` or `...  # placeholder`
    - Skeleton stubs with no implementation
 3. If any banned pattern is found, the task must revert to `in_progress` or `blocked`.
+4. Under-specified requirements must be resolved via local docs and targeted research before coding. They are not justification for TODOs, silent narrowing, or implicit future work.
 
 ## Handoff Artifact
 

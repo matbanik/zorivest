@@ -9,6 +9,10 @@ description: Research-before-build workflow — scan GitHub repos, extract patte
 > **Orchestration context:** `.agent/workflows/orchestrated-delivery.md`
 
 > **Rule**: No feature implementation begins until this workflow is complete. The output is a research brief that either (a) provides reference code/patterns for the AI to use as instruction sets, or (b) confirms no prior art exists and the feature must be built from scratch.
+>
+> **Trigger:** Use this workflow whenever the build plan or local canonical docs are not specific enough to support a complete implementation, or when current best practice must be confirmed before writing acceptance criteria.
+>
+> **Research order:** (1) local canonical docs, (2) official docs / standards / primary sources via web search, (3) high-quality reference implementations.
 
 ## Why This Exists
 
@@ -28,22 +32,28 @@ Save this to: `docs/research/{feature-slug}/scope.md`
 
 ---
 
-## Step 2: Identify GitHub Repos to Scan
+## Step 2: Identify Sources to Scan
 
-Search GitHub for existing implementations. Use these search strategies:
+Search authoritative sources in this order. Use these strategies:
 
 ```bash
-# Strategy 1: Direct feature search
+# Strategy 1: Official docs / standards / primary sources
+# // turbo
+python tools/web_search.py "{feature name} official docs standards best practices" --engine brave --count 10
+
+# Strategy 2: Direct GitHub / reference implementation search
 # // turbo
 python tools/web_search.py "github {feature name} {language} open source" --engine brave --count 10
 
-# Strategy 2: Known project repos (check these first)
+# Strategy 3: Known project repos (check these first)
 # See the reference table below for feature → repo mappings
 
-# Strategy 3: Awesome lists
+# Strategy 4: Awesome lists
 # // turbo
 python tools/web_search.py "awesome {domain} github list" --engine brave --count 5
 ```
+
+If local docs and primary sources fully resolve the behavior, GitHub repo scanning is optional rather than mandatory.
 
 ### Known Feature → Repo Reference Table
 

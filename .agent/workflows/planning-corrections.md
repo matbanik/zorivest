@@ -1,61 +1,70 @@
 ---
-description: Plan and execute corrections from critical review findings. Provide the review findings file and this workflow applies fixes systematically.
+description: Plan and execute corrections from critical review findings. Auto-discovers the most recent review handoff and applies fixes systematically.
 ---
 
 # Planning Corrections Workflow
 
-Use this workflow when a critical review has produced findings and you want to plan and execute corrections. This is the counterpart to `/critical-review-feedback` — that workflow produces findings, this one resolves them.
+Use this workflow when a critical review has produced findings and you want to plan and execute corrections. This is the counterpart to `/critical-review-feedback` — that workflow produces findings, this one resolves them. The agent automatically discovers the review file — no paths required.
 
 This is the workflow for prompts like:
 
-- "Fix all findings in this critical review"
-- "Address `<handoff path>` findings"
-- "Plan corrections for `<review file>`"
+- "Fix all findings from the latest review"
+- "Apply corrections"
+- "Plan corrections"
 
-## Primary Use Case
+// turbo-all
 
-You provide:
+## Prerequisites
 
-1. A **review findings file** (from `/critical-review-feedback` or manual review)
-2. Optionally: priority overrides or decisions on open questions
+Read these files in order:
 
-The workflow produces:
-
-1. **Verification of each finding** against source files (confirm/refute)
-2. **Implementation plan** with per-finding fix
-3. **Executed corrections** across all affected files
-4. **Updated handoff** with plan + walkthrough merged into one file
+1. `SOUL.md`
+2. `GEMINI.md`
+3. `AGENTS.md`
+4. `.agent/context/current-focus.md`
+5. `.agent/context/known-issues.md`
+6. `pomera_notes` search (`Zorivest`, `Memory/Session/*`, `Memory/Decisions/*`)
 
 ---
 
-## Input Contract
+## Auto-Discovery (No User Input Required)
 
-Minimum:
+The agent discovers the review findings file automatically. The user only needs to invoke the workflow.
 
-- **Review file path**: the critical review handoff containing findings
+### Discovery Steps
 
-Optional:
+```powershell
+# Step A: Find the most recent originating critical-review handoff
+Get-ChildItem .agent/context/handoffs/*critical-review.md |
+  Sort-Object LastWriteTime -Descending | Select-Object -First 1
 
-- **Design decisions**: answers to open questions from the review
-- **Scope limit**: "fix High only" or "fix all"
-
-### Example Invocation
-
-```text
-Use /planning-corrections.
-Review file: .agent/context/handoffs/2026-02-26-remove-embedded-mode-critical-review.md
-Fix all findings.
+# Step B: Check if follow-up rechecks/corrections exist for that review
+$stem = "<slug-from-step-A>"
+Get-ChildItem .agent/context/handoffs/*$stem*-recheck*.md,
+              .agent/context/handoffs/*$stem*-corrections*.md |
+  Sort-Object LastWriteTime -Descending
 ```
+
+### Resolution Logic
+
+1. **Primary target**: the most recent `*critical-review.md` file (Step A)
+2. **Chain context**: any `*-recheck*` or `*-corrections*` files that share the same task slug (Step B)
+3. If the chain shows the latest recheck verdict is `approved`, inform the user that no open findings remain
+4. If the chain shows `changes_required`, use the most recent recheck's findings as the working set
+
+> The glob `*critical-review.md` (no inner wildcard) prevents matching recheck files like `*-critical-review-recheck.md`, avoiding the duplicate-rows problem.
+
+### Scope Override
+
+If the user provides an explicit review file path, use that instead of auto-discovery.
 
 ---
 
 ## Workflow Steps
 
-// turbo-all
-
 ### Step 1: Parse Findings (Orchestrator)
 
-Read the review file and extract a structured findings list:
+Read the auto-discovered review file (and chain context if present) and extract a structured findings list:
 
 | # | Severity | Summary | File(s) | Line(s) |
 |---|----------|---------|---------|---------|
@@ -76,7 +85,7 @@ For every finding, verify it against live file state:
 2. **Confirm or refute** the issue still exists
 3. **Check for related issues** the reviewer may have missed (adjacent lines, similar patterns in other files)
 
-Use `rg` and `view_file` — do not trust the review's line numbers blindly (they may have shifted since the review was written).
+Use `rg` and file reads — do not trust the review's line numbers blindly (they may have shifted since the review was written).
 
 Output a verified findings table:
 
@@ -95,9 +104,9 @@ For each verified finding, specify the exact fix:
 - **What to change**: before → after (diff or description)
 - **Why**: link back to finding # and severity
 
-Group fixes by file for efficient editing (multiple fixes per file use `multi_replace_file_content`).
+Group fixes by file for efficient editing.
 
-Write the plan to `implementation_plan.md` artifact and request user approval via `notify_user`.
+Write the plan to the Antigravity `implementation_plan.md` artifact and request user approval via `notify_user`.
 
 **Do not proceed to Step 4 without user approval.**
 
@@ -109,8 +118,8 @@ Apply all fixes. Rules:
 
 1. Read the exact lines before editing (get current line numbers)
 2. Apply fixes bottom-to-top within each file to avoid line shifts
-3. Multiple non-adjacent edits in the same file → single `multi_replace_file_content` call
-4. Single contiguous edit → `replace_file_content`
+3. Multiple non-adjacent edits in the same file → single edit call
+4. Single contiguous edit → single edit call
 
 ---
 
@@ -138,7 +147,7 @@ rg -n "\.agent/context/handoffs" docs/build-plan/
 Create or update a handoff in `.agent/context/handoffs/` that merges the plan + walkthrough:
 
 - **File name**: `{YYYY-MM-DD}-{original-task-slug}-corrections.md`
-- **Contents**: plan summary, diffs/changes made, verification results
+- **Contents**: plan summary, diffs/changes made, verification results, auto-discovered source review path and chain context
 
 Use the combined plan+walkthrough format (not separate files).
 
@@ -152,6 +161,7 @@ Use the combined plan+walkthrough format (not separate files).
 4. **Verification must be slug/anchor-aware.** Phrase-only grep is insufficient when headings were renamed. Always check both space form (`foo bar`) and slug form (`foo-bar`).
 5. **Build plan docs must not link into `.agent/`.** Design decisions should be self-contained in the build-plan file, not dependent on session artifacts.
 6. **User approval required before execution.** Plan → approve → execute → verify.
+7. **Resolve the canonical review first.** Always trace back to the originating `*critical-review.md` — do not start from a recheck or corrections file without understanding the full chain.
 
 ---
 
@@ -159,14 +169,23 @@ Use the combined plan+walkthrough format (not separate files).
 
 Deliver to the user via `notify_user`:
 
-1. Verified findings count (confirmed vs refuted)
-2. Corrections plan (for approval)
-3. After execution: verification results + handoff path
+1. Auto-discovered review target (which file was found, chain context, and resolution logic)
+2. Verified findings count (confirmed vs refuted)
+3. Corrections plan (for approval)
+4. After execution: verification results + handoff path
 
 ---
 
-## When to Switch Workflows
+## Orchestration Flow
 
-- Use `/critical-review-feedback` first to **produce** the review findings
-- Use this workflow (`/planning-corrections`) to **resolve** the findings
-- Use `/orchestrated-delivery` for new feature implementation (not corrections)
+This workflow is part of a three-workflow orchestration cycle:
+
+1. `/create-plan` → plan and execute new work
+2. `/critical-review-feedback` → review completed work
+3. `/planning-corrections` → resolve findings (this workflow)
+
+When to switch:
+
+- Use `/critical-review-feedback` first to **produce** the review findings.
+- Use this workflow (`/planning-corrections`) to **resolve** the findings.
+- Use `/create-plan` for new feature implementation (not corrections).

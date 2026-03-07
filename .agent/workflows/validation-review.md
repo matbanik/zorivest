@@ -76,6 +76,7 @@ For each item, record PASS or FAIL with evidence:
 | AV-3 | **Changed paths exercised by assertions** | Changed code paths are not just executed — they are checked by explicit `assert` / `expect` statements. Code coverage alone is insufficient. |
 | AV-4 | **No skipped/xfail masking** | Tests exist but are not blanket-marked `@pytest.mark.skip`, `xfail`, or `it.skip`. Any skip must have a documented reason. |
 | AV-5 | **No unresolved placeholders** | No `TODO`, `FIXME`, `NotImplementedError`, `pass  # placeholder`, or skeleton stubs remain. |
+| AV-6 | **Source-backed criteria** | Any behavior beyond explicit build-plan text is traceable to `Local Canon`, `Research-backed`, or `Human-approved` sources. Uncited "best practice" rules fail review. |
 
 ### 4. Banned Pattern Scan
 
@@ -91,6 +92,7 @@ For each acceptance criterion in the FIC:
 - Identify the test(s) that prove it
 - Verify the test(s) contain explicit assertions (not just execution)
 - Confirm all criteria are covered (no gaps)
+- Confirm each criterion is traceable to `Spec`, `Local Canon`, `Research-backed`, or `Human-approved` source basis
 
 ### 6. Architecture Review
 
@@ -126,6 +128,7 @@ Create or append to the handoff artifact:
 | AV-3 | PASS/FAIL | ... |
 | AV-4 | PASS/FAIL | ... |
 | AV-5 | PASS/FAIL | ... |
+| AV-6 | PASS/FAIL | ... |
 
 ### Banned Patterns
 - rg output: {results or "clean"}
@@ -150,7 +153,7 @@ Create or append to the handoff artifact:
 ## Verdict Definitions
 
 - **approved**: All checks pass, all AV items pass, all FIC criteria verified. MEU is complete.
-- **changes_required**: List specific items that must be fixed. Opus re-enters the TDD workflow to address findings, then re-submits for review.
+- **changes_required**: List specific items that must be fixed. Opus re-enters the TDD workflow to address findings, then re-submits for review. Use this verdict if the MEU depends on unsourced acceptance criteria or silent best-practice assumptions.
 
 ## Escalation
 

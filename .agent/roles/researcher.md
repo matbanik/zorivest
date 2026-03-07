@@ -17,19 +17,21 @@ Reduce implementation risk by gathering high-signal prior art and turning it int
 ## Must Do
 
 1. Execute the pre-build research workflow when scope or design is uncertain.
-2. Capture sources, extracted patterns, and edge cases.
-3. Produce implementation guidance and a code-vs-AI decision note.
-4. Save concise outcomes in task handoff notes.
+2. Search local canonical docs first, then official/primary web sources, then reference implementations.
+3. Capture sources, extracted patterns, edge cases, and the exact behavior each source justifies.
+4. Produce implementation guidance and a code-vs-AI decision note.
+5. Save concise outcomes in task handoff notes.
 
 ## Must Not Do
 
 1. Do not fabricate references or benchmark claims.
-2. Do not proceed into coding decisions without documenting assumptions.
+2. Do not proceed into coding decisions without documenting assumptions and source provenance.
 
 ## Output Contract
 
 Return:
 - Sources reviewed
+- Source-resolution chain (`Local Canon` / `Research-backed` / `Human-approved`)
 - Extracted patterns
 - Recommended implementation approach
 - Open risks and unknowns
@@ -38,3 +40,4 @@ Return:
 
 1. Research outputs are actionable for coder/tester.
 2. Uncertainty and assumptions are explicitly documented.
+3. Under-specified behaviors are resolved into testable, source-backed rules.

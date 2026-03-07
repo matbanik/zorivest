@@ -56,6 +56,36 @@ cat docs/build-plan/{NN}-{phase}.md
 
 Identify the set of pending MEUs that are unblocked (all dependencies satisfied by approved MEUs).
 
+### 2A. Run a Spec Sufficiency Gate
+
+Before grouping MEUs, verify whether the build plan is specific enough to support a complete implementation without guesswork.
+
+Read, as applicable:
+
+- The target build-plan file and its cited companion docs (`domain-model-reference.md`, `build-priority-matrix.md`, input/output indexes, testing strategy, architecture, ADRs)
+- The most recent approved handoff/reflection if it establishes carry-forward rules for this area
+- Known issues or previous review findings that affect the same surface
+
+For each MEU, build a sufficiency table:
+
+| Behavior / Contract | Source Type | Source | Resolved? | Notes |
+|---|---|---|---|---|
+
+Allowed source types:
+
+- `Spec` — explicit in the target build-plan section
+- `Local Canon` — explicit in another canonical local doc
+- `Research-backed` — resolved via targeted web research against official docs, standards, or other primary/current sources
+- `Human-approved` — resolved by explicit user decision
+
+Rules:
+
+- `Best practice` alone is never sufficient. Cite the exact file or URL.
+- Do not create FIC acceptance criteria from unsourced intuition.
+- Do not silently narrow the contract because the build plan is thin.
+- If local docs are insufficient, run `.agent/workflows/pre-build-research.md` or equivalent targeted web research before Step 3.
+- Ask the human only when materially different product behaviors remain plausible, sources conflict, or the decision is irreversible/high-risk.
+
 ### 3. Reason About Project Scope
 
 Use sequential thinking to group the next set of pending MEUs into a coherent **project**. Apply these principles:
@@ -65,6 +95,7 @@ Use sequential thinking to group the next set of pending MEUs into a coherent **
 - **Foundation to roof**: build upward continuously, don't jump across unrelated areas
 - **Right-sizing**: not too small (wasted context setup) and not too large (context degradation)
 - **Build-plan continuity**: stay within the same build-plan file/phase when possible
+- **Completeness first**: prefer the full documented contract across canonical docs; do not introduce artificial narrowing unless the spec explicitly does so
 
 Output a clear project scope:
 - Project slug (e.g., `domain-entities-ports`)
@@ -74,33 +105,38 @@ Output a clear project scope:
 
 ### 4. Generate Plan
 
-Enter PLANNING mode and generate:
-- `implementation_plan.md`
+Enter PLANNING mode and generate `implementation-plan.md` and `task.md` **directly in the project execution folder**:
+
+```powershell
+$projectSlug = "{YYYY-MM-DD}-{project-slug}"
+New-Item -ItemType Directory -Force -Path "docs\execution\plans\$projectSlug" | Out-Null
+```
+
+Write both files to `docs/execution/plans/{YYYY-MM-DD}-{project-slug}/`:
+- `implementation-plan.md`
 - `task.md`
+
+> [!IMPORTANT]
+> **The project folder is the single source of truth.** All edits and revisions happen here. The Antigravity brain folder (`~/.gemini/antigravity/brain/{conversation-id}/`) may receive a copy for UI rendering, but the project folder is what Codex validates against and what gets version-controlled.
 
 The plan must include:
 - A task table with: task, owner_role, deliverable, validation, status
-- Feature Intent Contract (FIC) per MEU with acceptance criteria
+- A spec-sufficiency section per MEU with source-backed resolutions for any under-specified behavior
+- Feature Intent Contract (FIC) per MEU with acceptance criteria annotated as `Spec`, `Local Canon`, `Research-backed`, or `Human-approved`
 - Exact file paths to create or modify
 - Exact validation commands
 - Explicit stop conditions
+- Research URLs or document paths for any behavior resolved outside the target build-plan section
 - Handoff file paths using the naming convention: `{SEQ}-{YYYY-MM-DD}-{slug}-bp{NN}s{X.Y}.md`
+
+No plan may defer required behavior merely because the build plan is thin. The planner must either resolve the behavior from sources or stop on an explicit human decision gate before execution.
 
 ### 5. Present for Approval
 
 Present the plan to the human via `notify_user` with `BlockedOnUser: true`.
 
-After approval, archive the plan:
-
-```powershell
-$projectSlug = "{YYYY-MM-DD}-{project-slug}"
-$brainFolder = "$HOME\.gemini\antigravity\brain\{conversation-id}"
-
-New-Item -ItemType Directory -Force -Path "docs\execution\plans\$projectSlug" | Out-Null
-
-Copy-Item "$brainFolder\implementation_plan.md" "docs\execution\plans\$projectSlug\implementation-plan.md"
-Copy-Item "$brainFolder\task.md" "docs\execution\plans\$projectSlug\task.md"
-```
+> [!CAUTION]
+> **The plan files MUST exist in the project folder before Codex review.** Codex validates against `docs/execution/plans/{YYYY-MM-DD}-{project-slug}/` — if the files are missing, validation will fail. Since Step 4 writes directly to this folder, no extra copy step is needed.
 
 ### 6. Execute
 
@@ -141,7 +177,7 @@ Examples:
 
 ## Exit Criteria
 
-- [ ] Plan archived to `docs/execution/plans/{date}-{project-slug}/`
+- [ ] Plan written to `docs/execution/plans/{date}-{project-slug}/`
 - [ ] All MEUs in the project executed via TDD
 - [ ] One handoff per MEU created with sequenced naming
 - [ ] MEU registry updated per MEU

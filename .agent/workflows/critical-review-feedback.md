@@ -1,67 +1,101 @@
 ---
-description: Reusable findings-first critical review workflow for completed work handoffs and related docs/files (consistency, regressions, missing updates, weak verification).
+description: Reusable findings-first critical review workflow for completed work handoffs, correlated multi-handoff project sets, and related docs/files (consistency, regressions, missing updates, weak verification).
 ---
 
 # Critical Review Feedback Workflow
 
-Use this workflow when work is already done and you want an adversarial review + feedback handoff (not implementation).
+Use this workflow when work is already done and you want an adversarial review + feedback handoff (not implementation). The agent automatically discovers what to review — no file paths required — and expands from the seed handoff to the full correlated project handoff set when one project produced multiple MEU handoffs.
 
 This is the workflow for prompts like:
 
-- "Critically review this handoff and docs for inconsistencies"
+- "Critically review the latest handoff"
 - "Check if the claimed changes were actually completed"
 - "Find regressions/missed references after a docs refactor"
 
-## Primary Use Case
+// turbo-all
 
-You provide:
+## Prerequisites
 
-1. A completed work artifact (usually `.agent/context/handoffs/*.md`)
-2. The related file set to validate (for example `docs/build-plan/`)
+Read these files in order:
 
-The workflow produces:
-
-1. A **findings-first review**
-2. A new **review handoff** in `.agent/context/handoffs/`
-3. Optional follow-up fix recommendations (no fixes unless explicitly requested)
+1. `SOUL.md`
+2. `GEMINI.md`
+3. `AGENTS.md`
+4. `.agent/context/current-focus.md`
+5. `.agent/context/known-issues.md`
+6. `pomera_notes` search (`Zorivest`, `Memory/Session/*`, `Memory/Decisions/*`)
 
 ---
 
-## Default Role Sequence
+## Role Sequence
 
-1. `orchestrator` (scope + plan)
+1. `orchestrator` (scope + auto-discovery)
 2. `tester` (evidence/verification commands for docs, links, grep sweeps)
 3. `reviewer` (severity-ranked findings and verdict)
-4. `coder` (optional, only if user requests fixes after review)
 
 > `researcher` is optional only when external fact-checking is required.
 > `guardrail` is usually not required for docs-only review.
+> **No coder role.** This workflow produces findings only — never fixes. Use `/planning-corrections` to resolve findings.
 
 ---
 
-## Input Contract (What the User Should Provide)
+## Auto-Discovery (No User Input Required)
 
-Minimum:
+The agent discovers the review target automatically. The user only needs to invoke the workflow — no file paths required.
 
-- **Target artifact**: path to the handoff or markdown file that documents completed work
+### Discovery Steps
 
-Recommended:
+```powershell
+# 1. Find most recent WORK handoffs (exclude review artifacts to prevent review-of-review)
+Get-ChildItem .agent/context/handoffs/*.md -Exclude README.md,TEMPLATE.md |
+  Where-Object { $_.Name -notmatch '(critical-review|corrections|recheck)' } |
+  Sort-Object LastWriteTime -Descending | Select-Object -First 3
 
-- **Scope paths**: folders/files that should be checked for consistency (for example `docs/build-plan/`)
-- **Intent**: what kind of review is wanted (contract drift, missed updates, regressions, validation quality, etc.)
-
-### Example Invocation
-
-```text
-Use .agent/workflows/critical-review-feedback.md.
-Target artifact: .agent/context/handoffs/2026-02-26-remove-embedded-mode.md
-Review scope: docs/build-plan/
-Goal: find inconsistencies, missed references, and weak verification claims.
+# 2. Find execution plan folder related to the discovered handoff
+#    Match by date prefix or slug from the handoff filename
+Get-ChildItem docs/execution/plans/ -Directory |
+  Sort-Object LastWriteTime -Descending | Select-Object -First 3
 ```
+
+From the results:
+
+- **Primary review target**: the most recent work handoff (by `LastWriteTime`)
+- **Secondary scope**: the execution plan folder whose date/slug matches the handoff. If no match, use the most recent plan folder as fallback.
+- If the handoff references specific files or folders, those become **additional scope**
+
+### Correlation Rule
+
+The agent must correlate the handoff and plan folder — not blindly pair the newest of each. Use the date prefix and slug to match. For example, `2026-03-07-meu-2-enums.md` pairs with `docs/execution/plans/2026-03-07-domain-entities-ports/` if that plan contains MEU-2.
+
+### Project-Integrated Handoff Expansion (Required)
+
+When the correlated plan folder represents a multi-MEU project, the latest handoff is only the **seed** for discovery — it is not the full review scope.
+
+Expand the review to the full correlated handoff set when any of these are true:
+
+1. `implementation-plan.md` has a `Handoff Naming` section with multiple handoff paths
+2. `task.md` has multiple `Create handoff:` checklist items
+3. The plan, reflection, or registry states that multiple MEUs were executed in the same project
+4. Multiple same-date sequenced handoffs clearly belong to the correlated plan folder
+
+When expansion triggers, required scope becomes:
+
+- every handoff produced by that project
+- the correlated `implementation-plan.md` and `task.md`
+- shared project artifacts updated by the project (`meu-registry.md`, reflection, metrics, session summary artifacts)
+- all changed files claimed across the full handoff set
+
+The reviewer must explicitly say how the sibling handoffs were discovered (for example: plan `Handoff Naming`, task checklist, matching sequenced handoff files).
+
+### Scope Override
+
+If the user provides explicit paths, use those instead of auto-discovery. Auto-discovery is the default when no paths are given.
+
+If the user provides one handoff path from a multi-MEU integrated project but does not explicitly say `only` that file, default to expanding to the full correlated handoff set.
 
 ### Zorivest Build-Plan Default (Required)
 
-For this repository, when the target artifact describes work on `docs/build-plan/` (including plan/walkthrough/handoff files for build-plan sessions):
+When the target artifact describes work on `docs/build-plan/` (including plan/walkthrough/handoff files for build-plan sessions):
 
 - Treat `docs/build-plan/` as **required review scope** even if the user only provides `.agent/context/handoffs/*.md` files.
 - Always inspect the **actual `docs/build-plan` file state/changes** (not just handoff claims).
@@ -83,26 +117,24 @@ When creating a plan for this workflow, every task must include:
 
 | task | owner_role | deliverable | validation | status |
 |---|---|---|---|---|
+| Auto-discover review targets | `orchestrator` | Seed handoff + correlated plan folder + expanded handoff set (if multi-MEU) | `Get-ChildItem` commands above | `pending` |
 | Load context and target artifact | `orchestrator` | Scoped review objective + target list | `Get-Content <target>` | `pending` |
 | Run evidence sweeps | `tester` | Command outputs (grep/diff/link checks) | `rg`, `git diff`, file reads | `pending` |
 | Produce findings-first review | `reviewer` | Severity-ranked findings + verdict | Cross-check line references | `pending` |
 | Write review handoff | `reviewer` | `.agent/context/handoffs/{date}-{slug}-critical-review.md` | file created + readable | `pending` |
-| Apply fixes (optional) | `coder` | patch(es) for accepted findings | targeted checks after edits | `pending` |
 
 ---
 
 ## Workflow Steps
 
-## Step 1: Scope the Review (Orchestrator)
+## Step 1: Discover and Scope the Review (Orchestrator)
 
-Define a single objective and out-of-scope items before inspecting files.
+Run the auto-discovery commands to identify the seed handoff and correlated plan folder. Verify the handoff–plan correlation before proceeding, then enumerate the full handoff set when the project is multi-MEU. Then define:
 
-Examples:
+- **Objective**: what the review is checking (contract drift, missed updates, regressions, validation quality, etc.)
+- **Out-of-scope**: what to exclude
 
-- Objective: "Validate that embedded-mode removal is complete and consistent across `docs/build-plan`"
-- Out-of-scope: "Do not rewrite unrelated build-plan sections"
-
-Also identify the **claimed changes** from the target artifact:
+Also identify the **claimed changes** from every artifact in scope:
 
 - files changed
 - phrases renamed
@@ -115,23 +147,18 @@ Also identify the **claimed changes** from the target artifact:
 
 Read:
 
-1. Target handoff / artifact
-2. Claimed files
-3. Relevant related files likely to drift (indexes, references, downstream links)
-4. Current diffs (`git diff`) for the claimed files when available
+1. Seed handoff / artifact (auto-discovered or user-specified)
+2. Correlated execution plan (`implementation-plan.md` and `task.md` from `docs/execution/plans/`)
+3. Every sibling handoff identified from the correlated project
+4. Claimed files from the full handoff set
+5. Relevant related files likely to drift (indexes, references, downstream links)
+6. Current diffs (`git diff`) for the claimed files when available
 
 For Zorivest build-plan review sessions (required):
 
-5. The actual changed `docs/build-plan/*` files referenced or implied by the artifact
-6. `git status --short -- docs/build-plan` and `git diff -- docs/build-plan/<claimed-files>` when applicable
-7. If files are untracked or `git diff` is incomplete, perform direct file-state checks (counts, anchors, headings, annotation blocks, etc.) against `docs/build-plan/*`
-
-For Zorivest sessions, follow session discipline before review:
-
-1. `SOUL.md`
-2. `pomera_notes` search (`Zorivest`)
-3. `.agent/context/current-focus.md`
-4. `.agent/context/known-issues.md`
+7. The actual changed `docs/build-plan/*` files referenced or implied by the artifact
+8. `git status --short -- docs/build-plan` and `git diff -- docs/build-plan/<claimed-files>` when applicable
+9. If files are untracked or `git diff` is incomplete, perform direct file-state checks (counts, anchors, headings, annotation blocks, etc.) against `docs/build-plan/*`
 
 ---
 
@@ -147,11 +174,13 @@ Use fast, reproducible command checks. Prefer `rg`.
    - Old names/phrases/slugs/anchors still present?
 3. **Cross-file consistency**
    - Renamed headings updated in downstream links/indexes?
-4. **Verification quality**
+4. **Cross-handoff consistency**
+   - Shared totals, phase-gate claims, registry state, and artifact timing consistent across the full project handoff set?
+5. **Verification quality**
    - Are handoff checks strong enough, or do they create false confidence?
-5. **Evidence quality**
+6. **Evidence quality**
    - Are diffs/commands reproducible and auditable?
-6. **Actual build-plan file changes (Zorivest required when in scope)**
+7. **Actual build-plan file changes (Zorivest required when in scope)**
    - Did the claimed changes materially appear in `docs/build-plan/*`, with evidence tied to file lines/state?
 
 ### Suggested Commands (Adapt Per Task)
@@ -159,7 +188,7 @@ Use fast, reproducible command checks. Prefer `rg`.
 ```powershell
 # 1) Read the claimed artifact and target files
 Get-Content .agent/context/handoffs/<target>.md
-Get-Content docs/build-plan/<file>.md
+Get-Content docs/execution/plans/<project>/implementation-plan.md
 
 # 2) Check exact and variant phrases (space + slug forms)
 rg -n -i "embedded mode|embedded-mode|standalone mode|standalone-mode" docs/build-plan
@@ -228,7 +257,7 @@ Use `.agent/context/handoffs/TEMPLATE.md`, but for review-only tasks:
 
 ### Required Review Handoff Content
 
-1. Scope reviewed
+1. Scope reviewed (including auto-discovered targets and correlation rationale)
 2. Commands executed
 3. Findings with file/line references
 4. Explicit verdict (`approved` or `changes_required`)
@@ -242,7 +271,7 @@ Save a short `pomera_notes` entry summarizing:
 
 - what was reviewed
 - key findings
-- whether fixes were applied or deferred
+- whether fixes should be applied via `/planning-corrections`
 
 If `.agent/context/current-focus.md` already has unrelated user edits in progress, do not overwrite it during a review-only session.
 
@@ -250,11 +279,13 @@ If `.agent/context/current-focus.md` already has unrelated user edits in progres
 
 ## Hard Rules
 
-1. **Do not silently fix issues** during the review workflow unless the user explicitly asks for fixes.
+1. **Never fix issues during this workflow.** This workflow produces findings only. Use `/planning-corrections` to resolve findings.
 2. **Do not approve based on phrase-only grep checks** when heading renames or link anchors are involved.
 3. **Do not treat the handoff as source of truth**; treat file state + diffs as source of truth.
 4. **Do not bury findings behind summaries**; findings come first.
 5. **For Zorivest build-plan work, always inspect and cite actual `docs/build-plan/*` file changes** (or explicit file-state checks when diffs are unavailable). A handoff-only review is invalid.
+6. **When a correlated project produced multiple MEU handoffs, load all of them.** The newest work handoff is only the discovery seed.
+7. **Never review a review.** Auto-discovery excludes `*critical-review*`, `*-corrections*`, and `*-recheck*` handoffs. Only work handoffs are valid targets.
 
 ---
 
@@ -262,6 +293,7 @@ If `.agent/context/current-focus.md` already has unrelated user edits in progres
 
 Return to the user:
 
+- Auto-discovered targets (what was reviewed, why, and how handoff–plan were correlated)
 - Findings (severity-ranked, file/line references)
 - Open questions / assumptions
 - Review verdict (`changes_required` or `approved`)
@@ -272,7 +304,15 @@ If no findings are discovered, say so explicitly and list remaining verification
 
 ---
 
-## When to Switch Workflows
+## Orchestration Flow
 
-- Use `.agent/workflows/orchestrated-delivery.md` if the user asks for fixes/implementation.
-- Use this workflow first when the user says "review", "critically review", "find inconsistencies", or "validate claimed changes".
+This workflow is part of a three-workflow orchestration cycle:
+
+1. `/create-plan` → plan and execute new work
+2. `/critical-review-feedback` → review completed work (this workflow)
+3. `/planning-corrections` → resolve findings from this workflow
+
+When to switch:
+
+- Use `/planning-corrections` if the verdict is `changes_required` and the user wants fixes applied.
+- Use `/create-plan` to start new implementation work.

@@ -18,15 +18,19 @@ Use this workflow when implementing a Manageable Execution Unit (MEU). Opus is t
 ### 1. Scope Lock
 
 // turbo
-Read the MEU definition from `.agent/context/meu-registry.md`. Read the corresponding build plan section. Do NOT expand scope beyond the MEU boundary.
+Read the MEU definition from `.agent/context/meu-registry.md`. Read the corresponding build plan section and any canonical local docs it references. Do NOT expand scope beyond the MEU boundary, but do implement the full documented contract.
+
+If the spec is not specific enough to support concrete acceptance criteria without guesswork, stop here and return to PLANNING / `.agent/workflows/pre-build-research.md`. Do not start Red phase on unsourced assumptions.
 
 ### 2. Feature Intent Contract (FIC)
 
 Write FIC inline in your session notes:
 - **Intent statement**: What must be true when this MEU ships
-- **Acceptance criteria**: Numbered, testable conditions (AC-1, AC-2, ...)
+- **Acceptance criteria**: Numbered, testable conditions (AC-1, AC-2, ...) with a source label for each: `Spec`, `Local Canon`, `Research-backed`, or `Human-approved`
 - **Negative cases**: What must NOT happen
 - **Test mapping**: Which test file/function proves each AC
+
+`Best practice` is not a valid acceptance-criterion source unless it is backed by a cited local doc or web source.
 
 ### 3. Red Phase — Write Failing Tests
 
@@ -48,6 +52,8 @@ Save the failure output — you will include it in the handoff FAIL_TO_PASS tabl
 > ⚠️ **Test Immutability**: Once tests are written in Red phase, do NOT modify test assertions or expected values. If a test expectation is wrong, fix the *implementation*, not the *test*. Only test setup/fixture changes are allowed.
 
 Write the minimum code to make all tests pass. Follow the build plan spec exactly — use the same function signatures, class names, and field names.
+
+Do not invent new product behavior in code. If a gap appears during implementation, route it back to planning/research and update the FIC before continuing.
 
 // turbo
 Run tests to confirm they PASS:
@@ -102,8 +108,9 @@ pomera_notes save
 
 ## Failure Protocol
 
-If stuck for more than 2 iterations on a failing test:
+If stuck for more than 2 iterations on a failing test, or if a spec gap is discovered mid-MEU:
 1. Document what was attempted
-2. Mark MEU status as `blocked` in handoff
-3. List specific blocking issue
-4. Do NOT implement a workaround that violates the spec
+2. Route the issue back to planning/research for a source-backed resolution
+3. Mark MEU status as `blocked` in handoff if the issue still cannot be resolved
+4. List the specific blocking issue or unresolved decision
+5. Do NOT implement a workaround that violates the spec or silently narrows the contract
