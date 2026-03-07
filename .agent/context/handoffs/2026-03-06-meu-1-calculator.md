@@ -125,7 +125,7 @@ The calculator accepts account balance, risk percentage, entry, stop, and target
 
 ### Retroactive Plan Intake
 
-- Step 3 plan review was skipped before execution. Codex performed a retroactive intake against `docs/execution/plans/2026-03-06-implementation-plan.md`, `docs/execution/plans/2026-03-06-task.md`, and `docs/execution/prompts/2026-03-06-meu-1-calculator-pilot.md` before implementation validation.
+- Step 3 plan review was skipped before execution. Codex performed a retroactive intake against `docs/execution/plans/MEU-1/2026-03-06-meu-1-calculator-implementation-plan.md`, `docs/execution/plans/MEU-1/2026-03-06-meu-1-calculator-task.md`, and `docs/execution/prompts/2026-03-06-meu-1-calculator-pilot.md` before implementation validation.
 - Result: implementation stayed within MEU-1 scope, stop conditions were respected, and the required artifacts exist (`meu-registry`, reflection, metrics, archived plan/task, and Pomera note `Memory/Session/Zorivest-MEU-1-2026-03-06`).
 
 ### Test Results

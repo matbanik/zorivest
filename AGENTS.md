@@ -42,12 +42,12 @@ Hybrid monorepo — see `.agent/docs/architecture.md` for full details.
 
 ## Session Discipline
 
-- **One task = one session.** Do NOT chain unrelated work streams.
+- **One project = one session.** Group related tasks into a coherent project by dependency order. Do NOT chain unrelated work streams.
 - **Time is not a constraint** in agentic development cycles. Do not optimize for speed over quality.
 - **Token usage is not a constraint** (subscription-based). Do not truncate, summarize prematurely, or skip work to save tokens.
 - **Do not bring up time or token usage** in design discussions, trade-off analyses, or implementation decisions. Quality, wisdom, and expert experience are the only optimization targets.
 - **At session start:** Read `SOUL.md`, check `pomera_notes` (`search_term: "Zorivest"`), read `.agent/context/current-focus.md` and `known-issues.md`.
-- **At session end:** Save to `pomera_notes` (`Memory/Session/Zorivest-{task}-{date}`), update `current-focus.md`, create/update handoff at `.agent/context/handoffs/`.
+- **At session end:** Save to `pomera_notes` (`Memory/Session/Zorivest-{project-slug}-{date}`), update `current-focus.md`, create/update handoff(s) at `.agent/context/handoffs/`.
 - **Ambiguity:** ALWAYS ask before proceeding. Never make silent assumptions.
 - **Human approval** is mandatory before merge, release, or deploy.
 

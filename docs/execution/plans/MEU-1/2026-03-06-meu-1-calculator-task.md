@@ -43,7 +43,7 @@
 - [ ] Create `.agent/context/handoffs/2026-03-06-meu-1-calculator.md`
 - [ ] Update `.agent/context/meu-registry.md` → MEU-1 = `🟡 ready_for_review`
 - [ ] Save `pomera_notes` with title `Memory/Session/Zorivest-MEU-1-2026-03-06`
-- [ ] Archive plans to `docs/execution/plans/`
+- [ ] Archive plans to `docs/execution/plans/MEU-1/` using `2026-03-06-meu-1-calculator-{artifact}.md`
 
 ## Phase: Post-Execution
 - [ ] Create `docs/execution/reflections/2026-03-06-reflection.md` from TEMPLATE

@@ -2,7 +2,7 @@
 
 > **Date**: {YYYY-MM-DD}
 > **MEU(s) Completed**: {list}
-> **Prompt Used**: `docs/execution/prompts/{YYYY-MM-DD}-meu-{N}-{slug}.md`
+> **Plan Source**: `/create-plan` workflow
 
 ---
 
@@ -68,7 +68,7 @@
 
 ---
 
-## Next Prompt Design Rules
+## Next Session Design Rules
 
 ```
 RULE-1: {description}

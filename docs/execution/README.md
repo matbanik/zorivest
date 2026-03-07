@@ -7,44 +7,41 @@
 ```
 execution/
 ├── README.md
-├── prompts/           ← Agent A (GPT-5.4) creates; human may tune
-│   └── {YYYY-MM-DD}-meu-{N}-{slug}.md
 ├── plans/             ← Archived from Antigravity brain folder after approval
-│   ├── {YYYY-MM-DD}-implementation-plan.md
-│   └── {YYYY-MM-DD}-task.md
+│   └── {YYYY-MM-DD}-{project-slug}/
+│       ├── implementation-plan.md
+│       └── task.md
 ├── reflections/       ← Post-execution meta-reflection
-│   └── {YYYY-MM-DD}-reflection.md
+│   └── {YYYY-MM-DD}-{project-slug}-reflection.md
 └── metrics.md         ← Session-over-session tracking (Handoff Score, Rule Adherence, etc.)
 ```
 
-## 7-Step Dual-Agent Lifecycle
+## 5-Step Dual-Agent Lifecycle
 
-Each MEU build session follows this cycle. Steps 3–5 may loop (max 2 revision cycles).
+Each build session follows this cycle for its project scope. Steps 3–5 may loop per MEU (max 2 revision cycles).
 
 | Step | Agent | Action | Governing Files | Artifacts Produced |
 |------|-------|--------|----------------|--------------------|
-| **1. Create execution prompt** | Agent A (GPT-5.4) | Drafts MEU prompt following roles and SOUL.md identity | `.agent/roles/orchestrator.md`, `AGENTS.md`, `SOUL.md` | `docs/execution/prompts/{date}-meu-{N}-{slug}.md` |
-| **2. Plan** | Agent B (Opus 4.6) | Reads prompt, enters PLANNING mode, generates plan | `GEMINI.md` §Mode Transitions, `.agent/workflows/execution-session.md` §3 | `implementation_plan.md` + `task.md` (in brain folder → archived to `docs/execution/plans/`) |
-| **3. Validate plan** | Agent A (GPT-5.4) | Reviews plan, approves or sends correction findings | `.agent/workflows/validation-review.md`, `.agent/workflows/critical-review-feedback.md` | Verdict in `.agent/context/handoffs/{date}-{slug}.md` |
-| **4. Implement via TDD** | Agent B (Opus 4.6) | FIC → Red → Green → quality checks → handoff | `GEMINI.md` §TDD-First Protocol, `.agent/workflows/tdd-implementation.md`, `.agent/workflows/meu-handoff.md` | Handoff at `.agent/context/handoffs/{date}-meu-{N}-{slug}.md` + `pomera_notes` backup + ADRs in `docs/decisions/` |
-| **5. Validate implementation** | Agent A (GPT-5.4) | Adversarial checks, banned patterns, FIC audit | `.agent/workflows/validation-review.md`, `.agent/roles/reviewer.md`, `.agent/roles/guardrail.md` | Codex Validation Report (appended to handoff), status transition |
-| **6. Next MEU prompt** | Agent A (GPT-5.4) | Uses reflection outline to draft next session's prompt | Previous reflection §5d "Next Session Outline", `docs/execution/prompts/TEMPLATE.md` | Next prompt file |
-| **7. Meta-reflection** | Agent B (Opus 4.6) | Friction/quality/workflow logs → pattern extraction → design rules | `.agent/workflows/execution-session.md` §5a–5e | `docs/execution/reflections/{date}-reflection.md`, `metrics.md` row, `pomera_notes` save |
+| **1. Create project plan** | Agent B (Opus 4.6) | Runs `/create-plan`: reads handoffs, registry, build-plan; scopes project | `.agent/workflows/create-plan.md`, `GEMINI.md` §Mode Transitions | `implementation_plan.md` + `task.md` (in brain folder → archived to `docs/execution/plans/{date}-{project-slug}/`) |
+| **2. Validate plan** | Agent A (GPT-5.4) | Reviews plan, approves or sends correction findings | `.agent/workflows/validation-review.md`, `.agent/workflows/critical-review-feedback.md` | Findings returned inline (plan artifacts live in brain folder / `docs/execution/plans/`) |
+| **3. Implement via TDD** | Agent B (Opus 4.6) | FIC → Red → Green → quality checks → handoff (per MEU) | `GEMINI.md` §TDD-First Protocol, `.agent/workflows/tdd-implementation.md`, `.agent/workflows/meu-handoff.md` | Creates `.agent/context/handoffs/{SEQ}-{date}-{slug}-bp{NN}s{X.Y}.md` per MEU + `pomera_notes` backup + ADRs in `docs/decisions/` |
+| **4. Validate implementation** | Agent A (GPT-5.4) | Adversarial checks, banned patterns, FIC audit (per MEU) | `.agent/workflows/validation-review.md`, `.agent/roles/reviewer.md`, `.agent/roles/guardrail.md` | Codex Validation Report (appended to handoff), status transition |
+| **5. Meta-reflection** | Agent B (Opus 4.6) | Friction/quality/workflow logs → pattern extraction → design rules | `.agent/workflows/execution-session.md` §5a–5e | `docs/execution/reflections/{date}-{project-slug}-reflection.md`, `metrics.md` row, `pomera_notes` save |
 
 ### How Steps Chain Together
 
 ```
-Step 1 (prompt) → Step 2 (plan) → Step 3 (validate plan)
-                                       ↓
-                              ┌── approved ──→ Step 4 (implement)
-                              └── changes ──→ Agent B fixes → back to Step 3 (max 2 cycles)
-                                                    ↓
-                              Step 5 (validate implementation)
-                                       ↓
-                              ┌── approved ──→ Step 6 + 7 (next prompt + reflection)
-                              └── changes ──→ Agent B fixes → back to Step 5 (max 2 cycles)
-                                                    ↓
-                              Step 7 outputs feed Step 1 of the next session
+Step 1 (/create-plan) → Step 2 (validate plan)
+                               ↓
+                      ┌── approved ──→ Step 3 (implement per MEU)
+                      └── changes ──→ Agent B fixes → back to Step 2 (max 2 cycles)
+                                            ↓
+                      Step 4 (validate implementation per MEU)
+                               ↓
+                      ┌── approved ──→ Step 5 (meta-reflection)
+                      └── changes ──→ Agent B fixes → back to Step 4 (max 2 cycles)
+                                            ↓
+                      Step 5 outputs feed Step 1 of the next session
 ```
 
 ### Key Safeguards
@@ -59,11 +56,13 @@ Step 1 (prompt) → Step 2 (plan) → Step 3 (validate plan)
 
 ## Naming Convention
 
-All files use **`{YYYY-MM-DD}-{slug}`** format, consistent with `.agent/context/handoffs/`.
+Plan archives use project-scoped folders. Handoffs use sequenced names with build-plan references.
 
-- **Prompts**: `{YYYY-MM-DD}-meu-{N}-{slug}.md`
-- **Plans**: `{YYYY-MM-DD}-implementation-plan.md` / `{YYYY-MM-DD}-task.md`
-- **Reflections**: `{YYYY-MM-DD}-reflection.md`
+- **Plans**: `{YYYY-MM-DD}-{project-slug}/implementation-plan.md`
+- **Plans**: `{YYYY-MM-DD}-{project-slug}/task.md`
+- **Replans on the same day**: append `-v2`, `-v3`, etc. to the folder name
+- **Handoffs**: `{SEQ}-{YYYY-MM-DD}-{slug}-bp{NN}s{X.Y}.md` (in `.agent/context/handoffs/`)
+- **Reflections**: `{YYYY-MM-DD}-{project-slug}-reflection.md`
 
 ## Invocation
 

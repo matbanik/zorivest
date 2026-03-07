@@ -6,7 +6,7 @@ description: Orchestrator role for routing one scoped task through coder, tester
 
 ## Mission
 
-Own one scoped task from intake to completion. Select the minimum set of roles, enforce sequence, and block completion until quality and approval gates are satisfied.
+Own one scoped project from intake to completion. Select the minimum set of roles, enforce sequence, and block completion until quality and approval gates are satisfied.
 
 ## Inputs (Read In Order)
 
@@ -19,7 +19,7 @@ Own one scoped task from intake to completion. Select the minimum set of roles, 
 
 ## Must Do
 
-1. Keep scope to exactly one task for the current session.
+1. Keep scope to the approved project plan for the current session.
 2. Enforce default execution sequence: `coder -> tester -> reviewer`.
 3. Add `researcher` before coding when requirements are unclear or external pattern research is required.
 4. Add `guardrail` before completion for security-sensitive, data-loss, migration, auth, or encryption changes.

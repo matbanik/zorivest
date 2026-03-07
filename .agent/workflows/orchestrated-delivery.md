@@ -26,7 +26,7 @@ Use this workflow for implementation tasks where code is changed.
 
 ## Task Lifecycle
 
-1. Intake and scope (orchestrator): keep one-task-per-session.
+1. Intake and scope (orchestrator): scope to the approved project plan.
 2. Research if needed (researcher): run `.agent/workflows/pre-build-research.md`.
 3. Implement (coder): minimal changes to satisfy requested behavior.
 4. Validate (tester): execute blocking checks for touched areas.
@@ -65,9 +65,9 @@ If implementation is blocked or incomplete, the task status becomes `blocked`, *
 
 ## Handoff Artifact
 
-Create one handoff file per task:
+Create one handoff file per MEU:
 
-`.agent/context/handoffs/{YYYY-MM-DD}-{task-slug}.md`
+`.agent/context/handoffs/{SEQ}-{YYYY-MM-DD}-{slug}-bp{NN}s{X.Y}.md`
 
 Use `.agent/context/handoffs/TEMPLATE.md`.
 

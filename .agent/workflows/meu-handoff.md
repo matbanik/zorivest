@@ -6,15 +6,23 @@ description: Handoff protocol between Opus (implementation) and Codex (validatio
 
 This document defines the handoff artifact format for passing work between agents. A handoff artifact must be **self-contained** — the receiving agent has no access to the sending agent's reasoning, context, or conversation history.
 
-> **Target size**: 2,000–5,000 tokens. Reference files by path. Never inline full source code.
+> **Target size**: 2,000–5,000 tokens per handoff. Reference files by path. Never inline full source code.
+>
+> **Multi-MEU sessions**: A project session produces one handoff per MEU. Each handoff is validated independently by Codex.
 
 ## Handoff Artifact Location
 
 ```
-.agent/context/handoffs/{YYYY-MM-DD}-meu-{N}-{slug}.md
+`.agent/context/handoffs/{SEQ}-{YYYY-MM-DD}-{slug}-bp{NN}s{X.Y}.md`
+
+Where:
+- `{SEQ}` = 3-digit global sequence (check highest existing in handoffs folder)
+- `{YYYY-MM-DD}` = date completed
+- `{slug}` = descriptive slug
+- `bp{NN}s{X.Y}` = build-plan file number + section (e.g., `bp01s1.3`)
 ```
 
-Example: `.agent/context/handoffs/2026-03-01-meu-1-calculator.md`
+Example: `.agent/context/handoffs/001-2026-03-06-calculator-bp01s1.3.md`
 
 ## Template
 
@@ -98,8 +106,8 @@ Build plan reference: [link to docs/build-plan/XX-section.md]
 
 Every handoff is stored in two places for redundancy:
 
-1. **File**: `.agent/context/handoffs/{date}-meu-{N}-{slug}.md`
-2. **pomera_notes**: `Memory/Session/Zorivest-MEU-{N}-{date}`
+1. **File**: `.agent/context/handoffs/{SEQ}-{date}-{slug}-bp{NN}s{X.Y}.md`
+2. **pomera_notes**: `Memory/Session/Zorivest-{project-slug}-{date}`
 
 The file is the primary artifact. pomera_notes is the backup for cross-session search.
 

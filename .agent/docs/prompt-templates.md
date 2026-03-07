@@ -4,26 +4,13 @@
 
 ---
 
-## Start a New MEU
+## Start a Build Session
 
 ```
-Read SOUL.md, AGENTS.md, and GEMINI.md.
-Read .agent/context/current-focus.md and .agent/context/known-issues.md.
-Read .agent/context/meu-registry.md and locate MEU-{N} ({slug}).
-Read the build plan section at docs/build-plan/{XX}-{section}.md §{X.X}.
-
-Task: implement MEU-{N} only.
-In scope: {one behavior slice — copy from MEU registry}.
-Out of scope: {explicit exclusions}.
-
-Start in PLANNING mode. Create an implementation plan with:
-1. Feature Intent Contract (FIC) with acceptance criteria.
-2. Test plan (which tests, which files).
-3. Exact validation commands for this MEU.
-4. Handoff file path: .agent/context/handoffs/{date}-meu-{N}-{slug}.md
-
-After plan approval, switch to /tdd-implementation workflow.
+Use /create-plan to scope the next project.
 ```
+
+The `/create-plan` workflow reads handoffs, meu-registry, and build-plan files to automatically scope and plan the next project. No manual prompt drafting needed.
 
 ---
 
@@ -31,10 +18,10 @@ After plan approval, switch to /tdd-implementation workflow.
 
 ```
 Read AGENTS.md.
-Read the handoff at .agent/context/handoffs/{date}-meu-{N}-{slug}.md.
+Read the handoff at .agent/context/handoffs/{SEQ}-{date}-{slug}-bp{NN}s{X.Y}.md.
 Read ALL changed files listed in the handoff.
 
-Use /validation-review workflow to validate MEU-{N}.
+Use /validation-review workflow to validate the MEU.
 ```
 
 ---
@@ -47,18 +34,6 @@ Read .agent/context/current-focus.md.
 Read .agent/context/known-issues.md.
 
 Resume work on {brief description of what was in progress}.
-```
-
----
-
-## Plan a Multi-MEU Phase
-
-```
-Read .agent/context/meu-registry.md for the full MEU list.
-Read docs/build-plan/{XX}-{section}.md for Phase {N} scope.
-
-Create an implementation plan for MEUs {N} through {M}.
-Order by dependency. Flag any blockers.
 ```
 
 ---
@@ -76,7 +51,6 @@ Save findings to pomera_notes with title "Memory/Research/{topic}-{date}".
 
 ## Tips
 
-- **Be specific about which MEU.** Don't say "implement the domain layer" — say "implement MEU-1 calculator".
+- **Use `/create-plan` to start.** It replaces manual prompt drafting — the agent discovers what's done and scopes the next project automatically.
 - **Reference the workflow.** The `/tdd-implementation` and `/validation-review` slash commands trigger the full step-by-step process.
-- **One MEU per session.** If you need multiple MEUs, start a new conversation for each.
 - **Always read context first.** The agent performs better when it reads `current-focus.md` and `known-issues.md` before coding.

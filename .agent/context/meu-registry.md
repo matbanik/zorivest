@@ -1,7 +1,8 @@
 # MEU Registry — Phase 1 + Phase 1A
 
 > Manageable Execution Units for the Zorivest build plan.
-> Each MEU is one session's worth of TDD work for Opus, followed by validation from Codex.
+> Each MEU is a focused unit of TDD work for Opus, followed by validation from Codex.
+> Related MEUs are grouped into projects and executed continuously within a single session.
 
 ---
 
@@ -10,7 +11,7 @@
 | MEU | Slug | Build Plan Ref | Description | Status |
 |-----|------|---------------|-------------|--------|
 | MEU-1 | `calculator` | [01 §1.3](../docs/build-plan/01-domain-layer.md) | PositionSizeCalculator + PositionSizeResult | ✅ approved |
-| MEU-2 | `enums` | [01 §1.2](../docs/build-plan/01-domain-layer.md) | All StrEnum definitions (15 enums) | ⬜ pending |
+| MEU-2 | `enums` | [01 §1.2](../docs/build-plan/01-domain-layer.md) | All StrEnum definitions (14 enums) | 🟡 ready_for_review |
 | MEU-3 | `entities` | [01 §1.4](../docs/build-plan/01-domain-layer.md) | Trade, Account, BalanceSnapshot, ImageAttachment | ⬜ pending |
 | MEU-4 | `value-objects` | [01 §1.2](../docs/build-plan/01-domain-layer.md) | Money, PositionSize, Ticker, Conviction, ImageData | ⬜ pending |
 | MEU-5 | `ports` | [01 §1.5](../docs/build-plan/01-domain-layer.md) | Protocol interfaces (TradeRepo, ImageRepo, UoW, BrokerPort) | ⬜ pending |

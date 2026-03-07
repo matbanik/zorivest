@@ -24,7 +24,7 @@ Antigravity uses three modes via `task_boundary`. Map the six project roles to t
 
 Instead of subagent invocation, adopt roles inline by following the role spec's **Must Do**, **Must Not Do**, and **Output Contract** sections:
 
-- During PLANNING: follow `.agent/roles/orchestrator.md` — scope one task, plan role sequence
+- During PLANNING: follow `.agent/roles/orchestrator.md` — scope the project, plan role sequence
 - During EXECUTION: follow `.agent/roles/coder.md` — read full files, no placeholders, handle errors
 - During VERIFICATION: follow `.agent/roles/tester.md` then `.agent/roles/reviewer.md`
 - For high-risk changes: also follow `.agent/roles/guardrail.md` before completion
@@ -51,7 +51,7 @@ Follow `AGENTS.md` Roles & Workflows section for plan task fields and role trans
 
 - Follow `AGENTS.md` §Session Discipline for session rules, time/token policy, and session end protocol.
 - Run targeted tests after each change.
-- **MEU gate** (per-session): targeted `pytest`, `pyright`, `ruff`, and anti-placeholder scan scoped to touched packages/files.
+- **MEU gate** (per-MEU): targeted `pytest`, `pyright`, `ruff`, and anti-placeholder scan scoped to touched packages/files.
 - **Phase gate** (phase exit only): run `.\tools\validate.ps1` when ALL MEUs in a phase are complete. Do NOT run it as a MEU-level gate — it validates the full repo and will fail until later phases are scaffolded.
 - **Evidence-first completion:** `task.md` items may never be marked `[x]` unless the handoff or walkthrough contains a complete evidence bundle (changed files + commands executed + test results + artifact references).
 - **No-deferral rule:** Items containing `TODO`, `FIXME`, `NotImplementedError`, or placeholder stubs may not be marked `[x]`. Blocked items must use status `[B]` with a linked follow-up task in the handoff.
@@ -78,13 +78,15 @@ When implementing a Manageable Execution Unit (MEU):
 5. **Implement** — write just enough code to make tests pass (Green phase)
 6. **Refactor** — clean up while keeping tests green
 7. **Run checks**: `pytest -x --tb=short -m "unit"`, `pyright`, `ruff check`
-8. **Create handoff** at `.agent/context/handoffs/{YYYY-MM-DD}-meu-{N}-{slug}.md`
+8. **Create handoff** at `.agent/context/handoffs/{SEQ}-{YYYY-MM-DD}-{slug}-bp{NN}s{X.Y}.md`
 
 > ⚠️ **Test Immutability**: Once tests are written in Red phase, do NOT modify test assertions or expected values in Green phase. If a test expectation is wrong, fix the *implementation*, not the *test*. The only acceptable test modification in Green phase is fixing test setup/fixtures, never assertions.
 
 ### MEU Boundaries
 
-- One MEU per session. Do not expand scope.
+- Group related MEUs into a **project** based on dependency order and logical flow. A session executes one project — building continuously from foundation to roof.
+- Use reasoning to determine which MEUs belong together: shared context, sequential dependencies, and logical continuity maximize productivity.
+- Individual MEU TDD discipline (FIC → Red → Green → Quality) is preserved — complete each MEU's cycle before starting the next.
 - Each MEU maps to exactly one section of `docs/build-plan/build-priority-matrix.md`.
 - See `.agent/context/meu-registry.md` for the full MEU list.
 - Prefer real objects over mocks when feasible. Heavy mocking masks real failures.
@@ -101,13 +103,14 @@ When implementing a Manageable Execution Unit (MEU):
 
 At session end, create or update a handoff file:
 
-- Path: `.agent/context/handoffs/{YYYY-MM-DD}-{task-slug}.md`
+- Path: `.agent/context/handoffs/{SEQ}-{YYYY-MM-DD}-{slug}-bp{NN}s{X.Y}.md`
 - Template: `.agent/context/handoffs/TEMPLATE.md`
 
 ## Workflow Invocation
 
 When the user invokes a workflow via slash command:
 
+- `/create-plan` → Read and follow `.agent/workflows/create-plan.md`
 - `/execution-session` → Read and follow `.agent/workflows/execution-session.md`
 - `/orchestrated-delivery` → Read and follow `.agent/workflows/orchestrated-delivery.md`
 - `/pre-build-research` → Read and follow `.agent/workflows/pre-build-research.md`

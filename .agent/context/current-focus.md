@@ -20,11 +20,22 @@ Execute Phase 1 + 1A using the dual-agent workflow (Opus 4.6 implementation → 
 
 ## Next Steps
 
-1. **MEU-2 (Enums)** — prompt ready at `docs/execution/prompts/2026-03-07-meu-2-enums.md`; next session should run Opus planning + TDD
-2. After pilot validated, execute remaining MEUs in parallel tracks:
-   - Track A (Phase 1): MEU-2 through MEU-8
-   - Track B (Phase 1A): MEU-1A through MEU-3A
-3. ✅ **Validation baseline locked to GPT-5.4 Codex** for the reviewer/tester role (resolved 2026-03-06).
+1. **MEU-2 (Enums)** — 🟡 ready_for_review, awaiting Codex validation
+2. After validation, run `/create-plan` to scope the next project from pending MEUs
+3. Track A (Phase 1): MEU-3 through MEU-8
+4. Track B (Phase 1A): MEU-1A through MEU-3A
+5. ✅ **Validation baseline locked to GPT-5.4 Codex** for the reviewer/tester role (resolved 2026-03-06).
+
+## Archived Files (pomera_notes)
+
+The following files were archived to pomera_notes and deleted from the repo on 2026-03-07:
+
+| Former Path | pomera Note ID | Reason |
+|-------------|---------------|--------|
+| `docs/execution/prompts/TEMPLATE.md` | 290 | Replaced by `.agent/workflows/create-plan.md` |
+| `docs/execution/prompts/2026-03-06-meu-1-calculator-pilot.md` | 291 | Historical prompt archived |
+| `docs/execution/prompts/2026-03-07-meu-2-enums.md` | 292 | Historical prompt archived |
+| `docs/execution/prompts/2026-03-07-meu-3-entities.md` | 293 | Historical prompt archived |
 
 ## Recently Completed
 
