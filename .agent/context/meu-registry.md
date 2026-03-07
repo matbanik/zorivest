@@ -11,10 +11,10 @@
 | MEU | Slug | Build Plan Ref | Description | Status |
 |-----|------|---------------|-------------|--------|
 | MEU-1 | `calculator` | [01 §1.3](../docs/build-plan/01-domain-layer.md) | PositionSizeCalculator + PositionSizeResult | ✅ approved |
-| MEU-2 | `enums` | [01 §1.2](../docs/build-plan/01-domain-layer.md) | All StrEnum definitions (14 enums) | 🟡 ready_for_review |
-| MEU-3 | `entities` | [01 §1.4](../docs/build-plan/01-domain-layer.md) | Trade, Account, BalanceSnapshot, ImageAttachment | ⬜ pending |
-| MEU-4 | `value-objects` | [01 §1.2](../docs/build-plan/01-domain-layer.md) | Money, PositionSize, Ticker, Conviction, ImageData | ⬜ pending |
-| MEU-5 | `ports` | [01 §1.5](../docs/build-plan/01-domain-layer.md) | Protocol interfaces (TradeRepo, ImageRepo, UoW, BrokerPort) | ⬜ pending |
+| MEU-2 | `enums` | [01 §1.2](../docs/build-plan/01-domain-layer.md) | All StrEnum definitions (14 enums) | ✅ approved |
+| MEU-3 | `entities` | [01 §1.4](../docs/build-plan/01-domain-layer.md) | Trade, Account, BalanceSnapshot, ImageAttachment | 🟡 ready_for_review |
+| MEU-4 | `value-objects` | [01 §1.2](../docs/build-plan/01-domain-layer.md) | Money, PositionSize, Ticker, Conviction, ImageData | 🟡 ready_for_review |
+| MEU-5 | `ports` | [01 §1.5](../docs/build-plan/01-domain-layer.md) | Protocol interfaces (TradeRepo, ImageRepo, UoW, BrokerPort) | 🟡 ready_for_review |
 | MEU-6 | `commands-dtos` | [01 §1.2](../docs/build-plan/01-domain-layer.md) | Commands (CreateTrade, AttachImage) + DTOs | ⬜ pending |
 | MEU-7 | `events` | [01 §1.2](../docs/build-plan/01-domain-layer.md) | Domain events (TradeCreated, BalanceUpdated, etc.) | ⬜ pending |
 | MEU-8 | `analytics` | [01 §1.2](../docs/build-plan/01-domain-layer.md) | Pure analytics functions (expectancy, drawdown, SQN, MFE/MAE, PFOF, cost, strategy) | ⬜ pending |
