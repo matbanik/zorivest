@@ -47,6 +47,17 @@ Follow `AGENTS.md` Session Discipline, plus verify MCP servers (`pomera_diagnose
 
 Follow `AGENTS.md` Roles & Workflows section for plan task fields and role transitions.
 
+### Spec Sufficiency Gate
+
+Before approving any plan or starting TDD:
+
+1. Read the target build-plan section and the local canonical docs it points to or depends on.
+2. Classify each required behavior as `Spec`, `Local Canon`, `Research-backed`, or `Human-approved`.
+3. If the build plan is not specific enough to support a complete implementation, run targeted web research against official docs, standards, or other primary/current sources before writing acceptance criteria.
+4. Ask the human only when materially different product behaviors remain plausible, the sources conflict, or the choice is irreversible/high-risk.
+
+Under-specified specs are not permission to narrow scope, invent behavior, or defer work.
+
 ## Execution Contract
 
 - Follow `AGENTS.md` §Session Discipline for session rules, time/token policy, and session end protocol.
@@ -56,6 +67,7 @@ Follow `AGENTS.md` Roles & Workflows section for plan task fields and role trans
 - **Evidence-first completion:** `task.md` items may never be marked `[x]` unless the handoff or walkthrough contains a complete evidence bundle (changed files + commands executed + test results + artifact references).
 - **No-deferral rule:** Items containing `TODO`, `FIXME`, `NotImplementedError`, or placeholder stubs may not be marked `[x]`. Blocked items must use status `[B]` with a linked follow-up task in the handoff.
 - **Anti-placeholder enforcement:** Before declaring complete, run `rg "TODO|FIXME|NotImplementedError" packages/ src/` and resolve any matches.
+- A thin spec is not a valid reason to ship a narrower implementation. Resolve the gap in planning/research, update the plan/FIC with the source-backed rule, then implement the full resolved contract.
 
 ## Dual-Agent Workflow
 
@@ -71,8 +83,8 @@ Follow `AGENTS.md` Roles & Workflows section for plan task fields and role trans
 
 When implementing a Manageable Execution Unit (MEU):
 
-1. **Read** the build plan spec section for this MEU (in `docs/build-plan/`)
-2. **Write FIC** — Feature Intent Contract with acceptance criteria (AC-1, AC-2, ...) before any code
+1. **Read** the build plan spec section for this MEU and the local canonical docs it references (in `docs/build-plan/`, indexes, ADRs, reflections if applicable)
+2. **Write source-backed FIC** — Feature Intent Contract with acceptance criteria (AC-1, AC-2, ...) before any code. Each AC must be labeled `Spec`, `Local Canon`, `Research-backed`, or `Human-approved`.
 3. **Write ALL tests FIRST** — every AC becomes at least one test assertion
 4. **Run tests** — confirm they FAIL (Red phase). **Save failure output for FAIL_TO_PASS evidence.**
 5. **Implement** — write just enough code to make tests pass (Green phase)
@@ -81,6 +93,8 @@ When implementing a Manageable Execution Unit (MEU):
 8. **Create handoff** at `.agent/context/handoffs/{SEQ}-{YYYY-MM-DD}-{slug}-bp{NN}s{X.Y}.md`
 
 > ⚠️ **Test Immutability**: Once tests are written in Red phase, do NOT modify test assertions or expected values in Green phase. If a test expectation is wrong, fix the *implementation*, not the *test*. The only acceptable test modification in Green phase is fixing test setup/fixtures, never assertions.
+
+> ⚠️ **No unsourced best-practice rules**: If you cannot write a concrete AC without inventing behavior, return to planning/research. Do not smuggle product decisions into the FIC under a generic "best practice" label.
 
 ### MEU Boundaries
 

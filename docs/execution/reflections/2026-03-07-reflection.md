@@ -60,7 +60,7 @@
 1. None identified
 
 ### Patterns to ADD
-1. Archive path convention should be explicit in the prompt: `docs/execution/plans/MEU-{N}/{date}-meu-{N}-{slug}-{artifact}.md`
+1. Archive path convention should follow create-plan workflow §5: `docs/execution/plans/{YYYY-MM-DD}-{project-slug}/`
 2. Plan validation by Codex before execution saves rework — make this a standard step
 
 ### Calibration Adjustment
@@ -73,9 +73,9 @@
 ## Next Prompt Design Rules
 
 ```
-RULE-1: Specify exact archive path convention for plan artifacts
+RULE-1: Archive plan files to project-slug folder per create-plan workflow §5
 SOURCE: Friction log #2 — ambiguous path convention caused revision cycle
-EXAMPLE: Archive to docs/execution/plans/MEU-{N}/{date}-meu-{N}-{slug}-{artifact}.md
+EXAMPLE: docs/execution/plans/{YYYY-MM-DD}-{project-slug}/implementation-plan.md
 ```
 
 ```
@@ -103,7 +103,7 @@ EXAMPLE: Check meu-registry.md description matches the build plan section being 
 | Total tool calls | ~40 |
 | Time to first green test | ~3 minutes |
 | Tests added | 17 |
-| Codex findings | pending |
+| Codex findings | 0 (approved) |
 | Handoff Score (X/7) | 7/7 (after Codex revision — original was 6/7, missing Test Mapping section) |
 | Rule Adherence (%) | 100% |
 | Prompt→commit time | ~10 min (execution only) |

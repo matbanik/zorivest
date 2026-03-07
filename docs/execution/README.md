@@ -7,7 +7,7 @@
 ```
 execution/
 ├── README.md
-├── plans/             ← Archived from Antigravity brain folder after approval
+├── plans/             ← Canonical project plans (written directly here during planning)
 │   └── {YYYY-MM-DD}-{project-slug}/
 │       ├── implementation-plan.md
 │       └── task.md
@@ -22,8 +22,8 @@ Each build session follows this cycle for its project scope. Steps 3–5 may loo
 
 | Step | Agent | Action | Governing Files | Artifacts Produced |
 |------|-------|--------|----------------|--------------------|
-| **1. Create project plan** | Agent B (Opus 4.6) | Runs `/create-plan`: reads handoffs, registry, build-plan; scopes project | `.agent/workflows/create-plan.md`, `GEMINI.md` §Mode Transitions | `implementation_plan.md` + `task.md` (in brain folder → archived to `docs/execution/plans/{date}-{project-slug}/`) |
-| **2. Validate plan** | Agent A (GPT-5.4) | Reviews plan, approves or sends correction findings | `.agent/workflows/validation-review.md`, `.agent/workflows/critical-review-feedback.md` | Findings returned inline (plan artifacts live in brain folder / `docs/execution/plans/`) |
+| **1. Create project plan** | Agent B (Opus 4.6) | Runs `/create-plan`: reads handoffs, registry, build-plan; runs spec-sufficiency gate; scopes project | `.agent/workflows/create-plan.md`, `GEMINI.md` §Mode Transitions | `implementation_plan.md` + `task.md` in `docs/execution/plans/{date}-{project-slug}/` |
+| **2. Validate plan** | Agent A (GPT-5.4) | Reviews plan, approves or sends correction findings | `.agent/workflows/validation-review.md`, `.agent/workflows/critical-review-feedback.md` | Findings returned inline (plan artifacts live in `docs/execution/plans/`) |
 | **3. Implement via TDD** | Agent B (Opus 4.6) | FIC → Red → Green → quality checks → handoff (per MEU) | `GEMINI.md` §TDD-First Protocol, `.agent/workflows/tdd-implementation.md`, `.agent/workflows/meu-handoff.md` | Creates `.agent/context/handoffs/{SEQ}-{date}-{slug}-bp{NN}s{X.Y}.md` per MEU + `pomera_notes` backup + ADRs in `docs/decisions/` |
 | **4. Validate implementation** | Agent A (GPT-5.4) | Adversarial checks, banned patterns, FIC audit (per MEU) | `.agent/workflows/validation-review.md`, `.agent/roles/reviewer.md`, `.agent/roles/guardrail.md` | Codex Validation Report (appended to handoff), status transition |
 | **5. Meta-reflection** | Agent B (Opus 4.6) | Friction/quality/workflow logs → pattern extraction → design rules | `.agent/workflows/execution-session.md` §5a–5e | `docs/execution/reflections/{date}-{project-slug}-reflection.md`, `metrics.md` row, `pomera_notes` save |
@@ -50,6 +50,7 @@ Step 1 (/create-plan) → Step 2 (validate plan)
 - **Test immutability** — never modify test assertions to make implementation pass (`GEMINI.md` §TDD-First Protocol)
 - **Anti-placeholder enforcement** — `rg "TODO|FIXME|NotImplementedError"` before declaring complete (`GEMINI.md` §Execution Contract)
 - **Evidence-first completion** — handoff must contain commands + results + artifact references (`GEMINI.md` §Execution Contract)
+- **Spec sufficiency gate** — under-specified behavior must be resolved via local canon, targeted web research, or explicit human decision before coding
 - **Human approval gate** — mandatory before merge/release/deploy (`AGENTS.md` §Session Discipline)
 - **ADR-based decision tracking** — cross-boundary decisions recorded in `docs/decisions/` and referenced from handoffs
 - **Progressive skill loading** — `.agent/skills/` loaded on-demand per task scope to prevent context bloat
