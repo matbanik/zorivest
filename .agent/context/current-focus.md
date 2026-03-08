@@ -20,11 +20,10 @@ Execute Phase 1 + 1A using the dual-agent workflow (Opus 4.6 implementation → 
 
 ## Next Steps
 
-1. **MEU-2 (Enums)** — ✅ approved on 2026-03-07
-2. Run `/create-plan` to scope the next project from pending MEUs
-3. Track A (Phase 1): MEU-3 through MEU-8
-4. Track B (Phase 1A): MEU-1A through MEU-3A
-5. ✅ **Validation baseline locked to GPT-5.4 Codex** for the reviewer/tester role (resolved 2026-03-06).
+1. ✅ **Phase 1A (Logging) Completed** — MEU-2A, MEU-3A, MEU-1A all approved (2026-03-07)
+2. **Phase 1 (Domain)** — 8/11 approved. MEU-3/4/5 pending Codex review, MEU-6/7/8 need status check
+3. Run `/create-plan` to scope the next project
+4. ✅ **Validation baseline locked to GPT-5.4 Codex** for the reviewer/tester role (resolved 2026-03-06).
 
 ## Archived Files (pomera_notes)
 

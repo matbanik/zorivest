@@ -22,14 +22,14 @@
 
 | MEU | Slug | Matrix | Description | Status |
 |-----|------|:------:|-------------|:------:|
-| MEU-1A | `logging-manager` | 1A | LoggingManager, QueueHandler/Listener, JSONL | ⬜ pending |
-| MEU-2A | `logging-filters` | 1A | FeatureFilter, CatchallFilter + JsonFormatter | ⬜ pending |
-| MEU-3A | `logging-redaction` | 1A | RedactionFilter (API key masking, PII redaction) | ⬜ pending |
+| MEU-1A | `logging-manager` | 1A | LoggingManager, QueueHandler/Listener, JSONL | ✅ approved |
+| MEU-2A | `logging-filters` | 1A | FeatureFilter, CatchallFilter + JsonFormatter | ✅ approved |
+| MEU-3A | `logging-redaction` | 1A | RedactionFilter (API key masking, PII redaction) | ✅ approved |
 
 ## Execution Order
 
 Phase 1: MEU-1 → MEU-2 → MEU-3 → MEU-4 → MEU-5 → MEU-6 → MEU-7 → MEU-8 → MEU-9 → MEU-10 → MEU-11
-Phase 1A: MEU-1A → MEU-2A → MEU-3A (parallel with Phase 1)
+Phase 1A: MEU-2A → MEU-3A → MEU-1A (dependency order, parallel with Phase 1)
 
 ## Phase-Exit Criteria
 

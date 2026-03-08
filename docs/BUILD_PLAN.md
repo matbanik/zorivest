@@ -56,7 +56,7 @@ Domain → Infrastructure → Services → REST API → MCP Server → GUI → D
 | Phase | Status | Last Updated |
 |-------|--------|--------------|
 | 1 — Domain Layer | 🟡 In Progress | 2026-02-14 |
-| 1A — Logging | ⚪ Not Started | — |
+| 1A — Logging | ✅ Completed | 2026-03-07 |
 | 2 — Infrastructure | ⚪ Not Started | — |
 | 2A — Backup/Restore | ⚪ Not Started | — |
 | 3 — Service Layer | ⚪ Not Started | — |
@@ -123,9 +123,9 @@ Domain → Infrastructure → Services → REST API → MCP Server → GUI → D
 
 | MEU | Slug | Matrix Item | Build Plan Ref | Description | Status |
 |-----|------|:-----------:|----------------|-------------|:------:|
-| MEU-1A | `logging-manager` | 1A | [01a §1–3](build-plan/01a-logging.md) | LoggingManager, QueueHandler/Listener, JSONL format | ⬜ |
-| MEU-2A | `logging-filters` | 1A | [01a §4](build-plan/01a-logging.md) | FeatureFilter, CatchallFilter + JsonFormatter | ⬜ |
-| MEU-3A | `logging-redaction` | 1A | [01a §4](build-plan/01a-logging.md) | RedactionFilter (API key masking, PII redaction) | ⬜ |
+| MEU-1A | `logging-manager` | 1A | [01a §1–3](build-plan/01a-logging.md) | LoggingManager, QueueHandler/Listener, JSONL format | ✅ |
+| MEU-2A | `logging-filters` | 1A | [01a §4](build-plan/01a-logging.md) | FeatureFilter, CatchallFilter + JsonFormatter | ✅ |
+| MEU-3A | `logging-redaction` | 1A | [01a §4](build-plan/01a-logging.md) | RedactionFilter (API key masking, PII redaction) | ✅ |
 
 ### Phase 2: Infrastructure — P0
 
@@ -459,7 +459,7 @@ Domain → Infrastructure → Services → REST API → MCP Server → GUI → D
 | Priority | MEU Range | Count | Completed |
 |----------|-----------|:-----:|:---------:|
 | P0 — Phase 1 | MEU-1 → MEU-11 | 11 | 8 |
-| P0 — Phase 1A | MEU-1A → MEU-3A | 3 | 0 |
+| P0 — Phase 1A | MEU-1A → MEU-3A | 3 | 3 |
 | P0 — Phase 2/2A | MEU-12 → MEU-21 | 10 | 0 |
 | P0 — Phase 3/4 | MEU-22 → MEU-30 | 9 | 0 |
 | P0 — Phase 5 | MEU-31 → MEU-42 | 12 | 0 |
