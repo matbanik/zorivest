@@ -10,7 +10,7 @@ Antigravity uses three modes via `task_boundary`. Map the six project roles to t
 |---|---|---|
 | **PLANNING** | orchestrator, researcher | Scope task, read context files, research patterns, create `implementation_plan.md` |
 | **EXECUTION** | coder | Implement changes, run targeted tests after each change |
-| **VERIFICATION** | tester, reviewer, guardrail | Run full validation (`.\tools\validate.ps1`), adversarial review, safety checks |
+| **VERIFICATION** | tester, reviewer, guardrail | Run full validation (`uv run python tools/validate_codebase.py`), adversarial review, safety checks |
 
 ### Mode Transitions
 
@@ -62,8 +62,8 @@ Under-specified specs are not permission to narrow scope, invent behavior, or de
 
 - Follow `AGENTS.md` §Session Discipline for session rules, time/token policy, and session end protocol.
 - Run targeted tests after each change.
-- **MEU gate** (per-MEU): targeted `pytest`, `pyright`, `ruff`, and anti-placeholder scan scoped to touched packages/files.
-- **Phase gate** (phase exit only): run `.\tools\validate.ps1` when ALL MEUs in a phase are complete. Do NOT run it as a MEU-level gate — it validates the full repo and will fail until later phases are scaffolded.
+- **MEU gate** (per-MEU): `uv run python tools/validate_codebase.py --scope meu` — targeted `pyright`, `ruff`, `pytest`, anti-placeholder scan scoped to touched packages/files.
+- **Phase gate** (phase exit only): `uv run python tools/validate_codebase.py` when ALL MEUs in a phase are complete. Do NOT run it as a MEU-level gate — it validates the full repo and will fail until later phases are scaffolded.
 - **Evidence-first completion:** `task.md` items may never be marked `[x]` unless the handoff or walkthrough contains a complete evidence bundle (changed files + commands executed + test results + artifact references).
 - **No-deferral rule:** Items containing `TODO`, `FIXME`, `NotImplementedError`, or placeholder stubs may not be marked `[x]`. Blocked items must use status `[B]` with a linked follow-up task in the handoff.
 - **Anti-placeholder enforcement:** Before declaring complete, run `rg "TODO|FIXME|NotImplementedError" packages/ src/` and resolve any matches.
@@ -139,6 +139,7 @@ When the user invokes a workflow via slash command:
 | Skill | Path | Purpose |
 |-------|------|---------|
 | Git Workflow | `.agent/skills/git-workflow/SKILL.md` | Agent-safe git operations with SSH commit signing. Prevents interactive prompt hangs. |
+| Codebase Quality Gate | `.agent/skills/quality-gate/SKILL.md` | Validation pipeline: type checks, linting, tests, anti-placeholder scans, evidence checks. Supports phase-level and MEU-scoped runs. |
 
 ## MCP Servers
 

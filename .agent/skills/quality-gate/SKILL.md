@@ -1,0 +1,90 @@
+---
+name: Codebase Quality Gate
+description: Validation pipeline for Zorivest monorepo. Runs type checks, linting, tests, anti-placeholder scans, and evidence checks. Supports phase-level and MEU-scoped runs.
+---
+
+# Codebase Quality Gate Skill
+
+## Overview
+
+The quality gate validates code correctness across the Zorivest monorepo. It runs via Python (cross-platform) and supports two scoping levels.
+
+## Commands
+
+```bash
+# Full phase gate — run when ALL MEUs in a phase are complete
+uv run python tools/validate_codebase.py
+
+# MEU-scoped gate — run after each individual MEU implementation
+uv run python tools/validate_codebase.py --scope meu
+
+# Scoped to specific files
+uv run python tools/validate_codebase.py --scope meu --files packages/core/src/zorivest_core/domain/portfolio_balance.py
+
+# Machine-readable output for agent parsing
+uv run python tools/validate_codebase.py --json
+```
+
+## When to Run
+
+| Trigger | Scope | Command |
+|---------|-------|---------|
+| After each code change | MEU | `--scope meu` |
+| After completing all MEUs in a phase | Phase | (default, no flag) |
+| Before `git commit` | Phase | (default) |
+| During Codex validation | Phase | `--json` for structured output |
+
+## Check Categories
+
+### Blocking (must pass)
+
+| # | Check | Tool | Fail = |
+|---|-------|------|--------|
+| 1 | Python type check | `pyright` | Type error in domain/infra/api |
+| 2 | Python lint | `ruff` | Style or logic violation |
+| 3 | Python unit tests | `pytest -m unit` | Failing test |
+| 4 | TypeScript type check | `tsc --noEmit` | Type error in UI/MCP |
+| 5 | TypeScript lint | `eslint` | Lint violation |
+| 6 | TypeScript unit tests | `vitest` | Failing test |
+| 7 | Anti-placeholder scan | `rg TODO\|FIXME\|NotImplementedError` | Unresolved placeholder |
+| 8 | Anti-deferral scan | `rg pass.*placeholder\|raise NotImplementedError` | Deferred implementation |
+
+### Advisory (non-blocking)
+
+| # | Check | Tool | Purpose |
+|---|-------|------|---------|
+| A1 | Coverage report | `pytest --cov` | Track test coverage |
+| A2 | Security scan | `bandit` | Surface risky patterns |
+| A3 | Evidence bundle | Handoff field check | Ensure handoff completeness |
+
+## Agent Integration
+
+### Reading Results
+
+When using `--json`, output structure:
+```json
+{
+  "summary": {
+    "passed": true,
+    "blocking_passed": 8,
+    "blocking_failed": 0,
+    "advisory_count": 3,
+    "skipped_count": 0,
+    "total_duration_s": 12.5
+  },
+  "checks": [
+    {"name": "...", "passed": true, "blocking": true, "duration_s": 2.1, "message": ""}
+  ]
+}
+```
+
+### Interpreting Failures
+
+1. **Blocking failure** → Fix before proceeding. Do NOT mark `task.md` items as `[x]`.
+2. **Advisory warning** → Note in handoff but do not block progress.
+3. **Skipped check** → Phase not yet scaffolded (e.g., no TypeScript dirs). Normal.
+
+### Phase Gate vs MEU Gate
+
+- **MEU gate**: Run after each MEU. Use `--scope meu`. Some later-phase checks may fail — that's expected.
+- **Phase gate**: Run only when ALL MEUs in the phase are done. Must pass completely.

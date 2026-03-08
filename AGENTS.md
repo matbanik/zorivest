@@ -7,7 +7,7 @@ For Antigravity-specific rules, see `GEMINI.md`. For identity, see `SOUL.md`.
 
 ```bash
 # Validation (blocking — must pass before proceeding)
-.\tools\validate.ps1                    # Full validation pipeline
+uv run python tools/validate_codebase.py      # Full validation pipeline
 pytest tests/unit/                      # Python unit tests
 npx vitest run                          # TypeScript unit tests
 pyright packages/                       # Python type check
@@ -74,6 +74,7 @@ Every acceptance criterion or rule that is not explicit in the target build-plan
 
 **Blocking** (must fix): `pyright`, `tsc --noEmit`, `ruff`, `eslint`, `pytest`, `vitest`, `npm run build`.
 **Advisory** (report only): `pytest --cov`, `bandit`, `pip-audit`.
+Run the full gate: `uv run python tools/validate_codebase.py` — see `.agent/skills/quality-gate/SKILL.md`.
 
 ## Code Quality
 
