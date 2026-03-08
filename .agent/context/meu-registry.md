@@ -1,72 +1,37 @@
-# MEU Registry — Phase 1 + Phase 1A
+# MEU Registry — Phase 1 + 1A
 
-> Manageable Execution Units for the Zorivest build plan.
-> Each MEU is a focused unit of TDD work for Opus, followed by validation from Codex.
-> Related MEUs are grouped into projects and executed continuously within a single session.
-
----
+> Source: [BUILD_PLAN.md](../docs/BUILD_PLAN.md) | [build-priority-matrix.md](../docs/build-plan/build-priority-matrix.md)
 
 ## Phase 1: Domain Layer (P0)
 
-| MEU | Slug | Build Plan Ref | Description | Status |
-|-----|------|---------------|-------------|--------|
-| MEU-1 | `calculator` | [01 §1.3](../docs/build-plan/01-domain-layer.md) | PositionSizeCalculator + PositionSizeResult | ✅ approved |
-| MEU-2 | `enums` | [01 §1.2](../docs/build-plan/01-domain-layer.md) | All StrEnum definitions (14 enums) | ✅ approved |
-| MEU-3 | `entities` | [01 §1.4](../docs/build-plan/01-domain-layer.md) | Trade, Account, BalanceSnapshot, ImageAttachment | ✅ approved |
-| MEU-4 | `value-objects` | [01 §1.2](../docs/build-plan/01-domain-layer.md) | Money, PositionSize, Ticker, Conviction, ImageData | ✅ approved |
-| MEU-5 | `ports` | [01 §1.5](../docs/build-plan/01-domain-layer.md) | Protocol interfaces (TradeRepo, ImageRepo, UoW, BrokerPort) | ✅ approved |
-| MEU-6 | `commands-dtos` | [01 §1.2](../docs/build-plan/01-domain-layer.md) | Commands (CreateTrade, AttachImage) + DTOs | ✅ approved |
-| MEU-7 | `events` | [01 §1.2](../docs/build-plan/01-domain-layer.md) | Domain events (TradeCreated, BalanceUpdated, etc.) | ✅ approved |
-| MEU-8 | `analytics` | [01 §1.2](../docs/build-plan/01-domain-layer.md) | Pure analytics functions (expectancy, drawdown, SQN, MFE/MAE, PFOF, cost, strategy) | ✅ approved |
+| MEU | Slug | Matrix | Description | Status |
+|-----|------|:------:|-------------|:------:|
+| MEU-1 | `calculator` | 1 | Position size calculator (pure math) | ✅ approved |
+| MEU-2 | `enums` | 2 | All domain enums (AccountType, TradeAction, etc.) | ✅ approved |
+| MEU-3 | `entities` | 3 | Domain entities (Trade, Account, Image, BalanceSnapshot) | ✅ approved |
+| MEU-4 | `value-objects` | 4 | Value objects (Money, PositionSize, Ticker, ImageData, Conviction) | ✅ approved |
+| MEU-5 | `ports` | 5 | Port interfaces (Protocols) | ✅ approved |
+| MEU-6 | `commands-dtos` | 6 | Commands & DTOs | ✅ approved |
+| MEU-7 | `events` | 7 | Domain events | ✅ approved |
+| MEU-8 | `analytics` | 8 | Pure analytics functions + result types | ✅ approved |
+| MEU-9 | `portfolio-balance` | 3a | TotalPortfolioBalance pure fn (sum latest balances) | ✅ approved |
+| MEU-10 | `display-mode` | 3b | DisplayMode service ($, %, mask fns) | ✅ approved |
+| MEU-11 | `account-review` | 3c | Account Review workflow (guided balance update) | ✅ approved |
 
-## Phase 1A: Logging Infrastructure (P0, Parallel)
+## Phase 1A: Logging Infrastructure (P0 — Parallel)
 
-| MEU | Slug | Build Plan Ref | Description | Status |
-|-----|------|---------------|-------------|--------|
-| MEU-1A | `logging-manager` | [01a §1–3](../docs/build-plan/01a-logging.md) | LoggingManager, QueueHandler/Listener, JSONL format | ⬜ pending |
-| MEU-2A | `logging-filters` | [01a §4](../docs/build-plan/01a-logging.md) | FeatureFilter (per-file routing) + JsonFormatter | ⬜ pending |
-| MEU-3A | `logging-redaction` | [01a §4](../docs/build-plan/01a-logging.md) | RedactionFilter (API key masking, PII redaction) | ⬜ pending |
-
----
-
-## Status Legend
-
-| Icon | Meaning |
-|------|---------|
-| ⬜ | pending — not started |
-| 🔵 | in_progress — Opus implementing |
-| 🟡 | ready_for_review — awaiting Codex validation |
-| 🔴 | changes_required — Codex found issues |
-| ✅ | approved — both agents satisfied |
-| 🚫 | blocked — escalated to human |
+| MEU | Slug | Matrix | Description | Status |
+|-----|------|:------:|-------------|:------:|
+| MEU-1A | `logging-manager` | 1A | LoggingManager, QueueHandler/Listener, JSONL | ⬜ pending |
+| MEU-2A | `logging-filters` | 1A | FeatureFilter, CatchallFilter + JsonFormatter | ⬜ pending |
+| MEU-3A | `logging-redaction` | 1A | RedactionFilter (API key masking, PII redaction) | ⬜ pending |
 
 ## Execution Order
 
-### Recommended Start (Pilot)
+Phase 1: MEU-1 → MEU-2 → MEU-3 → MEU-4 → MEU-5 → MEU-6 → MEU-7 → MEU-8 → MEU-9 → MEU-10 → MEU-11
+Phase 1A: MEU-1A → MEU-2A → MEU-3A (parallel with Phase 1)
 
-```
-MEU-1 (calculator) ← PILOT — validates entire dual-agent workflow
-```
+## Phase-Exit Criteria
 
-### After Pilot Validated
-
-```
-Track A (Phase 1):        Track B (Phase 1A):
-  MEU-2 (enums)             MEU-1A (logging-manager)
-  MEU-3 (entities)          MEU-2A (logging-filters)
-  MEU-4 (value-objects)     MEU-3A (logging-redaction)
-  MEU-5 (ports)
-  MEU-6 (commands-dtos)
-  MEU-7 (events)
-  MEU-8 (analytics)
-```
-
-Track A and Track B can run in parallel — they have zero dependencies on each other.
-
-## Phase-Exit Criterion
-
-Phase 1 + 1A are complete when ALL MEUs in both tracks show ✅ status, and:
-- `pytest -x --tb=short -m "unit"` passes (all tests green)
-- `pyright packages/core/src/` passes (zero type errors)
-- `ruff check packages/core/src/` passes (zero warnings)
-- No banned patterns remain (`rg "TODO|FIXME|NotImplementedError" packages/`)
+- Phase 1: All 11 MEUs ✅ + `.\tools\validate.ps1` passes → Phase 2 unblocked
+- Phase 1A: All 3 MEUs ✅ → logging available for outer-layer modules

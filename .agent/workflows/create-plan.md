@@ -56,6 +56,8 @@ cat docs/build-plan/{NN}-{phase}.md
 
 Identify the set of pending MEUs that are unblocked (all dependencies satisfied by approved MEUs).
 
+Also inspect `docs/BUILD_PLAN.md` as the build-plan hub/index and determine whether the planned project will require hub-level updates (for example: stale execution-plan references, phase-status notes, moved/renamed plan links, or summary text that would become inaccurate once the project is executed). This check is mandatory during planning; do not leave `docs/BUILD_PLAN.md` maintenance to memory.
+
 ### 2A. Run a Spec Sufficiency Gate
 
 Before grouping MEUs, verify whether the build plan is specific enough to support a complete implementation without guesswork.
@@ -123,6 +125,7 @@ The plan must include:
 - A task table with: task, owner_role, deliverable, validation, status
 - A spec-sufficiency section per MEU with source-backed resolutions for any under-specified behavior
 - Feature Intent Contract (FIC) per MEU with acceptance criteria annotated as `Spec`, `Local Canon`, `Research-backed`, or `Human-approved`
+- An explicit task to review and update `docs/BUILD_PLAN.md` for any hub/index drift caused or revealed by the project. This task must appear in both `implementation-plan.md` and `task.md`, with exact validation commands. If the planner finds no required `docs/BUILD_PLAN.md` change, the task must still exist and say so explicitly (for example: validate that no stale references remain, then mark the task complete with evidence).
 - Exact file paths to create or modify
 - Exact validation commands
 - Explicit stop conditions
@@ -130,6 +133,8 @@ The plan must include:
 - Handoff file paths using the naming convention: `{SEQ}-{YYYY-MM-DD}-{slug}-bp{NN}s{X.Y}.md`
 
 No plan may defer required behavior merely because the build plan is thin. The planner must either resolve the behavior from sources or stop on an explicit human decision gate before execution.
+
+For `docs/BUILD_PLAN.md` specifically, do not use vague wording like "clean up BUILD_PLAN later" or bury the work in prose. The planner must create a concrete task row with owner, deliverable, validation, and status just like any other project task.
 
 ### 5. Present for Approval
 

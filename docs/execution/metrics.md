@@ -9,6 +9,7 @@
 | 2026-03-06 | MEU-1 | ~50 | ~8 min | 9 | 0 (approved) | 7/7 | 100% | ~15 min | Pilot — bootstrap + TDD validated |
 | 2026-03-07 | MEU-2 | ~40 | ~3 min | 17 | 0 (approved) | 7/7 | 100% | ~10 min | Pure enums — fastest MEU type |
 | 2026-03-07 | MEU-3/4/5 | ~60 | ~5 min | 58 | — (pending review) | 7/7 | 90% | ~30 min | 3-MEU project: entities + VOs + ports |
+| 2026-03-07 | MEU-9/10/11 | ~100 | ~5 min | 55 | 0 (approved) | 7/7 | 90% | ~60 min | 3-MEU project: portfolio balance + display mode + account review |
 
 ## Measurement Definitions
 
