@@ -3,6 +3,8 @@ name = "zorivest-infra"
 version = "0.1.0"
 requires-python = ">=3.12"
 dependencies = [
+    "argon2-cffi>=25.1.0",
+    "pyzipper>=0.3.6",
     "sqlalchemy>=2.0.48",
 ]
 

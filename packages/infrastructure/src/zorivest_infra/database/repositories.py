@@ -2,10 +2,11 @@
 
 Source: 02-infrastructure.md §2.2
 Implements: ports.TradeRepository, ImageRepository, AccountRepository,
-            BalanceSnapshotRepository, RoundTripRepository
+            BalanceSnapshotRepository, RoundTripRepository,
+            SettingsRepository, AppDefaultsRepository
 """
 
-# pyright: reportArgumentType=false, reportReturnType=false, reportGeneralTypeIssues=false
+# pyright: reportArgumentType=false, reportReturnType=false, reportGeneralTypeIssues=false, reportAttributeAccessIssue=false
 # SQLAlchemy Column[T] types are not directly assignable to T at type-check time,
 # but are correctly resolved to T at runtime. This is a known pyright limitation.
 
@@ -31,9 +32,11 @@ from zorivest_core.domain.enums import (
 )
 from zorivest_infra.database.models import (
     AccountModel,
+    AppDefaultModel,
     BalanceSnapshotModel,
     ImageModel,
     RoundTripModel,
+    SettingModel,
     TradeModel,
 )
 
@@ -319,3 +322,53 @@ class SqlAlchemyRoundTripRepository:
         if status is not None:
             query = query.filter(RoundTripModel.status == status)
         return list(query.all())
+
+
+class SqlAlchemySettingsRepository:
+    """Concrete SettingsRepository backed by SQLAlchemy Session.
+
+    Operates on `settings` table (SettingModel): user-level key/value overrides.
+    """
+
+    def __init__(self, session: Session) -> None:
+        self._session = session
+
+    def get(self, key: str) -> SettingModel | None:
+        return self._session.get(SettingModel, key)
+
+    def get_all(self) -> list[SettingModel]:
+        return list(self._session.query(SettingModel).all())
+
+    def bulk_upsert(self, settings: dict[str, Any]) -> None:
+        from datetime import datetime as dt
+
+        for k, v in settings.items():
+            existing = self._session.get(SettingModel, k)
+            if existing:
+                existing.value = str(v)
+                existing.updated_at = dt.now()
+            else:
+                self._session.add(
+                    SettingModel(key=k, value=str(v), value_type="str", updated_at=dt.now())
+                )
+
+    def delete(self, key: str) -> None:
+        m = self._session.get(SettingModel, key)
+        if m:
+            self._session.delete(m)
+
+
+class SqlAlchemyAppDefaultsRepository:
+    """Concrete AppDefaultsRepository backed by SQLAlchemy Session.
+
+    Read-only access to `app_defaults` table (AppDefaultModel).
+    """
+
+    def __init__(self, session: Session) -> None:
+        self._session = session
+
+    def get(self, key: str) -> AppDefaultModel | None:
+        return self._session.get(AppDefaultModel, key)
+
+    def get_all(self) -> list[AppDefaultModel]:
+        return list(self._session.query(AppDefaultModel).all())

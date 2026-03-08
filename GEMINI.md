@@ -8,7 +8,7 @@ Antigravity uses three modes via `task_boundary`. Map the six project roles to t
 
 | Antigravity Mode | Roles Active | What Happens |
 |---|---|---|
-| **PLANNING** | orchestrator, researcher | Scope task, read context files, research patterns, create `implementation_plan.md` |
+| **PLANNING** | orchestrator, researcher | Scope task, read context files, research patterns, create `implementation-plan.md` |
 | **EXECUTION** | coder | Implement changes, run targeted tests after each change |
 | **VERIFICATION** | tester, reviewer, guardrail | Run full validation (`uv run python tools/validate_codebase.py`), adversarial review, safety checks |
 
@@ -66,8 +66,11 @@ Under-specified specs are not permission to narrow scope, invent behavior, or de
 - **Phase gate** (phase exit only): `uv run python tools/validate_codebase.py` when ALL MEUs in a phase are complete. Do NOT run it as a MEU-level gate — it validates the full repo and will fail until later phases are scaffolded.
 - **Evidence-first completion:** `task.md` items may never be marked `[x]` unless the handoff or walkthrough contains a complete evidence bundle (changed files + commands executed + test results + artifact references).
 - **No-deferral rule:** Items containing `TODO`, `FIXME`, `NotImplementedError`, or placeholder stubs may not be marked `[x]`. Blocked items must use status `[B]` with a linked follow-up task in the handoff.
-- **Anti-placeholder enforcement:** Before declaring complete, run `rg "TODO|FIXME|NotImplementedError" packages/ src/` and resolve any matches.
+- **Anti-placeholder enforcement:** Before declaring complete, run `rg "TODO|FIXME|NotImplementedError" packages/` and resolve any matches. Extend the search to `ui/` or `mcp-server/` once those packages are scaffolded.
 - A thin spec is not a valid reason to ship a narrower implementation. Resolve the gap in planning/research, update the plan/FIC with the source-backed rule, then implement the full resolved contract.
+
+> [!CAUTION]
+> **Anti-premature-stop rule.** Do NOT call `notify_user` during execution unless blocked by an unresolvable error or a human decision gate. Complete ALL workflow exit criteria in a single continuous pass — including post-MEU deliverables (MEU gate, registry update, BUILD_PLAN.md update, reflection, metrics, pomera session save, commit messages). If context window pressure is a concern, save state to `pomera_notes` — do NOT terminate the session early. Before any `notify_user` call, re-read `task.md` and verify every item is `[x]`.
 
 ## Dual-Agent Workflow
 

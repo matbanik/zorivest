@@ -1,5 +1,5 @@
 ---
-description: Validation and adversarial review workflow for GPT 5.3 Codex — verify tests, review code, generate evidence bundle.
+description: Validation and adversarial review workflow for GPT-5.4 Codex — verify tests, review code, generate evidence bundle.
 ---
 
 # Validation Review Workflow (Codex Agent)
@@ -8,7 +8,7 @@ Use this workflow when validating a completed MEU. Codex is the **validation age
 
 ## Prerequisites
 
-- Read the MEU handoff artifact at `.agent/context/handoffs/{date}-meu-{N}-{slug}.md`
+- Read the MEU handoff artifact at `.agent/context/handoffs/{SEQ}-{YYYY-MM-DD}-{slug}-bp{NN}s{X.Y}.md`
 - Read ALL changed files listed in the handoff (full content, not just diffs)
 - Read `docs/build-plan/testing-strategy.md` for test standards
 - Read `.agent/roles/reviewer.md` for adversarial checklist
@@ -39,8 +39,8 @@ pytest -x --tb=long -v
 Run type checking (scope to touched packages per active phase):
 ```bash
 # Phase 1+1A: packages/core/src/
-# Phase 2+:   packages/core/src/ packages/infra/src/
-# Phase 4+:   packages/core/src/ packages/infra/src/ packages/api/src/
+# Phase 2+:   packages/core/src/ packages/infrastructure/src/
+# Phase 4+:   packages/core/src/ packages/infrastructure/src/ packages/api/src/
 # Phase 5+:   add mcp-server/ (use tsc --noEmit, vitest, eslint instead)
 pyright packages/core/src/    # ← adjust per active phase
 ```
@@ -58,7 +58,7 @@ ruff check packages/core/src/ # ← adjust per active phase
 # Skip this block for Phases 1–4
 cd mcp-server && npx tsc --noEmit   # Type-check MCP server
 npx vitest run                       # MCP tool tests
-npx eslint src/                      # MCP linting
+npx eslint src/ --max-warnings 0     # MCP linting
 ```
 
 Record all output.

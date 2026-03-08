@@ -100,7 +100,7 @@ For each verified finding, specify the exact fix:
 
 Group fixes by file for efficient editing.
 
-Write the plan to the Antigravity `implementation_plan.md` artifact and request user approval via `notify_user`.
+Write the plan to the Antigravity `implementation-plan.md` artifact and request user approval via `notify_user`.
 
 **Do not proceed to Step 4 without user approval.**
 

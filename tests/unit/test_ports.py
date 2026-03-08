@@ -111,6 +111,8 @@ class TestUnitOfWork:
             cls_annotations.update(getattr(cls, "__annotations__", {}))
         assert "trades" in cls_annotations, "UnitOfWork missing 'trades' attribute"
         assert "images" in cls_annotations, "UnitOfWork missing 'images' attribute"
+        assert "settings" in cls_annotations, "UnitOfWork missing 'settings' attribute"
+        assert "app_defaults" in cls_annotations, "UnitOfWork missing 'app_defaults' attribute"
 
 
 class TestBrokerPort:
@@ -260,9 +262,9 @@ class TestImportSurface:
 
 
 class TestModuleIntegrity:
-    """Verify the module exports exactly the 9 expected Protocol classes."""
+    """Verify the module exports exactly the 11 expected Protocol classes."""
 
-    def test_module_has_exactly_9_protocol_classes(self) -> None:
+    def test_module_has_exactly_11_protocol_classes(self) -> None:
         import zorivest_core.application.ports as mod
 
         class_names = [
@@ -281,6 +283,9 @@ class TestModuleIntegrity:
             "AccountRepository",
             "BalanceSnapshotRepository",
             "RoundTripRepository",
+            # Phase 2A additions (MEU-18)
+            "SettingsRepository",
+            "AppDefaultsRepository",
         }
         assert set(class_names) == expected, (
             f"Expected {expected}, got {set(class_names)}"

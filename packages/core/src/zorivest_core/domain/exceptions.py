@@ -8,7 +8,9 @@ Hierarchy:
     ├── NotFoundError
     ├── BusinessRuleError
     ├── BudgetExceededError
-    └── ImportError
+    ├── ImportError
+    ├── InvalidPassphraseError
+    └── CorruptedBackupError
 """
 
 from __future__ import annotations
@@ -36,3 +38,11 @@ class BudgetExceededError(ZorivestError):
 
 class ImportError(ZorivestError):  # noqa: A001 — shadows builtin intentionally
     """File import parsing or format detection failed."""
+
+
+class InvalidPassphraseError(ZorivestError):
+    """Passphrase decryption failed (wrong passphrase for backup/DB)."""
+
+
+class CorruptedBackupError(ZorivestError):
+    """Backup file is corrupted (hash mismatch, invalid manifest)."""

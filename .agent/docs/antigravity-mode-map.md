@@ -6,9 +6,9 @@ How Antigravity's `task_boundary` modes map to the six project roles.
 
 | Mode | Roles | Activities |
 |---|---|---|
-| **PLANNING** | orchestrator, researcher | Scope task, read context files, research patterns, create `implementation_plan.md` |
+| **PLANNING** | orchestrator, researcher | Scope task, read context files, research patterns, create `implementation-plan.md` |
 | **EXECUTION** | coder | Implement changes, run targeted tests after each change |
-| **VERIFICATION** | tester, reviewer, guardrail | Run full validation (`.\validate.ps1`), adversarial review, safety checks |
+| **VERIFICATION** | tester, reviewer, guardrail | Run the appropriate validation gate (`uv run python tools/validate_codebase.py --scope meu` or full phase gate), adversarial review, safety checks |
 
 ## Transition Rules
 
@@ -19,7 +19,7 @@ PLANNING ──(plan approved)──► EXECUTION ──(implementation complete
                                          EXECUTION ◄──(minor bug)──┘
 ```
 
-- **PLANNING → EXECUTION**: Only after user approves the `implementation_plan.md`.
+- **PLANNING → EXECUTION**: Only after user approves the `implementation-plan.md`.
 - **EXECUTION → VERIFICATION**: After all implementation is complete.
 - **VERIFICATION → PLANNING**: If fundamental design flaws are discovered (new TaskName).
 - **VERIFICATION → EXECUTION**: If minor bugs found (same TaskName, fix and resume).

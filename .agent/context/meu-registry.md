@@ -36,14 +36,25 @@
 | MEU-15 | `unit-of-work` | 9 | SqlAlchemyUnitOfWork (5 repos) + WAL engine factory | ✅ approved |
 | MEU-16 | `sqlcipher` | 10 | SQLCipher encrypted connection + Argon2/PBKDF2 KDF | ✅ approved |
 
+## Phase 2A: Backup & Restore (P0)
+
+| MEU | Slug | Matrix | Description | Status |
+|-----|------|:------:|-------------|:------:|
+| MEU-17 | `app-defaults` | 10a | AppDefaultModel + seed_defaults migration | ✅ approved |
+| MEU-18 | `settings-resolver` | 10b | SettingsRegistry, Resolver, Validator, Cache, Service | ✅ approved |
+| MEU-19 | `backup-manager` | 10c | BackupManager (Argon2id, GFS rotation, AES-ZIP) | ✅ approved |
+
 ## Execution Order
 
 Phase 1: MEU-1 → MEU-2 → MEU-3 → MEU-4 → MEU-5 → MEU-6 → MEU-7 → MEU-8 → MEU-9 → MEU-10 → MEU-11
 Phase 1A: MEU-2A → MEU-3A → MEU-1A (dependency order, parallel with Phase 1)
 Phase 2: MEU-12 → MEU-13 → MEU-14 → MEU-15 → MEU-16
+Phase 2A: MEU-17 → MEU-18 → MEU-19
 
 ## Phase-Exit Criteria
 
 - Phase 1: All 11 MEUs ✅ + `.\tools\validate.ps1` passes → Phase 2 unblocked
 - Phase 1A: All 3 MEUs ✅ → logging available for outer-layer modules
 - Phase 2: All 5 MEUs ✅ → Phase 2A unblocked
+- Phase 2A: All 3 of 5 foundation MEUs ✅ → MEU-20/21 unblocked
+

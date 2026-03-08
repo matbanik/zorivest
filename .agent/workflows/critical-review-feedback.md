@@ -1,3 +1,4 @@
+---
 description: Reusable findings-first critical review workflow for unstarted execution plans, completed work handoffs, correlated multi-handoff project sets, and related docs/files (accuracy, consistency, regressions, missing updates, weak verification).
 ---
 

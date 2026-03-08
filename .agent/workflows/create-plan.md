@@ -150,6 +150,33 @@ Switch to EXECUTION mode. Follow:
 - `.agent/workflows/meu-handoff.md` for handoff creation per MEU
 - `.agent/workflows/execution-session.md` §4–7 for execution rules, reflection, and session state
 
+> [!CAUTION]
+> **Anti-premature-stop rule.** Do NOT call `notify_user` during Step 6 unless blocked by an unresolvable error or a human decision gate. Complete ALL items below in a single continuous execution. If context window pressure is a concern, save state to `pomera_notes` — do NOT terminate the session early.
+>
+> This rule exists because agents exhibit a learned pattern of treating `notify_user` as a progress report tool, calling it after sub-milestones (tests pass, handoffs written, gates run). The workflow requires ALL exit criteria to be met before returning control to the user.
+
+After all MEU TDD cycles and handoffs are complete, **continue immediately** with these post-MEU deliverables (they are part of Step 6, not a separate phase):
+
+1. Run MEU gate: `uv run python tools/validate_codebase.py --scope meu`
+2. Update `.agent/context/meu-registry.md` with new MEU rows
+3. Update `docs/BUILD_PLAN.md` status column for completed MEUs
+4. Run full regression: `uv run pytest tests/ -v`
+5. Create reflection file at `docs/execution/reflections/` (see `execution-session.md` §5)
+6. Update metrics table in `docs/execution/metrics.md`
+7. Save session state to `pomera_notes`
+8. Prepare proposed commit messages
+
+**Do NOT return control to the user until all 8 items above are done.**
+
+### 7. Completion Gate
+
+Before calling `notify_user` to present results:
+
+1. Read `task.md` — verify every item is `[x]`
+2. If any item is `[ ]` or `[/]`, complete it first — do not skip
+3. Verify all exit criteria below are met
+4. Only then call `notify_user` with `BlockedOnUser: false`
+
 ## Handoff Naming Convention
 
 Handoffs use sequenced names that encode build-plan traceability:
@@ -182,10 +209,15 @@ Examples:
 
 ## Exit Criteria
 
+> [!IMPORTANT]
+> The agent MUST NOT call `notify_user` until every item below is checked. See Step 7 (Completion Gate).
+
 - [ ] Plan written to `docs/execution/plans/{date}-{project-slug}/`
 - [ ] All MEUs in the project executed via TDD
 - [ ] One handoff per MEU created with sequenced naming
+- [ ] MEU gate passed: `uv run python tools/validate_codebase.py --scope meu`
 - [ ] MEU registry updated per MEU
+- [ ] `docs/BUILD_PLAN.md` status updated for completed MEUs
 - [ ] Reflection file created
 - [ ] Metrics table updated
 - [ ] Session state saved to pomera_notes

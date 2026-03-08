@@ -40,7 +40,7 @@ Antigravity (Opus 4.6) will:
 2. Discover progress from handoffs + meu-registry
 3. Scope the next project from pending build-plan MEUs
 4. Resolve under-specified requirements via local canonical docs + targeted web research before finalizing the FIC
-5. Generate `implementation_plan.md` and `task.md` in the project folder
+5. Generate `implementation-plan.md` and `task.md` in the project folder
 6. Present the plan to the human via `notify_user` with `BlockedOnUser: true`
 
 **Human Review Loop**:

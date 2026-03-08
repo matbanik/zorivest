@@ -6,32 +6,35 @@ For Antigravity-specific rules, see `GEMINI.md`. For identity, see `SOUL.md`.
 ## Quick Commands
 
 ```bash
-# Validation (blocking — must pass before proceeding)
-uv run python tools/validate_codebase.py      # Full validation pipeline
-pytest tests/unit/                      # Python unit tests
-npx vitest run                          # TypeScript unit tests
-pyright packages/                       # Python type check
-npx tsc --noEmit                        # TypeScript type check
-ruff check packages/                    # Python lint
-npx eslint src/ --max-warnings 0        # TypeScript lint
+# Validation (current scaffold: Python-only)
+uv run python tools/validate_codebase.py --scope meu  # MEU gate during active implementation
+uv run python tools/validate_codebase.py              # Full phase gate after all phase MEUs complete
+pytest tests/unit/                                    # Python unit tests
+pyright packages/                                     # Python type check
+ruff check packages/                                  # Python lint
 
-# Development
-uv run fastapi dev packages/api/src/zorivest_api/main.py  # Start API
-npm run dev                             # Start Electron UI
-pytest --cov=packages/core --cov-report=term  # Coverage (advisory)
+# Development (current scaffold)
+pytest --cov=packages/core --cov-report=term            # Coverage (advisory)
+
+# Planned scaffold commands (run only after the package exists)
+# uv run fastapi dev packages/api/src/zorivest_api/main.py  # API
+# npx tsc --noEmit                                          # TypeScript type check
+# npx vitest run                                            # TypeScript unit tests
+# npx eslint <ts-package>/src --max-warnings 0              # TypeScript lint
+# npm run dev                                               # Electron UI
 ```
 
 ## Architecture
 
-Hybrid monorepo — see `.agent/docs/architecture.md` for full details.
+Hybrid monorepo — see `.agent/docs/architecture.md` for the target-state architecture. Current scaffold status is below.
 
-| Layer | Language | Package | Purpose |
-|-------|----------|---------|---------|
-| Domain | Python | `packages/core` | Entities, value objects, ports, calculator |
-| Infra | Python | `packages/infrastructure` | SQLAlchemy, SQLCipher, repos, UoW |
-| API | Python | `packages/api` | FastAPI REST on localhost |
-| UI | TypeScript | `ui/` | Electron + React GUI |
-| MCP | TypeScript | `mcp-server/` | AI agent tool interface |
+| Layer | Language | Package | Status | Purpose |
+|-------|----------|---------|--------|---------|
+| Domain | Python | `packages/core` | Active | Entities, value objects, ports, calculator |
+| Infra | Python | `packages/infrastructure` | Active | SQLAlchemy, SQLCipher, repos, UoW |
+| API | Python | `packages/api` | Planned | FastAPI REST on localhost |
+| UI | TypeScript | `ui/` | Planned | Electron + React GUI |
+| MCP | TypeScript | `mcp-server/` | Planned | AI agent tool interface |
 
 **Dependency rule:** Domain → Application → Infrastructure. Never import infra from core.
 
@@ -46,8 +49,8 @@ Hybrid monorepo — see `.agent/docs/architecture.md` for full details.
 - **Time is not a constraint** in agentic development cycles. Do not optimize for speed over quality.
 - **Token usage is not a constraint** (subscription-based). Do not truncate, summarize prematurely, or skip work to save tokens.
 - **Do not bring up time or token usage** in design discussions, trade-off analyses, or implementation decisions. Quality, wisdom, and expert experience are the only optimization targets.
-- **At session start:** Read `SOUL.md`, check `pomera_notes` (`search_term: "Zorivest"`), read `.agent/context/current-focus.md` and `known-issues.md`.
-- **At session end:** Save to `pomera_notes` (`Memory/Session/Zorivest-{project-slug}-{date}`), update `current-focus.md`, create/update handoff(s) at `.agent/context/handoffs/`.
+- **At session start:** Read `SOUL.md`, check `pomera_notes` (`search_term: "Zorivest"`), read `.agent/context/current-focus.md` and `.agent/context/known-issues.md`. Verify MCP server availability when the workflow depends on `pomera`, `text-editor`, or `sequential-thinking`.
+- **At session end:** Save to `pomera_notes` (`Memory/Session/Zorivest-{project-slug}-{date}`) and create/update handoff(s) at `.agent/context/handoffs/`. Update `.agent/context/current-focus.md` only when the session changes project state; review-only sessions should not overwrite unrelated focus state.
 - **Handoff continuity:** For the same `docs/execution/plans/{YYYY-MM-DD}-{project-slug}/` target, keep plan review in one rolling `-plan-critical-review.md` file and project implementation critique/recheck in one rolling `-implementation-critical-review.md` file. Append updates to the same file instead of creating new `-recheck`, `-final`, or `-approved` variants.
 - **Under-specified build-plan handling:** Never make silent assumptions, silent scope cuts, or silent deferrals. Resolve gaps in this order: (1) local canonical docs (`docs/build-plan/`, linked references, ADRs, approved reflections/handoffs when they establish carry-forward rules), (2) targeted web research against primary/current sources to confirm best practice, (3) explicit human decision only if materially different product behaviors remain plausible, sources conflict, or the decision is irreversible/high-risk.
 - **Human approval** is mandatory before merge, release, or deploy.
@@ -72,9 +75,15 @@ Every acceptance criterion or rule that is not explicit in the target build-plan
 
 ## Validation Pipeline
 
-**Blocking** (must fix): `pyright`, `tsc --noEmit`, `ruff`, `eslint`, `pytest`, `vitest`, `npm run build`.
+**MEU gate** (active implementation work): `uv run python tools/validate_codebase.py --scope meu`
+**Phase gate** (only after all MEUs in a phase are complete): `uv run python tools/validate_codebase.py`
+
+**Blocking checks** apply by scaffold and phase:
+- Current scaffold: `pyright`, `ruff`, `pytest`
+- When TypeScript packages are scaffolded: `tsc --noEmit`, `eslint`, `vitest`, `npm run build`
+
 **Advisory** (report only): `pytest --cov`, `bandit`, `pip-audit`.
-Run the full gate: `uv run python tools/validate_codebase.py` — see `.agent/skills/quality-gate/SKILL.md`.
+See `.agent/skills/quality-gate/SKILL.md` for scope selection and skipped-check behavior.
 
 ## Code Quality
 
@@ -84,7 +93,7 @@ Run the full gate: `uv run python tools/validate_codebase.py` — see `.agent/sk
 - Every function: input validation + docstrings. No `TODO`, no `any` type, no `console.log`.
 - Use structured logging (`structlog`). Re-throw with context on catch.
 
-**Balanced** (ui/):
+**Balanced** (`ui/`, when scaffolded):
 - No placeholders. Basic error handling required. `TODO` only with tracked issue ref.
 
 See `.agent/docs/code-quality.md` for full examples and forbidden patterns.

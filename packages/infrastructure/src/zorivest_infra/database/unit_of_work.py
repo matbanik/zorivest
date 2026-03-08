@@ -17,9 +17,11 @@ from sqlalchemy.orm import Session, sessionmaker
 
 from zorivest_infra.database.repositories import (
     SqlAlchemyAccountRepository,
+    SqlAlchemyAppDefaultsRepository,
     SqlAlchemyBalanceSnapshotRepository,
     SqlAlchemyImageRepository,
     SqlAlchemyRoundTripRepository,
+    SqlAlchemySettingsRepository,
     SqlAlchemyTradeRepository,
 )
 
@@ -40,6 +42,8 @@ class SqlAlchemyUnitOfWork:
     accounts: SqlAlchemyAccountRepository
     balance_snapshots: SqlAlchemyBalanceSnapshotRepository
     round_trips: SqlAlchemyRoundTripRepository
+    settings: SqlAlchemySettingsRepository
+    app_defaults: SqlAlchemyAppDefaultsRepository
 
     def __init__(self, engine: Engine) -> None:
         self._engine = engine
@@ -53,6 +57,8 @@ class SqlAlchemyUnitOfWork:
         self.accounts = SqlAlchemyAccountRepository(self._session)
         self.balance_snapshots = SqlAlchemyBalanceSnapshotRepository(self._session)
         self.round_trips = SqlAlchemyRoundTripRepository(self._session)
+        self.settings = SqlAlchemySettingsRepository(self._session)
+        self.app_defaults = SqlAlchemyAppDefaultsRepository(self._session)
         return self
 
     def __exit__(

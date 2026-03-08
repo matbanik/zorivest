@@ -68,8 +68,8 @@ Run type checking and linting:
 ```bash
 # Scope to touched packages (expand as phases grow):
 # Phase 1+1A: packages/core/src/
-# Phase 2+:   packages/core/src/ packages/infra/src/
-# Phase 4+:   packages/core/src/ packages/infra/src/ packages/api/src/
+# Phase 2+:   packages/core/src/ packages/infrastructure/src/
+# Phase 4+:   packages/core/src/ packages/infrastructure/src/ packages/api/src/
 # Phase 5+:   add mcp-server/ (tsc --noEmit, vitest, eslint)
 pyright packages/core/src/    # ← adjust per active phase
 ruff check packages/core/src/ # ← adjust per active phase
@@ -85,7 +85,7 @@ pytest -x --tb=short -m "unit"
 
 ### 7. Create Handoff Artifact
 
-Create the handoff file at `.agent/context/handoffs/{YYYY-MM-DD}-meu-{N}-{slug}.md` using the format from `.agent/workflows/meu-handoff.md`.
+Create the handoff file at `.agent/context/handoffs/{SEQ}-{YYYY-MM-DD}-{slug}-bp{NN}s{X.Y}.md` using the format from `.agent/workflows/meu-handoff.md`.
 
 ### 8. Save Session State
 

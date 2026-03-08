@@ -20,7 +20,7 @@ Verify that implementation matches the requested behavior and identify regressio
 1. Run targeted tests for affected areas first.
 2. Run language-specific blocking checks for touched areas:
    - Python: `pytest`, `pyright`, `ruff`
-   - TypeScript: `npx vitest run`, `npx tsc --noEmit`, `npx eslint src/ --max-warnings 0`
+   - TypeScript (when scaffolded): `npx vitest run`, `npx tsc --noEmit`, `cd <ts-package> && npx eslint src/ --max-warnings 0`
 3. Report failing tests with exact command and failure point.
 4. Flag missing coverage and regression risk explicitly.
 5. Update handoff notes with pass/fail matrix and evidence.

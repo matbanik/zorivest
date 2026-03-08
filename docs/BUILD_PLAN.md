@@ -58,7 +58,7 @@ Domain → Infrastructure → Services → REST API → MCP Server → GUI → D
 | 1 — Domain Layer | ✅ Completed | 2026-03-07 |
 | 1A — Logging | ✅ Completed | 2026-03-07 |
 | 2 — Infrastructure | ✅ Completed | 2026-03-08 |
-| 2A — Backup/Restore | ⚪ Not Started | — |
+| 2A — Backup/Restore | 🔵 In Progress | 2026-03-08 |
 | 3 — Service Layer | ⚪ Not Started | — |
 | 4 — REST API | ⚪ Not Started | — |
 | 5 — MCP Server | ⚪ Not Started | — |
@@ -145,9 +145,9 @@ Domain → Infrastructure → Services → REST API → MCP Server → GUI → D
 
 | MEU | Slug | Matrix Item | Build Plan Ref | Description | Status |
 |-----|------|:-----------:|----------------|-------------|:------:|
-| MEU-17 | `app-defaults` | 10a | [02a §2A.1](build-plan/02a-backup-restore.md) | AppDefaultModel + seeding migration | ⬜ |
-| MEU-18 | `settings-resolver` | 10b | [02a §2A.2](build-plan/02a-backup-restore.md) | SettingsRegistry, Resolver, Validator, Cache | ⬜ |
-| MEU-19 | `backup-manager` | 10c | [02a §2A.3](build-plan/02a-backup-restore.md) | BackupManager (auto backup + GFS rotation) | ⬜ |
+| MEU-17 | `app-defaults` | 10a | [02a §2A.1](build-plan/02a-backup-restore.md) | AppDefaultModel + seeding migration | ✅ |
+| MEU-18 | `settings-resolver` | 10b | [02a §2A.2](build-plan/02a-backup-restore.md) | SettingsRegistry, Resolver, Validator, Cache | ✅ |
+| MEU-19 | `backup-manager` | 10c | [02a §2A.3](build-plan/02a-backup-restore.md) | BackupManager (auto backup + GFS rotation) | ✅ |
 | MEU-20 | `backup-recovery` | 10d | [02a §2A.4](build-plan/02a-backup-restore.md) | BackupRecoveryManager (restore + repair) | ⬜ |
 | MEU-21 | `config-export` | 10e | [02a §2A.5](build-plan/02a-backup-restore.md) | ConfigExportService (JSON export/import) | ⬜ |
 

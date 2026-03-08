@@ -27,7 +27,7 @@ Implement only the requested change, keep architecture boundaries intact, and pr
 5. If a required behavior is not actually resolved in the approved plan/FIC, stop and send it back to orchestrator/researcher rather than inventing it.
 6. Run role-relevant checks for touched code:
    - Python: `pytest`, `pyright`, `ruff`
-   - TypeScript: `npx vitest run`, `npx tsc --noEmit`, `npx eslint src/ --max-warnings 0`
+   - TypeScript (when scaffolded): `npx vitest run`, `npx tsc --noEmit`, `cd <ts-package> && npx eslint src/ --max-warnings 0`
 7. Record changed files, command results, and any source-backed implementation decisions in task handoff notes.
 
 ## Must Not Do

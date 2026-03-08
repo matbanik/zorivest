@@ -25,7 +25,7 @@
 | Type check (Python) | pyright | `pyright packages/` |
 | Type check (TS) | tsc | `npx tsc --noEmit` |
 | Lint (Python) | ruff | `ruff check packages/` |
-| Lint (TS) | eslint | `npx eslint src/ --max-warnings 0` |
+| Lint (TS) | eslint | `cd <ts-package> && npx eslint src/ --max-warnings 0` |
 
 ## Coverage Targets (Advisory)
 
@@ -44,11 +44,11 @@ pytest --cov=packages/core --cov-report=term
 
 ## TDD Workflow
 
-1. **Human writes the test** — defines the specification
-2. **AI implements the code** — makes the test pass
+1. **Implementation agent writes the test first** — defines the executable specification
+2. **Implementation agent implements the code** — makes the test pass
 3. **Run tests** — verify green
-4. **AI NEVER modifies tests** to make them pass
-5. **Run full validation** — `.\validate.ps1`
+4. **The implementation agent NEVER modifies tests** to make them pass
+5. **Run the MEU validation gate** — `uv run python tools/validate_codebase.py --scope meu`
 6. **Repeat** for next feature
 
 ## Fixtures

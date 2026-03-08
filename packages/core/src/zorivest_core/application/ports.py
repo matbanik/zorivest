@@ -82,6 +82,26 @@ class RoundTripRepository(Protocol):
     ) -> list[Any]: ...
 
 
+class SettingsRepository(Protocol):
+    """Repository for user setting overrides (SettingModel)."""
+
+    def get(self, key: str) -> Optional[Any]: ...
+
+    def get_all(self) -> list[Any]: ...
+
+    def bulk_upsert(self, settings: dict[str, Any]) -> None: ...
+
+    def delete(self, key: str) -> None: ...
+
+
+class AppDefaultsRepository(Protocol):
+    """Repository for application default settings (AppDefaultModel)."""
+
+    def get(self, key: str) -> Optional[Any]: ...
+
+    def get_all(self) -> list[Any]: ...
+
+
 class UnitOfWork(Protocol):
     """Transactional unit of work wrapping repository access."""
 
@@ -90,6 +110,8 @@ class UnitOfWork(Protocol):
     accounts: AccountRepository
     balance_snapshots: BalanceSnapshotRepository
     round_trips: RoundTripRepository
+    settings: SettingsRepository
+    app_defaults: AppDefaultsRepository
 
     def __enter__(self) -> UnitOfWork: ...
 

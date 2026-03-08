@@ -36,21 +36,25 @@ Save this to: `docs/research/{feature-slug}/scope.md`
 
 Search authoritative sources in this order. Use these strategies:
 
-```bash
+```text
 # Strategy 1: Official docs / standards / primary sources
-# // turbo
-python tools/web_search.py "{feature name} official docs standards best practices" --engine brave --count 10
+# Use `pomera_web_search` (preferred) or an equivalent primary-source web search tool
+query: "{feature name} official docs standards best practices"
+engine: brave
+count: 10
 
 # Strategy 2: Direct GitHub / reference implementation search
-# // turbo
-python tools/web_search.py "github {feature name} {language} open source" --engine brave --count 10
+query: "github {feature name} {language} open source"
+engine: brave
+count: 10
 
 # Strategy 3: Known project repos (check these first)
 # See the reference table below for feature → repo mappings
 
 # Strategy 4: Awesome lists
-# // turbo
-python tools/web_search.py "awesome {domain} github list" --engine brave --count 5
+query: "awesome {domain} github list"
+engine: brave
+count: 5
 ```
 
 If local docs and primary sources fully resolve the behavior, GitHub repo scanning is optional rather than mandatory.
