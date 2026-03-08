@@ -43,18 +43,28 @@
 | MEU-17 | `app-defaults` | 10a | AppDefaultModel + seed_defaults migration | ✅ approved |
 | MEU-18 | `settings-resolver` | 10b | SettingsRegistry, Resolver, Validator, Cache, Service | ✅ approved |
 | MEU-19 | `backup-manager` | 10c | BackupManager (Argon2id, GFS rotation, AES-ZIP) | ✅ approved |
+| MEU-20 | `backup-recovery` | 10d | BackupRecoveryManager (restore + repair) | ✅ approved |
+| MEU-21 | `config-export` | 10e | ConfigExportService (JSON export/import) | ✅ approved |
+
+## Phase 3: Service Layer (P0)
+
+| MEU | Slug | Matrix | Description | Status |
+|-----|------|:------:|-------------|:------:|
+| MEU-22 | `image-processing` | 11 | Image validation, WebP conversion, thumbnails | ✅ approved |
 
 ## Execution Order
 
 Phase 1: MEU-1 → MEU-2 → MEU-3 → MEU-4 → MEU-5 → MEU-6 → MEU-7 → MEU-8 → MEU-9 → MEU-10 → MEU-11
 Phase 1A: MEU-2A → MEU-3A → MEU-1A (dependency order, parallel with Phase 1)
 Phase 2: MEU-12 → MEU-13 → MEU-14 → MEU-15 → MEU-16
-Phase 2A: MEU-17 → MEU-18 → MEU-19
+Phase 2A: MEU-17 → MEU-18 → MEU-19 → MEU-20 → MEU-21
+Phase 3: MEU-22
 
 ## Phase-Exit Criteria
 
 - Phase 1: All 11 MEUs ✅ + `.\tools\validate.ps1` passes → Phase 2 unblocked
 - Phase 1A: All 3 MEUs ✅ → logging available for outer-layer modules
 - Phase 2: All 5 MEUs ✅ → Phase 2A unblocked
-- Phase 2A: All 3 of 5 foundation MEUs ✅ → MEU-20/21 unblocked
+- Phase 2A: All 5 MEUs ✅ → Phase 3 unblocked
+- Phase 3: MEU-22 ✅ → Phase 4 unblocked
 

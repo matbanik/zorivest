@@ -702,25 +702,29 @@ User clicks "Restore Backup"
 class ConfigExportService:
     """Build/parse JSON config exports using the settings registry as allowlist."""
 
-    def __init__(self, registry: dict[str, SettingSpec], resolver: SettingsResolver,
+    def __init__(self, registry: dict[str, SettingSpec],
                  app_version: str = "0.1.0"):
         self._registry = registry
-        self._resolver = resolver
         self._app_version = app_version
+        # NOTE: Resolution happens upstream in SettingsService.
+        # ConfigExportService receives pre-resolved values (SRP).
 
-    def build_export(self, user_settings: dict[str, str],
-                     defaults: dict[str, str]) -> dict:
-        """Build JSON-serializable export dict from exportable settings only."""
+    def build_export(self, resolved_values: dict[str, Any]) -> dict:
+        """Build JSON-serializable export dict from exportable settings only.
+
+        Args:
+            resolved_values: Already-resolved setting key → value mapping
+                (produced by SettingsService using SettingsResolver upstream).
+        """
         export = {}
-        for key, spec in self._registry.items():
+        for key, value in resolved_values.items():
             if not self._is_portable(key):
                 continue  # Hard skip — never export sensitive keys
-            resolved = self._resolver.resolve(key, user_settings.get(key), defaults.get(key))
-            export[key] = resolved.value
+            export[key] = value
         return {
             "config_version": 1,
             "app_version": self._app_version,
-            "created_at": datetime.utcnow().isoformat() + "Z",
+            "created_at": datetime.now(tz=timezone.utc).isoformat(),
             "settings": export,
         }
 

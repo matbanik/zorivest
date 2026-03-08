@@ -25,19 +25,36 @@ Complete Phase 2A by implementing the remaining backup/restore and config export
 
 ## Task Table
 
-| # | Task | Owner | Deliverable | Validation | Status |
-|---|------|-------|-------------|------------|--------|
-| 1 | MEU-20 FIC + Tests (Red) | coder | FIC, test file | Tests fail (no impl) | ⬜ |
-| 2 | MEU-20 Implementation (Green) | coder | `backup_recovery_manager.py`, result types | Tests pass | ⬜ |
-| 3 | MEU-20 Handoff | coder | `021-2026-03-08-backup-recovery-bp02as2A.4.md` | Template complete | ⬜ |
-| 4 | MEU-21 FIC + Tests (Red) | coder | FIC, test file | Tests fail | ⬜ |
-| 5 | MEU-21 Implementation (Green) | coder | `config_export.py`, `ImportValidation` | Tests pass | ⬜ |
-| 6 | MEU-21 Handoff | coder | `022-2026-03-08-config-export-bp02as2A.5.md` | Template complete | ⬜ |
-| 7 | MEU-22 FIC + Tests (Red) | coder | FIC, test file | Tests fail | ⬜ |
-| 8 | MEU-22 Implementation (Green) | coder | `image_processing.py` | Tests pass | ⬜ |
-| 9 | MEU-22 Handoff | coder | `023-2026-03-08-image-processing-bp03sIMG.md` | Template complete | ⬜ |
-| 10 | BUILD_PLAN.md update | coder | Status columns, summary table, phase tracker | `rg "⬜" docs/BUILD_PLAN.md` shows no MEU-20/21/22 | ⬜ |
-| 11 | Post-project deliverables | coder | MEU gate, registry, reflection, metrics, commit msgs | All exit criteria met | ⬜ |
+| # | Task | Owner Role | Deliverable | Validation | Status |
+|---|------|-----------|-------------|------------|--------|
+| 0 | Gate: confirm all deps ✅ | orchestrator | MEU-17/18/19 approved in registry | `rg "MEU-1[7-9]\b.*✅ approved" .agent/context/meu-registry.md` — 3 matches | ✅ |
+| 1 | MEU-20 FIC + Red tests | coder | `tests/unit/test_backup_recovery.py` | `uv run pytest tests/unit/test_backup_recovery.py -x --tb=short -v` — all FAIL | ✅ |
+| 2 | MEU-20 Green implementation | coder | `backup_recovery_manager.py`, result types, exceptions | `uv run pytest tests/unit/test_backup_recovery.py -x --tb=short -v` — all PASS | ✅ |
+| 3 | MEU-20 integration tests | coder | `tests/integration/test_backup_recovery_integration.py` | `uv run pytest tests/integration/test_backup_recovery_integration.py -x --tb=short -v` — all PASS | ✅ |
+| 4 | MEU-20 quality gate | tester | Zero errors | pyright + ruff + anti-placeholder | ✅ |
+| 5 | MEU-20 handoff | coder | `021-2026-03-08-backup-recovery-bp02as2A.4.md` | Handoff created with ≥7 sections | ✅ |
+| 6 | MEU-20 validation | reviewer | Codex appends to handoff 021 | Verdict: approved (after corrections) | ✅ |
+| 7 | MEU-21 FIC + Red tests | coder | `tests/unit/test_config_export.py` | `uv run pytest tests/unit/test_config_export.py -x --tb=short -v` — all FAIL | ✅ |
+| 8 | MEU-21 Green implementation | coder | `config_export.py`, `ImportValidation` | `uv run pytest tests/unit/test_config_export.py -x --tb=short -v` — all PASS | ✅ |
+| 9 | MEU-21 quality gate | tester | Zero errors | pyright + ruff + anti-placeholder | ✅ |
+| 10 | MEU-21 handoff | coder | `022-2026-03-08-config-export-bp02as2A.5.md` | Handoff created with ≥7 sections | ✅ |
+| 11 | MEU-21 validation | reviewer | Codex appends to handoff 022 | Verdict: approved (after corrections) | ✅ |
+| 12 | MEU-22 FIC + Red tests | coder | `tests/unit/test_image_processing.py` | `uv run pytest tests/unit/test_image_processing.py -x --tb=short -v` — all FAIL | ✅ |
+| 13 | MEU-22 Green implementation | coder | `image_processing.py` | `uv run pytest tests/unit/test_image_processing.py -x --tb=short -v` — all PASS | ✅ |
+| 14 | MEU-22 quality gate | tester | Zero errors | pyright + ruff + anti-placeholder | ✅ |
+| 15 | MEU-22 handoff | coder | `023-2026-03-08-image-processing-bp03sIMG.md` | Handoff created with ≥7 sections | ✅ |
+| 16 | MEU-22 validation | reviewer | Codex appends to handoff 023 | Verdict: approved (after corrections) | ✅ |
+| 17 | BUILD_PLAN.md update | coder | Phase tracker + MEU statuses + summary counts | All 3 MEUs ✅, phases completed, counts updated | ✅ |
+| 18 | MEU registry update | coder | MEU-20/21/22 rows + Phase 3 section + execution order | All rows added, Phase 3 section created | ✅ |
+| 19 | MEU gate | tester | Zero errors | `uv run python tools/validate_codebase.py --scope meu` — pass | ✅ |
+| 20 | Full regression | tester | All tests pass | `uv run pytest tests/ -q` — 501 passed, 1 skipped | ✅ |
+| 21 | Anti-placeholder scan | tester | Clean | `rg "TODO|FIXME|NotImplementedError" packages/` — clean | ✅ |
+| 22 | Reflection | tester | Reflection file exists | File created | ✅ |
+| 23 | Metrics | tester | Row appended | Row added to metrics.md | ✅ |
+| 24 | Commit messages | coder | Proposed commit messages file | File created | ✅ |
+| 25 | Session state | orchestrator | Pomera note saved | session-state.md + pomera note #344 | ✅ |
+
+**Role progression per MEU:** orchestrator (gate) → coder (FIC + Red + Green + handoff) → tester (quality gate) → reviewer/Codex (validation appended to handoff)
 
 ---
 
@@ -91,7 +108,7 @@ Complete Phase 2A by implementing the remaining backup/restore and config export
 | Security: never export SECRET/SENSITIVE | Spec | 02a §2A.5 L695 | ✅ | |
 | Sensitivity enum | Local Canon | settings.py L19 | ✅ | Already implemented |
 | SettingSpec dependency | Local Canon | settings.py L33 | ✅ | Already implemented |
-| SettingsResolver dependency | Local Canon | MEU-18 | ✅ | Already implemented |
+| SettingsResolver dependency | Local Canon | MEU-18 | ✅ | Consumed upstream by SettingsService; ConfigExportService accepts pre-resolved values (SRP) |
 
 ## Feature Intent Contract — MEU-21
 
@@ -195,9 +212,24 @@ Add `InvalidPassphraseError` and `CorruptedBackupError`.
 
 #### [MODIFY] BUILD_PLAN.md
 `docs/BUILD_PLAN.md`
-- Phase 2A status: `🔵 In Progress` → `✅ Completed`
-- MEU-20, MEU-21, MEU-22 status: `⬜` → `✅`
-- MEU Summary table: Phase 2/2A completed `5` → `7`, Phase 3/4 `0` → `1`
+- Phase 2A status: `🔵 In Progress` → `✅ Completed` (L61)
+- Phase 3 status: `⚪ Not Started` → `✅ Completed` (L62) — MEU-22 completes Phase 3
+- MEU-20 and MEU-21 status: `⬜` → `✅` (L151-152)
+- MEU-22 status: `⬜` → `✅` (L160)
+- MEU Summary table (L459-476): Phase 2/2A completed `5` → `10`, Phase 3/4 completed `0` → `1`, Total `19` → `22`
+
+---
+
+### State Management
+
+#### [MODIFY] meu-registry.md
+`.agent/context/meu-registry.md`
+- Update heading: `Phase 1 + 1A + 2` → `Phase 1 + 1A + 2 + 2A + 3`
+- Add MEU-20 row: `| MEU-20 | backup-recovery | 10d | BackupRecoveryManager (restore + repair) | ✅ approved |`
+- Add MEU-21 row: `| MEU-21 | config-export | 10e | ConfigExportService (JSON export/import) | ✅ approved |`
+- Create new `## Phase 3: Service Layer (P0)` section with MEU-22 row
+- Update Execution Order: add `Phase 2A: MEU-17 → MEU-18 → MEU-19 → MEU-20 → MEU-21` and `Phase 3: MEU-22`
+- Update Phase-Exit Criteria: add Phase 2A and Phase 3 lines
 
 ---
 

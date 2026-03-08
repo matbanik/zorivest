@@ -11,6 +11,7 @@
 | 2026-03-07 | MEU-3/4/5 | ~60 | ~5 min | 58 | — (pending review) | 7/7 | 90% | ~30 min | 3-MEU project: entities + VOs + ports |
 | 2026-03-07 | MEU-9/10/11 | ~100 | ~5 min | 55 | 0 (approved) | 7/7 | 90% | ~60 min | 3-MEU project: portfolio balance + display mode + account review |
 | 2026-03-07 | MEU-2A/3A/1A | ~80 | ~3 min | 57 | 3 (resolved) | 9/9 | 80% | ~45 min | 3-MEU logging infra: filters + redaction + manager. Codex caught missing exports + narrow gate scope |
+| 2026-03-08 | MEU-20/21/22 | ~120 | ~5 min | 51 | 2 High + 2 Medium (resolved) | 7/7 | 90% | ~90 min | 3-MEU backup-recovery-config-image: restore/repair, config export, image processing. Codex caught validate_import contract drift + missing repair test |
 
 ## Measurement Definitions
 

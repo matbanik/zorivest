@@ -58,8 +58,8 @@ Domain → Infrastructure → Services → REST API → MCP Server → GUI → D
 | 1 — Domain Layer | ✅ Completed | 2026-03-07 |
 | 1A — Logging | ✅ Completed | 2026-03-07 |
 | 2 — Infrastructure | ✅ Completed | 2026-03-08 |
-| 2A — Backup/Restore | 🔵 In Progress | 2026-03-08 |
-| 3 — Service Layer | ⚪ Not Started | — |
+| 2A — Backup/Restore | ✅ Completed | 2026-03-08 |
+| 3 — Service Layer | ✅ Completed | 2026-03-08 |
 | 4 — REST API | ⚪ Not Started | — |
 | 5 — MCP Server | ⚪ Not Started | — |
 | 6 — GUI | ⚪ Not Started | — |
@@ -148,8 +148,8 @@ Domain → Infrastructure → Services → REST API → MCP Server → GUI → D
 | MEU-17 | `app-defaults` | 10a | [02a §2A.1](build-plan/02a-backup-restore.md) | AppDefaultModel + seeding migration | ✅ |
 | MEU-18 | `settings-resolver` | 10b | [02a §2A.2](build-plan/02a-backup-restore.md) | SettingsRegistry, Resolver, Validator, Cache | ✅ |
 | MEU-19 | `backup-manager` | 10c | [02a §2A.3](build-plan/02a-backup-restore.md) | BackupManager (auto backup + GFS rotation) | ✅ |
-| MEU-20 | `backup-recovery` | 10d | [02a §2A.4](build-plan/02a-backup-restore.md) | BackupRecoveryManager (restore + repair) | ⬜ |
-| MEU-21 | `config-export` | 10e | [02a §2A.5](build-plan/02a-backup-restore.md) | ConfigExportService (JSON export/import) | ⬜ |
+| MEU-20 | `backup-recovery` | 10d | [02a §2A.4](build-plan/02a-backup-restore.md) | BackupRecoveryManager (restore + repair) | ✅ |
+| MEU-21 | `config-export` | 10e | [02a §2A.5](build-plan/02a-backup-restore.md) | ConfigExportService (JSON export/import) | ✅ |
 
 ### Phase 3: Service Layer — P0
 
@@ -157,7 +157,7 @@ Domain → Infrastructure → Services → REST API → MCP Server → GUI → D
 
 | MEU | Slug | Matrix Item | Build Plan Ref | Description | Status |
 |-----|------|:-----------:|----------------|-------------|:------:|
-| MEU-22 | `image-processing` | 11 | [image-architecture](build-plan/image-architecture.md) | Image validation, WebP conversion, thumbnails | ⬜ |
+| MEU-22 | `image-processing` | 11 | [image-architecture](build-plan/image-architecture.md) | Image validation, WebP conversion, thumbnails | ✅ |
 
 ### Phase 4: REST API — P0
 
@@ -460,8 +460,8 @@ Domain → Infrastructure → Services → REST API → MCP Server → GUI → D
 |----------|-----------|:-----:|:---------:|
 | P0 — Phase 1 | MEU-1 → MEU-11 | 11 | 11 |
 | P0 — Phase 1A | MEU-1A → MEU-3A | 3 | 3 |
-| P0 — Phase 2/2A | MEU-12 → MEU-21 | 10 | 5 |
-| P0 — Phase 3/4 | MEU-22 → MEU-30 | 9 | 0 |
+| P0 — Phase 2/2A | MEU-12 → MEU-21 | 10 | 10 |
+| P0 — Phase 3/4 | MEU-22 → MEU-30 | 9 | 1 |
 | P0 — Phase 5 | MEU-31 → MEU-42 | 12 | 0 |
 | P0 — Phase 6 | MEU-43 → MEU-51 | 9 | 0 |
 | P1 | MEU-52 → MEU-55 | 4 | 0 |
@@ -473,7 +473,7 @@ Domain → Infrastructure → Services → REST API → MCP Server → GUI → D
 | P3 — Tax | MEU-123 → MEU-156 | 34 | 0 |
 | Phase 7 | MEU-157 | 1 | 0 |
 | Research | MEU-158 → MEU-167 | 10 | 0 |
-| **Total** | | **170** | **19** |
+| **Total** | | **170** | **22** |
 
 ---
 

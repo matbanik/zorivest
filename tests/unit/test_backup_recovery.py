@@ -303,6 +303,41 @@ class TestRepair:
         assert result.status == RepairStatus.HEALTHY
         assert len(result.integrity_errors) == 0
 
+    def test_repair_corrupted_database(
+        self,
+        recovery_manager: BackupRecoveryManager,
+        tmp_dirs: dict[str, Path],
+    ) -> None:
+        """AC-20.6: corrupted DB detected and repair attempted."""
+        # Create a DB with enough data to have internal pages
+        corrupt_db = tmp_dirs["root"] / "corrupt.db"
+        conn = sqlite3.connect(str(corrupt_db))
+        conn.execute("CREATE TABLE data (id INTEGER PRIMARY KEY, payload TEXT)")
+        # Insert enough rows to create multiple pages
+        for i in range(500):
+            conn.execute(
+                "INSERT INTO data VALUES (?, ?)",
+                (i, f"payload-{i}" * 50),
+            )
+        conn.commit()
+        conn.close()
+
+        # Corrupt internal pages (skip the header at offset 0-100)
+        file_size = corrupt_db.stat().st_size
+        with open(corrupt_db, "r+b") as f:
+            # Zero out a chunk in the middle to corrupt b-tree pages
+            mid = file_size // 2
+            f.seek(mid)
+            f.write(b"\x00" * 4096)
+
+        result = recovery_manager.repair_database(corrupt_db)
+
+        # Corrupted DB should NOT be reported as healthy
+        assert result.status in (RepairStatus.REPAIRED, RepairStatus.FAILED)
+        # If repaired, integrity_errors should list what was found
+        if result.status == RepairStatus.REPAIRED:
+            assert len(result.integrity_errors) > 0
+
     def test_repair_nonexistent_database(
         self,
         recovery_manager: BackupRecoveryManager,
