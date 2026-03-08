@@ -2,9 +2,14 @@
 
 from __future__ import annotations
 
-from typing import Optional, Protocol
+from typing import Any, Optional, Protocol
 
-from zorivest_core.domain.entities import ImageAttachment, Trade
+from zorivest_core.domain.entities import (
+    Account,
+    BalanceSnapshot,
+    ImageAttachment,
+    Trade,
+)
 
 
 class TradeRepository(Protocol):
@@ -17,6 +22,16 @@ class TradeRepository(Protocol):
     def list_all(self, limit: int = 100, offset: int = 0) -> list[Trade]: ...
 
     def exists(self, exec_id: str) -> bool: ...
+
+    def exists_by_fingerprint_since(
+        self, fingerprint: str, lookback_days: int = 30
+    ) -> bool:
+        """Check if a trade with this fingerprint exists within lookback window."""
+        ...
+
+    def list_for_account(self, account_id: str) -> list[Trade]:
+        """Return all trades belonging to the given account."""
+        ...
 
 
 class ImageRepository(Protocol):
@@ -35,11 +50,46 @@ class ImageRepository(Protocol):
     def get_thumbnail(self, image_id: int, max_size: int = 200) -> bytes: ...
 
 
+class AccountRepository(Protocol):
+    """Repository for Account entities."""
+
+    def get(self, account_id: str) -> Optional[Account]: ...
+
+    def save(self, account: Account) -> None: ...
+
+    def list_all(self, limit: int = 100, offset: int = 0) -> list[Account]: ...
+
+
+class BalanceSnapshotRepository(Protocol):
+    """Repository for BalanceSnapshot entities."""
+
+    def save(self, snapshot: BalanceSnapshot) -> None: ...
+
+    def list_for_account(self, account_id: str) -> list[BalanceSnapshot]: ...
+
+
+class RoundTripRepository(Protocol):
+    """Repository for RoundTrip entities.
+
+    Uses ``Any`` for entity type since RoundTrip entity is defined in Phase 3.
+    Concrete implementations will use the actual RoundTrip dataclass.
+    """
+
+    def save(self, round_trip: Any) -> None: ...
+
+    def list_for_account(
+        self, account_id: str, status: str | None = None
+    ) -> list[Any]: ...
+
+
 class UnitOfWork(Protocol):
     """Transactional unit of work wrapping repository access."""
 
     trades: TradeRepository
     images: ImageRepository
+    accounts: AccountRepository
+    balance_snapshots: BalanceSnapshotRepository
+    round_trips: RoundTripRepository
 
     def __enter__(self) -> UnitOfWork: ...
 

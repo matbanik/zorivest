@@ -2,7 +2,15 @@
 name = "zorivest-infra"
 version = "0.1.0"
 requires-python = ">=3.12"
-dependencies = []
+dependencies = [
+    "sqlalchemy>=2.0.48",
+]
+
+[project.optional-dependencies]
+crypto = [
+    "sqlcipher3-binary>=0.5.4",
+    "argon2-cffi>=23.1.0",
+]
 
 [build-system]
 requires = ["hatchling"]

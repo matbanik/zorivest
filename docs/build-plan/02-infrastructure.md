@@ -461,6 +461,8 @@ class TestImageRepository:
 
 ## Step 2.3: SQLCipher Connection Factory
 
+> **Optional encryption contract:** Real SQLCipher encryption requires `pip install zorivest-infra[crypto]` (installs `sqlcipher3-binary` + `argon2-cffi`). When unavailable, the factory falls back to plain `sqlite3` and emits a `WARNING` log. The plaintext probe test is `skipif` when `sqlcipher3` is absent.
+
 ```python
 # tests/integration/test_database_connection.py
 
@@ -473,7 +475,7 @@ class TestSqlCipherConnection:
         conn.commit()
         conn.close()
         
-        # Verify: opening without passphrase fails
+        # Verify: opening without passphrase fails (only when sqlcipher3 installed)
         import sqlite3
         raw_conn = sqlite3.connect(str(db_path))
         with pytest.raises(Exception):
@@ -484,6 +486,10 @@ class TestSqlCipherConnection:
         key2 = derive_key("password", salt=b"0123456789abcdef")
         assert key1 == key2  # deterministic
         assert len(key1) == 32  # 256-bit
+
+    def test_fallback_logs_warning(self, tmp_path, caplog):
+        """When sqlcipher3 is absent, a WARNING is logged."""
+        # Ensures callers are aware of unencrypted state
 ```
 
 ## Exit Criteria
@@ -495,8 +501,8 @@ class TestSqlCipherConnection:
 | Test File | What It Tests |
 |-----------|--------------|
 | `tests/integration/test_repositories.py` | Trade + Image repos with in-memory SQLite |
-| `tests/integration/test_database_connection.py` | SQLCipher encryption, Argon2 KDF |
-| `tests/integration/test_unit_of_work.py` | Transaction commit/rollback |
+| `tests/integration/test_database_connection.py` | SQLCipher encryption (when available), Argon2/PBKDF2 KDF, fallback warning |
+| `tests/integration/test_unit_of_work.py` | Transaction commit/rollback, exception rollback |
 | `tests/integration/test_wal_concurrency.py` | WAL mode enabled on file-based DB, per-thread session isolation |
 
 ## Outputs
@@ -504,6 +510,6 @@ class TestSqlCipherConnection:
 - All SQLAlchemy models defined (trades, images, accounts, reports, plans, watchlists, settings)
 - **Build Plan Expansion models**: round_trips, excursion_metrics, identifier_cache, transaction_ledger, options_strategies, mistake_entries, broker_configs, bank_transactions, bank_import_configs
 - Repository implementations passing integration tests
-- SQLCipher connection factory with Argon2 key derivation
+- SQLCipher connection factory with optional encryption (`[crypto]` extra) and Argon2/PBKDF2 key derivation
 - Unit of Work implementation
 

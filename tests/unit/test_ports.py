@@ -260,9 +260,9 @@ class TestImportSurface:
 
 
 class TestModuleIntegrity:
-    """Verify the module exports exactly the 6 expected Protocol classes."""
+    """Verify the module exports exactly the 9 expected Protocol classes."""
 
-    def test_module_has_exactly_6_protocol_classes(self) -> None:
+    def test_module_has_exactly_9_protocol_classes(self) -> None:
         import zorivest_core.application.ports as mod
 
         class_names = [
@@ -277,6 +277,10 @@ class TestModuleIntegrity:
             "BrokerPort",
             "BankImportPort",
             "IdentifierResolverPort",
+            # Phase 2 additions (MEU-12)
+            "AccountRepository",
+            "BalanceSnapshotRepository",
+            "RoundTripRepository",
         }
         assert set(class_names) == expected, (
             f"Expected {expected}, got {set(class_names)}"

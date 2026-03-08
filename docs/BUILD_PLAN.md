@@ -55,9 +55,9 @@ Domain → Infrastructure → Services → REST API → MCP Server → GUI → D
 
 | Phase | Status | Last Updated |
 |-------|--------|--------------|
-| 1 — Domain Layer | 🟡 In Progress | 2026-02-14 |
+| 1 — Domain Layer | ✅ Completed | 2026-03-07 |
 | 1A — Logging | ✅ Completed | 2026-03-07 |
-| 2 — Infrastructure | ⚪ Not Started | — |
+| 2 — Infrastructure | ✅ Completed | 2026-03-08 |
 | 2A — Backup/Restore | ⚪ Not Started | — |
 | 3 — Service Layer | ⚪ Not Started | — |
 | 4 — REST API | ⚪ Not Started | — |
@@ -133,11 +133,11 @@ Domain → Infrastructure → Services → REST API → MCP Server → GUI → D
 
 | MEU | Slug | Matrix Item | Build Plan Ref | Description | Status |
 |-----|------|:-----------:|----------------|-------------|:------:|
-| MEU-12 | `service-layer` | 6 | [03 §3.1](build-plan/03-service-layer.md) | Core services (Trade, Account, Image, Analytics) + stub services | ⬜ |
-| MEU-13 | `sqlalchemy-models` | 7 | [02 §2.1](build-plan/02-infrastructure.md) | All SQLAlchemy ORM models | ⬜ |
-| MEU-14 | `repositories` | 8 | [02 §2.2](build-plan/02-infrastructure.md) | Repository implementations (SQLAlchemy) | ⬜ |
-| MEU-15 | `unit-of-work` | 9 | [02 §2.2](build-plan/02-infrastructure.md) | Unit of Work pattern | ⬜ |
-| MEU-16 | `sqlcipher` | 10 | [02 §2.3](build-plan/02-infrastructure.md) | SQLCipher encrypted connection + Argon2 KDF | ⬜ |
+| MEU-12 | `service-layer` | 6 | [03 §3.1](build-plan/03-service-layer.md) | Core services (Trade, Account, Image, System) + domain exceptions + trade fingerprint | ✅ |
+| MEU-13 | `sqlalchemy-models` | 7 | [02 §2.1](build-plan/02-infrastructure.md) | All 21 SQLAlchemy ORM models | ✅ |
+| MEU-14 | `repositories` | 8 | [02 §2.2](build-plan/02-infrastructure.md) | Repository implementations (SQLAlchemy) | ✅ |
+| MEU-15 | `unit-of-work` | 9 | [02 §2.2](build-plan/02-infrastructure.md) | Unit of Work pattern | ✅ |
+| MEU-16 | `sqlcipher` | 10 | [02 §2.3](build-plan/02-infrastructure.md) | SQLCipher encrypted connection + Argon2 KDF | ✅ |
 
 ### Phase 2A: Backup & Restore — P0
 
@@ -458,9 +458,9 @@ Domain → Infrastructure → Services → REST API → MCP Server → GUI → D
 
 | Priority | MEU Range | Count | Completed |
 |----------|-----------|:-----:|:---------:|
-| P0 — Phase 1 | MEU-1 → MEU-11 | 11 | 8 |
+| P0 — Phase 1 | MEU-1 → MEU-11 | 11 | 11 |
 | P0 — Phase 1A | MEU-1A → MEU-3A | 3 | 3 |
-| P0 — Phase 2/2A | MEU-12 → MEU-21 | 10 | 0 |
+| P0 — Phase 2/2A | MEU-12 → MEU-21 | 10 | 5 |
 | P0 — Phase 3/4 | MEU-22 → MEU-30 | 9 | 0 |
 | P0 — Phase 5 | MEU-31 → MEU-42 | 12 | 0 |
 | P0 — Phase 6 | MEU-43 → MEU-51 | 9 | 0 |
@@ -473,7 +473,7 @@ Domain → Infrastructure → Services → REST API → MCP Server → GUI → D
 | P3 — Tax | MEU-123 → MEU-156 | 34 | 0 |
 | Phase 7 | MEU-157 | 1 | 0 |
 | Research | MEU-158 → MEU-167 | 10 | 0 |
-| **Total** | | **170** | **8** |
+| **Total** | | **170** | **19** |
 
 ---
 
