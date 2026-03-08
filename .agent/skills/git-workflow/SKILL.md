@@ -17,6 +17,11 @@ description: Agent-safe git operations with SSH commit signing. Handles commit, 
 > The script validates signing config, stages, commits, pushes, and verifies — all in one command.
 > If you skip the script, you WILL cause a hang.
 
+**Agent invocation rules:**
+- Set `WaitMsBeforeAsync` to **30000** (push can take 10-20s on large changesets)
+- If the command goes to background anyway, do NOT poll `command_status` — run `git log --oneline -1` directly to verify
+- Never issue more than one `command_status` check; if it shows no output, the command finished and output was lost — verify the result instead
+
 ## Script Usage
 
 ```powershell
