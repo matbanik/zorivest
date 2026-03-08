@@ -134,6 +134,12 @@ When the user invokes a workflow via slash command:
 - `/critical-review-feedback` → Read and follow `.agent/workflows/critical-review-feedback.md`
 - `/meu-handoff` → Read and follow `.agent/workflows/meu-handoff.md`
 
+## Skills
+
+| Skill | Path | Purpose |
+|-------|------|---------|
+| Git Workflow | `.agent/skills/git-workflow/SKILL.md` | Agent-safe git operations with SSH commit signing. Prevents interactive prompt hangs. |
+
 ## MCP Servers
 
 See `AGENTS.md` MCP Servers table. Verify with `pomera_diagnose` at session start.
