@@ -76,8 +76,8 @@
 - [x] Update BUILD_PLAN.md (Phase 4 → ✅, MEU-27..30 → ✅)
 - [x] Update meu-registry.md (MEU-27..30 → ✅ approved)
 - [x] Update dependency-manifest.md (psutil added via `uv add psutil`)
-- [ ] Write reflection doc *(deferred to project-level closeout)*
-- [ ] Update metrics *(deferred to project-level closeout)*
+- [x] Write reflection doc
+- [x] Update metrics
 - [x] Create 4 handoffs (028–031)
-- [ ] Save session state to pomera *(deferred to project-level closeout)*
-- [ ] Prepare commit messages *(deferred to project-level closeout)*
+- [x] Save session state to pomera
+- [x] Prepare commit messages
