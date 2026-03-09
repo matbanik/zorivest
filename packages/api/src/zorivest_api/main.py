@@ -22,12 +22,22 @@ from zorivest_api.routes.round_trips import round_trip_router
 from zorivest_api.routes.accounts import account_router
 from zorivest_api.routes.auth import auth_router
 from zorivest_api.routes.confirmation import confirm_router
+from zorivest_api.routes.settings import settings_router
+from zorivest_api.routes.logs import log_router
+from zorivest_api.routes.mcp_guard import guard_router
+from zorivest_api.routes.service import service_router
+from zorivest_api.routes.analytics import analytics_router
+from zorivest_api.routes.mistakes import mistakes_router
+from zorivest_api.routes.fees import fees_router
+from zorivest_api.routes.calculator import calculator_router
+from zorivest_api.routes.tax import tax_router
 from zorivest_api.schemas.common import ErrorEnvelope
 from zorivest_api.auth.auth_service import AuthService
-from zorivest_api.stubs import StubUnitOfWork
+from zorivest_api.stubs import McpGuardService, StubAnalyticsService, StubReviewService, StubTaxService, StubUnitOfWork
 from zorivest_core.services.trade_service import TradeService
 from zorivest_core.services.account_service import AccountService
 from zorivest_core.services.image_service import ImageService
+from zorivest_core.services.settings_service import SettingsService
 
 # ── Tag metadata ────────────────────────────────────────────────────────
 
@@ -58,6 +68,11 @@ async def lifespan(app: FastAPI) -> AsyncGenerator[None, None]:
     app.state.trade_service = TradeService(stub_uow)
     app.state.account_service = AccountService(stub_uow)
     app.state.image_service = ImageService(stub_uow)
+    app.state.settings_service = SettingsService(stub_uow)
+    app.state.guard_service = McpGuardService()
+    app.state.analytics_service = StubAnalyticsService()
+    app.state.review_service = StubReviewService()
+    app.state.tax_service = StubTaxService()
     yield
 
 
@@ -137,5 +152,14 @@ def create_app() -> FastAPI:
     app.include_router(account_router)
     app.include_router(auth_router)
     app.include_router(confirm_router)
+    app.include_router(settings_router)
+    app.include_router(log_router)
+    app.include_router(guard_router)
+    app.include_router(service_router)
+    app.include_router(analytics_router)
+    app.include_router(mistakes_router)
+    app.include_router(fees_router)
+    app.include_router(calculator_router)
+    app.include_router(tax_router)
 
     return app

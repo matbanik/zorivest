@@ -56,3 +56,76 @@ async def get_auth_service(request: Request):  # noqa: ANN201
     if svc is None:
         raise HTTPException(500, "AuthService not configured")
     return svc
+
+
+async def get_settings_service(request: Request):  # noqa: ANN201
+    """Resolve SettingsService from app state."""
+    svc = getattr(request.app.state, "settings_service", None)
+    if svc is None:
+        raise HTTPException(500, "SettingsService not configured")
+    return svc
+
+
+async def get_guard_service(request: Request):  # noqa: ANN201
+    """Resolve McpGuardService from app state."""
+    svc = getattr(request.app.state, "guard_service", None)
+    if svc is None:
+        raise HTTPException(500, "McpGuardService not configured")
+    return svc
+
+
+async def get_analytics_service(request: Request):  # noqa: ANN201
+    """Resolve StubAnalyticsService from app state."""
+    svc = getattr(request.app.state, "analytics_service", None)
+    if svc is None:
+        raise HTTPException(500, "AnalyticsService not configured")
+    return svc
+
+
+async def get_review_service(request: Request):  # noqa: ANN201
+    """Resolve StubReviewService from app state."""
+    svc = getattr(request.app.state, "review_service", None)
+    if svc is None:
+        raise HTTPException(500, "ReviewService not configured")
+    return svc
+
+
+async def get_tax_service(request: Request):  # noqa: ANN201
+    """Resolve StubTaxService from app state."""
+    svc = getattr(request.app.state, "tax_service", None)
+    if svc is None:
+        raise HTTPException(500, "TaxService not configured")
+    return svc
+
+
+# ── Authentication providers ───────────────────────────────────────────
+
+
+async def require_authenticated(request: Request) -> dict:
+    """Resolve session from Authorization: Bearer <token> header.
+
+    Returns session dict if valid, raises 403 if missing/invalid.
+    Source: AC-14 (Local Canon — auth_service.py)
+    """
+    auth_header = request.headers.get("authorization", "")
+    if not auth_header.startswith("Bearer "):
+        raise HTTPException(403, "Authentication required")
+    token = auth_header[7:]  # Strip 'Bearer '
+    auth_svc = getattr(request.app.state, "auth_service", None)
+    if auth_svc is None:
+        raise HTTPException(500, "AuthService not configured")
+    session = auth_svc._sessions.get(token)
+    if session is None:
+        raise HTTPException(403, "Invalid or expired session")
+    return session
+
+
+async def require_admin(request: Request) -> dict:
+    """Require admin role. Extends require_authenticated.
+
+    Returns session dict if valid admin, raises 403 otherwise.
+    """
+    session = await require_authenticated(request)
+    if session.get("role") != "admin":
+        raise HTTPException(403, "Admin role required")
+    return session
