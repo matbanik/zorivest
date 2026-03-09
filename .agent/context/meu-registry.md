@@ -59,6 +59,7 @@ Phase 1A: MEU-2A → MEU-3A → MEU-1A (dependency order, parallel with Phase 1)
 Phase 2: MEU-12 → MEU-13 → MEU-14 → MEU-15 → MEU-16
 Phase 2A: MEU-17 → MEU-18 → MEU-19 → MEU-20 → MEU-21
 Phase 3: MEU-22
+Phase 4: MEU-23 → MEU-24 → MEU-25 → MEU-26
 
 ## Phase-Exit Criteria
 
@@ -67,4 +68,5 @@ Phase 3: MEU-22
 - Phase 2: All 5 MEUs ✅ → Phase 2A unblocked
 - Phase 2A: All 5 MEUs ✅ → Phase 3 unblocked
 - Phase 3: MEU-22 ✅ → Phase 4 unblocked
+- Phase 4: MEU-23..26 ✅ (foundation complete) → Phase 4 continues with MEU-27..30; Phase 5 unblocked
 

@@ -3,6 +3,8 @@
 > Part of [Phase 4: REST API](04-rest-api.md) | Tag: `accounts`
 >
 > Broker adapters, bank accounts, CSV/PDF import, identifier resolution, positions.
+>
+> **Implementation status:** Account CRUD + balances → ✅ MEU-25 (`rest-api-foundation`). Broker routes → ⬜ deferred to MEU-96–103 (P2.75). Banking routes → ⬜ deferred to MEU-96–103 (P2.75). Import routes → ⬜ deferred to MEU-96–103 (P2.75). Identifier resolution → ⬜ deferred to MEU-96–103 (P2.75).
 
 ---
 
@@ -64,7 +66,7 @@ async def record_balance(account_id: str,
     ...
 ```
 
-## Broker Routes (§1, §2, §24, §25)
+## Broker Routes (§1, §2, §24, §25) — [DEFERRED: MEU-96–103 (P2.75)]
 
 ```python
 # packages/api/src/zorivest_api/routes/brokers.py
@@ -87,7 +89,7 @@ async def get_broker_positions(broker_id: str, service = Depends(get_import_serv
     ...
 ```
 
-## Banking Routes (§26)
+## Banking Routes (§26) — [DEFERRED: MEU-96–103 (P2.75)]
 
 ```python
 # packages/api/src/zorivest_api/routes/banking.py
@@ -120,7 +122,7 @@ async def update_bank_balance(account_id: str, body: dict,
     ...
 ```
 
-## Import Routes (§18, §19)
+## Import Routes (§18, §19) — [DEFERRED: MEU-96–103 (P2.75)]
 
 ```python
 # packages/api/src/zorivest_api/routes/import_.py
@@ -143,7 +145,7 @@ async def import_broker_pdf(file: UploadFile = File(...),
     ...
 ```
 
-## Identifier Resolution (§5)
+## Identifier Resolution (§5) — [DEFERRED: MEU-96–103 (P2.75)]
 
 ```python
 # packages/api/src/zorivest_api/routes/identifiers.py

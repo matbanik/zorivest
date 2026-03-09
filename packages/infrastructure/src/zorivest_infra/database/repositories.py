@@ -185,6 +185,43 @@ class SqlAlchemyTradeRepository:
         )
         return [_model_to_trade(r) for r in rows]
 
+    def list_filtered(
+        self,
+        limit: int = 100,
+        offset: int = 0,
+        account_id: str | None = None,
+        sort: str = "-time",
+    ) -> list[Trade]:
+        """List trades with optional account filter and sort.
+
+        Sort format: field name with optional '-' prefix for descending.
+        Supported fields: time (default).
+        """
+        query = self._session.query(TradeModel)
+        if account_id is not None:
+            query = query.filter(TradeModel.account_id == account_id)
+
+        # Parse sort direction
+        if sort.startswith("-"):
+            order_col = getattr(TradeModel, sort[1:], TradeModel.time)
+            query = query.order_by(order_col.desc())
+        else:
+            order_col = getattr(TradeModel, sort, TradeModel.time)
+            query = query.order_by(order_col.asc())
+
+        rows = query.offset(offset).limit(limit).all()
+        return [_model_to_trade(r) for r in rows]
+
+    def update(self, trade: Trade) -> None:
+        """Update existing trade via merge (upsert-safe)."""
+        self._session.merge(_trade_to_model(trade))
+
+    def delete(self, exec_id: str) -> None:
+        """Delete a trade by exec_id."""
+        m = self._session.get(TradeModel, exec_id)
+        if m:
+            self._session.delete(m)
+
 
 class SqlAlchemyImageRepository:
     """Concrete ImageRepository backed by SQLAlchemy Session."""
@@ -237,6 +274,13 @@ class SqlAlchemyImageRepository:
             return m.thumbnail
         return m.data[:max_size] if m.data else b""
 
+    def get_full_data(self, image_id: int) -> bytes:
+        """Return raw image bytes without thumbnail processing."""
+        m = self._session.get(ImageModel, image_id)
+        if m is None:
+            return b""
+        return m.data if m.data else b""
+
 
 class SqlAlchemyAccountRepository:
     """Concrete AccountRepository backed by SQLAlchemy Session."""
@@ -259,6 +303,16 @@ class SqlAlchemyAccountRepository:
             .all()
         )
         return [_model_to_account(r) for r in rows]
+
+    def update(self, account: Account) -> None:
+        """Update existing account via merge (upsert-safe)."""
+        self._session.merge(_account_to_model(account))
+
+    def delete(self, account_id: str) -> None:
+        """Delete an account by account_id."""
+        m = self._session.get(AccountModel, account_id)
+        if m:
+            self._session.delete(m)
 
 
 class SqlAlchemyBalanceSnapshotRepository:

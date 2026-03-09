@@ -60,7 +60,7 @@ Domain → Infrastructure → Services → REST API → MCP Server → GUI → D
 | 2 — Infrastructure | ✅ Completed | 2026-03-08 |
 | 2A — Backup/Restore | ✅ Completed | 2026-03-08 |
 | 3 — Service Layer | ✅ Completed | 2026-03-08 |
-| 4 — REST API | ⚪ Not Started | — |
+| 4 — REST API | 🟡 In Progress | 2026-03-08 |
 | 5 — MCP Server | ⚪ Not Started | — |
 | 6 — GUI | ⚪ Not Started | — |
 | 7 — Distribution | ⚪ Not Started | — |
@@ -165,10 +165,10 @@ Domain → Infrastructure → Services → REST API → MCP Server → GUI → D
 
 | MEU | Slug | Matrix Item | Build Plan Ref | Description | Status |
 |-----|------|:-----------:|----------------|-------------|:------:|
-| MEU-23 | `fastapi-routes` | 12 | [04 §all](build-plan/04-rest-api.md) | FastAPI app factory + core routes (health, trades, accounts, settings, analytics) | ⬜ |
-| MEU-24 | `api-trades` | 12 | [04a](build-plan/04a-api-trades.md) | Trade CRUD REST endpoints | ⬜ |
-| MEU-25 | `api-accounts` | 12 | [04b](build-plan/04b-api-accounts.md) | Account REST endpoints | ⬜ |
-| MEU-26 | `api-auth` | 12 | [04c](build-plan/04c-api-auth.md) | Auth REST endpoints | ⬜ |
+| MEU-23 | `fastapi-routes` | 12 | [04 §all](build-plan/04-rest-api.md) | FastAPI app factory + core routes (health, trades, accounts, settings, analytics) | ✅ |
+| MEU-24 | `api-trades` | 12 | [04a](build-plan/04a-api-trades.md) | Trade CRUD REST endpoints | ✅ |
+| MEU-25 | `api-accounts` | 12 | [04b](build-plan/04b-api-accounts.md) | Account REST endpoints | ✅ |
+| MEU-26 | `api-auth` | 12 | [04c](build-plan/04c-api-auth.md) | Auth REST endpoints (route surface + error modes; crypto stubs) | ✅ |
 | MEU-27 | `api-settings` | 15a | [04d](build-plan/04d-api-settings.md) | Settings GET/PUT REST endpoints | ⬜ |
 | MEU-28 | `api-analytics` | 12 | [04e](build-plan/04e-api-analytics.md) | Analytics REST endpoints | ⬜ |
 | MEU-29 | `api-tax` | 12 | [04f](build-plan/04f-api-tax.md) | Tax REST endpoints | ⬜ |

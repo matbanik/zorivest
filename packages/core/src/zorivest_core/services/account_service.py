@@ -73,3 +73,26 @@ class AccountService:
             self.uow.balance_snapshots.save(snapshot)
             self.uow.commit()
             return snapshot
+
+    def update_account(self, account_id: str, **kwargs: object) -> Account:
+        """Update account fields by account_id.
+
+        Raises:
+            NotFoundError: If account does not exist.
+        """
+        with self.uow:
+            account = self.uow.accounts.get(account_id)
+            if account is None:
+                raise NotFoundError(f"Account not found: {account_id}")
+            # Frozen dataclass — create new instance with updated fields
+            updated = Account(**{**account.__dict__, **kwargs})
+            self.uow.accounts.update(updated)
+            self.uow.commit()
+            return updated
+
+    def delete_account(self, account_id: str) -> None:
+        """Delete an account by account_id."""
+        with self.uow:
+            self.uow.accounts.delete(account_id)
+            self.uow.commit()
+

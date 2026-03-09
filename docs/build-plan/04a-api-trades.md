@@ -3,6 +3,8 @@
 > Part of [Phase 4: REST API](04-rest-api.md) | Tag: `trades`
 >
 > Trade lifecycle endpoints: CRUD, reports, plans, images (nested + global), journal linking, round-trips.
+>
+> **Implementation status:** Trade CRUD + images + round-trips → ✅ MEU-24 (`rest-api-foundation`). Reports → ⬜ deferred to MEU-52 (P1). Plans → ⬜ deferred to MEU-66 (P2). Journal linking → ⬜ deferred to MEU-117 (P2.75).
 
 ---
 
@@ -111,7 +113,7 @@ async def upload_image(exec_id: str, file: UploadFile = File(...),
     return {"image_id": result.image_id}
 
 
-# ── Trade report routes ──────────────────────────────────────
+# ── Trade report routes ── [DEFERRED: MEU-52 (P1)] ─────────
 
 class CreateReportRequest(BaseModel):
     setup_quality: Literal["A", "B", "C", "D", "F"]
@@ -149,7 +151,7 @@ async def delete_report(exec_id: str,
     service.delete(exec_id)
 ```
 
-## Trade Plan Routes
+## Trade Plan Routes — [DEFERRED: MEU-66 (P2)]
 
 ```python
 # packages/api/src/zorivest_api/routes/trade_plans.py
@@ -213,7 +215,7 @@ async def get_image_full(image_id: int,
     return Response(content=img.data, media_type=img.mime_type)
 ```
 
-## Trade Journal Linking Route (§16)
+## Trade Journal Linking Route (§16) — [DEFERRED: MEU-117 (P2.75)]
 
 ```python
 # packages/api/src/zorivest_api/routes/trades.py  (additions)

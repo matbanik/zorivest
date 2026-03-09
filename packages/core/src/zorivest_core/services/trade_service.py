@@ -96,3 +96,67 @@ class TradeService:
 
             self.uow.commit()
             return matched
+
+    def list_round_trips(
+        self,
+        account_id: str | None = None,
+        status: str = "all",
+        ticker: str | None = None,
+        limit: int = 50,
+        offset: int = 0,
+    ) -> list:
+        """List round-trips with optional filters.
+
+        Canonical API per 04a-api-trades.md §Round-Trip.
+        Delegates to match_round_trips for matching logic,
+        then applies client-side filters.
+        """
+        if account_id:
+            matched = self.match_round_trips(account_id)
+        else:
+            matched = []
+
+        # Apply filters
+        if ticker:
+            matched = [rt for rt in matched if rt.get("instrument") == ticker]
+        if status and status != "all":
+            matched = [rt for rt in matched if rt.get("status") == status]
+
+        # Pagination
+        return matched[offset : offset + limit]
+
+    def list_trades(
+        self,
+        limit: int = 100,
+        offset: int = 0,
+        account_id: str | None = None,
+        sort: str = "-time",
+    ) -> list[Trade]:
+        """List trades with optional filtering and sorting."""
+        with self.uow:
+            return self.uow.trades.list_filtered(
+                limit=limit, offset=offset, account_id=account_id, sort=sort,
+            )
+
+    def update_trade(self, exec_id: str, **kwargs: object) -> Trade:
+        """Update trade fields by exec_id.
+
+        Raises:
+            NotFoundError: If trade does not exist.
+        """
+        with self.uow:
+            trade = self.uow.trades.get(exec_id)
+            if trade is None:
+                raise NotFoundError(f"Trade not found: {exec_id}")
+            # Frozen dataclass — create new instance with updated fields
+            updated = Trade(**{**trade.__dict__, **kwargs})
+            self.uow.trades.update(updated)
+            self.uow.commit()
+            return updated
+
+    def delete_trade(self, exec_id: str) -> None:
+        """Delete a trade by exec_id."""
+        with self.uow:
+            self.uow.trades.delete(exec_id)
+            self.uow.commit()
+

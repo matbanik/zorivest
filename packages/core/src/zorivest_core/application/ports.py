@@ -19,7 +19,25 @@ class TradeRepository(Protocol):
 
     def save(self, trade: Trade) -> None: ...
 
+    def update(self, trade: Trade) -> None:
+        """Update an existing trade (upsert-safe)."""
+        ...
+
+    def delete(self, exec_id: str) -> None:
+        """Delete a trade by exec_id."""
+        ...
+
     def list_all(self, limit: int = 100, offset: int = 0) -> list[Trade]: ...
+
+    def list_filtered(
+        self,
+        limit: int = 100,
+        offset: int = 0,
+        account_id: str | None = None,
+        sort: str = "-time",
+    ) -> list[Trade]:
+        """List trades with optional account filter and sort."""
+        ...
 
     def exists(self, exec_id: str) -> bool: ...
 
@@ -49,6 +67,10 @@ class ImageRepository(Protocol):
 
     def get_thumbnail(self, image_id: int, max_size: int = 200) -> bytes: ...
 
+    def get_full_data(self, image_id: int) -> bytes:
+        """Return raw image bytes without thumbnail processing."""
+        ...
+
 
 class AccountRepository(Protocol):
     """Repository for Account entities."""
@@ -56,6 +78,14 @@ class AccountRepository(Protocol):
     def get(self, account_id: str) -> Optional[Account]: ...
 
     def save(self, account: Account) -> None: ...
+
+    def update(self, account: Account) -> None:
+        """Update an existing account (upsert-safe)."""
+        ...
+
+    def delete(self, account_id: str) -> None:
+        """Delete an account by account_id."""
+        ...
 
     def list_all(self, limit: int = 100, offset: int = 0) -> list[Account]: ...
 

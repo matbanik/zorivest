@@ -269,3 +269,47 @@
 ### Residual Risk
 
 - Product behavior appears sound and the prior code-level blockers are resolved. The remaining risk is auditability: the canonical status documents still disagree about how much of the project is complete, which will create avoidable confusion for the next planning or review pass.
+
+---
+
+## Recheck Update — 2026-03-08 (Final)
+
+### Scope
+
+- Final recheck of the previously remaining audit/state issues: BUILD_PLAN summary counts, execution-plan/task completion state, handoff evidence status, and validation outputs.
+
+### Commands Executed
+
+- `Get-Content docs/BUILD_PLAN.md`
+- `Get-Content docs/execution/plans/2026-03-08-backup-recovery-config-image/implementation-plan.md`
+- `Get-Content docs/execution/plans/2026-03-08-backup-recovery-config-image/task.md`
+- `Get-Content .agent/context/handoffs/023-2026-03-08-image-processing-bp03sIMG.md`
+- `git status --short`
+- `uv run python tools/validate_codebase.py --scope meu`
+- `uv run pytest tests/ -q`
+- `rg -n ...` sweeps across `docs/BUILD_PLAN.md`, `implementation-plan.md`, and handoffs `021`/`022`/`023`
+
+### Results
+
+- `docs/BUILD_PLAN.md` is now internally consistent:
+  - Phase 2A complete and Phase 3 complete
+  - MEU-20/21/22 approved
+  - summary counts updated to `10`, `1`, and total `22`
+- `implementation-plan.md` task rows now reflect final completion state and the MEU-21 dependency note is reconciled to the resolved-values design.
+- `task.md` is fully checked off.
+- All three MEU handoffs show approved reviewer status.
+- Current validation remains green:
+  - MEU gate: pass, with advisory only that all evidence fields are present in this rolling implementation review file
+  - full regression: `501 passed, 1 skipped`
+
+### Findings By Severity
+
+- No findings.
+
+### Verdict
+
+- `approved`
+
+### Residual Risk
+
+- Residual risk is limited to non-blocking advisory checks already called out by the validator: coverage and bandit remain warnings, not approval blockers.

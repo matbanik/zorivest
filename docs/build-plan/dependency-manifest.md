@@ -24,7 +24,7 @@ uv add --package zorivest-infra pyzipper
 # Phase 3: Services (uses hypothesis for property-based testing of domain analytics)
 
 # Phase 4: REST API
-uv add --package zorivest-api fastapi uvicorn pydantic httpx
+uv add --package zorivest-api fastapi uvicorn pydantic httpx cryptography argon2-cffi
 
 # Cross-cutting (Python)
 # Phase 1A (Logging): zero external dependencies — stdlib only

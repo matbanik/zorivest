@@ -70,3 +70,28 @@ class ImageService:
             if image is None:
                 raise NotFoundError(f"Image not found: {image_id}")
             return self.uow.images.get_thumbnail(image_id, max_size)
+
+    def get_image(self, image_id: int) -> ImageAttachment:
+        """Retrieve image metadata by ID.
+
+        Raises:
+            NotFoundError: If image does not exist.
+        """
+        with self.uow:
+            image = self.uow.images.get(image_id)
+            if image is None:
+                raise NotFoundError(f"Image not found: {image_id}")
+            return image
+
+    def get_full_image(self, image_id: int) -> bytes:
+        """Get full image bytes (not thumbnail)."""
+        with self.uow:
+            return self.uow.images.get_full_data(image_id)
+
+    def get_images_for_owner(
+        self, owner_type: str, owner_id: str
+    ) -> list[ImageAttachment]:
+        """Get all images attached to an owner (trade, account, etc.)."""
+        with self.uow:
+            return self.uow.images.get_for_owner(owner_type, owner_id)
+
