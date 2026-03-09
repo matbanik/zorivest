@@ -30,5 +30,12 @@
 - [x] Full regression: `uv run pytest tests/ -v` (648 passed, 1 skipped)
 - [x] Create reflection file
 - [x] Update metrics table
-- [N/A] Save session state to pomera_notes (deferred to project-level closeout)
-- [N/A] Prepare commit messages (deferred to project-level closeout)
+- [x] Save session state to pomera_notes
+- [x] Commit and push: `9d8ac84` on main
+
+## Codex Review
+
+- [x] Round 1: 5 findings resolved (2 High + 3 Med)
+- [x] Round 2: 2 findings resolved (2 Med — annotations + artifacts)
+- [x] Round 3: 2 findings resolved (1 Med + 1 Low — gate claim + doc drift)
+- [x] Final verdict: **approved**

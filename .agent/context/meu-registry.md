@@ -72,8 +72,8 @@
 | MEU-31 | `mcp-core-tools` | 13 | MCP server scaffold + trade/calculator tools | ✅ approved |
 | MEU-32 | `mcp-integration-test` | 14 | MCP + REST integration test (TS → Python round-trip) | ✅ approved |
 | MEU-33 | `mcp-settings` | 15b | Settings MCP tools (get/update) | ✅ approved |
-| MEU-34 | `mcp-diagnostics` | 15f | zorivest_diagnose MCP tool | ⬜ pending |
-| MEU-35 | `mcp-trade-analytics` | 13 | Trade analytics MCP tools | ⬜ pending |
+| MEU-34 | `mcp-diagnostics` | 15f | zorivest_diagnose MCP tool | 🔄 ready_for_review |
+| MEU-35 | `mcp-trade-analytics` | 13 | Trade analytics MCP tools | 🔄 ready_for_review |
 | MEU-36 | `mcp-trade-planning` | 13 | Trade planning MCP tools | ⬜ pending |
 | MEU-37 | `mcp-accounts` | 13 | Account MCP tools | ⬜ pending |
 | MEU-38 | `mcp-guard` | 15e | McpGuardModel + REST + middleware | ⬜ pending |

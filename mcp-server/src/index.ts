@@ -13,6 +13,8 @@ import { StdioServerTransport } from "@modelcontextprotocol/sdk/server/stdio.js"
 import { registerTradeTools } from "./tools/trade-tools.js";
 import { registerCalculatorTools } from "./tools/calculator-tools.js";
 import { registerSettingsTools } from "./tools/settings-tools.js";
+import { registerDiagnosticsTools } from "./tools/diagnostics-tools.js";
+import { registerAnalyticsTools } from "./tools/analytics-tools.js";
 import { bootstrapAuth } from "./utils/api-client.js";
 
 async function main(): Promise<void> {
@@ -25,6 +27,8 @@ async function main(): Promise<void> {
     registerTradeTools(server);
     registerCalculatorTools(server);
     registerSettingsTools(server);
+    registerDiagnosticsTools(server);
+    registerAnalyticsTools(server);
 
     // Bootstrap auth with pre-provisioned API key from environment
     const apiKey = process.env.ZORIVEST_API_KEY;

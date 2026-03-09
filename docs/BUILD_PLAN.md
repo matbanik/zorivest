@@ -183,8 +183,8 @@ Domain → Infrastructure → Services → REST API → MCP Server → GUI → D
 | MEU-31 | `mcp-core-tools` | 13 | [05 §core](build-plan/05-mcp-server.md) | TypeScript MCP tools (trade, account, calculator, image, discovery) | ✅ |
 | MEU-32 | `mcp-integration-test` | 14 | [05](build-plan/05-mcp-server.md) | MCP + REST integration test (TS calling live Python API) | ✅ |
 | MEU-33 | `mcp-settings` | 15b | [05a](build-plan/05a-mcp-zorivest-settings.md) | Settings MCP tools (get_settings, update_settings) | ✅ |
-| MEU-34 | `mcp-diagnostics` | 15f | [05b](build-plan/05b-mcp-zorivest-diagnostics.md) | zorivest_diagnose MCP tool | ⬜ |
-| MEU-35 | `mcp-trade-analytics` | 13 | [05c](build-plan/05c-mcp-trade-analytics.md) | Trade analytics MCP tools | ⬜ |
+| MEU-34 | `mcp-diagnostics` | 15f | [05b](build-plan/05b-mcp-zorivest-diagnostics.md) | zorivest_diagnose MCP tool | 🔄 |
+| MEU-35 | `mcp-trade-analytics` | 13 | [05c](build-plan/05c-mcp-trade-analytics.md) | Trade analytics MCP tools | 🔄 |
 | MEU-36 | `mcp-trade-planning` | 13 | [05d](build-plan/05d-mcp-trade-planning.md) | Trade planning MCP tools | ⬜ |
 | MEU-37 | `mcp-accounts` | 13 | [05f](build-plan/05f-mcp-accounts.md) | Account MCP tools | ⬜ |
 | MEU-38 | `mcp-guard` | 15e | [05 §guard](build-plan/05-mcp-server.md) | McpGuardModel + REST + middleware + GUI | ⬜ |
