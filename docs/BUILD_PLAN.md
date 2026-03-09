@@ -60,8 +60,8 @@ Domain → Infrastructure → Services → REST API → MCP Server → GUI → D
 | 2 — Infrastructure | ✅ Completed | 2026-03-08 |
 | 2A — Backup/Restore | ✅ Completed | 2026-03-08 |
 | 3 — Service Layer | ✅ Completed | 2026-03-08 |
-| 4 — REST API | 🟡 In Progress | 2026-03-08 |
-| 5 — MCP Server | ⚪ Not Started | — |
+| 4 — REST API | ✅ Completed | 2026-03-09 |
+| 5 — MCP Server | 🟡 In Progress | 2026-03-09 |
 | 6 — GUI | ⚪ Not Started | — |
 | 7 — Distribution | ⚪ Not Started | — |
 | 8 — Market Data | ⚪ Not Started | — |
@@ -180,9 +180,9 @@ Domain → Infrastructure → Services → REST API → MCP Server → GUI → D
 
 | MEU | Slug | Matrix Item | Build Plan Ref | Description | Status |
 |-----|------|:-----------:|----------------|-------------|:------:|
-| MEU-31 | `mcp-core-tools` | 13 | [05 §core](build-plan/05-mcp-server.md) | TypeScript MCP tools (trade, account, calculator, image, discovery) | ⬜ |
-| MEU-32 | `mcp-integration-test` | 14 | [05](build-plan/05-mcp-server.md) | MCP + REST integration test (TS calling live Python API) | ⬜ |
-| MEU-33 | `mcp-settings` | 15b | [05a](build-plan/05a-mcp-zorivest-settings.md) | Settings MCP tools (get_settings, update_settings) | ⬜ |
+| MEU-31 | `mcp-core-tools` | 13 | [05 §core](build-plan/05-mcp-server.md) | TypeScript MCP tools (trade, account, calculator, image, discovery) | ✅ |
+| MEU-32 | `mcp-integration-test` | 14 | [05](build-plan/05-mcp-server.md) | MCP + REST integration test (TS calling live Python API) | ✅ |
+| MEU-33 | `mcp-settings` | 15b | [05a](build-plan/05a-mcp-zorivest-settings.md) | Settings MCP tools (get_settings, update_settings) | ✅ |
 | MEU-34 | `mcp-diagnostics` | 15f | [05b](build-plan/05b-mcp-zorivest-diagnostics.md) | zorivest_diagnose MCP tool | ⬜ |
 | MEU-35 | `mcp-trade-analytics` | 13 | [05c](build-plan/05c-mcp-trade-analytics.md) | Trade analytics MCP tools | ⬜ |
 | MEU-36 | `mcp-trade-planning` | 13 | [05d](build-plan/05d-mcp-trade-planning.md) | Trade planning MCP tools | ⬜ |
@@ -461,8 +461,8 @@ Domain → Infrastructure → Services → REST API → MCP Server → GUI → D
 | P0 — Phase 1 | MEU-1 → MEU-11 | 11 | 11 |
 | P0 — Phase 1A | MEU-1A → MEU-3A | 3 | 3 |
 | P0 — Phase 2/2A | MEU-12 → MEU-21 | 10 | 10 |
-| P0 — Phase 3/4 | MEU-22 → MEU-30 | 9 | 1 |
-| P0 — Phase 5 | MEU-31 → MEU-42 | 12 | 0 |
+| P0 — Phase 3/4 | MEU-22 → MEU-30 | 9 | 9 |
+| P0 — Phase 5 | MEU-31 → MEU-42 | 12 | 3 |
 | P0 — Phase 6 | MEU-43 → MEU-51 | 9 | 0 |
 | P1 | MEU-52 → MEU-55 | 4 | 0 |
 | P1.5 — Phase 8 | MEU-56 → MEU-65 | 10 | 0 |

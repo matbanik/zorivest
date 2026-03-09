@@ -52,6 +52,36 @@
 |-----|------|:------:|-------------|:------:|
 | MEU-22 | `image-processing` | 11 | Image validation, WebP conversion, thumbnails | ✅ approved |
 
+## Phase 4: REST API (P0)
+
+| MEU | Slug | Matrix | Description | Status |
+|-----|------|:------:|-------------|:------:|
+| MEU-23 | `fastapi-routes` | 12 | FastAPI app factory + core routes | ✅ approved |
+| MEU-24 | `api-trades` | 12 | Trade CRUD REST endpoints | ✅ approved |
+| MEU-25 | `api-accounts` | 12 | Account REST endpoints | ✅ approved |
+| MEU-26 | `api-auth` | 12 | Auth REST endpoints (unlock/lock/keys) | ✅ approved |
+| MEU-27 | `api-settings` | 15a | Settings GET/PUT REST endpoints | ✅ approved |
+| MEU-28 | `api-analytics` | 12 | Analytics REST endpoints | ✅ approved |
+| MEU-29 | `api-tax` | 12 | Tax REST endpoints | ✅ approved |
+| MEU-30 | `api-system` | 12 | System REST endpoints (logs, guard, service) | ✅ approved |
+
+## Phase 5: MCP Server (P0)
+
+| MEU | Slug | Matrix | Description | Status |
+|-----|------|:------:|-------------|:------:|
+| MEU-31 | `mcp-core-tools` | 13 | MCP server scaffold + trade/calculator tools | ✅ approved |
+| MEU-32 | `mcp-integration-test` | 14 | MCP + REST integration test (TS → Python round-trip) | ✅ approved |
+| MEU-33 | `mcp-settings` | 15b | Settings MCP tools (get/update) | ✅ approved |
+| MEU-34 | `mcp-diagnostics` | 15f | zorivest_diagnose MCP tool | ⬜ pending |
+| MEU-35 | `mcp-trade-analytics` | 13 | Trade analytics MCP tools | ⬜ pending |
+| MEU-36 | `mcp-trade-planning` | 13 | Trade planning MCP tools | ⬜ pending |
+| MEU-37 | `mcp-accounts` | 13 | Account MCP tools | ⬜ pending |
+| MEU-38 | `mcp-guard` | 15e | McpGuardModel + REST + middleware | ⬜ pending |
+| MEU-39 | `mcp-perf-metrics` | 15g | Per-tool performance metrics middleware | ⬜ pending |
+| MEU-40 | `mcp-launch-gui` | 15h | zorivest_launch_gui MCP tool | ⬜ pending |
+| MEU-41 | `mcp-discovery` | 15j | Discovery meta-tools | ⬜ pending |
+| MEU-42 | `toolset-registry` | 15k | ToolsetRegistry + adaptive client detection | ⬜ pending |
+
 ## Execution Order
 
 Phase 1: MEU-1 → MEU-2 → MEU-3 → MEU-4 → MEU-5 → MEU-6 → MEU-7 → MEU-8 → MEU-9 → MEU-10 → MEU-11
@@ -60,6 +90,7 @@ Phase 2: MEU-12 → MEU-13 → MEU-14 → MEU-15 → MEU-16
 Phase 2A: MEU-17 → MEU-18 → MEU-19 → MEU-20 → MEU-21
 Phase 3: MEU-22
 Phase 4: MEU-23 → MEU-24 → MEU-25 → MEU-26 → MEU-27 → MEU-28 → MEU-29 → MEU-30
+Phase 5: MEU-31 → MEU-32 → MEU-33 → MEU-34 → MEU-35 → MEU-36 → MEU-37 → MEU-38 → MEU-39 → MEU-40 → MEU-41 → MEU-42
 
 ## Phase-Exit Criteria
 
@@ -69,4 +100,6 @@ Phase 4: MEU-23 → MEU-24 → MEU-25 → MEU-26 → MEU-27 → MEU-28 → MEU-2
 - Phase 2A: All 5 MEUs ✅ → Phase 3 unblocked
 - Phase 3: MEU-22 ✅ → Phase 4 unblocked
 - Phase 4: MEU-23..30 ✅ (all routes complete) → Phase 5 unblocked
+- Phase 5: MEU-31..42 ✅ (all MCP tools complete) → Phase 6 unblocked
+
 
