@@ -16,6 +16,8 @@ import { registerSettingsTools } from "./tools/settings-tools.js";
 import { registerDiagnosticsTools } from "./tools/diagnostics-tools.js";
 import { registerAnalyticsTools } from "./tools/analytics-tools.js";
 import { registerDiscoveryTools } from "./tools/discovery-tools.js";
+import { registerPlanningTools } from "./tools/planning-tools.js";
+import { registerGuiTools } from "./tools/gui-tools.js";
 import { bootstrapAuth } from "./utils/api-client.js";
 import { toolsetRegistry } from "./toolsets/registry.js";
 import { seedRegistry } from "./toolsets/seed.js";
@@ -41,8 +43,10 @@ async function main(): Promise<void> {
     // Register all tool handlers
     registerTradeTools(server);
     registerCalculatorTools(server);
+    registerPlanningTools(server);
     registerSettingsTools(server);
     registerDiagnosticsTools(server);
+    registerGuiTools(server);
     registerAnalyticsTools(server);
     registerDiscoveryTools(server);
 

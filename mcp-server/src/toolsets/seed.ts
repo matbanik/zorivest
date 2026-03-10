@@ -22,6 +22,9 @@ import { registerCalculatorTools } from "../tools/calculator-tools.js";
 import { registerSettingsTools } from "../tools/settings-tools.js";
 import { registerDiagnosticsTools } from "../tools/diagnostics-tools.js";
 import { registerAnalyticsTools } from "../tools/analytics-tools.js";
+import { registerPlanningTools } from "../tools/planning-tools.js";
+import { registerGuiTools } from "../tools/gui-tools.js";
+import { registerAccountTools } from "../tools/accounts-tools.js";
 
 // ── Toolset definitions (canonical: 05-mcp-server.md §5.11 L735-745) ──
 
@@ -42,18 +45,14 @@ const TOOLSET_DEFINITIONS: ToolsetDefinition[] = [
                 description: "System diagnostics and health check",
             },
             {
-                name: "position_size_calculator",
-                description: "Calculate position sizing",
-            },
-            {
-                name: "risk_reward_calculator",
-                description: "Calculate risk/reward ratio",
+                name: "zorivest_launch_gui",
+                description: "Launch desktop GUI or guide installation",
             },
         ],
         register: (server: McpServer) => {
             registerSettingsTools(server);
             registerDiagnosticsTools(server);
-            registerCalculatorTools(server);
+            registerGuiTools(server);
         },
         loaded: true,
         alwaysLoaded: true,
@@ -103,22 +102,23 @@ const TOOLSET_DEFINITIONS: ToolsetDefinition[] = [
             "Position calculator, trade plans (includes create_trade cross-tagged from 05c)",
         tools: [
             {
+                name: "calculate_position_size",
+                description: "Calculate position sizing",
+            },
+            {
                 name: "create_trade_plan",
                 description: "Create a structured trade plan",
             },
             {
-                name: "list_trade_plans",
-                description: "List existing trade plans",
-            },
-            {
-                name: "get_trade_plan",
-                description: "Get trade plan by ID",
+                name: "create_trade",
+                description: "Create a new trade (cross-tagged from 05c)",
             },
         ],
-        register: () => {
-            /* MEU-42: trade-planning tools not yet implemented */
+        register: (server: McpServer) => {
+            registerPlanningTools(server);
+            registerCalculatorTools(server);
         },
-        loaded: false,
+        loaded: true,
         alwaysLoaded: false,
     },
 
@@ -152,27 +152,38 @@ const TOOLSET_DEFINITIONS: ToolsetDefinition[] = [
     },
     {
         name: "accounts",
-        description: "Account management, broker sync, CSV import",
+        description:
+            "Broker sync, identifier resolution, bank/CSV/PDF import, account review",
         tools: [
+            { name: "sync_broker", description: "Sync with broker API" },
+            { name: "list_brokers", description: "List configured brokers" },
             {
-                name: "list_accounts",
-                description: "List trading accounts",
+                name: "resolve_identifiers",
+                description: "Batch resolve CUSIP/ISIN/SEDOL",
             },
             {
-                name: "create_account",
-                description: "Create a new trading account",
+                name: "import_bank_statement",
+                description: "Import bank statement file",
             },
             {
-                name: "sync_broker",
-                description: "Sync with broker API",
+                name: "import_broker_csv",
+                description: "Import broker trade CSV",
             },
             {
-                name: "import_csv",
-                description: "Import trades from CSV file",
+                name: "import_broker_pdf",
+                description: "Import broker PDF statement",
+            },
+            {
+                name: "list_bank_accounts",
+                description: "List bank accounts with balances",
+            },
+            {
+                name: "get_account_review_checklist",
+                description: "Account staleness review checklist",
             },
         ],
-        register: () => {
-            /* MEU-42: accounts tools not yet implemented */
+        register: (server: McpServer) => {
+            registerAccountTools(server);
         },
         loaded: false,
         alwaysLoaded: false,

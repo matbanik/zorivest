@@ -1,0 +1,232 @@
+/**
+ * Unit tests for trade planning MCP tools.
+ *
+ * Tests verify correct REST endpoint called, payload forwarding,
+ * annotation metadata, and standard response envelope structure.
+ * Uses mocked global.fetch — no live API needed.
+ *
+ * Source: 05d-mcp-trade-planning.md
+ * FIC: MEU-36 AC-1 through AC-6
+ */
+
+import { describe, it, expect, vi, beforeEach } from "vitest";
+import { McpServer } from "@modelcontextprotocol/sdk/server/mcp.js";
+import { registerPlanningTools } from "../src/tools/planning-tools.js";
+import { Client } from "@modelcontextprotocol/sdk/client/index.js";
+import { InMemoryTransport } from "@modelcontextprotocol/sdk/inMemory.js";
+
+// ── Test helpers ───────────────────────────────────────────────────────
+
+function mockGuardAndApi(apiResponse: unknown, apiStatus = 201): void {
+    vi.stubGlobal(
+        "fetch",
+        vi.fn().mockImplementation((url: string) => {
+            if (typeof url === "string" && url.includes("/mcp-guard/")) {
+                return Promise.resolve({
+                    ok: true,
+                    status: 200,
+                    json: () => Promise.resolve({ allowed: true }),
+                    text: () =>
+                        Promise.resolve(JSON.stringify({ allowed: true })),
+                });
+            }
+            return Promise.resolve({
+                ok: apiStatus >= 200 && apiStatus < 300,
+                status: apiStatus,
+                json: () => Promise.resolve(apiResponse),
+                text: () => Promise.resolve(JSON.stringify(apiResponse)),
+            });
+        }),
+    );
+}
+
+async function createTestClient(): Promise<Client> {
+    const server = new McpServer({ name: "test", version: "0.1.0" });
+    registerPlanningTools(server);
+
+    const [clientTransport, serverTransport] =
+        InMemoryTransport.createLinkedPair();
+
+    const client = new Client({ name: "test-client", version: "0.1.0" });
+
+    await Promise.all([
+        client.connect(clientTransport),
+        server.connect(serverTransport),
+    ]);
+
+    return client;
+}
+
+// ── Tests ──────────────────────────────────────────────────────────────
+
+describe("create_trade_plan", () => {
+    beforeEach(() => {
+        vi.restoreAllMocks();
+    });
+
+    // AC-1: Tool registers with name `create_trade_plan` and full input schema
+    it("registers with correct name and accepts full input schema", async () => {
+        const planResponse = {
+            id: "plan_001",
+            ticker: "AAPL",
+            direction: "long",
+            conviction: "high",
+            strategy_name: "breakout",
+            strategy_description: "Breaking above resistance",
+            entry: 180.0,
+            stop: 175.0,
+            target: 195.0,
+            conditions: "Volume above 20-day average",
+            timeframe: "2-5 days",
+            account_id: "ACC001",
+            risk_reward_ratio: 3.0,
+            status: "draft",
+        };
+        mockGuardAndApi(planResponse);
+
+        const client = await createTestClient();
+        const result = await client.callTool({
+            name: "create_trade_plan",
+            arguments: {
+                ticker: "AAPL",
+                direction: "long",
+                conviction: "high",
+                strategy_name: "breakout",
+                strategy_description: "Breaking above resistance",
+                entry: 180.0,
+                stop: 175.0,
+                target: 195.0,
+                conditions: "Volume above 20-day average",
+                timeframe: "2-5 days",
+                account_id: "ACC001",
+            },
+        });
+
+        // AC-4: Handler POSTs to /trade-plans with full body
+        expect(fetch).toHaveBeenCalledTimes(2); // guard + API
+        const [url, opts] = vi.mocked(fetch).mock.calls[1];
+        expect(url).toContain("/trade-plans");
+        expect(opts?.method).toBe("POST");
+
+        // Verify Content-Type header
+        const headers = opts?.headers as Record<string, string>;
+        expect(headers["Content-Type"]).toBe("application/json");
+
+        // Verify body includes all required fields
+        const body = JSON.parse(opts?.body as string);
+        expect(body.ticker).toBe("AAPL");
+        expect(body.direction).toBe("long");
+        expect(body.conviction).toBe("high");
+        expect(body.strategy_name).toBe("breakout");
+        expect(body.strategy_description).toBe("Breaking above resistance");
+        expect(body.entry).toBe(180.0);
+        expect(body.stop).toBe(175.0);
+        expect(body.target).toBe(195.0);
+        expect(body.conditions).toBe("Volume above 20-day average");
+        expect(body.timeframe).toBe("2-5 days");
+        expect(body.account_id).toBe("ACC001");
+
+        // AC-4: Returns JSON text content
+        const content = result.content as Array<{
+            type: string;
+            text: string;
+        }>;
+        expect(content).toHaveLength(1);
+        expect(content[0].type).toBe("text");
+        const parsed = JSON.parse(content[0].text);
+        expect(parsed.success).toBe(true);
+        expect(parsed.data.id).toBe("plan_001");
+        expect(parsed.data.ticker).toBe("AAPL");
+    });
+
+    // AC-1: Optional fields can be omitted
+    it("accepts minimal required fields (without optional strategy_description and account_id)", async () => {
+        mockGuardAndApi({ id: "plan_002", status: "draft" });
+
+        const client = await createTestClient();
+        const result = await client.callTool({
+            name: "create_trade_plan",
+            arguments: {
+                ticker: "MSFT",
+                direction: "short",
+                strategy_name: "mean_reversion",
+                entry: 420.0,
+                stop: 430.0,
+                target: 400.0,
+                conditions: "RSI above 70",
+                timeframe: "intraday",
+            },
+        });
+
+        const [, opts] = vi.mocked(fetch).mock.calls[1];
+        const body = JSON.parse(opts?.body as string);
+        expect(body.ticker).toBe("MSFT");
+        expect(body.direction).toBe("short");
+        // conviction defaults to "medium" per spec
+        expect(body.conviction).toBe("medium");
+
+        const content = result.content as Array<{
+            type: string;
+            text: string;
+        }>;
+        const parsed = JSON.parse(content[0].text);
+        expect(parsed.success).toBe(true);
+    });
+
+    // AC-5: Returns error envelope on API failure
+    it("returns error envelope on API failure (non-2xx)", async () => {
+        mockGuardAndApi(
+            { detail: "Duplicate active plan for ticker" },
+            409,
+        );
+
+        const client = await createTestClient();
+        const result = await client.callTool({
+            name: "create_trade_plan",
+            arguments: {
+                ticker: "AAPL",
+                direction: "long",
+                strategy_name: "breakout",
+                entry: 180.0,
+                stop: 175.0,
+                target: 195.0,
+                conditions: "Volume spike",
+                timeframe: "swing",
+            },
+        });
+
+        const content = result.content as Array<{
+            type: string;
+            text: string;
+        }>;
+        expect(content).toHaveLength(1);
+        const parsed = JSON.parse(content[0].text);
+        expect(parsed.success).toBe(false);
+        expect(parsed.error).toBeDefined();
+    });
+
+    // AC-6: Wrapped with withMetrics + withGuard (guarded tool)
+    it("calls guard check before API (withGuard middleware)", async () => {
+        mockGuardAndApi({ id: "plan_003" });
+
+        const client = await createTestClient();
+        await client.callTool({
+            name: "create_trade_plan",
+            arguments: {
+                ticker: "TSLA",
+                direction: "long",
+                strategy_name: "momentum",
+                entry: 250.0,
+                stop: 240.0,
+                target: 280.0,
+                conditions: "Earnings breakout",
+                timeframe: "2-5 days",
+            },
+        });
+
+        // First call should be the guard check
+        expect(fetch).toHaveBeenCalledTimes(2);
+        const [guardUrl] = vi.mocked(fetch).mock.calls[0];
+        expect(guardUrl).toContain("/mcp-guard/");
+    });
+});

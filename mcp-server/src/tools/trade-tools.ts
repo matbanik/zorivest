@@ -72,7 +72,7 @@ export function registerTradeTools(server: McpServer): void {
         },
         // Proof-of-composition: withMetrics(withGuard(handler)) — MEU-38+39 AC-10
         // Full tool wrapping via registerToolsForClient() is MEU-42 scope.
-        // eslint-disable-next-line @typescript-eslint/no-explicit-any -- middleware HOF return type is structurally compatible but not identical to SDK's discriminated union
+
         withMetrics(
             "create_trade",
             withGuard(async (params: {
@@ -86,7 +86,7 @@ export function registerTradeTools(server: McpServer): void {
                 commission?: number;
                 realized_pnl?: number;
                 notes?: string;
-            }) => {
+            }, _extra: unknown) => {
                 const body = {
                     exec_id: params.exec_id,
                     time: params.time ?? new Date().toISOString(),
@@ -112,7 +112,7 @@ export function registerTradeTools(server: McpServer): void {
                     ],
                 };
             }),
-        ) as any,
+        ),
     );
 
     // ── list_trades ──────────────────────────────────────────────────────

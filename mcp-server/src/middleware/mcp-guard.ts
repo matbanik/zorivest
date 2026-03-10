@@ -24,11 +24,7 @@ interface GuardCheckResult {
     reason?: string;
 }
 
-interface McpToolResult {
-    content: Array<{ type: "text" | "image" | "resource"; text?: string;[key: string]: unknown }>;
-    isError?: boolean;
-    [key: string]: unknown;
-}
+import type { CallToolResult } from "@modelcontextprotocol/sdk/types.js";
 
 // ── guardCheck ─────────────────────────────────────────────────────────
 
@@ -67,9 +63,9 @@ export async function guardCheck(): Promise<GuardCheckResult> {
  * @param handler - MCP tool handler function
  */
 export function withGuard<T>(
-    handler: (args: T) => Promise<McpToolResult>,
-): (args: T) => Promise<McpToolResult> {
-    return async (args: T) => {
+    handler: (args: T, extra: unknown) => Promise<CallToolResult>,
+): (args: T, extra: unknown) => Promise<CallToolResult> {
+    return async (args: T, extra: unknown) => {
         const check = await guardCheck();
         if (!check.allowed) {
             return {
@@ -82,6 +78,6 @@ export function withGuard<T>(
                 isError: true,
             };
         }
-        return handler(args);
+        return handler(args, extra);
     };
 }

@@ -44,11 +44,7 @@ export interface MetricsSummary {
     warnings: string[];
 }
 
-interface McpToolResult {
-    content: Array<{ type: "text" | "image" | "resource"; text?: string;[key: string]: unknown }>;
-    isError?: boolean;
-    [key: string]: unknown;
-}
+import type { CallToolResult } from "@modelcontextprotocol/sdk/types.js";
 
 // ── Constants ──────────────────────────────────────────────────────────
 
@@ -222,13 +218,13 @@ export const metricsCollector = new MetricsCollector();
  */
 export function withMetrics<T>(
     toolName: string,
-    handler: (args: T) => Promise<McpToolResult>,
+    handler: (args: T, extra: unknown) => Promise<CallToolResult>,
     collector: MetricsCollector = metricsCollector,
-): (args: T) => Promise<McpToolResult> {
-    return async (args: T) => {
+): (args: T, extra: unknown) => Promise<CallToolResult> {
+    return async (args: T, extra: unknown) => {
         const start = performance.now();
         try {
-            const result = await handler(args);
+            const result = await handler(args, extra);
             const elapsed = performance.now() - start;
             const payloadSize = JSON.stringify(result).length;
             collector.record(

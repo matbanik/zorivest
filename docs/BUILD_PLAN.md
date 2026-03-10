@@ -185,11 +185,11 @@ Domain → Infrastructure → Services → REST API → MCP Server → GUI → D
 | MEU-33 | `mcp-settings` | 15b | [05a](build-plan/05a-mcp-zorivest-settings.md) | Settings MCP tools (get_settings, update_settings) | ✅ |
 | MEU-34 | `mcp-diagnostics` | 15f | [05b](build-plan/05b-mcp-zorivest-diagnostics.md) | zorivest_diagnose MCP tool | ✅ |
 | MEU-35 | `mcp-trade-analytics` | 13 | [05c](build-plan/05c-mcp-trade-analytics.md) | Trade analytics MCP tools | ✅ |
-| MEU-36 | `mcp-trade-planning` | 13 | [05d](build-plan/05d-mcp-trade-planning.md) | Trade planning MCP tools | ⬜ |
-| MEU-37 | `mcp-accounts` | 13 | [05f](build-plan/05f-mcp-accounts.md) | Account MCP tools | ⬜ |
+| MEU-36 | `mcp-trade-planning` | 13 | [05d](build-plan/05d-mcp-trade-planning.md) | Trade planning MCP tools | ✅ |
+| MEU-37 | `mcp-accounts` | 13 | [05f](build-plan/05f-mcp-accounts.md) | Account MCP tools | ✅ |
 | MEU-38 | `mcp-guard` | 15e | [05 §guard](build-plan/05-mcp-server.md) | McpGuardModel + REST + middleware + GUI | ✅ |
 | MEU-39 | `mcp-perf-metrics` | 15g | [05 §5.9](build-plan/05-mcp-server.md) | Per-tool performance metrics middleware | ✅ |
-| MEU-40 | `mcp-launch-gui` | 15h | [05 §5.10](build-plan/05-mcp-server.md) | zorivest_launch_gui MCP tool | ⬜ |
+| MEU-40 | `mcp-launch-gui` | 15h | [05 §5.10](build-plan/05-mcp-server.md) | zorivest_launch_gui MCP tool | ✅ |
 | MEU-41 | `mcp-discovery` | 15j | [05j](build-plan/05j-mcp-discovery.md) | Discovery meta-tools (list, describe, enable, confirm) | ✅ |
 | MEU-42 | `toolset-registry` | 15k | [05 §5.11–5.14](build-plan/05-mcp-server.md) | ToolsetRegistry + adaptive client detection | ⬜ |
 
@@ -462,7 +462,7 @@ Domain → Infrastructure → Services → REST API → MCP Server → GUI → D
 | P0 — Phase 1A | MEU-1A → MEU-3A | 3 | 3 |
 | P0 — Phase 2/2A | MEU-12 → MEU-21 | 10 | 10 |
 | P0 — Phase 3/4 | MEU-22 → MEU-30 | 9 | 9 |
-| P0 — Phase 5 | MEU-31 → MEU-42 | 12 | 3 |
+| P0 — Phase 5 | MEU-31 → MEU-42 | 12 | 1 |
 | P0 — Phase 6 | MEU-43 → MEU-51 | 9 | 0 |
 | P1 | MEU-52 → MEU-55 | 4 | 0 |
 | P1.5 — Phase 8 | MEU-56 → MEU-65 | 10 | 0 |
