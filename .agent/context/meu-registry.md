@@ -76,10 +76,10 @@
 | MEU-35 | `mcp-trade-analytics` | 13 | Trade analytics MCP tools | ✅ approved |
 | MEU-36 | `mcp-trade-planning` | 13 | Trade planning MCP tools | ⬜ pending |
 | MEU-37 | `mcp-accounts` | 13 | Account MCP tools | ⬜ pending |
-| MEU-38 | `mcp-guard` | 15e | McpGuardModel + REST + middleware | 🔧 in-review |
-| MEU-39 | `mcp-perf-metrics` | 15g | Per-tool performance metrics middleware | 🔧 in-review |
+| MEU-38 | `mcp-guard` | 15e | McpGuardModel + REST + middleware | ✅ approved |
+| MEU-39 | `mcp-perf-metrics` | 15g | Per-tool performance metrics middleware | ✅ approved |
 | MEU-40 | `mcp-launch-gui` | 15h | zorivest_launch_gui MCP tool | ⬜ pending |
-| MEU-41 | `mcp-discovery` | 15j | Discovery meta-tools | 🔧 in-review |
+| MEU-41 | `mcp-discovery` | 15j | Discovery meta-tools | ✅ approved |
 | MEU-42 | `toolset-registry` | 15k | ToolsetRegistry + adaptive client detection | ⬜ pending |
 
 ## Execution Order

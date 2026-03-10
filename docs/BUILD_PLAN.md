@@ -187,10 +187,10 @@ Domain → Infrastructure → Services → REST API → MCP Server → GUI → D
 | MEU-35 | `mcp-trade-analytics` | 13 | [05c](build-plan/05c-mcp-trade-analytics.md) | Trade analytics MCP tools | ✅ |
 | MEU-36 | `mcp-trade-planning` | 13 | [05d](build-plan/05d-mcp-trade-planning.md) | Trade planning MCP tools | ⬜ |
 | MEU-37 | `mcp-accounts` | 13 | [05f](build-plan/05f-mcp-accounts.md) | Account MCP tools | ⬜ |
-| MEU-38 | `mcp-guard` | 15e | [05 §guard](build-plan/05-mcp-server.md) | McpGuardModel + REST + middleware + GUI | 🔧 |
-| MEU-39 | `mcp-perf-metrics` | 15g | [05 §5.9](build-plan/05-mcp-server.md) | Per-tool performance metrics middleware | 🔧 |
+| MEU-38 | `mcp-guard` | 15e | [05 §guard](build-plan/05-mcp-server.md) | McpGuardModel + REST + middleware + GUI | ✅ |
+| MEU-39 | `mcp-perf-metrics` | 15g | [05 §5.9](build-plan/05-mcp-server.md) | Per-tool performance metrics middleware | ✅ |
 | MEU-40 | `mcp-launch-gui` | 15h | [05 §5.10](build-plan/05-mcp-server.md) | zorivest_launch_gui MCP tool | ⬜ |
-| MEU-41 | `mcp-discovery` | 15j | [05j](build-plan/05j-mcp-discovery.md) | Discovery meta-tools (list, describe, enable, confirm) | 🔧 |
+| MEU-41 | `mcp-discovery` | 15j | [05j](build-plan/05j-mcp-discovery.md) | Discovery meta-tools (list, describe, enable, confirm) | ✅ |
 | MEU-42 | `toolset-registry` | 15k | [05 §5.11–5.14](build-plan/05-mcp-server.md) | ToolsetRegistry + adaptive client detection | ⬜ |
 
 ### Phase 6: GUI — P0
