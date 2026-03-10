@@ -62,7 +62,26 @@ describe("create_trade", () => {
             commission: 1.0,
             realized_pnl: 0,
         };
-        mockFetch(tradeResponse, 201);
+        // URL-aware mock: guard check returns allowed, API returns trade
+        vi.stubGlobal(
+            "fetch",
+            vi.fn().mockImplementation((url: string) => {
+                if (typeof url === "string" && url.includes("/mcp-guard/")) {
+                    return Promise.resolve({
+                        ok: true,
+                        status: 200,
+                        json: () => Promise.resolve({ allowed: true }),
+                        text: () => Promise.resolve(JSON.stringify({ allowed: true })),
+                    });
+                }
+                return Promise.resolve({
+                    ok: true,
+                    status: 201,
+                    json: () => Promise.resolve(tradeResponse),
+                    text: () => Promise.resolve(JSON.stringify(tradeResponse)),
+                });
+            }),
+        );
 
         const client = await createTestClient();
         const result = await client.callTool({
@@ -79,9 +98,10 @@ describe("create_trade", () => {
             },
         });
 
-        // Verify fetch called with correct URL and method
-        expect(fetch).toHaveBeenCalledOnce();
-        const [url, opts] = vi.mocked(fetch).mock.calls[0];
+        // Guard check + API call = 2 fetch calls
+        expect(fetch).toHaveBeenCalledTimes(2);
+        // Second call is the actual trade POST
+        const [url, opts] = vi.mocked(fetch).mock.calls[1];
         expect(url).toContain("/trades");
         expect(opts?.method).toBe("POST");
 
@@ -104,7 +124,26 @@ describe("create_trade", () => {
     });
 
     it("defaults time to current ISO string when omitted", async () => {
-        mockFetch({ exec_id: "TEST002" }, 201);
+        // URL-aware mock for guard + API
+        vi.stubGlobal(
+            "fetch",
+            vi.fn().mockImplementation((url: string) => {
+                if (typeof url === "string" && url.includes("/mcp-guard/")) {
+                    return Promise.resolve({
+                        ok: true,
+                        status: 200,
+                        json: () => Promise.resolve({ allowed: true }),
+                        text: () => Promise.resolve(JSON.stringify({ allowed: true })),
+                    });
+                }
+                return Promise.resolve({
+                    ok: true,
+                    status: 201,
+                    json: () => Promise.resolve({ exec_id: "TEST002" }),
+                    text: () => Promise.resolve(JSON.stringify({ exec_id: "TEST002" })),
+                });
+            }),
+        );
 
         const client = await createTestClient();
         await client.callTool({
@@ -119,7 +158,8 @@ describe("create_trade", () => {
             },
         });
 
-        const [, opts] = vi.mocked(fetch).mock.calls[0];
+        // Second call is the API call (first is guard)
+        const [, opts] = vi.mocked(fetch).mock.calls[1];
         const body = JSON.parse(opts?.body as string);
         expect(body.time).toBeDefined();
         // Should be a valid ISO string

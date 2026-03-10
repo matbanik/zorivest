@@ -72,14 +72,14 @@
 | MEU-31 | `mcp-core-tools` | 13 | MCP server scaffold + trade/calculator tools | ✅ approved |
 | MEU-32 | `mcp-integration-test` | 14 | MCP + REST integration test (TS → Python round-trip) | ✅ approved |
 | MEU-33 | `mcp-settings` | 15b | Settings MCP tools (get/update) | ✅ approved |
-| MEU-34 | `mcp-diagnostics` | 15f | zorivest_diagnose MCP tool | 🔄 ready_for_review |
-| MEU-35 | `mcp-trade-analytics` | 13 | Trade analytics MCP tools | 🔄 ready_for_review |
+| MEU-34 | `mcp-diagnostics` | 15f | zorivest_diagnose MCP tool | ✅ approved |
+| MEU-35 | `mcp-trade-analytics` | 13 | Trade analytics MCP tools | ✅ approved |
 | MEU-36 | `mcp-trade-planning` | 13 | Trade planning MCP tools | ⬜ pending |
 | MEU-37 | `mcp-accounts` | 13 | Account MCP tools | ⬜ pending |
-| MEU-38 | `mcp-guard` | 15e | McpGuardModel + REST + middleware | ⬜ pending |
-| MEU-39 | `mcp-perf-metrics` | 15g | Per-tool performance metrics middleware | ⬜ pending |
+| MEU-38 | `mcp-guard` | 15e | McpGuardModel + REST + middleware | 🔧 in-review |
+| MEU-39 | `mcp-perf-metrics` | 15g | Per-tool performance metrics middleware | 🔧 in-review |
 | MEU-40 | `mcp-launch-gui` | 15h | zorivest_launch_gui MCP tool | ⬜ pending |
-| MEU-41 | `mcp-discovery` | 15j | Discovery meta-tools | ⬜ pending |
+| MEU-41 | `mcp-discovery` | 15j | Discovery meta-tools | 🔧 in-review |
 | MEU-42 | `toolset-registry` | 15k | ToolsetRegistry + adaptive client detection | ⬜ pending |
 
 ## Execution Order

@@ -8,6 +8,8 @@
 import { McpServer } from "@modelcontextprotocol/sdk/server/mcp.js";
 import { z } from "zod";
 import { fetchApi, fetchApiBinary } from "../utils/api-client.js";
+import { withMetrics } from "../middleware/metrics.js";
+import { withGuard } from "../middleware/mcp-guard.js";
 
 /**
  * Register all trade-related MCP tools on the server.
@@ -68,32 +70,49 @@ export function registerTradeTools(server: McpServer): void {
                 alwaysLoaded: false,
             },
         },
-        async (params) => {
-            const body = {
-                exec_id: params.exec_id,
-                time: params.time ?? new Date().toISOString(),
-                instrument: params.instrument,
-                action: params.action,
-                quantity: params.quantity,
-                price: params.price,
-                account_id: params.account_id,
-                commission: params.commission ?? 0,
-                realized_pnl: params.realized_pnl ?? 0,
-                notes: params.notes,
-            };
+        // Proof-of-composition: withMetrics(withGuard(handler)) — MEU-38+39 AC-10
+        // Full tool wrapping via registerToolsForClient() is MEU-42 scope.
+        // eslint-disable-next-line @typescript-eslint/no-explicit-any -- middleware HOF return type is structurally compatible but not identical to SDK's discriminated union
+        withMetrics(
+            "create_trade",
+            withGuard(async (params: {
+                exec_id: string;
+                time?: string;
+                instrument: string;
+                action: "BOT" | "SLD";
+                quantity: number;
+                price: number;
+                account_id: string;
+                commission?: number;
+                realized_pnl?: number;
+                notes?: string;
+            }) => {
+                const body = {
+                    exec_id: params.exec_id,
+                    time: params.time ?? new Date().toISOString(),
+                    instrument: params.instrument,
+                    action: params.action,
+                    quantity: params.quantity,
+                    price: params.price,
+                    account_id: params.account_id,
+                    commission: params.commission ?? 0,
+                    realized_pnl: params.realized_pnl ?? 0,
+                    notes: params.notes,
+                };
 
-            const result = await fetchApi("/trades", {
-                method: "POST",
-                headers: { "Content-Type": "application/json" },
-                body: JSON.stringify(body),
-            });
+                const result = await fetchApi("/trades", {
+                    method: "POST",
+                    headers: { "Content-Type": "application/json" },
+                    body: JSON.stringify(body),
+                });
 
-            return {
-                content: [
-                    { type: "text" as const, text: JSON.stringify(result) },
-                ],
-            };
-        },
+                return {
+                    content: [
+                        { type: "text" as const, text: JSON.stringify(result) },
+                    ],
+                };
+            }),
+        ) as any,
     );
 
     // ── list_trades ──────────────────────────────────────────────────────

@@ -8,6 +8,7 @@ File naming: `ADR-{NNNN}-{kebab-case-title}.md`
 | ADR | Title | Status | Date |
 |-----|-------|--------|------|
 | ADR-0001 | Architecture — Clean Architecture with Layered Monorepo | accepted | 2026-02-28 |
+| ADR-0002 | MCP Guard Fail-Closed Default on Network Error | accepted | 2026-03-09 |
 
 ## When to Create an ADR
 

@@ -12,28 +12,7 @@
 import { McpServer } from "@modelcontextprotocol/sdk/server/mcp.js";
 import { z } from "zod";
 import { getAuthHeaders } from "../utils/api-client.js";
-
-// ── Stub MetricsCollector (real one comes in MEU-39) ───────────────────
-
-const startTime = Date.now();
-
-const metricsCollector = {
-    getUptimeMinutes(): number {
-        return Math.floor((Date.now() - startTime) / 60_000);
-    },
-    getSummary(verbose: boolean) {
-        const summary: Record<string, unknown> = {
-            session_uptime_minutes: this.getUptimeMinutes(),
-            total_tool_calls: 0,
-            overall_error_rate: 0,
-            calls_per_minute: 0,
-        };
-        if (verbose) {
-            summary.per_tool = {};
-        }
-        return summary;
-    },
-};
+import { metricsCollector } from "../middleware/metrics.js";
 
 // ── Safe fetch utility ─────────────────────────────────────────────────
 
