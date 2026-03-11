@@ -1,6 +1,7 @@
 """Tests for MarketProviderSettingsRepository — MEU-60 (AC-28/29/30).
 
 Isolated repository CRUD tests using in-memory SQLite.
+Tests the mapping between core MarketProviderSettings and ORM MarketProviderSettingModel.
 """
 
 from __future__ import annotations
@@ -10,7 +11,8 @@ from datetime import datetime
 from sqlalchemy import create_engine
 from sqlalchemy.orm import Session, sessionmaker
 
-from zorivest_infra.database.models import Base, MarketProviderSettingModel
+from zorivest_core.domain.market_provider_settings import MarketProviderSettings
+from zorivest_infra.database.models import Base
 from zorivest_infra.database.repositories import SqlMarketProviderSettingsRepository
 
 
@@ -22,12 +24,12 @@ def _make_session() -> Session:
 
 
 class TestMarketProviderSettingsRepoCRUD:
-    """AC-28/29/30: Repository CRUD operations."""
+    """AC-28/29/30: Repository CRUD operations with core↔ORM mapping."""
 
     def test_save_and_get_round_trip(self) -> None:
         session = _make_session()
         repo = SqlMarketProviderSettingsRepository(session)
-        model = MarketProviderSettingModel(
+        settings = MarketProviderSettings(
             provider_name="Alpha Vantage",
             encrypted_api_key="ENC:abc123",
             rate_limit=5,
@@ -35,11 +37,12 @@ class TestMarketProviderSettingsRepoCRUD:
             is_enabled=True,
             created_at=datetime.now(),
         )
-        repo.save(model)
+        repo.save(settings)
         session.commit()
 
         result = repo.get("Alpha Vantage")
         assert result is not None
+        assert isinstance(result, MarketProviderSettings)
         assert result.provider_name == "Alpha Vantage"
         assert result.encrypted_api_key == "ENC:abc123"
         assert result.is_enabled is True
@@ -54,7 +57,7 @@ class TestMarketProviderSettingsRepoCRUD:
         repo = SqlMarketProviderSettingsRepository(session)
         for name in ["Alpha Vantage", "Finnhub", "Tradier"]:
             repo.save(
-                MarketProviderSettingModel(
+                MarketProviderSettings(
                     provider_name=name,
                     rate_limit=5,
                     timeout=30,
@@ -66,6 +69,7 @@ class TestMarketProviderSettingsRepoCRUD:
 
         result = repo.list_all()
         assert len(result) == 3
+        assert all(isinstance(r, MarketProviderSettings) for r in result)
         names = {m.provider_name for m in result}
         assert names == {"Alpha Vantage", "Finnhub", "Tradier"}
 
@@ -73,7 +77,7 @@ class TestMarketProviderSettingsRepoCRUD:
         session = _make_session()
         repo = SqlMarketProviderSettingsRepository(session)
         repo.save(
-            MarketProviderSettingModel(
+            MarketProviderSettings(
                 provider_name="Finnhub",
                 rate_limit=60,
                 timeout=30,
@@ -96,7 +100,7 @@ class TestMarketProviderSettingsRepoCRUD:
         session = _make_session()
         repo = SqlMarketProviderSettingsRepository(session)
         repo.save(
-            MarketProviderSettingModel(
+            MarketProviderSettings(
                 provider_name="Tradier",
                 rate_limit=120,
                 timeout=30,
@@ -106,11 +110,11 @@ class TestMarketProviderSettingsRepoCRUD:
         )
         session.commit()
 
-        # Update
-        model = repo.get("Tradier")
-        assert model is not None
-        model.is_enabled = True
-        repo.save(model)
+        # Update via save (merge semantics)
+        result = repo.get("Tradier")
+        assert result is not None
+        result.is_enabled = True
+        repo.save(result)
         session.commit()
 
         updated = repo.get("Tradier")

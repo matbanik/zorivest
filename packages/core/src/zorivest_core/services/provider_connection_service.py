@@ -15,6 +15,7 @@ from typing import Any, Protocol
 
 from zorivest_core.application.provider_status import ProviderStatus
 from zorivest_core.domain.market_data import ProviderConfig
+from zorivest_core.domain.market_provider_settings import MarketProviderSettings
 
 
 class HttpClient(Protocol):
@@ -221,10 +222,7 @@ class ProviderConnectionService:
         with self._uow as uow:
             model = uow.market_provider_settings.get(name)
             if model is None:
-                # Import here to avoid circular deps at module level
-                from zorivest_infra.database.models import MarketProviderSettingModel
-
-                model = MarketProviderSettingModel(
+                model = MarketProviderSettings(
                     provider_name=name,
                     rate_limit=self._registry[name].default_rate_limit,
                     timeout=30,

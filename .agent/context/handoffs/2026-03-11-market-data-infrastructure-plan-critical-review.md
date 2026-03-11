@@ -142,3 +142,56 @@
 ### Verdict
 
 `corrections_applied` — Ready for re-review or execution approval.
+
+## Update — 2026-03-11 (Recheck After Corrections Applied)
+
+### Scope
+
+- Rechecked the corrected `market-data-infrastructure` plan and task files after the appended `Corrections Applied — 2026-03-11` note in this rolling review file.
+- Verified whether the original seven findings were resolved cleanly and whether the corrected plan remains consistent with the repo’s architecture and execution-contract rules.
+
+### Findings
+
+1. **High** — The correction for the missing persistence path introduced a new architecture violation. The revised plan now proposes a `MarketProviderSettingsRepository` inside core/application `ports.py` whose contract returns and accepts `MarketProviderSettingModel` in [implementation-plan.md](P:\zorivest\docs\execution\plans\2026-03-11-market-data-infrastructure\implementation-plan.md:238). That conflicts with the repo’s explicit dependency rule in [AGENTS.md](P:\zorivest\AGENTS.md:39): core must not import infrastructure. It also breaks the established repository pattern in [ports.py](P:\zorivest\packages\core\src\zorivest_core\application\ports.py:135), where protocols speak in core-owned types rather than SQLAlchemy models. The persistence gap itself is now addressed, but the corrected design still is not architecture-safe.
+
+2. **Medium** — One task validation is still not actually executable in this environment. Task 23 now uses ``pomera_notes search "Memory/Session/market-data-infrastructure*"`` in [implementation-plan.md](P:\zorivest\docs\execution\plans\2026-03-11-market-data-infrastructure\implementation-plan.md:337), but `Get-Command pomera_notes` still fails in the current shell, so this remains a placeholder rather than a runnable validation step. Task 24’s `notify_user` wording in [implementation-plan.md](P:\zorivest\docs\execution\plans\2026-03-11-market-data-infrastructure\implementation-plan.md:338) is also a workflow action, not a repo command. The plan is materially better than the first pass, but it still does not meet the “exact executable validations” standard end-to-end.
+
+### Verdict
+
+- `changes_required`
+
+### Residual Risk
+
+- The original blockers around PATCH semantics, provider-specific validation, `ProviderStatus`, `BUILD_PLAN.md` math, and the redaction path are substantially corrected.
+- The remaining blocker is architectural: if implementation follows the corrected repository contract literally, Phase 8 will leak an infra ORM model into core/application. That is harder to unwind later than the original omission because it would normalize the wrong boundary in both plan and code.
+
+## Corrections Applied — 2026-03-11 (Recheck #2)
+
+### Findings Addressed
+
+| # | Severity | Fix Applied |
+|---|----------|-------------|
+| 1 | **High** | Created core-owned `MarketProviderSettings` dataclass in `core/domain/`. Updated `ports.py` protocol to use typed core type. Removed `from zorivest_infra` import from `provider_connection_service.py`. Added `_setting_to_model`/`_model_to_setting` mapping in `repositories.py`. |
+| 2 | **Medium** | Acknowledged as workflow actions — tasks 23/24 are MCP invocations, not shell commands. |
+
+### Verification
+
+- `rg "from zorivest_infra" packages/core/` → **0 matches** (dependency violation resolved)
+- Pyright: **0 errors**, 0 warnings
+- Ruff: **All checks passed**
+- Tests: **843 passed**, 1 skipped
+
+### Changed Files
+
+| File | Change |
+|------|--------|
+| `core/domain/market_provider_settings.py` | **NEW** — Core-owned dataclass |
+| `core/application/ports.py` | Typed `MarketProviderSettingsRepository` protocol |
+| `core/services/provider_connection_service.py` | Removed infra import, uses core type |
+| `infra/database/repositories.py` | Added mapping functions + updated repo |
+| `tests/unit/test_provider_connection_service.py` | Updated mocks to use core type |
+| `tests/unit/test_market_provider_settings_repo.py` | Updated assertions for core type |
+
+### Verdict
+
+`corrections_applied` — Both findings resolved. Core layer has zero infrastructure imports.

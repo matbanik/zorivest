@@ -17,7 +17,7 @@ from zorivest_core.domain.market_data import ProviderConfig
 from zorivest_core.services.provider_connection_service import (
     ProviderConnectionService,
 )
-from zorivest_infra.database.models import MarketProviderSettingModel
+from zorivest_core.domain.market_provider_settings import MarketProviderSettings
 
 
 # ── Test Fixtures ────────────────────────────────────────────────────────
@@ -185,15 +185,15 @@ class InMemoryRepo:
     """In-memory market provider settings repository."""
 
     def __init__(self) -> None:
-        self._store: dict[str, MarketProviderSettingModel] = {}
+        self._store: dict[str, MarketProviderSettings] = {}
 
-    def get(self, name: str) -> MarketProviderSettingModel | None:
+    def get(self, name: str) -> MarketProviderSettings | None:
         return self._store.get(name)
 
-    def save(self, model: MarketProviderSettingModel) -> None:
+    def save(self, model: MarketProviderSettings) -> None:
         self._store[model.provider_name] = model
 
-    def list_all(self) -> list[MarketProviderSettingModel]:
+    def list_all(self) -> list[MarketProviderSettings]:
         return list(self._store.values())
 
     def delete(self, name: str) -> None:
@@ -254,7 +254,7 @@ def _configure_provider_in_uow(
     is_enabled: bool = True,
 ) -> None:
     """Pre-configure a provider in the mock UoW."""
-    model = MarketProviderSettingModel(
+    model = MarketProviderSettings(
         provider_name=name,
         encrypted_api_key=f"ENC:{api_key}",
         encrypted_api_secret=f"ENC:{api_secret}" if api_secret else None,

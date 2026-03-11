@@ -30,6 +30,7 @@ from zorivest_core.domain.enums import (
     ImageOwnerType,
     TradeAction,
 )
+from zorivest_core.domain.market_provider_settings import MarketProviderSettings
 from zorivest_infra.database.models import (
     AccountModel,
     AppDefaultModel,
@@ -429,20 +430,58 @@ class SqlAlchemyAppDefaultsRepository:
         return list(self._session.query(AppDefaultModel).all())
 
 
+# ── Market Provider Settings Mapping ────────────────────────────────────
+
+
+def _setting_to_model(s: MarketProviderSettings) -> MarketProviderSettingModel:
+    return MarketProviderSettingModel(
+        provider_name=s.provider_name,
+        encrypted_api_key=s.encrypted_api_key,
+        encrypted_api_secret=s.encrypted_api_secret,
+        rate_limit=s.rate_limit,
+        timeout=s.timeout,
+        is_enabled=s.is_enabled,
+        last_tested_at=s.last_tested_at,
+        last_test_status=s.last_test_status,
+        created_at=s.created_at,
+        updated_at=s.updated_at,
+    )
+
+
+def _model_to_setting(m: MarketProviderSettingModel) -> MarketProviderSettings:
+    return MarketProviderSettings(
+        provider_name=m.provider_name,
+        encrypted_api_key=m.encrypted_api_key,
+        encrypted_api_secret=m.encrypted_api_secret,
+        rate_limit=m.rate_limit or 5,
+        timeout=m.timeout or 30,
+        is_enabled=bool(m.is_enabled),
+        last_tested_at=m.last_tested_at,
+        last_test_status=m.last_test_status,
+        created_at=m.created_at,
+        updated_at=m.updated_at,
+    )
+
+
 class SqlMarketProviderSettingsRepository:
-    """Concrete MarketProviderSettingsRepository backed by SQLAlchemy Session."""
+    """Concrete MarketProviderSettingsRepository backed by SQLAlchemy Session.
+
+    Maps between core ``MarketProviderSettings`` and ORM ``MarketProviderSettingModel``.
+    """
 
     def __init__(self, session: Session) -> None:
         self._session = session
 
-    def get(self, provider_name: str) -> MarketProviderSettingModel | None:
-        return self._session.get(MarketProviderSettingModel, provider_name)
+    def get(self, provider_name: str) -> MarketProviderSettings | None:
+        m = self._session.get(MarketProviderSettingModel, provider_name)
+        return _model_to_setting(m) if m else None
 
-    def save(self, model: MarketProviderSettingModel) -> None:  # type: ignore[override]
-        self._session.merge(model)
+    def save(self, settings: MarketProviderSettings) -> None:
+        self._session.merge(_setting_to_model(settings))
 
-    def list_all(self) -> list[MarketProviderSettingModel]:  # type: ignore[override]
-        return list(self._session.query(MarketProviderSettingModel).all())
+    def list_all(self) -> list[MarketProviderSettings]:
+        rows = self._session.query(MarketProviderSettingModel).all()
+        return [_model_to_setting(r) for r in rows]
 
     def delete(self, provider_name: str) -> None:
         m = self._session.get(MarketProviderSettingModel, provider_name)

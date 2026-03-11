@@ -17,6 +17,7 @@ from zorivest_core.domain.entities import (
     ImageAttachment,
     Trade,
 )
+from zorivest_core.domain.market_provider_settings import MarketProviderSettings
 
 
 class TradeRepository(Protocol):
@@ -140,13 +141,13 @@ class AppDefaultsRepository(Protocol):
 
 
 class MarketProviderSettingsRepository(Protocol):
-    """Repository for MarketProviderSettingModel entities."""
+    """Repository for market provider settings entities."""
 
-    def get(self, provider_name: str) -> Any: ...  # MarketProviderSettingModel | None
+    def get(self, provider_name: str) -> MarketProviderSettings | None: ...
 
-    def save(self, model: Any) -> None: ...  # MarketProviderSettingModel
+    def save(self, settings: MarketProviderSettings) -> None: ...
 
-    def list_all(self) -> list[Any]: ...  # list[MarketProviderSettingModel]
+    def list_all(self) -> list[MarketProviderSettings]: ...
 
     def delete(self, provider_name: str) -> None: ...
 
