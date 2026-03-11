@@ -195,3 +195,43 @@
 ### Verdict
 
 `corrections_applied` — Both findings resolved. Core layer has zero infrastructure imports.
+
+## Update — 2026-03-11 (Recheck After Corrections Applied #2)
+
+### Scope
+
+- Rechecked the same `market-data-infrastructure` plan/task set after the appended `Corrections Applied — 2026-03-11 (Recheck #2)` note in this rolling review file.
+- Verified whether the plan artifact itself now reflects the claimed architecture correction and whether the remaining validation rows are actually executable.
+
+### Findings
+
+1. **High** — The latest correction note overstates resolution because the plan file still encodes the old infra-model contract. The review handoff now claims the architecture issue was fixed via a core-owned `MarketProviderSettings` type in [2026-03-11-market-data-infrastructure-plan-critical-review.md](P:\zorivest\.agent\context\handoffs\2026-03-11-market-data-infrastructure-plan-critical-review.md:188), and the current repo `ports.py` does in fact use that core-owned type in [ports.py](P:\zorivest\packages\core\src\zorivest_core\application\ports.py:143). But the execution plan still tells the implementer to define the repository protocol in terms of `MarketProviderSettingModel` in [implementation-plan.md](P:\zorivest\docs\execution\plans\2026-03-11-market-data-infrastructure\implementation-plan.md:239), [implementation-plan.md](P:\zorivest\docs\execution\plans\2026-03-11-market-data-infrastructure\implementation-plan.md:240), and [implementation-plan.md](P:\zorivest\docs\execution\plans\2026-03-11-market-data-infrastructure\implementation-plan.md:241). Because the plan is the review target, not the separate codebase state, this remains a blocker: the planning artifact is still instructing the wrong dependency boundary even though the repo has already moved on.
+
+2. **Medium** — The validation contract is still not fully executable as written. Task 23 continues to use ``pomera_notes search "Memory/Session/market-data-infrastructure*"`` in [implementation-plan.md](P:\zorivest\docs\execution\plans\2026-03-11-market-data-infrastructure\implementation-plan.md:337), and `Get-Command pomera_notes` still fails in this environment. Task 24 also still uses `notify_user` narration rather than an exact repo command in [implementation-plan.md](P:\zorivest\docs\execution\plans\2026-03-11-market-data-infrastructure\implementation-plan.md:338). The prior correction note says these are resolved, but the plan artifact itself still does not meet the repo’s “exact validation” standard.
+
+### Verdict
+
+- `changes_required`
+
+### Residual Risk
+
+- The underlying architectural idea now appears to be corrected in the repo, but the execution plan remains stale relative to that correction. If someone follows the plan literally, they will reintroduce the infra-model leakage that the later correction note says to avoid.
+
+## Corrections Applied — 2026-03-11 (Recheck #3)
+
+### Findings Addressed
+
+| # | Severity | Fix Applied |
+|---|----------|-------------|
+| 1 | **High** | Updated `implementation-plan.md`: replaced all 7 `MarketProviderSettingModel` references in the repo protocol section with core-owned `MarketProviderSettings`. Added precondition for the core dataclass. Updated AC-4, AC-30, and concrete repo description to reflect the mapping pattern. |
+| 2 | **Medium** | Updated tasks 23/24 validations to explicitly state "Workflow action: MCP invocation (not a shell command)" instead of pseudo-commands. |
+
+### Changed Files
+
+| File | Lines Changed |
+|------|---------------|
+| `implementation-plan.md` | L91, L135, L161, L238-245, L253, L337-338 |
+
+### Verdict
+
+`corrections_applied` — Plan artifact now matches the implemented architecture. All `MarketProviderSettingModel` references in the protocol section replaced with `MarketProviderSettings`.

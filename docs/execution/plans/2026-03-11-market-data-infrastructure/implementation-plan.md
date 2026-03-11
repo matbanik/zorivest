@@ -88,7 +88,7 @@ MEU-59 (registry) → MEU-62 (rate limiter + log redaction) → MEU-60 (connecti
 | `test_all_providers() → list[(name, success, msg)]` | Spec | §8.6 | ✅ | Guarded concurrent test of enabled providers |
 | Dual-key support (Alpaca) | Spec | §8.2c + §8.3a `api_secret` | ✅ | `configure_provider` accepts optional `api_secret` |
 | Fernet encryption on store | Local Canon | [api_key_encryption.py](file:///p:/zorivest/packages/infrastructure/src/zorivest_infra/security/api_key_encryption.py) (MEU-58) | ✅ | Already implemented |
-| MarketProviderSettingModel persistence | Local Canon | [models.py L197-211](file:///p:/zorivest/packages/infrastructure/src/zorivest_infra/database/models.py#L197-L211) (MEU-58) | ✅ | Already implemented |
+| MarketProviderSettingModel persistence | Local Canon | [models.py L197-211](file:///p:/zorivest/packages/infrastructure/src/zorivest_infra/database/models.py#L197-L211) (MEU-58) | ✅ | Already implemented. Core-owned `MarketProviderSettings` dataclass maps to this ORM model at the infra boundary. |
 | `MarketProviderSettingsRepository` protocol | Local Canon | [ports.py UoW pattern](file:///p:/zorivest/packages/core/src/zorivest_core/application/ports.py#L142-159) | ✅ | New repo protocol needed — follows same pattern as `SettingsRepository`, `TradeRepository`, etc. |
 | `UnitOfWork` extension with `market_provider_settings` attr | Local Canon | UoW pattern at ports.py:142-159 | ✅ | Add new attribute to UoW Protocol + concrete impl |
 
@@ -132,7 +132,7 @@ MEU-59 (registry) → MEU-62 (rate limiter + log redaction) → MEU-60 (connecti
 | AC-1 | `ProviderStatus` is a Pydantic model with fields: `provider_name: str`, `is_enabled: bool`, `has_api_key: bool`, `rate_limit: int`, `timeout: int`, `last_test_status: str | None` | Spec §8.6 L706 + 06f L65-72 |
 | AC-2 | `list_providers()` returns `list[ProviderStatus]` with all 12 providers | Spec §8.3a |
 | AC-3 | `configure_provider(name, api_key?, api_secret?, rate_limit?, timeout?, is_enabled?)` — all params optional, PATCH semantics: only update provided fields | Spec §8.4 ProviderConfigRequest L554-560 |
-| AC-4 | `configure_provider` encrypts key via Fernet and persists to `MarketProviderSettingModel` through UoW | Spec §8.3a + Local Canon |
+| AC-4 | `configure_provider` encrypts key via Fernet and persists a core-owned `MarketProviderSettings` entity through UoW | Spec §8.3a + Local Canon |
 | AC-5 | `configure_provider` with already-encrypted key (ENC: prefix) passes through without double-encryption | Local Canon (api_key_encryption.py) |
 | AC-6 | `configure_provider` with `is_enabled=True/False` updates the `is_enabled` column | Spec §8.4 L538 |
 | AC-7 | Alpha Vantage test: success when `"Global Quote"` OR `"Time Series"` top-level key exists | Spec §8.6 L675 |
@@ -158,7 +158,7 @@ MEU-59 (registry) → MEU-62 (rate limiter + log redaction) → MEU-60 (connecti
 | AC-27 | OpenFIGI, Alpaca, Tradier (no validation table entry) — success when HTTP 200 + valid JSON (any shape) | Spec §8.6 (implicit: not in table = generic check) |
 | AC-28 | `MarketProviderSettingsRepository` protocol defines `get(name) → Model | None`, `save(model)`, `list_all() → list[Model]`, `delete(name)` | Local Canon (UoW pattern) |
 | AC-29 | `UnitOfWork` protocol extended with `market_provider_settings: MarketProviderSettingsRepository` attribute | Local Canon (ports.py:142-159) |
-| AC-30 | Concrete `SqlMarketProviderSettingsRepository` implements the protocol using SQLAlchemy and `MarketProviderSettingModel` | Local Canon (repositories.py pattern) |
+| AC-30 | Concrete `SqlMarketProviderSettingsRepository` implements the protocol using SQLAlchemy, mapping between core `MarketProviderSettings` and ORM `MarketProviderSettingModel` | Local Canon (repositories.py pattern) |
 
 ---
 
@@ -235,11 +235,13 @@ Tests:
 
 #### [MODIFY] [ports.py](file:///p:/zorivest/packages/core/src/zorivest_core/application/ports.py)
 
-Add `MarketProviderSettingsRepository` protocol:
-- `get(provider_name: str) -> MarketProviderSettingModel | None`
-- `save(model: MarketProviderSettingModel) -> None`
-- `list_all() -> list[MarketProviderSettingModel]`
+Add `MarketProviderSettingsRepository` protocol (uses core-owned `MarketProviderSettings`, not infra ORM model):
+- `get(provider_name: str) -> MarketProviderSettings | None`
+- `save(settings: MarketProviderSettings) -> None`
+- `list_all() -> list[MarketProviderSettings]`
 - `delete(provider_name: str) -> None`
+
+Precondition: [NEW] `market_provider_settings.py` in `core/domain/` defines the `MarketProviderSettings` dataclass.
 
 Extend `UnitOfWork` protocol with:
 - `market_provider_settings: MarketProviderSettingsRepository`
@@ -250,7 +252,7 @@ Extend `UnitOfWork` protocol with:
 
 #### [MODIFY] [repositories.py](file:///p:/zorivest/packages/infrastructure/src/zorivest_infra/database/repositories.py)
 
-Add `SqlMarketProviderSettingsRepository` that implements the `MarketProviderSettingsRepository` protocol using SQLAlchemy session and `MarketProviderSettingModel`.
+Add `SqlMarketProviderSettingsRepository` that implements the `MarketProviderSettingsRepository` protocol. Maps between core-owned `MarketProviderSettings` and ORM `MarketProviderSettingModel` via `_setting_to_model`/`_model_to_setting` functions. The protocol and service never see the ORM model.
 
 #### [MODIFY] [unit_of_work.py](file:///p:/zorivest/packages/infrastructure/src/zorivest_infra/database/unit_of_work.py)
 
@@ -334,8 +336,8 @@ After MEU execution:
 | 20 | Full regression | coder | All tests pass | `uv run pytest tests/ -v --tb=short` | ⬜ |
 | 21 | Create reflection | coder | Reflection file | `test -f docs/execution/reflections/2026-03-11-market-data-infrastructure-reflection.md` | ⬜ |
 | 22 | Update metrics | coder | New row in metrics | `rg "market-data-infrastructure" docs/execution/metrics.md` | ⬜ |
-| 23 | Save pomera session state | coder | pomera note | `pomera_notes search "Memory/Session/market-data-infrastructure*"` returns result | ⬜ |
-| 24 | Prepare commit messages | coder | Commit messages | Present to human via `notify_user` | ⬜ |
+| 23 | Save pomera session state | coder | pomera note | Workflow action: MCP `pomera_notes` invocation (not a shell command) | ⬜ |
+| 24 | Prepare commit messages | coder | Commit messages | Workflow action: `notify_user` MCP invocation (not a shell command) | ⬜ |
 
 ---
 
