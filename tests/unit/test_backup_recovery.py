@@ -31,7 +31,7 @@ from zorivest_core.domain.exceptions import (
     CorruptedBackupError,
     InvalidPassphraseError,
 )
-from zorivest_infra.backup.backup_manager import BACKUP_EXTENSION, BackupManager
+from zorivest_infra.backup.backup_manager import BACKUP_EXTENSION
 from zorivest_infra.backup.backup_recovery_manager import BackupRecoveryManager
 from zorivest_infra.backup.backup_recovery_types import (
     RepairStatus,

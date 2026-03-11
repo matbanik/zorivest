@@ -5,16 +5,13 @@ from __future__ import annotations
 
 from dataclasses import dataclass
 from typing import Any, Optional
-from unittest.mock import MagicMock
 
 import pytest
 
-from zorivest_core.domain.settings import SETTINGS_REGISTRY
 from zorivest_core.domain.settings_cache import SettingsCache
-from zorivest_core.domain.settings_resolver import ResolvedSetting, SettingsResolver
+from zorivest_core.domain.settings_resolver import ResolvedSetting
 from zorivest_core.domain.settings_validator import (
     SettingsValidationError,
-    SettingsValidator,
 )
 from zorivest_core.services.settings_service import SettingsService
 

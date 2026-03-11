@@ -7,7 +7,7 @@ Tests mock the SQLCipher layer via zorivest_infra.database.connection.
 
 from __future__ import annotations
 
-from unittest.mock import MagicMock, patch
+from unittest.mock import MagicMock
 
 import pytest
 from fastapi.testclient import TestClient

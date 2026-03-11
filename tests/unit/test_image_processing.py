@@ -14,7 +14,6 @@ AC-22.8: generate_thumbnail uses LANCZOS, quality=80
 from __future__ import annotations
 
 import io
-from unittest.mock import patch
 
 import pytest
 from PIL import Image

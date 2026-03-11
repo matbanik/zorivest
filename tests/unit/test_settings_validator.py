@@ -3,7 +3,6 @@
 
 from __future__ import annotations
 
-import pytest
 
 from zorivest_core.domain.settings import SETTINGS_REGISTRY
 from zorivest_core.domain.settings_validator import (

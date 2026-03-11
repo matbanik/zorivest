@@ -3,8 +3,6 @@
 
 from __future__ import annotations
 
-import time
-from unittest.mock import patch
 
 from zorivest_core.domain.settings_cache import SettingsCache
 from zorivest_core.domain.settings_resolver import ResolvedSetting

@@ -11,9 +11,7 @@ AC-17.6: Dynamic key ui.panel.*.collapsed is present
 
 from __future__ import annotations
 
-from datetime import datetime
 
-import pytest
 from sqlalchemy import create_engine
 from sqlalchemy.orm import Session
 

@@ -7,7 +7,7 @@ Red phase — written FIRST per TDD protocol.
 from __future__ import annotations
 
 from datetime import datetime
-from unittest.mock import MagicMock, patch
+from unittest.mock import MagicMock
 
 import pytest
 from fastapi.testclient import TestClient

@@ -23,6 +23,7 @@ from zorivest_infra.database.repositories import (
     SqlAlchemyRoundTripRepository,
     SqlAlchemySettingsRepository,
     SqlAlchemyTradeRepository,
+    SqlMarketProviderSettingsRepository,
 )
 
 
@@ -44,6 +45,7 @@ class SqlAlchemyUnitOfWork:
     round_trips: SqlAlchemyRoundTripRepository
     settings: SqlAlchemySettingsRepository
     app_defaults: SqlAlchemyAppDefaultsRepository
+    market_provider_settings: SqlMarketProviderSettingsRepository
 
     def __init__(self, engine: Engine) -> None:
         self._engine = engine
@@ -59,6 +61,7 @@ class SqlAlchemyUnitOfWork:
         self.round_trips = SqlAlchemyRoundTripRepository(self._session)
         self.settings = SqlAlchemySettingsRepository(self._session)
         self.app_defaults = SqlAlchemyAppDefaultsRepository(self._session)
+        self.market_provider_settings = SqlMarketProviderSettingsRepository(self._session)
         return self
 
     def __exit__(

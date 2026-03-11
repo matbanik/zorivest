@@ -35,6 +35,7 @@ from zorivest_infra.database.models import (
     AppDefaultModel,
     BalanceSnapshotModel,
     ImageModel,
+    MarketProviderSettingModel,
     RoundTripModel,
     SettingModel,
     TradeModel,
@@ -426,3 +427,25 @@ class SqlAlchemyAppDefaultsRepository:
 
     def get_all(self) -> list[AppDefaultModel]:
         return list(self._session.query(AppDefaultModel).all())
+
+
+class SqlMarketProviderSettingsRepository:
+    """Concrete MarketProviderSettingsRepository backed by SQLAlchemy Session."""
+
+    def __init__(self, session: Session) -> None:
+        self._session = session
+
+    def get(self, provider_name: str) -> MarketProviderSettingModel | None:
+        return self._session.get(MarketProviderSettingModel, provider_name)
+
+    def save(self, model: MarketProviderSettingModel) -> None:  # type: ignore[override]
+        self._session.merge(model)
+
+    def list_all(self) -> list[MarketProviderSettingModel]:  # type: ignore[override]
+        return list(self._session.query(MarketProviderSettingModel).all())
+
+    def delete(self, provider_name: str) -> None:
+        m = self._session.get(MarketProviderSettingModel, provider_name)
+        if m:
+            self._session.delete(m)
+

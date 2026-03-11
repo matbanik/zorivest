@@ -139,6 +139,18 @@ class AppDefaultsRepository(Protocol):
     def get_all(self) -> list[Any]: ...
 
 
+class MarketProviderSettingsRepository(Protocol):
+    """Repository for MarketProviderSettingModel entities."""
+
+    def get(self, provider_name: str) -> Any: ...  # MarketProviderSettingModel | None
+
+    def save(self, model: Any) -> None: ...  # MarketProviderSettingModel
+
+    def list_all(self) -> list[Any]: ...  # list[MarketProviderSettingModel]
+
+    def delete(self, provider_name: str) -> None: ...
+
+
 class UnitOfWork(Protocol):
     """Transactional unit of work wrapping repository access."""
 
@@ -149,6 +161,7 @@ class UnitOfWork(Protocol):
     round_trips: RoundTripRepository
     settings: SettingsRepository
     app_defaults: AppDefaultsRepository
+    market_provider_settings: MarketProviderSettingsRepository
 
     def __enter__(self) -> UnitOfWork: ...
 
