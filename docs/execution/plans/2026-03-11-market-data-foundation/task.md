@@ -38,7 +38,7 @@
 ## Refactor & Quality
 
 - [x] Refactor pass across all 3 MEUs — ruff ✅, pyright 0 errors
-- [x] MEU gate: pyright ✅, ruff ✅, pytest ✅, tsc ✅ (eslint FAIL is pre-existing MCP issue)
+- [x] MEU gate: `uv run python tools/validate_codebase.py --scope meu` — all 8 blocking checks PASS (10.05s)
 
 ## Post-MEU Deliverables
 

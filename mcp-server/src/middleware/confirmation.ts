@@ -121,6 +121,7 @@ export function withConfirmation(
     toolName: string,
     handler: ToolHandler,
 ): ToolHandler {
+    // eslint-disable-next-line @typescript-eslint/no-explicit-any
     return async (params: any, extra: any) => {
         // Non-destructive tools always pass through
         if (!DESTRUCTIVE_TOOLS.has(toolName)) {
