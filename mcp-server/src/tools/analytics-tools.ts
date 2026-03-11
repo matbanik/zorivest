@@ -11,6 +11,7 @@
 import { McpServer } from "@modelcontextprotocol/sdk/server/mcp.js";
 import { z } from "zod";
 import { fetchApi } from "../utils/api-client.js";
+import type { RegisteredToolHandle } from "../toolsets/registry.js";
 
 // ── Shared annotations ─────────────────────────────────────────────────
 
@@ -28,9 +29,10 @@ const READ_ONLY_ANNOTATIONS = {
 
 // ── Tool registration ──────────────────────────────────────────────────
 
-export function registerAnalyticsTools(server: McpServer): void {
+export function registerAnalyticsTools(server: McpServer): RegisteredToolHandle[] {
+    const handles: RegisteredToolHandle[] = [];
     // 1. get_round_trips → GET /round-trips
-    server.registerTool(
+    handles.push(server.registerTool(
         "get_round_trips",
         {
             description: "List round-trips (entry→exit pairs) for an account",
@@ -59,10 +61,10 @@ export function registerAnalyticsTools(server: McpServer): void {
                 ],
             };
         },
-    );
+    ));
 
     // 2. enrich_trade_excursion → POST /analytics/excursion/{id}
-    server.registerTool(
+    handles.push(server.registerTool(
         "enrich_trade_excursion",
         {
             description:
@@ -89,10 +91,10 @@ export function registerAnalyticsTools(server: McpServer): void {
                 ],
             };
         },
-    );
+    ));
 
     // 3. get_fee_breakdown → GET /fees/summary
-    server.registerTool(
+    handles.push(server.registerTool(
         "get_fee_breakdown",
         {
             description:
@@ -118,10 +120,10 @@ export function registerAnalyticsTools(server: McpServer): void {
                 ],
             };
         },
-    );
+    ));
 
     // 4. score_execution_quality → GET /analytics/execution-quality
-    server.registerTool(
+    handles.push(server.registerTool(
         "score_execution_quality",
         {
             description:
@@ -142,10 +144,10 @@ export function registerAnalyticsTools(server: McpServer): void {
                 ],
             };
         },
-    );
+    ));
 
     // 5. estimate_pfof_impact → GET /analytics/pfof-report
-    server.registerTool(
+    handles.push(server.registerTool(
         "estimate_pfof_impact",
         {
             description:
@@ -170,10 +172,10 @@ export function registerAnalyticsTools(server: McpServer): void {
                 ],
             };
         },
-    );
+    ));
 
     // 6. get_expectancy_metrics → GET /analytics/expectancy
-    server.registerTool(
+    handles.push(server.registerTool(
         "get_expectancy_metrics",
         {
             description:
@@ -198,10 +200,10 @@ export function registerAnalyticsTools(server: McpServer): void {
                 ],
             };
         },
-    );
+    ));
 
     // 7. simulate_drawdown → GET /analytics/drawdown
-    server.registerTool(
+    handles.push(server.registerTool(
         "simulate_drawdown",
         {
             description:
@@ -232,10 +234,10 @@ export function registerAnalyticsTools(server: McpServer): void {
                 ],
             };
         },
-    );
+    ));
 
     // 8. get_strategy_breakdown → GET /analytics/strategy-breakdown
-    server.registerTool(
+    handles.push(server.registerTool(
         "get_strategy_breakdown",
         {
             description: "P&L breakdown by strategy name from TradeReport tags",
@@ -258,10 +260,10 @@ export function registerAnalyticsTools(server: McpServer): void {
                 ],
             };
         },
-    );
+    ));
 
     // 9. get_sqn → GET /analytics/sqn
-    server.registerTool(
+    handles.push(server.registerTool(
         "get_sqn",
         {
             description:
@@ -286,10 +288,10 @@ export function registerAnalyticsTools(server: McpServer): void {
                 ],
             };
         },
-    );
+    ));
 
     // 10. get_cost_of_free → GET /analytics/cost-of-free
-    server.registerTool(
+    handles.push(server.registerTool(
         "get_cost_of_free",
         {
             description:
@@ -315,10 +317,10 @@ export function registerAnalyticsTools(server: McpServer): void {
                 ],
             };
         },
-    );
+    ));
 
     // 11. ai_review_trade → POST /analytics/ai-review
-    server.registerTool(
+    handles.push(server.registerTool(
         "ai_review_trade",
         {
             description:
@@ -349,10 +351,10 @@ export function registerAnalyticsTools(server: McpServer): void {
                 ],
             };
         },
-    );
+    ));
 
     // 12. detect_options_strategy → POST /analytics/options-strategy
-    server.registerTool(
+    handles.push(server.registerTool(
         "detect_options_strategy",
         {
             description:
@@ -378,5 +380,6 @@ export function registerAnalyticsTools(server: McpServer): void {
                 ],
             };
         },
-    );
+    ));
+    return handles;
 }

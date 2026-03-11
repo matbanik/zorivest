@@ -1,21 +1,20 @@
 /**
  * Toolset seed data — populates the ToolsetRegistry with known toolsets.
  *
- * This is a bridge until MEU-42 implements the full authoritative startup
- * flow (--toolsets CLI, ZORIVEST_TOOLSET_CONFIG env var, adaptive client
- * detection). For now, it provides real metadata so discovery tools
- * (list_available_toolsets, describe_toolset) return meaningful data.
- *
- * Canonical inventory: 05-mcp-server.md §5.11 L735-745 (8 toolsets + discovery).
- * Discovery is registered separately via registerDiscoveryTools(), so this
- * file seeds the other 8.
+ * Canonical inventory: 05-mcp-server.md §5.11 L735-745 (9 toolsets including discovery).
+ * All toolsets start loaded: false (runtime state, not metadata).
+ * All register callbacks return RegisteredToolHandle[] for handle capture.
  *
  * Source: 05j-mcp-discovery.md, 05-mcp-server.md §5.11
- * MEU: 41 (mcp-discovery) — bridge for MEU-42 (toolset-registry)
+ * MEU: 41 (mcp-discovery) + 42 (toolset-registry)
  */
 
 import type { McpServer } from "@modelcontextprotocol/sdk/server/mcp.js";
-import type { ToolsetRegistry, ToolsetDefinition } from "./registry.js";
+import type {
+    ToolsetRegistry,
+    ToolsetDefinition,
+    RegisteredToolHandle,
+} from "./registry.js";
 
 import { registerTradeTools } from "../tools/trade-tools.js";
 import { registerCalculatorTools } from "../tools/calculator-tools.js";
@@ -25,6 +24,7 @@ import { registerAnalyticsTools } from "../tools/analytics-tools.js";
 import { registerPlanningTools } from "../tools/planning-tools.js";
 import { registerGuiTools } from "../tools/gui-tools.js";
 import { registerAccountTools } from "../tools/accounts-tools.js";
+import { registerDiscoveryTools } from "../tools/discovery-tools.js";
 
 // ── Toolset definitions (canonical: 05-mcp-server.md §5.11 L735-745) ──
 
@@ -49,13 +49,42 @@ const TOOLSET_DEFINITIONS: ToolsetDefinition[] = [
                 description: "Launch desktop GUI or guide installation",
             },
         ],
-        register: (server: McpServer) => {
-            registerSettingsTools(server);
-            registerDiagnosticsTools(server);
-            registerGuiTools(server);
-        },
-        loaded: true,
+        register: (server: McpServer): RegisteredToolHandle[] => [
+            ...registerSettingsTools(server),
+            ...registerDiagnosticsTools(server),
+            ...registerGuiTools(server),
+        ],
+        loaded: false,
         alwaysLoaded: true,
+        isDefault: false,
+    },
+    {
+        name: "discovery",
+        description:
+            "Meta-tools for listing, describing, and enabling additional toolsets",
+        tools: [
+            {
+                name: "list_available_toolsets",
+                description: "List all toolsets and their status",
+            },
+            {
+                name: "describe_toolset",
+                description: "Get detailed description of a toolset",
+            },
+            {
+                name: "enable_toolset",
+                description: "Dynamically enable a toolset",
+            },
+            {
+                name: "get_confirmation_token",
+                description: "Get a confirmation token for destructive operations",
+            },
+        ],
+        register: (server: McpServer): RegisteredToolHandle[] =>
+            registerDiscoveryTools(server),
+        loaded: false,
+        alwaysLoaded: true,
+        isDefault: false,
     },
 
     // ── Default-loaded ─────────────────────────────────────────────────
@@ -89,12 +118,13 @@ const TOOLSET_DEFINITIONS: ToolsetDefinition[] = [
                 description: "Win/loss streak analysis",
             },
         ],
-        register: (server: McpServer) => {
-            registerTradeTools(server);
-            registerAnalyticsTools(server);
-        },
-        loaded: true,
+        register: (server: McpServer): RegisteredToolHandle[] => [
+            ...registerTradeTools(server),
+            ...registerAnalyticsTools(server),
+        ],
+        loaded: false,
         alwaysLoaded: false,
+        isDefault: true,
     },
     {
         name: "trade-planning",
@@ -114,12 +144,13 @@ const TOOLSET_DEFINITIONS: ToolsetDefinition[] = [
                 description: "Create a new trade (cross-tagged from 05c)",
             },
         ],
-        register: (server: McpServer) => {
-            registerPlanningTools(server);
-            registerCalculatorTools(server);
-        },
-        loaded: true,
+        register: (server: McpServer): RegisteredToolHandle[] => [
+            ...registerPlanningTools(server),
+            ...registerCalculatorTools(server),
+        ],
+        loaded: false,
         alwaysLoaded: false,
+        isDefault: true,
     },
 
     // ── Deferred toolsets ──────────────────────────────────────────────
@@ -144,11 +175,10 @@ const TOOLSET_DEFINITIONS: ToolsetDefinition[] = [
                 description: "Get SEC filings for a company",
             },
         ],
-        register: () => {
-            /* MEU-42: market-data tools not yet implemented */
-        },
+        register: () => [],
         loaded: false,
         alwaysLoaded: false,
+        isDefault: false,
     },
     {
         name: "accounts",
@@ -182,11 +212,11 @@ const TOOLSET_DEFINITIONS: ToolsetDefinition[] = [
                 description: "Account staleness review checklist",
             },
         ],
-        register: (server: McpServer) => {
-            registerAccountTools(server);
-        },
+        register: (server: McpServer): RegisteredToolHandle[] =>
+            registerAccountTools(server),
         loaded: false,
         alwaysLoaded: false,
+        isDefault: false,
     },
     {
         name: "scheduling",
@@ -205,11 +235,10 @@ const TOOLSET_DEFINITIONS: ToolsetDefinition[] = [
                 description: "Execute a pipeline manually",
             },
         ],
-        register: () => {
-            /* MEU-42: scheduling tools not yet implemented */
-        },
+        register: () => [],
         loaded: false,
         alwaysLoaded: false,
+        isDefault: false,
     },
     {
         name: "tax",
@@ -232,11 +261,10 @@ const TOOLSET_DEFINITIONS: ToolsetDefinition[] = [
                 description: "Identify tax-loss harvesting opportunities",
             },
         ],
-        register: () => {
-            /* MEU-42: tax tools not yet implemented */
-        },
+        register: () => [],
         loaded: false,
         alwaysLoaded: false,
+        isDefault: false,
     },
     {
         name: "behavioral",
@@ -255,21 +283,18 @@ const TOOLSET_DEFINITIONS: ToolsetDefinition[] = [
                 description: "Run Monte Carlo simulation on trade history",
             },
         ],
-        register: () => {
-            /* MEU-42: behavioral tools not yet implemented */
-        },
+        register: () => [],
         loaded: false,
         alwaysLoaded: false,
+        isDefault: false,
     },
 ];
 
 // ── Seed function ──────────────────────────────────────────────────────
 
 /**
- * Populate the registry with known toolset definitions.
- *
+ * Populate the registry with all 9 toolset definitions.
  * Call once at startup before tool registration.
- * MEU-42 will replace this with the full authoritative flow.
  */
 export function seedRegistry(registry: ToolsetRegistry): void {
     for (const def of TOOLSET_DEFINITIONS) {

@@ -372,7 +372,7 @@ npx vitest run tests/typescript/mcp/discovery-tools.test.ts
 | `list_available_toolsets` | Returns all 8 toolsets with name, description, enabled flag, tool_count |
 | `describe_toolset` | Returns tool list with annotations (readOnlyHint, destructiveHint, idempotentHint); error on unknown toolset |
 | `enable_toolset` | Toggles enabled state; blocked when MCP Guard is locked; `core` toolset cannot be disabled |
-| `get_confirmation_token` | Generates HMAC token for destructive tools; error on non-destructive tools; token expires after TTL |
+| `get_confirmation_token` | Generates MCP-local crypto-random token for destructive tools; error on non-destructive tools; token expires after TTL |
 
 ### Integration Tests (Expansion)
 

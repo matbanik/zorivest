@@ -41,7 +41,7 @@
 | **15g** | Per-tool performance metrics middleware ([§5.9](05-mcp-server.md)) | ✅ Yes | Nothing | Vitest: latency recording, percentile accuracy, error rate |
 | **15h** | `zorivest_launch_gui` MCP tool ([§5.10](05-mcp-server.md)) | ✅ Yes | Nothing | Vitest: found/not-found paths, platform commands, setup instructions |
 | **15i** | MCP Server Status panel ([§6f.9](06f-gui-settings.md)) | Manual | REST API, MCP tools | Visual: status indicators, IDE config copy |
-| **15j** | Discovery meta-tools: `list_available_toolsets`, `describe_toolset`, `enable_toolset`, `get_confirmation_token` ([05j](05j-mcp-discovery.md)) | ✅ Yes | ToolsetRegistry | Vitest: registry enumeration, annotation echo, enable/disable toggle, HMAC token lifecycle |
+| **15j** | Discovery meta-tools: `list_available_toolsets`, `describe_toolset`, `enable_toolset`, `get_confirmation_token` ([05j](05j-mcp-discovery.md)) | ✅ Yes | ToolsetRegistry | Vitest: registry enumeration, annotation echo, enable/disable toggle, MCP-local token lifecycle |
 | **15k** | `ToolsetRegistry` module + adaptive client detection ([§5.11–§5.14](05-mcp-server.md)) | ✅ Yes | Nothing | Vitest: toolset CRUD, `core` immutability, client capability negotiation |
 | **16** | React pages — Trades ([06b](06b-gui-trades.md)), Plans ([06c](06c-gui-planning.md)) | Manual | API hooks | Visual verification |
 | **16a** | Notification system ([06a](06a-gui-shell.md)) | Manual | Settings API | Visual: toast categories, suppression toggle |

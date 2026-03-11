@@ -16,18 +16,18 @@
 import { McpServer } from "@modelcontextprotocol/sdk/server/mcp.js";
 import { z } from "zod";
 import { toolsetRegistry } from "../toolsets/registry.js";
-import { getAuthHeaders } from "../utils/api-client.js";
 import { guardCheck } from "../middleware/mcp-guard.js";
+import { createConfirmationToken } from "../middleware/confirmation.js";
+import type { RegisteredToolHandle } from "../toolsets/registry.js";
 
-const API_BASE =
-    process.env.ZORIVEST_API_URL ?? "http://localhost:8765/api/v1";
 
 // ── Registration ───────────────────────────────────────────────────────
 
-export function registerDiscoveryTools(server: McpServer): void {
+export function registerDiscoveryTools(server: McpServer): RegisteredToolHandle[] {
+    const handles: RegisteredToolHandle[] = [];
     // ── list_available_toolsets ─────────────────────────────────────────
 
-    server.registerTool(
+    handles.push(server.registerTool(
         "list_available_toolsets",
         {
             description:
@@ -71,11 +71,11 @@ export function registerDiscoveryTools(server: McpServer): void {
                 ],
             };
         },
-    );
+    ));
 
     // ── describe_toolset ───────────────────────────────────────────────
 
-    server.registerTool(
+    handles.push(server.registerTool(
         "describe_toolset",
         {
             description:
@@ -138,11 +138,11 @@ export function registerDiscoveryTools(server: McpServer): void {
                 ],
             };
         },
-    );
+    ));
 
     // ── enable_toolset ─────────────────────────────────────────────────
 
-    server.registerTool(
+    handles.push(server.registerTool(
         "enable_toolset",
         {
             description:
@@ -236,8 +236,12 @@ export function registerDiscoveryTools(server: McpServer): void {
                 };
             }
 
-            // Register the toolset's tools with the server
-            ts.register(server);
+            // Re-enable the toolset's pre-registered handles (MEU-42)
+            // All tools are registered pre-connect; disabled ones need handle.enable()
+            const handles = toolsetRegistry.getHandles(toolset_name);
+            for (const handle of handles) {
+                handle.enable();
+            }
             toolsetRegistry.markLoaded(toolset_name);
 
             // Notify client of tool list change (safety belt — SDK also
@@ -265,11 +269,11 @@ export function registerDiscoveryTools(server: McpServer): void {
                 ],
             };
         },
-    );
+    ));
 
     // ── get_confirmation_token ─────────────────────────────────────────
 
-    server.registerTool(
+    handles.push(server.registerTool(
         "get_confirmation_token",
         {
             description:
@@ -299,52 +303,20 @@ export function registerDiscoveryTools(server: McpServer): void {
         },
         async ({ action, params_summary }) => {
             try {
-                const res = await fetch(
-                    `${API_BASE}/confirmation-tokens`,
-                    {
-                        method: "POST",
-                        headers: {
-                            "Content-Type": "application/json",
-                            ...getAuthHeaders(),
-                        },
-                        body: JSON.stringify({
-                            action,
-                            params_summary,
-                        }),
-                    },
-                );
-
-                if (!res.ok) {
-                    const errBody = await res.text();
-                    return {
-                        content: [
-                            {
-                                type: "text" as const,
-                                text: JSON.stringify({
-                                    success: false,
-                                    error: `Failed to generate token: ${res.status} ${errBody}`,
-                                }),
-                            },
-                        ],
-                        isError: true,
-                    };
-                }
-
-                const data = (await res.json()) as {
-                    token: string;
-                };
+                // MCP-layer token generation — self-contained, no API delegation
+                const result = createConfirmationToken(action);
 
                 return {
                     content: [
                         {
                             type: "text" as const,
                             text: JSON.stringify({
-                                token: data.token,
+                                token: result.token,
                                 action,
                                 params_summary,
-                                expires_in_seconds: 60,
+                                expires_in_seconds: result.expires_in_seconds,
                                 instruction:
-                                    "Pass this token as 'confirmation_token' parameter to the target tool within 60 seconds.",
+                                    `Pass this token as 'confirmation_token' parameter to '${action}' within ${result.expires_in_seconds} seconds.`,
                             }),
                         },
                     ],
@@ -368,5 +340,6 @@ export function registerDiscoveryTools(server: McpServer): void {
                 };
             }
         },
-    );
+    ));
+    return handles;
 }

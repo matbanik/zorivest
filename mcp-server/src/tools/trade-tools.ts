@@ -10,13 +10,16 @@ import { z } from "zod";
 import { fetchApi, fetchApiBinary } from "../utils/api-client.js";
 import { withMetrics } from "../middleware/metrics.js";
 import { withGuard } from "../middleware/mcp-guard.js";
+import { withConfirmation } from "../middleware/confirmation.js";
+import type { RegisteredToolHandle } from "../toolsets/registry.js";
 
 /**
  * Register all trade-related MCP tools on the server.
  */
-export function registerTradeTools(server: McpServer): void {
+export function registerTradeTools(server: McpServer): RegisteredToolHandle[] {
+    const handles: RegisteredToolHandle[] = [];
     // ── create_trade ─────────────────────────────────────────────────────
-    server.registerTool(
+    handles.push(server.registerTool(
         "create_trade",
         {
             description: "Create a new trade execution record",
@@ -61,7 +64,7 @@ export function registerTradeTools(server: McpServer): void {
             },
             annotations: {
                 readOnlyHint: false,
-                destructiveHint: false,
+                destructiveHint: true,
                 idempotentHint: true,
                 openWorldHint: false,
             },
@@ -70,53 +73,55 @@ export function registerTradeTools(server: McpServer): void {
                 alwaysLoaded: false,
             },
         },
-        // Proof-of-composition: withMetrics(withGuard(handler)) — MEU-38+39 AC-10
-        // Full tool wrapping via registerToolsForClient() is MEU-42 scope.
+        // Middleware order per spec L959: withMetrics → withGuard → withConfirmation → handler
 
         withMetrics(
             "create_trade",
-            withGuard(async (params: {
-                exec_id: string;
-                time?: string;
-                instrument: string;
-                action: "BOT" | "SLD";
-                quantity: number;
-                price: number;
-                account_id: string;
-                commission?: number;
-                realized_pnl?: number;
-                notes?: string;
-            }, _extra: unknown) => {
-                const body = {
-                    exec_id: params.exec_id,
-                    time: params.time ?? new Date().toISOString(),
-                    instrument: params.instrument,
-                    action: params.action,
-                    quantity: params.quantity,
-                    price: params.price,
-                    account_id: params.account_id,
-                    commission: params.commission ?? 0,
-                    realized_pnl: params.realized_pnl ?? 0,
-                    notes: params.notes,
-                };
+            withGuard(withConfirmation(
+                "create_trade",
+                async (params: {
+                    exec_id: string;
+                    time?: string;
+                    instrument: string;
+                    action: "BOT" | "SLD";
+                    quantity: number;
+                    price: number;
+                    account_id: string;
+                    commission?: number;
+                    realized_pnl?: number;
+                    notes?: string;
+                }, _extra: unknown) => {
+                    const body = {
+                        exec_id: params.exec_id,
+                        time: params.time ?? new Date().toISOString(),
+                        instrument: params.instrument,
+                        action: params.action,
+                        quantity: params.quantity,
+                        price: params.price,
+                        account_id: params.account_id,
+                        commission: params.commission ?? 0,
+                        realized_pnl: params.realized_pnl ?? 0,
+                        notes: params.notes,
+                    };
 
-                const result = await fetchApi("/trades", {
-                    method: "POST",
-                    headers: { "Content-Type": "application/json" },
-                    body: JSON.stringify(body),
-                });
+                    const result = await fetchApi("/trades", {
+                        method: "POST",
+                        headers: { "Content-Type": "application/json" },
+                        body: JSON.stringify(body),
+                    });
 
-                return {
-                    content: [
-                        { type: "text" as const, text: JSON.stringify(result) },
-                    ],
-                };
-            }),
+                    return {
+                        content: [
+                            { type: "text" as const, text: JSON.stringify(result) },
+                        ],
+                    };
+                },
+            )),
         ),
-    );
+    ));
 
     // ── list_trades ──────────────────────────────────────────────────────
-    server.registerTool(
+    handles.push(server.registerTool(
         "list_trades",
         {
             description:
@@ -177,10 +182,10 @@ export function registerTradeTools(server: McpServer): void {
                 ],
             };
         },
-    );
+    ));
 
     // ── attach_screenshot ────────────────────────────────────────────────
-    server.registerTool(
+    handles.push(server.registerTool(
         "attach_screenshot",
         {
             description:
@@ -239,10 +244,10 @@ export function registerTradeTools(server: McpServer): void {
                 ],
             };
         },
-    );
+    ));
 
     // ── get_trade_screenshots ────────────────────────────────────────────
-    server.registerTool(
+    handles.push(server.registerTool(
         "get_trade_screenshots",
         {
             description:
@@ -274,12 +279,12 @@ export function registerTradeTools(server: McpServer): void {
                 ],
             };
         },
-    );
+    ));
 
     // ── get_screenshot ───────────────────────────────────────────────────
     // Live API returns raw image/webp bytes at /{id}/full (not JSON).
     // image_id is int per images.py route parameter.
-    server.registerTool(
+    handles.push(server.registerTool(
         "get_screenshot",
         {
             description:
@@ -346,5 +351,6 @@ export function registerTradeTools(server: McpServer): void {
 
             return { content };
         },
-    );
+    ));
+    return handles;
 }

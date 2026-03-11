@@ -13,6 +13,7 @@ import { McpServer } from "@modelcontextprotocol/sdk/server/mcp.js";
 import { z } from "zod";
 import { getAuthHeaders } from "../utils/api-client.js";
 import { metricsCollector } from "../middleware/metrics.js";
+import type { RegisteredToolHandle } from "../toolsets/registry.js";
 
 // ── Safe fetch utility ─────────────────────────────────────────────────
 
@@ -44,8 +45,9 @@ interface RawProvider {
 
 // ── Tool registration ──────────────────────────────────────────────────
 
-export function registerDiagnosticsTools(server: McpServer): void {
-    server.registerTool(
+export function registerDiagnosticsTools(server: McpServer): RegisteredToolHandle[] {
+    const handles: RegisteredToolHandle[] = [];
+    handles.push(server.registerTool(
         "zorivest_diagnose",
         {
             description:
@@ -138,5 +140,6 @@ export function registerDiagnosticsTools(server: McpServer): void {
                 ],
             };
         },
-    );
+    ));
+    return handles;
 }

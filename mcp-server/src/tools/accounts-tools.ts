@@ -14,6 +14,8 @@ import { z } from "zod";
 import { fetchApi } from "../utils/api-client.js";
 import { withMetrics } from "../middleware/metrics.js";
 import { withGuard } from "../middleware/mcp-guard.js";
+import { withConfirmation } from "../middleware/confirmation.js";
+import type { RegisteredToolHandle } from "../toolsets/registry.js";
 
 // ── Shared helper: file upload ─────────────────────────────────────────
 // AC-11: uploadFile constructs FormData with file blob and fields
@@ -52,10 +54,11 @@ interface BankAccountSummary {
 /**
  * Register all account MCP tools on the server.
  */
-export function registerAccountTools(server: McpServer): void {
+export function registerAccountTools(server: McpServer): RegisteredToolHandle[] {
+    const handles: RegisteredToolHandle[] = [];
     // ── sync_broker ───────────────────────────────────────────────────
     // AC-1: POSTs to /brokers/{broker_id}/sync
-    server.registerTool(
+    handles.push(server.registerTool(
         "sync_broker",
         {
             description:
@@ -76,28 +79,31 @@ export function registerAccountTools(server: McpServer): void {
                 alwaysLoaded: false,
             },
         },
+        // Middleware order per spec L959: withMetrics → withGuard → withConfirmation → handler
         withMetrics(
             "sync_broker",
-            withGuard(async (params: { broker_id: string }, _extra: unknown) => {
-                const result = await fetchApi(
-                    `/brokers/${params.broker_id}/sync`,
-                    { method: "POST" },
-                );
-                return {
-                    content: [
-                        {
-                            type: "text" as const,
-                            text: JSON.stringify(result),
-                        },
-                    ],
-                };
-            }),
+            withGuard(withConfirmation(
+                "sync_broker",
+                async (params: { broker_id: string }, _extra: unknown) => {
+                    const result = await fetchApi(
+                        `/brokers/${params.broker_id}/sync`,
+                        { method: "POST" },
+                    );
+                    return {
+                        content: [
+                            {
+                                type: "text" as const,
+                                text: JSON.stringify(result),
+                            },
+                        ],
+                    };
+                },
+            )),
         ),
-    );
+    ));
 
-    // ── list_brokers ──────────────────────────────────────────────────
     // AC-2: GETs /brokers with no params
-    server.registerTool(
+    handles.push(server.registerTool(
         "list_brokers",
         {
             description: "List configured broker adapters with sync status",
@@ -121,11 +127,11 @@ export function registerAccountTools(server: McpServer): void {
                 ],
             };
         },
-    );
+    ));
 
     // ── resolve_identifiers ───────────────────────────────────────────
     // AC-3: POSTs to /identifiers/resolve with JSON-wrapped body
-    server.registerTool(
+    handles.push(server.registerTool(
         "resolve_identifiers",
         {
             description:
@@ -165,11 +171,11 @@ export function registerAccountTools(server: McpServer): void {
                 ],
             };
         },
-    );
+    ));
 
     // ── import_bank_statement ─────────────────────────────────────────
     // AC-4: uploads multipart to /banking/import
-    server.registerTool(
+    handles.push(server.registerTool(
         "import_bank_statement",
         {
             description:
@@ -220,11 +226,11 @@ export function registerAccountTools(server: McpServer): void {
                 },
             ),
         ),
-    );
+    ));
 
     // ── import_broker_csv ─────────────────────────────────────────────
     // AC-5: uploads multipart to /import/csv
-    server.registerTool(
+    handles.push(server.registerTool(
         "import_broker_csv",
         {
             description:
@@ -273,11 +279,11 @@ export function registerAccountTools(server: McpServer): void {
                 },
             ),
         ),
-    );
+    ));
 
     // ── import_broker_pdf ─────────────────────────────────────────────
     // AC-6: uploads multipart to /import/pdf
-    server.registerTool(
+    handles.push(server.registerTool(
         "import_broker_pdf",
         {
             description:
@@ -321,11 +327,11 @@ export function registerAccountTools(server: McpServer): void {
                 },
             ),
         ),
-    );
+    ));
 
     // ── list_bank_accounts ────────────────────────────────────────────
     // AC-7: GETs /banking/accounts with no params
-    server.registerTool(
+    handles.push(server.registerTool(
         "list_bank_accounts",
         {
             description:
@@ -350,11 +356,11 @@ export function registerAccountTools(server: McpServer): void {
                 ],
             };
         },
-    );
+    ));
 
     // ── get_account_review_checklist ──────────────────────────────────
     // AC-8: aggregates brokers + banks data, filters by scope/staleness
-    server.registerTool(
+    handles.push(server.registerTool(
         "get_account_review_checklist",
         {
             description:
@@ -463,5 +469,6 @@ export function registerAccountTools(server: McpServer): void {
                 ],
             };
         },
-    );
+    ));
+    return handles;
 }

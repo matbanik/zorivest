@@ -12,14 +12,16 @@ import { z } from "zod";
 import { fetchApi } from "../utils/api-client.js";
 import { withMetrics } from "../middleware/metrics.js";
 import { withGuard } from "../middleware/mcp-guard.js";
+import type { RegisteredToolHandle } from "../toolsets/registry.js";
 
 /**
  * Register trade planning MCP tools on the server.
  */
-export function registerPlanningTools(server: McpServer): void {
+export function registerPlanningTools(server: McpServer): RegisteredToolHandle[] {
+    const handles: RegisteredToolHandle[] = [];
     // ── create_trade_plan ─────────────────────────────────────────────
     // Spec: 05d L51-84, L87-93
-    server.registerTool(
+    handles.push(server.registerTool(
         "create_trade_plan",
         {
             description:
@@ -117,5 +119,6 @@ export function registerPlanningTools(server: McpServer): void {
                 };
             }),
         ),
-    );
+    ));
+    return handles;
 }

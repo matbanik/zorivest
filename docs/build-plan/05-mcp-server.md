@@ -772,6 +772,9 @@ npx @zorivest/mcp-server --toolsets all
 
 Persistent toolset preferences file (optional, overridden by `--toolsets` flag):
 
+> [!NOTE]
+> `clientOverrides` is deferred to MEU-42b (human-approved scope split). Only `defaultToolsets` is parsed in MEU-42.
+
 ```json
 {
   "defaultToolsets": ["trade-analytics", "trade-planning"],
@@ -841,7 +844,7 @@ The `ZORIVEST_CLIENT_MODE` env var overrides auto-detection for testing or edge 
 
 ## Step 5.13: Adaptive Design Patterns
 
-Six optimization patterns adapt server behavior per detected client mode. Patterns A, B, D, E are implemented in this session; Patterns C (composites) and F (PTC) are deferred to Sessions 5 and 6.
+Six optimization patterns adapt server behavior per detected client mode. Patterns D and E are implemented in MEU-42; Patterns A and B are deferred to MEU-42b (human-approved scope split); Patterns C (composites) and F (PTC) are deferred to Sessions 5 and 6.
 
 ### Pattern A: Adaptive Response Compression
 
@@ -886,7 +889,8 @@ MCP `server instructions` field provides per-client chaining guidance:
 
 Destructive tools requiring confirmation: `zorivest_emergency_stop`, `create_trade`, `sync_broker`, `disconnect_market_provider`, `zorivest_service_restart`.
 
-> **Cross-reference:** REST endpoint `POST /api/v1/confirmation-tokens` specified in [04c-api-auth.md](04c-api-auth.md).
+> [!NOTE]
+> **Architecture change (MEU-42):** Confirmation tokens are generated locally in the MCP layer by `createConfirmationToken()` in `confirmation.ts`. The REST endpoint `POST /api/v1/confirmation-tokens` ([04c-api-auth.md](04c-api-auth.md)) is retained for API-layer consumers only.
 
 ---
 

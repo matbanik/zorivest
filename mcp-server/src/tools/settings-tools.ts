@@ -8,13 +8,15 @@
 import { McpServer } from "@modelcontextprotocol/sdk/server/mcp.js";
 import { z } from "zod";
 import { fetchApi } from "../utils/api-client.js";
+import type { RegisteredToolHandle } from "../toolsets/registry.js";
 
 /**
  * Register settings-related MCP tools on the server.
  */
-export function registerSettingsTools(server: McpServer): void {
+export function registerSettingsTools(server: McpServer): RegisteredToolHandle[] {
+    const handles: RegisteredToolHandle[] = [];
     // ── get_settings ─────────────────────────────────────────────────────
-    server.registerTool(
+    handles.push(server.registerTool(
         "get_settings",
         {
             description:
@@ -50,10 +52,10 @@ export function registerSettingsTools(server: McpServer): void {
                 ],
             };
         },
-    );
+    ));
 
     // ── update_settings ──────────────────────────────────────────────────
-    server.registerTool(
+    handles.push(server.registerTool(
         "update_settings",
         {
             description:
@@ -89,5 +91,6 @@ export function registerSettingsTools(server: McpServer): void {
                 ],
             };
         },
-    );
+    ));
+    return handles;
 }

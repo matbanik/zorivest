@@ -17,6 +17,7 @@
 | 2026-03-09 | MEU-31/32/33 | ~120 | ~4 min | 17 | 2 High + 3 Med (resolved, 2 rounds) | 7/7 | 90% | ~90 min | 3-MEU MCP server foundation: scaffold + trade/calculator/settings tools + integration test. Codex caught binary screenshot contract, stale port harness, annotation spec drift |
 | 2026-03-09 | MEU-38/39/41 | ~200 | ~5 min | 74 | 1 Crit + 3 High + 5 Med (resolved, 4 rounds) | 7/7 | 85% | ~180 min | 3-MEU MCP guard/metrics/discovery: middleware HOFs, metrics collector, discovery meta-tools. Codex caught AC-6 spec gap, evidence drift, lint disclosure, closeout procrastination |
 | 2026-03-10 | MEU-36/37/40 | ~150 | ~10 min | 29 | 5 Med (resolved, 4 rounds) | 7/7 | 85% | ~180 min | 3-MEU MCP planning/accounts/gui: TDD tools + ESM fix + middleware CallToolResult refactor. Codex caught PATH lookup gap, wait_for_close, ESM compat, lint suppression vs removal |
+| 2026-03-10 | MEU-42 | ~200 | ~8 min | 46 | 8 rounds (3 High + 5 Med + 6 Low, all resolved) | 7/7 | 90% | ~240 min | ToolsetRegistry + adaptive client detection. MCP-local token store, 8 correction rounds for cross-plan doc alignment + evidence drift |
 
 ## Measurement Definitions
 

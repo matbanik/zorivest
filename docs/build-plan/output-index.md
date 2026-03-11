@@ -362,7 +362,7 @@ Canonical registry of **every computed or derived output** the system produces �
 | 19.5 | Tool list with annotations | List | per-tool annotation metadata | 🤖 | `describe_toolset` | ✅ | [05j](05j-mcp-discovery.md) |
 | 19.6 | Per-tool readOnly/destructive/idempotent hints | Object | annotation block values | 🤖 | `describe_toolset` | ✅ | [05j](05j-mcp-discovery.md) |
 | 19.7 | Enable/disable confirmation | Object | toolset state after toggle | 🤖 | `enable_toolset` | ✅ | [05j](05j-mcp-discovery.md) |
-| 19.8 | Confirmation token (HMAC) | Text | server-generated, time-limited | 🤖 | `get_confirmation_token` | ✅ | [05j](05j-mcp-discovery.md) |
+| 19.8 | Confirmation token (MCP-local, crypto-random) | Text | server-generated, time-limited | 🤖 | `get_confirmation_token` | ✅ | [05j](05j-mcp-discovery.md) |
 | 19.9 | Token expiry timestamp | datetime | `issued_at + TTL` | 🤖 | `get_confirmation_token` | ✅ | [05j](05j-mcp-discovery.md) |
 
 ---

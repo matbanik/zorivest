@@ -9,12 +9,14 @@
 import { McpServer } from "@modelcontextprotocol/sdk/server/mcp.js";
 import { z } from "zod";
 import { fetchApi } from "../utils/api-client.js";
+import type { RegisteredToolHandle } from "../toolsets/registry.js";
 
 /**
  * Register calculator-related MCP tools on the server.
  */
-export function registerCalculatorTools(server: McpServer): void {
-    server.registerTool(
+export function registerCalculatorTools(server: McpServer): RegisteredToolHandle[] {
+    const handles: RegisteredToolHandle[] = [];
+    handles.push(server.registerTool(
         "calculate_position_size",
         {
             description:
@@ -76,5 +78,6 @@ export function registerCalculatorTools(server: McpServer): void {
                 ],
             };
         },
-    );
+    ));
+    return handles;
 }

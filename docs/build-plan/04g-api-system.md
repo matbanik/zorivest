@@ -184,7 +184,7 @@ def test_guard_check_counter_resets_after_window(client):
 ```
 
 > [!NOTE]
-> **MCP Discovery & Toolset tools** (`list_available_toolsets`, `describe_toolset`, `enable_toolset`) operate entirely within the TypeScript MCP server layer and do not call any Python REST endpoints. They are defined in [05j-mcp-discovery.md](05j-mcp-discovery.md). The `ToolsetRegistry` is an in-memory TypeScript module with no backend persistence. **Exception:** `get_confirmation_token` calls `POST /api/v1/confirmation-tokens` (see [04c-api-auth.md](04c-api-auth.md)) for server-side token generation — the token is validated at the REST layer when the destructive action executes.
+> **MCP Discovery & Toolset tools** (`list_available_toolsets`, `describe_toolset`, `enable_toolset`, `get_confirmation_token`) operate entirely within the TypeScript MCP server layer and do not call any Python REST endpoints. They are defined in [05j-mcp-discovery.md](05j-mcp-discovery.md). The `ToolsetRegistry` is an in-memory TypeScript module with no backend persistence. `get_confirmation_token` generates tokens locally in the MCP layer via `createConfirmationToken()` (MEU-42) — it no longer delegates to `POST /api/v1/confirmation-tokens`.
 
 ## Health & Service Lifecycle Routes
 

@@ -11,6 +11,7 @@
 import { McpServer } from "@modelcontextprotocol/sdk/server/mcp.js";
 import { z } from "zod";
 import { withMetrics } from "../middleware/metrics.js";
+import type { RegisteredToolHandle } from "../toolsets/registry.js";
 import { exec } from "node:child_process";
 import { existsSync } from "node:fs";
 import { resolve, join, dirname } from "node:path";
@@ -148,8 +149,9 @@ const RELEASES_URL = "https://github.com/zorivest/zorivest/releases";
  * Register GUI launch MCP tool on the server.
  * Unguarded — always callable.
  */
-export function registerGuiTools(server: McpServer): void {
-    server.registerTool(
+export function registerGuiTools(server: McpServer): RegisteredToolHandle[] {
+    const handles: RegisteredToolHandle[] = [];
+    handles.push(server.registerTool(
         "zorivest_launch_gui",
         {
             description:
@@ -220,5 +222,6 @@ export function registerGuiTools(server: McpServer): void {
                 };
             },
         ),
-    );
+    ));
+    return handles;
 }

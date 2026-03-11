@@ -370,29 +370,8 @@ describe("get_confirmation_token", () => {
         reg.toolsets.clear();
     });
 
-    // AC-8: calls REST API with action and params_summary
-    it("calls REST API and returns token", async () => {
-        vi.stubGlobal(
-            "fetch",
-            vi.fn().mockImplementation((url: string) => {
-                if (
-                    typeof url === "string" &&
-                    url.includes("/confirmation-tokens")
-                ) {
-                    return Promise.resolve({
-                        ok: true,
-                        json: () =>
-                            Promise.resolve({ token: "ctk_test123" }),
-                    });
-                }
-                // Fallback for any other URL
-                return Promise.resolve({
-                    ok: true,
-                    json: () => Promise.resolve({}),
-                });
-            }),
-        );
-
+    // AC-8: generates MCP-layer token for destructive action
+    it("generates token locally for destructive action", async () => {
         const client = await createTestClient();
         const result = await client.callTool({
             name: "get_confirmation_token",
@@ -408,7 +387,7 @@ describe("get_confirmation_token", () => {
             text: string;
         }>;
         const data = JSON.parse(content[0].text);
-        expect(data.token).toBe("ctk_test123");
+        expect(data.token).toMatch(/^ctk_[0-9a-f]{32}$/);
         expect(data.expires_in_seconds).toBe(60);
         expect(data.action).toBe("zorivest_emergency_stop");
         expect(data.params_summary).toBe(
@@ -418,29 +397,6 @@ describe("get_confirmation_token", () => {
 
     // AC-10: returns isError for non-destructive/unknown action
     it("returns isError for non-destructive action", async () => {
-        vi.stubGlobal(
-            "fetch",
-            vi.fn().mockImplementation((url: string) => {
-                if (
-                    typeof url === "string" &&
-                    url.includes("/confirmation-tokens")
-                ) {
-                    return Promise.resolve({
-                        ok: false,
-                        status: 400,
-                        text: () =>
-                            Promise.resolve(
-                                "Action 'list_trades' is not a destructive operation",
-                            ),
-                    });
-                }
-                return Promise.resolve({
-                    ok: true,
-                    json: () => Promise.resolve({}),
-                });
-            }),
-        );
-
         const client = await createTestClient();
         const result = await client.callTool({
             name: "get_confirmation_token",
@@ -457,7 +413,7 @@ describe("get_confirmation_token", () => {
         const data = JSON.parse(content[0].text);
         expect(result.isError).toBe(true);
         expect(data.success).toBe(false);
-        expect(data.error).toContain("Failed to generate token");
+        expect(data.error).toContain("Unknown destructive action");
     });
 });
 

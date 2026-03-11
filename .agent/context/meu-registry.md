@@ -80,7 +80,7 @@
 | MEU-39 | `mcp-perf-metrics` | 15g | Per-tool performance metrics middleware | ✅ approved |
 | MEU-40 | `mcp-launch-gui` | 15h | zorivest_launch_gui MCP tool | ✅ approved |
 | MEU-41 | `mcp-discovery` | 15j | Discovery meta-tools | ✅ approved |
-| MEU-42 | `toolset-registry` | 15k | ToolsetRegistry + adaptive client detection | ⬜ pending |
+| MEU-42 | `toolset-registry` | 15k | ToolsetRegistry + adaptive client detection | ✅ approved |
 
 ## Execution Order
 

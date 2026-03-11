@@ -1,56 +1,72 @@
 /**
  * Zorivest MCP Server entry point.
  *
- * Bootstraps the MCP server with StdioServerTransport,
- * registers all tool handlers, and starts listening.
+ * Bootstraps the MCP server with StdioServerTransport using
+ * pre-connect-all + post-connect-filter startup strategy:
+ * 1. Seed registry with all 9 toolset definitions
+ * 2. Parse CLI for toolset selection
+ * 3. Build McpServer with comprehensive instructions
+ * 4. Register ALL toolsets pre-connect (triggers registerCapabilities once)
+ * 5. Set oninitialized callback for post-connect filtering
+ * 6. Connect transport
+ * 7. (async) oninitialized fires → detect mode, filter tools, set flags
  *
- * Source: 05-mcp-server.md §5.1, §5.7
+ * Source: 05-mcp-server.md §5.1, §5.7, §5.14
+ * MEU: 42 (toolset-registry)
  */
 
 import { McpServer } from "@modelcontextprotocol/sdk/server/mcp.js";
 import { StdioServerTransport } from "@modelcontextprotocol/sdk/server/stdio.js";
 
-import { registerTradeTools } from "./tools/trade-tools.js";
-import { registerCalculatorTools } from "./tools/calculator-tools.js";
-import { registerSettingsTools } from "./tools/settings-tools.js";
-import { registerDiagnosticsTools } from "./tools/diagnostics-tools.js";
-import { registerAnalyticsTools } from "./tools/analytics-tools.js";
-import { registerDiscoveryTools } from "./tools/discovery-tools.js";
-import { registerPlanningTools } from "./tools/planning-tools.js";
-import { registerGuiTools } from "./tools/gui-tools.js";
+import { parseToolsets } from "./cli.js";
+import {
+    detectClientMode,
+    getServerInstructions,
+    setResponseFormat,
+} from "./client-detection.js";
+import { registerAllToolsets, applyModeFilter } from "./registration.js";
+import { setConfirmationMode } from "./middleware/confirmation.js";
 import { bootstrapAuth } from "./utils/api-client.js";
 import { toolsetRegistry } from "./toolsets/registry.js";
 import { seedRegistry } from "./toolsets/seed.js";
 
 async function main(): Promise<void> {
-    const server = new McpServer({
-        name: "zorivest",
-        version: "0.1.0",
-    });
-
-    // Seed the toolset registry with known toolset metadata.
-    // Bridge until MEU-42 implements full registerToolsForClient() startup.
+    // 1. Seed registry with all 9 toolset definitions (8 + discovery)
     seedRegistry(toolsetRegistry);
 
-    // AC-6: Disable dynamic tool loading for static clients.
-    // Set ZORIVEST_STATIC_CLIENT=1 (or pass --toolsets via MEU-42) to reject
-    // enable_toolset at runtime with guidance to restart with --toolsets flag.
-    // Source: 05j-mcp-discovery.md L152 (clientSupportsNotification check)
-    if (process.env.ZORIVEST_STATIC_CLIENT) {
-        toolsetRegistry.dynamicLoadingEnabled = false;
-    }
+    // 2. Parse CLI for toolset selection
+    const selection = parseToolsets();
 
-    // Register all tool handlers
-    registerTradeTools(server);
-    registerCalculatorTools(server);
-    registerPlanningTools(server);
-    registerSettingsTools(server);
-    registerDiagnosticsTools(server);
-    registerGuiTools(server);
-    registerAnalyticsTools(server);
-    registerDiscoveryTools(server);
+    // 3. Build McpServer with comprehensive instructions
+    const server = new McpServer(
+        {
+            name: "zorivest",
+            version: "0.1.0",
+        },
+        {
+            instructions: getServerInstructions(),
+        },
+    );
 
-    // Bootstrap auth with pre-provisioned API key from environment
+    // 4. Pre-connect registration: register ALL toolsets (all enabled by default)
+    //    Stores RegisteredTool handles in registry for post-connect filtering
+    registerAllToolsets(server, toolsetRegistry);
+
+    // 5. Set oninitialized callback for post-connect filtering
+    //    Server-side ordering guarantee: JS event loop ensures this callback
+    //    completes before any tools/list request is processed (SDK-sourced)
+    server.server.oninitialized = () => {
+        const mode = detectClientMode(server);
+        applyModeFilter(toolsetRegistry, mode, selection);
+        setResponseFormat(mode);
+        setConfirmationMode(mode);
+    };
+
+    // 6. Connect transport
+    const transport = new StdioServerTransport();
+    await server.connect(transport);
+
+    // 7. Bootstrap auth with pre-provisioned API key from environment
     const apiKey = process.env.ZORIVEST_API_KEY;
     if (apiKey) {
         try {
@@ -62,10 +78,6 @@ async function main(): Promise<void> {
             );
         }
     }
-
-    // Connect via stdio transport
-    const transport = new StdioServerTransport();
-    await server.connect(transport);
 }
 
 main().catch((error) => {

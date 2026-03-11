@@ -183,7 +183,7 @@ app.include_router(service_router)     # /api/v1/service
 | auth.keys.create | `POST` | `/api/v1/auth/keys` | [04c](04c-api-auth.md) | — | 06f |
 | auth.keys.list | `GET` | `/api/v1/auth/keys` | [04c](04c-api-auth.md) | — | 06f |
 | auth.keys.delete | `DELETE` | `/api/v1/auth/keys/{key_id}` | [04c](04c-api-auth.md) | — | 06f |
-| confirm.create | `POST` | `/api/v1/confirmation-tokens` | [04c](04c-api-auth.md) | `get_confirmation_token` (05j) | — |
+| confirm.create | `POST` | `/api/v1/confirmation-tokens` | [04c](04c-api-auth.md) | ~~`get_confirmation_token` (05j)~~ MCP-local since MEU-42 | — |
 
 **Settings (04d) — includes Phase 2A delegated routes**
 

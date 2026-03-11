@@ -207,24 +207,17 @@ Generate a time-limited confirmation token for destructive operations. Required 
       params_summary: z.string().describe('Human-readable summary of the operation parameters'),
     },
     async ({ action, params_summary }) => {
-      const res = await fetch(`${API_BASE}/confirmation-tokens`, {
-        method: 'POST',
-        headers: {
-          'Content-Type': 'application/json',
-          ...getAuthHeaders(),
-        },
-        body: JSON.stringify({ action, params_summary }),
-      });
-      const data = await res.json();
+      // MCP-layer token generation — self-contained, no API delegation
+      const result = createConfirmationToken(action);
       return {
         content: [{
           type: 'text' as const,
           text: JSON.stringify({
-            token: data.token,
+            token: result.token,
             action: action,
             params_summary: params_summary,
-            expires_in_seconds: 60,
-            instruction: `Pass this token as the confirmation_token parameter when calling ${action}.`,
+            expires_in_seconds: result.expires_in_seconds,
+            instruction: `Pass this token as 'confirmation_token' parameter to '${action}' within ${result.expires_in_seconds} seconds.`,
           }, null, 2),
         }],
       };
@@ -243,10 +236,11 @@ Generate a time-limited confirmation token for destructive operations. Required 
 
 **Input:** `action` (string — tool name), `params_summary` (string — human-readable description)
 **Output:** JSON: `{ token, action, params_summary, expires_in_seconds, instruction }`
-**Side Effects:** Creates a time-limited token on the server (60s TTL)
+**Side Effects:** Creates a time-limited token in the MCP-layer in-memory store (60s TTL, single-use)
 **Error Posture:** Returns error if action is not a recognized destructive tool
 
-> **Cross-reference:** REST endpoint `POST /api/v1/confirmation-tokens` specified in [04c-api-auth.md](04c-api-auth.md).
+> [!NOTE]
+> **Architecture change (MEU-42):** `get_confirmation_token` now generates tokens locally in the MCP layer via `createConfirmationToken()` in `confirmation.ts`. It no longer delegates to the REST endpoint `POST /api/v1/confirmation-tokens`. The REST endpoint (specified in [04c-api-auth.md](04c-api-auth.md)) is retained for API-layer consumers (delete_account, factory_reset, etc.).
 
 ---
 
@@ -300,24 +294,23 @@ describe('enable_toolset', () => {
 });
 
 describe('get_confirmation_token', () => {
-  beforeEach(() => {
-    vi.spyOn(global, 'fetch').mockResolvedValue(
-      new Response(JSON.stringify({ token: 'ctk_test123' }))
-    );
-  });
-
-  it('calls REST API with action and params_summary', async () => {
+  it('generates MCP-local token for destructive action', async () => {
     const result = await handler({
       action: 'zorivest_emergency_stop',
       params_summary: 'Lock all tools due to suspected loop',
     });
-    expect(global.fetch).toHaveBeenCalledWith(
-      expect.stringContaining('/confirmation-tokens'),
-      expect.objectContaining({ method: 'POST' })
-    );
     const data = JSON.parse(result.content[0].text);
-    expect(data.token).toBe('ctk_test123');
+    expect(data.token).toMatch(/^ctk_[0-9a-f]{32}$/);
     expect(data.expires_in_seconds).toBe(60);
+    expect(data.action).toBe('zorivest_emergency_stop');
+  });
+
+  it('returns isError for non-destructive action', async () => {
+    const result = await handler({
+      action: 'list_trades',
+      params_summary: 'List all trades',
+    });
+    expect(result.isError).toBe(true);
   });
 });
 ```

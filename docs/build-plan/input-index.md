@@ -683,7 +683,7 @@ These inputs are triggered automatically by the system, IDE agent calls, or sche
 | Describe invalid | `describe_toolset("nonexistent")` | Error: toolset not found |
 | Enable toolset | `enable_toolset("tax", true)` | Confirmation with enabled=true |
 | Disable toolset | `enable_toolset("tax", false)` | Confirmation with enabled=false |
-| Confirm token | `get_confirmation_token("zorivest_emergency_stop", {...})` | Valid HMAC token string |
+| Confirm token | `get_confirmation_token("zorivest_emergency_stop", {...})` | Valid MCP-local token string (crypto-random, 60s TTL) |
 | Token for non-destructive | `get_confirmation_token("list_trades", {...})` | Error: tool is not destructive |
 
 ---
