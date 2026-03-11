@@ -126,3 +126,12 @@ class BalanceSource(StrEnum):  # §26
     QIF_IMPORT = "qif_import"
     PDF_IMPORT = "pdf_import"
     AGENT_SUBMIT = "agent_submit"
+
+
+class AuthMethod(StrEnum):
+    """How the API key is passed to the market data provider."""
+
+    QUERY_PARAM = "query_param"
+    BEARER_HEADER = "bearer_header"
+    CUSTOM_HEADER = "custom_header"
+    RAW_HEADER = "raw_header"

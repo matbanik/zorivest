@@ -19,9 +19,9 @@ pytestmark = pytest.mark.unit
 
 
 class TestModuleIntegrity:
-    """Verify the module contains exactly the 14 enum classes from the build plan."""
+    """Verify the module contains exactly the 15 enum classes from the build plan."""
 
-    def test_module_has_exactly_14_enum_classes(self) -> None:
+    def test_module_has_exactly_15_enum_classes(self) -> None:
         import zorivest_core.domain.enums as mod
 
         enum_classes = [
@@ -44,11 +44,12 @@ class TestModuleIntegrity:
             "RoutingType",
             "TransactionCategory",
             "BalanceSource",
+            "AuthMethod",
         }
         assert set(enum_classes) == expected, (
             f"Expected 14 enums {expected}, got {set(enum_classes)}"
         )
-        assert len(enum_classes) == 14
+        assert len(enum_classes) == 15
 
 
 # ── AC-3: Every enum subclasses StrEnum ──────────────────────────────────

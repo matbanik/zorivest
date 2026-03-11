@@ -82,6 +82,14 @@
 | MEU-41 | `mcp-discovery` | 15j | Discovery meta-tools | ✅ approved |
 | MEU-42 | `toolset-registry` | 15k | ToolsetRegistry + adaptive client detection | ✅ approved |
 
+## Phase 8: Market Data (P1)
+
+| MEU | Slug | Matrix | Description | Status |
+|-----|------|:------:|-------------|:------:|
+| MEU-56 | `market-provider-entity` | 21 | AuthMethod enum + ProviderConfig VO + MarketDataPort Protocol | ✅ approved |
+| MEU-57 | `market-response-dtos` | 22 | MarketQuote, MarketNewsItem, TickerSearchResult, SecFiling DTOs | ✅ approved |
+| MEU-58 | `market-provider-settings` | 23 | API key encryption + encrypted_api_secret column | ✅ approved |
+
 ## Execution Order
 
 Phase 1: MEU-1 → MEU-2 → MEU-3 → MEU-4 → MEU-5 → MEU-6 → MEU-7 → MEU-8 → MEU-9 → MEU-10 → MEU-11
@@ -91,6 +99,7 @@ Phase 2A: MEU-17 → MEU-18 → MEU-19 → MEU-20 → MEU-21
 Phase 3: MEU-22
 Phase 4: MEU-23 → MEU-24 → MEU-25 → MEU-26 → MEU-27 → MEU-28 → MEU-29 → MEU-30
 Phase 5: MEU-31 → MEU-32 → MEU-33 → MEU-34 → MEU-35 → MEU-36 → MEU-37 → MEU-38 → MEU-39 → MEU-40 → MEU-41 → MEU-42
+Phase 8: MEU-56 → MEU-57 → MEU-58
 
 ## Phase-Exit Criteria
 
@@ -101,5 +110,6 @@ Phase 5: MEU-31 → MEU-32 → MEU-33 → MEU-34 → MEU-35 → MEU-36 → MEU-3
 - Phase 3: MEU-22 ✅ → Phase 4 unblocked
 - Phase 4: MEU-23..30 ✅ (all routes complete) → Phase 5 unblocked
 - Phase 5: MEU-31..42 ✅ (all MCP tools complete) → Phase 6 unblocked
+- Phase 8: MEU-56..58 ✅ (market data foundation) → Phase 8 adapters unblocked
 
 

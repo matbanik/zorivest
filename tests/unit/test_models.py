@@ -185,3 +185,37 @@ class TestRelationships:
             assert loaded is not None
             assert len(loaded.items) == 1
             assert loaded.items[0].ticker == "AAPL"
+
+
+class TestMarketProviderSettingModel:
+    """MEU-58: MarketProviderSettingModel has encrypted_api_secret column."""
+
+    def test_market_provider_has_encrypted_api_secret_column(self) -> None:
+        engine = _engine()
+        inspector = inspect(engine)
+        cols = {c["name"]: c for c in inspector.get_columns("market_provider_settings")}
+        assert "encrypted_api_secret" in cols, (
+            f"Missing encrypted_api_secret column, found: {list(cols.keys())}"
+        )
+        assert cols["encrypted_api_secret"]["nullable"] is True
+
+    def test_market_provider_insert_with_api_secret(self) -> None:
+        from zorivest_infra.database.models import MarketProviderSettingModel
+
+        engine = _engine()
+        with Session(engine) as session:
+            provider = MarketProviderSettingModel(
+                provider_name="alpaca",
+                encrypted_api_key="ENC:key-data",
+                encrypted_api_secret="ENC:secret-data",
+                rate_limit=200,
+                timeout=30,
+                is_enabled=True,
+                created_at=datetime(2026, 3, 11),
+            )
+            session.add(provider)
+            session.commit()
+
+            loaded = session.get(MarketProviderSettingModel, "alpaca")
+            assert loaded is not None
+            assert loaded.encrypted_api_secret == "ENC:secret-data"

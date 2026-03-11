@@ -201,6 +201,7 @@ class MarketProviderSettingModel(Base):
 
     provider_name = Column(String, primary_key=True)
     encrypted_api_key = Column(Text, nullable=True)
+    encrypted_api_secret = Column(Text, nullable=True)  # dual-key (Alpaca)
     rate_limit = Column(Integer, default=5)
     timeout = Column(Integer, default=30)
     is_enabled = Column(Boolean, default=False)

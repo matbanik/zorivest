@@ -61,10 +61,10 @@ Domain → Infrastructure → Services → REST API → MCP Server → GUI → D
 | 2A — Backup/Restore | ✅ Completed | 2026-03-08 |
 | 3 — Service Layer | ✅ Completed | 2026-03-08 |
 | 4 — REST API | ✅ Completed | 2026-03-09 |
-| 5 — MCP Server | 🟡 In Progress | 2026-03-09 |
+| 5 — MCP Server | ✅ Completed | 2026-03-10 |
 | 6 — GUI | ⚪ Not Started | — |
 | 7 — Distribution | ⚪ Not Started | — |
-| 8 — Market Data | ⚪ Not Started | — |
+| 8 — Market Data | 🟡 In Progress | 2026-03-11 |
 | 9 — Scheduling | ⚪ Not Started | — |
 | 10 — Service Daemon | ⚪ Not Started | — |
 
@@ -191,7 +191,7 @@ Domain → Infrastructure → Services → REST API → MCP Server → GUI → D
 | MEU-39 | `mcp-perf-metrics` | 15g | [05 §5.9](build-plan/05-mcp-server.md) | Per-tool performance metrics middleware | ✅ |
 | MEU-40 | `mcp-launch-gui` | 15h | [05 §5.10](build-plan/05-mcp-server.md) | zorivest_launch_gui MCP tool | ✅ |
 | MEU-41 | `mcp-discovery` | 15j | [05j](build-plan/05j-mcp-discovery.md) | Discovery meta-tools (list, describe, enable, confirm) | ✅ |
-| MEU-42 | `toolset-registry` | 15k | [05 §5.11–5.14](build-plan/05-mcp-server.md) | ToolsetRegistry + adaptive client detection | ⬜ |
+| MEU-42 | `toolset-registry` | 15k | [05 §5.11–5.14](build-plan/05-mcp-server.md) | ToolsetRegistry + adaptive client detection | ✅ |
 
 ### Phase 6: GUI — P0
 
@@ -230,9 +230,9 @@ Domain → Infrastructure → Services → REST API → MCP Server → GUI → D
 
 | MEU | Slug | Matrix Item | Build Plan Ref | Description | Status |
 |-----|------|:-----------:|----------------|-------------|:------:|
-| MEU-56 | `market-provider-entity` | 21 | [08 §entity](build-plan/08-market-data.md) | MarketDataProvider entity + AuthMethod enum | ⬜ |
-| MEU-57 | `market-response-dtos` | 22 | [08 §dtos](build-plan/08-market-data.md) | Normalized DTOs (MarketQuote, MarketNewsItem, etc.) | ⬜ |
-| MEU-58 | `market-provider-settings` | 23 | [08 §settings](build-plan/08-market-data.md) | MarketProviderSettingModel + encrypted key storage | ⬜ |
+| MEU-56 | `market-provider-entity` | 21 | [08 §entity](build-plan/08-market-data.md) | MarketDataProvider entity + AuthMethod enum | ✅ |
+| MEU-57 | `market-response-dtos` | 22 | [08 §dtos](build-plan/08-market-data.md) | Normalized DTOs (MarketQuote, MarketNewsItem, etc.) | ✅ |
+| MEU-58 | `market-provider-settings` | 23 | [08 §settings](build-plan/08-market-data.md) | MarketProviderSettingModel + encrypted key storage | ✅ |
 | MEU-59 | `market-provider-registry` | 24 | [08 §registry](build-plan/08-market-data.md) | Provider registry (12 providers, config map) | ⬜ |
 | MEU-60 | `market-connection-svc` | 25 | [08 §connection](build-plan/08-market-data.md) | ProviderConnectionService (test, configure, list) | ⬜ |
 | MEU-61 | `market-data-service` | 26 | [08 §service](build-plan/08-market-data.md) | MarketDataService (quote, news, search, SEC filings) | ⬜ |

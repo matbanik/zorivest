@@ -4,6 +4,13 @@ from __future__ import annotations
 
 from typing import Any, Optional, Protocol
 
+from zorivest_core.application.market_dtos import (
+    MarketNewsItem,
+    MarketQuote,
+    SecFiling,
+    TickerSearchResult,
+)
+
 from zorivest_core.domain.entities import (
     Account,
     BalanceSnapshot,
@@ -191,3 +198,15 @@ class IdentifierResolverPort(Protocol):
     ) -> dict | None: ...  # type: ignore[type-arg]
 
     def batch_resolve(self, identifiers: list[dict]) -> list[dict]: ...  # type: ignore[type-arg]
+
+
+class MarketDataPort(Protocol):
+    """Abstract interface for market data queries."""
+
+    async def get_quote(self, ticker: str) -> MarketQuote: ...
+
+    async def get_news(self, ticker: str | None, count: int) -> list[MarketNewsItem]: ...
+
+    async def search_ticker(self, query: str) -> list[TickerSearchResult]: ...
+
+    async def get_sec_filings(self, ticker: str) -> list[SecFiling]: ...

@@ -18,6 +18,7 @@
 | 2026-03-09 | MEU-38/39/41 | ~200 | ~5 min | 74 | 1 Crit + 3 High + 5 Med (resolved, 4 rounds) | 7/7 | 85% | ~180 min | 3-MEU MCP guard/metrics/discovery: middleware HOFs, metrics collector, discovery meta-tools. Codex caught AC-6 spec gap, evidence drift, lint disclosure, closeout procrastination |
 | 2026-03-10 | MEU-36/37/40 | ~150 | ~10 min | 29 | 5 Med (resolved, 4 rounds) | 7/7 | 85% | ~180 min | 3-MEU MCP planning/accounts/gui: TDD tools + ESM fix + middleware CallToolResult refactor. Codex caught PATH lookup gap, wait_for_close, ESM compat, lint suppression vs removal |
 | 2026-03-10 | MEU-42 | ~200 | ~8 min | 46 | 8 rounds (3 High + 5 Med + 6 Low, all resolved) | 7/7 | 90% | ~240 min | ToolsetRegistry + adaptive client detection. MCP-local token store, 8 correction rounds for cross-plan doc alignment + evidence drift |
+| 2026-03-11 | MEU-56/57/58 | ~120 | ~5 min | 48 | 1 High + 3 Med + 1 Low (resolved, 2 rounds) | 7/7 | 90% | ~90 min | 3-MEU market data foundation: AuthMethod + ProviderConfig + MarketDataPort + 4 DTOs + API key encryption. Codex caught Any return types, missing round-trip tests, stale counts, validator npx crash |
 
 ## Measurement Definitions
 

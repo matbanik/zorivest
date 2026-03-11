@@ -844,6 +844,12 @@ requires-dist = [
 name = "zorivest-core"
 version = "0.1.0"
 source = { editable = "packages/core" }
+dependencies = [
+    { name = "pydantic" },
+]
+
+[package.metadata]
+requires-dist = [{ name = "pydantic", specifier = ">=2.0" }]
 
 [[package]]
 name = "zorivest-infra"
@@ -851,6 +857,7 @@ version = "0.1.0"
 source = { editable = "packages/infrastructure" }
 dependencies = [
     { name = "argon2-cffi" },
+    { name = "cryptography" },
     { name = "pillow" },
     { name = "pyzipper" },
     { name = "sqlalchemy" },
@@ -866,6 +873,7 @@ crypto = [
 requires-dist = [
     { name = "argon2-cffi", specifier = ">=25.1.0" },
     { name = "argon2-cffi", marker = "extra == 'crypto'", specifier = ">=23.1.0" },
+    { name = "cryptography", specifier = ">=44.0.0" },
     { name = "pillow", specifier = ">=11.0.0" },
     { name = "pyzipper", specifier = ">=0.3.6" },
     { name = "sqlalchemy", specifier = ">=2.0.48" },

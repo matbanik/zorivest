@@ -130,6 +130,7 @@ def _run(cmd: list[str], *, cwd: str | None = None) -> subprocess.CompletedProce
         capture_output=True,
         text=True,
         cwd=cwd or os.getcwd(),
+        shell=sys.platform == "win32",  # npx.cmd needs shell on Windows
     )
 
 
@@ -361,9 +362,27 @@ def run_quality_gate(
         if not json_output:
             print(_color("  [3/8] Python Unit Tests: SKIPPED", GRAY))
 
-    # TypeScript type check
-    if has_ts:
-        check = _timed_check("TypeScript Type Check (tsc)", ["npx", "tsc", "--noEmit"])
+    # TypeScript type check — run per-directory from each TS project root
+    ts_dirs_with_tsconfig = [d for d in TYPESCRIPT_DIRS if (Path(d) / "tsconfig.json").exists()]
+    if ts_dirs_with_tsconfig:
+        # Run tsc from within the TS project directory
+        ts_cwd = ts_dirs_with_tsconfig[0]
+        start = time.monotonic()
+        result = _run(["npx", "tsc", "--noEmit"], cwd=ts_cwd)
+        duration = time.monotonic() - start
+        passed = result.returncode == 0
+        message = ""
+        if not passed:
+            output = result.stderr.strip() or result.stdout.strip()
+            lines = output.split("\n")[:5]
+            message = "\n".join(lines)
+        check = CheckResult(
+            name="TypeScript Type Check (tsc)",
+            passed=passed,
+            blocking=True,
+            duration_s=duration,
+            message=message,
+        )
         gate.checks.append(check)
         if not json_output:
             status = _color("PASS", GREEN) if check.passed else _color("FAIL", RED)
@@ -376,10 +395,26 @@ def run_quality_gate(
             print(_color("  [4/8] TypeScript Type Check: SKIPPED", GRAY))
 
     # TypeScript lint
-    if has_ts:
-        check = _timed_check(
-            "TypeScript Lint (eslint)",
+    if ts_dirs_with_tsconfig:
+        ts_cwd = ts_dirs_with_tsconfig[0]
+        start = time.monotonic()
+        result = _run(
             ["npx", "eslint", "src/", "--max-warnings", "0"],
+            cwd=ts_cwd,
+        )
+        duration = time.monotonic() - start
+        passed = result.returncode == 0
+        message = ""
+        if not passed:
+            output = result.stderr.strip() or result.stdout.strip()
+            lines = output.split("\n")[:5]
+            message = "\n".join(lines)
+        check = CheckResult(
+            name="TypeScript Lint (eslint)",
+            passed=passed,
+            blocking=True,
+            duration_s=duration,
+            message=message,
         )
         gate.checks.append(check)
         if not json_output:
@@ -393,9 +428,23 @@ def run_quality_gate(
             print(_color("  [5/8] TypeScript Lint: SKIPPED", GRAY))
 
     # TypeScript tests
-    if has_ts:
-        check = _timed_check(
-            "TypeScript Unit Tests (vitest)", ["npx", "vitest", "run"]
+    if ts_dirs_with_tsconfig:
+        ts_cwd = ts_dirs_with_tsconfig[0]
+        start = time.monotonic()
+        result = _run(["npx", "vitest", "run"], cwd=ts_cwd)
+        duration = time.monotonic() - start
+        passed = result.returncode == 0
+        message = ""
+        if not passed:
+            output = result.stderr.strip() or result.stdout.strip()
+            lines = output.split("\n")[:5]
+            message = "\n".join(lines)
+        check = CheckResult(
+            name="TypeScript Unit Tests (vitest)",
+            passed=passed,
+            blocking=True,
+            duration_s=duration,
+            message=message,
         )
         gate.checks.append(check)
         if not json_output:
