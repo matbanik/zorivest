@@ -14,11 +14,15 @@
 - [ ] Write FIC-62 tests: rate limiter (Red) — `test_rate_limiter.py`
 - [ ] Write FIC-62 tests: log redaction (Red) — `test_log_redaction.py`
 - [ ] Implement rate limiter (Green) — `rate_limiter.py`
-- [ ] Implement log redaction (Green) — `log_redaction.py`
+- [ ] Implement log redaction (Green) — `security/log_redaction.py`
 - [ ] Refactor MEU-62
 
-### MEU-60: ProviderConnectionService
-- [ ] Write FIC-60 tests (Red) — `test_provider_connection_service.py`
+### MEU-60: ProviderConnectionService + Persistence
+- [ ] Add `MarketProviderSettingsRepository` to `ports.py` + extend `UnitOfWork`
+- [ ] Add `SqlMarketProviderSettingsRepository` to `repositories.py`
+- [ ] Wire UoW concrete impl with new repo in `unit_of_work.py`
+- [ ] Create `ProviderStatus` Pydantic model — `provider_status.py`
+- [ ] Write FIC-60 tests (Red) — `test_provider_connection_service.py` + `test_market_provider_settings_repo.py`
 - [ ] Implement ProviderConnectionService (Green) — `provider_connection_service.py`
 - [ ] Refactor MEU-60
 
@@ -33,8 +37,8 @@
 
 ## Post-MEU Deliverables
 - [ ] Run MEU gate: `uv run python tools/validate_codebase.py --scope meu`
-- [ ] Update `.agent/context/meu-registry.md` — add MEU-59, 62, 60
-- [ ] Update `docs/BUILD_PLAN.md` — MEU statuses + summary counts
+- [ ] Update `.agent/context/meu-registry.md` — MEU-59, 62, 60 → ✅
+- [ ] Update `docs/BUILD_PLAN.md` — fix P5 count, MEU statuses, total=51
 - [ ] Full regression: `uv run pytest tests/ -v`
 - [ ] Create reflection: `docs/execution/reflections/2026-03-11-market-data-infrastructure-reflection.md`
 - [ ] Update metrics: `docs/execution/metrics.md`
