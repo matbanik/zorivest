@@ -69,8 +69,24 @@ Under-specified specs are not permission to narrow scope, invent behavior, or de
 - **Anti-placeholder enforcement:** Before declaring complete, run `rg "TODO|FIXME|NotImplementedError" packages/` and resolve any matches. Extend the search to `ui/` or `mcp-server/` once those packages are scaffolded.
 - A thin spec is not a valid reason to ship a narrower implementation. Resolve the gap in planning/research, update the plan/FIC with the source-backed rule, then implement the full resolved contract.
 
+### Pre-Handoff Self-Review (Mandatory)
+
+> Before any completion claim or handoff submission, adopt the reviewer mindset. This protocol was distilled from analysis of 7 critical review handoffs (37+ passes) where 10 recurring patterns caused 4-11 passes per project.
+
+1. For each AC, verify the claim against actual file state (quote `file:line`, not memory).
+2. Re-run all validation commands and compare counts to what the handoff says.
+3. If you fixed one instance of a bug category, `rg` for all instances of the same category.
+4. If you changed architecture, `rg` canonical docs for the old pattern.
+5. Never say "implementation complete" if residual risk acknowledges known gaps.
+6. Stubs must honor behavioral contracts, not just compile.
+7. Follow the full protocol in `.agent/skills/pre-handoff-review/SKILL.md`.
+
 > [!CAUTION]
-> **Anti-premature-stop rule.** Do NOT call `notify_user` during execution unless blocked by an unresolvable error or a human decision gate. Complete ALL workflow exit criteria in a single continuous pass — including post-MEU deliverables (MEU gate, registry update, BUILD_PLAN.md update, reflection, metrics, pomera session save, commit messages). If context window pressure is a concern, save state to `pomera_notes` — do NOT terminate the session early. Before any `notify_user` call, re-read `task.md` and verify every item is `[x]`.
+> **Anti-premature-stop rule.** Do NOT call `notify_user` during execution unless blocked by an unresolvable error or a human decision gate. Complete ALL workflow exit criteria in a single continuous pass — including post-MEU deliverables (MEU gate, registry update, BUILD_PLAN.md update, reflection, metrics, pomera session save, commit messages). Before any `notify_user` call, re-read `task.md` and verify every item is `[x]`.
+>
+> **Lifecycle escape hatch**: "Trigger Codex validation" IS classified as an allowed human decision gate. The anti-premature-stop rule permits calling `notify_user` to hand off to Codex. Post-validation artifacts (reflection, metrics) are created in the NEXT session after Codex returns its verdict.
+>
+> **Context window checkpoint**: If context window exceeds ~80% capacity, save state to `pomera_notes`, complete the current MEU's handoff, and notify human with remaining work. This is a planned checkpoint, not early termination.
 
 ## Dual-Agent Workflow
 
@@ -143,6 +159,7 @@ When the user invokes a workflow via slash command:
 |-------|------|---------|
 | Git Workflow | `.agent/skills/git-workflow/SKILL.md` | Agent-safe git operations with SSH commit signing. Prevents interactive prompt hangs. |
 | Codebase Quality Gate | `.agent/skills/quality-gate/SKILL.md` | Validation pipeline: type checks, linting, tests, anti-placeholder scans, evidence checks. Supports phase-level and MEU-scoped runs. |
+| Pre-Handoff Review | `.agent/skills/pre-handoff-review/SKILL.md` | Self-review protocol addressing 10 recurring patterns from critical review analysis. Reduces average review passes from 4-11 to 3-5. |
 
 ## MCP Servers
 

@@ -332,8 +332,20 @@ Use the reviewer role output contract and report **findings first**.
 | DR-3 | Downstream references updated | Indexes, cross-links, and anchors updated after rename/move |
 | DR-4 | Verification robustness | Handoff checks would actually catch regressions introduced by the change |
 | DR-5 | Evidence auditability | Commands/diffs are reproducible (not placeholders only) |
+| DR-6 | Cross-reference integrity | Architectural changes are consistent across all canonical docs (run `rg` for old pattern across `docs/build-plan/`, `docs/execution/`, `.agent/`) |
+| DR-7 | Evidence freshness | Handoff-claimed counts match reproduced command output (any mismatch is LOW minimum) |
+| DR-8 | Completion vs residual risk | If residual risk acknowledges known gaps, conclusion must NOT say "implementation complete" or "all ACs met" |
 
-> If code changes are also in scope, additionally apply the reviewer role's Adversarial Verification Checklist (AV-1..AV-5).
+> If code changes are also in scope, additionally apply the reviewer role's Adversarial Verification Checklist (AV-1..AV-5) AND the Implementation Review Checklist below.
+
+### Implementation Review Checklist (required when reviewing work handoffs)
+
+| # | Check | What To Look For |
+|---|---|---|
+| IR-1 | Live runtime evidence | For route/handler MEUs: integration test without dependency overrides exists and was run |
+| IR-2 | Stub behavioral compliance | Stubs honor save→get consistency, filter semantics, correct `exists()` returns; no `__getattr__` silently returning values (explicit-error form permitted) |
+| IR-3 | Error mapping completeness | Every write-adjacent route maps `NotFoundError → 404`, `BusinessRuleError → 409`, `ValueError → 422` AND at least one test asserts response body shape (not just status code) |
+| IR-4 | Fix generalization | When a finding was fixed, similar instances in other files/routes were also checked and fixed |
 
 ### Plan Review Checklist (required in plan review mode)
 

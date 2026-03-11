@@ -88,6 +88,18 @@ Output a verified findings table:
 
 Skip any findings that are already resolved or refuted.
 
+### Step 2b: Categorize and Generalize (Tester)
+
+> **Context**: The "fix-specific-not-general" meta-pattern was the single biggest multiplier of review passes. When Codex reported "this route returns 500 for NotFoundError", Opus would fix that one route but not check all other routes for the same issue.
+
+For each verified finding:
+
+1. **Categorize it** — assign a category label (e.g., "error mapping gap", "stale evidence", "stub inadequacy", "cross-doc reference").
+2. **Search for siblings** — run `rg` for the same pattern across all similar files/routes/modules.
+3. **Document siblings** — add to the findings table: "Found M additional instances of same category in files X, Y, Z."
+
+This ensures the corrections plan addresses ALL instances, not just the cited ones.
+
 ---
 
 ### Step 3: Create Corrections Plan (Orchestrator)
@@ -134,6 +146,34 @@ rg -n -i "<old-phrase>|<old-phrase-slugified>" docs/build-plan/
 rg -n "\.agent/context/handoffs" docs/build-plan/
 ```
 
+### Step 5b: Evidence Refresh
+
+After ALL corrections are applied, re-run every validation command and update the handoff/task with fresh counts:
+
+```powershell
+# Refresh all evidence counts
+uv run pytest tests/ --tb=no -q        # Get fresh regression total
+uv run pyright <touched-packages>       # Verify type safety
+uv run ruff check <touched-files>       # Verify lint
+# For TS projects:
+npx vitest run                          # Get fresh test total
+npx tsc --noEmit                        # Verify type safety
+npx eslint src/ --max-warnings 0        # Verify lint
+```
+
+Update the handoff with fresh counts — stale counts from earlier in the session are a recurring finding category.
+
+### Step 5c: Cross-Doc Sweep
+
+If any correction changed a contract or architectural pattern:
+
+```powershell
+# Search for old pattern across all canonical docs
+rg -n -i "<old-pattern>" docs/build-plan/ docs/execution/ .agent/
+```
+
+Update all references to match the new pattern. Document: "Cross-doc sweep: N files checked, M updated."
+
 ---
 
 ### Step 6: Write Handoff (Reviewer)
@@ -157,6 +197,7 @@ Use the combined plan+walkthrough format inside the existing file rather than cr
 5. **Build plan docs must not link into `.agent/`.** Design decisions should be self-contained in the build-plan file, not dependent on session artifacts.
 6. **User approval required before execution.** Plan → approve → execute → verify.
 7. **Resolve the canonical review first.** Always work from the canonical `*critical-review.md` file and update that same file as the review evolves.
+8. **Fix general, not specific.** When correcting a finding, search for ALL instances of the same category across similar files. Fixing only the cited instance while leaving identical bugs elsewhere is the single biggest cause of multi-pass review loops.
 
 ---
 

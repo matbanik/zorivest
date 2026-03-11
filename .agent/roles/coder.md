@@ -29,6 +29,9 @@ Implement only the requested change, keep architecture boundaries intact, and pr
    - Python: `pytest`, `pyright`, `ruff`
    - TypeScript (when scaffolded): `npx vitest run`, `npx tsc --noEmit`, `cd <ts-package> && npx eslint src/ --max-warnings 0`
 7. Record changed files, command results, and any source-backed implementation decisions in task handoff notes.
+8. **Fix general, not specific.** After fixing any finding, classify it into a category and search sibling files (same package + 2 hops max). Use the divergence declaration process in pre-handoff review protocol Step 3.
+9. **Error mapping on write-adjacent routes.** Follow the exception-to-status mapping and response body shape requirements in pre-handoff review protocol Step 6.
+10. **Stubs must honor behavioral contracts.** See `meu-handoff.md` §Stub Quality Gate for required behaviors and prohibited patterns.
 
 ## Must Not Do
 

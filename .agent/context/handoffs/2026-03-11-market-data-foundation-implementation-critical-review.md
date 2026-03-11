@@ -301,3 +301,22 @@ uv run python tools/validate_codebase.py --scope meu
 ### Residual Risk
 
 - None. All 8 blocking checks pass. MEU gate exits 0.
+
+## Update — 2026-03-11 (Recheck After Corrections Applied — Round 4)
+
+### Scope
+
+- Rechecked the market-data foundation implementation after the MEU-gate correction landed.
+- Verified whether the project is now fully approval-ready across the shared closeout artifacts, not just the code and gate commands.
+
+### Findings
+
+1. **Medium** — The prior gate blocker is resolved, but `BUILD_PLAN.md` is now internally inconsistent. The phase tracker and MEU rows show the intended closeout state: Phase 5 is `✅ Completed`, Phase 8 is `🟡 In Progress`, and `MEU-56/57/58` are all `✅` in [BUILD_PLAN.md](p:/zorivest/docs/BUILD_PLAN.md#L64), [BUILD_PLAN.md](p:/zorivest/docs/BUILD_PLAN.md#L67), [BUILD_PLAN.md](p:/zorivest/docs/BUILD_PLAN.md#L233), [BUILD_PLAN.md](p:/zorivest/docs/BUILD_PLAN.md#L234), and [BUILD_PLAN.md](p:/zorivest/docs/BUILD_PLAN.md#L235). But the summary table at the bottom still says Phase 5 has only `1` completed MEU and Phase 8 has `0` completed in [BUILD_PLAN.md](p:/zorivest/docs/BUILD_PLAN.md#L465) and [BUILD_PLAN.md](p:/zorivest/docs/BUILD_PLAN.md#L468). That contradicts both the updated hub rows and the registry carry-forward state in [.agent/context/meu-registry.md](p:/zorivest/.agent/context/meu-registry.md#L112) and [.agent/context/meu-registry.md](p:/zorivest/.agent/context/meu-registry.md#L113). Since the correlated task file now marks the `BUILD_PLAN.md` update complete in [task.md](p:/zorivest/docs/execution/plans/2026-03-11-market-data-foundation/task.md#L46), the shared project closeout is still being claimed before the canonical hub is internally consistent.
+
+### Verdict
+
+- `changes_required`
+
+### Residual Risk
+
+- No new MEU-code defects were found, and the MEU gate now passes. The remaining blocker is canonical project-state consistency in `docs/BUILD_PLAN.md`.

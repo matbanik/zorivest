@@ -72,6 +72,41 @@ Key rules during execution:
 - If a new spec gap appears mid-execution, stop coding, return to planning/research, update the plan with the source-backed resolution, and get approval on the revised plan before continuing
 - **Do not auto-commit** — propose conventional commit messages to the human instead
 
+### 4b. Pre-Handoff Self-Review Protocol
+
+> **Why this step exists**: Analysis of 7 critical review handoffs (37+ review passes) revealed 10 recurring patterns that caused 4-11 passes per project. This protocol catches those patterns before submission, targeting 2-3 passes.
+
+Before declaring any MEU "ready for review" or writing completion claims in the handoff:
+
+1. **Claim-to-State Verification** (Pattern: claim-to-state drift, 7/7 reviews)
+   - For each AC marked "met", `rg` the actual code for the specific behavior. Quote file:line.
+   - If the handoff says "all N ACs covered", verify every single one against file state — not memory.
+   - If the residual risk section acknowledges known gaps, the conclusion MUST NOT say "implementation complete."
+
+2. **Evidence Freshness — MUST BE LAST** (Pattern: evidence staleness, 6/7 reviews)
+   - This step must be the LAST action before submitting the handoff. Running it before fix-generalization or cross-doc sweeps creates the staleness it aims to prevent.
+   - Re-run ALL validation commands (`pytest`, `pyright`, `ruff`, `eslint`, `vitest`) _after_ all other self-review fixes are applied.
+   - **Evidence Command Manifest**: Record the EXACT commands used (verbatim, including all flags and scope), not just results. Reject evidence from cached/partial runs (`--lf`, `-k`, unit-only markers when integration should also run).
+   - Paste the fresh output counts into the handoff. Counts from earlier in the session are stale.
+
+3. **Fix-General-Not-Specific** (Pattern: fix-specific-not-general, meta-pattern)
+   - When fixing any finding, categorize it (e.g., "missing error mapping", "stale evidence count").
+   - Run `rg` for the same pattern across all similar files/routes/modules.
+   - Document: "Checked N similar locations, found M additional instances, fixed all."
+
+4. **Error Mapping Sweep** (Pattern: error mapping gaps, 3/7 reviews)
+   - For API routes: verify every write-adjacent route maps `NotFoundError → 404`, `BusinessRuleError → 409`, `ValueError → 422`.
+   - For MCP tools: verify every handler maps domain exceptions to proper MCP error responses.
+
+5. **Cross-Reference Sweep** (Pattern: canonical doc contradiction, 3/7 reviews)
+   - If you changed an architectural pattern (e.g., token model, auth flow, DI wiring), run `rg` for the old pattern across `docs/build-plan/`, `docs/execution/`, `.agent/`.
+   - All references must agree with the new pattern. Update any that don't.
+
+6. **Project Artifact Completeness** (Pattern: artifact incompleteness, 6/7 reviews)
+   - Verify `task.md` items match actual completion state.
+   - Verify `BUILD_PLAN.md` summary counts match row-level data.
+   - Do NOT create reflection/metrics artifacts until AFTER Codex validation completes.
+
 ### 5. Meta-Reflection (Post-Execution)
 
 After Codex validation has completed for the project's MEU handoff set, create the reflection file at `docs/execution/reflections/{YYYY-MM-DD}-{project-slug}-reflection.md` using the template at `docs/execution/reflections/TEMPLATE.md`.

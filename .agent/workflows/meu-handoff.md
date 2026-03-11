@@ -107,6 +107,55 @@ Build plan reference: [link to docs/build-plan/XX-section.md]
 {Left blank — Codex fills this section during validation-review workflow}
 ```
 
+## Live Runtime Probe Requirements
+
+> **Context**: In 5/7 reviewed projects, mock-based unit tests masked broken runtime behavior, causing 3-5 extra review passes per project. The rest-api-foundation project needed 11 passes largely because stubs silently violated contracts.
+
+For any MEU that touches routes, handlers, or service wiring, the handoff MUST include live runtime evidence:
+
+### Mandatory Probe Protocol
+
+1. **Integration test with real stack**: Create at least one `create_app()` + `TestClient(raise_server_exceptions=False)` test that exercises the full stack _without_ dependency overrides.
+2. **Minimum probe sequence** (for API work):
+   - Create → Get → List consistency (entity actually persists)
+   - Duplicate rejection (both dedup keys)
+   - Missing-entity error mapping on all write paths
+   - Filter/pagination with multiple entities
+   - Owner-scoped listing (when applicable)
+3. **State propagation check**: If the MEU changes auth/unlock/mode state, verify the state change propagates to all dependent guards (e.g., `app.state.db_unlocked` after unlock).
+
+### Stub Quality Gate
+
+Stubs used during development MUST honor the behavioral interface:
+
+| Stub Method | Required Behavior |
+|---|---|
+| `save()` | Actually persists to in-memory store |
+| `get()` | Returns persisted entity or `None` |
+| `exists()` | Returns correct boolean based on store |
+| `list_filtered()` | Actually filters by provided parameters |
+| `get_for_owner()` | Filters by `owner_type` and `owner_id` |
+
+**Prohibited patterns**:
+- `__getattr__` that silently returns values (`None`, empty collections, no-op callables) for undefined methods
+- `save()` that discards writes (creates false 201→404 inconsistency)
+- `exists()` that always returns `False` (bypasses dedup checks)
+
+**Permitted**: `__getattr__` that raises `AttributeError` or `NotImplementedError` with the method name is allowed (explicit-error form is safer than missing methods).
+
+### Fix Generalization Scope
+
+> This section is the canonical source for fix-generalization boundaries. Other documents reference this section.
+
+Before applying a fix to "similar locations," classify each candidate:
+- **Same contract** → must fix
+- **Spec-divergent contract** → allowed to differ (cite spec/ADR)
+- **Unknown** → stop and route to planning, do not generalize
+
+**Search boundary**: same package + explicitly listed siblings in `meu-registry.md`. Cross-package matches → log as follow-up item, do NOT auto-fix.
+
+**Evidence in handoff**: "Checked N locations in {scope}. Fixed M. Skipped K (spec-divergent: {cite}). Verified 0 remaining unaddressed."
+
 ## Dual Storage
 
 Every handoff is stored in two places for redundancy:
