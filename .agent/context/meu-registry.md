@@ -1,4 +1,4 @@
-# MEU Registry — Phase 1 + 1A + 2
+# MEU Registry — Phase 1 + 1A + 2 + 2A + 3 + 4 + 5 + 8
 
 > Source: [BUILD_PLAN.md](../docs/BUILD_PLAN.md) | [build-priority-matrix.md](../docs/build-plan/build-priority-matrix.md)
 
@@ -89,6 +89,9 @@
 | MEU-56 | `market-provider-entity` | 21 | AuthMethod enum + ProviderConfig VO + MarketDataPort Protocol | ✅ approved |
 | MEU-57 | `market-response-dtos` | 22 | MarketQuote, MarketNewsItem, TickerSearchResult, SecFiling DTOs | ✅ approved |
 | MEU-58 | `market-provider-settings` | 23 | API key encryption + encrypted_api_secret column | ✅ approved |
+| MEU-59 | `market-provider-registry` | 24 | Static provider registry (12 providers) | ✅ approved |
+| MEU-62 | `market-rate-limiter` | 25 | Token-bucket rate limiter + log redaction | ✅ approved |
+| MEU-60 | `market-connection-svc` | 26 | ProviderConnectionService + persistence | ✅ approved |
 
 ## Execution Order
 
@@ -99,7 +102,7 @@ Phase 2A: MEU-17 → MEU-18 → MEU-19 → MEU-20 → MEU-21
 Phase 3: MEU-22
 Phase 4: MEU-23 → MEU-24 → MEU-25 → MEU-26 → MEU-27 → MEU-28 → MEU-29 → MEU-30
 Phase 5: MEU-31 → MEU-32 → MEU-33 → MEU-34 → MEU-35 → MEU-36 → MEU-37 → MEU-38 → MEU-39 → MEU-40 → MEU-41 → MEU-42
-Phase 8: MEU-56 → MEU-57 → MEU-58
+Phase 8: MEU-56 → MEU-57 → MEU-58 → MEU-59 → MEU-62 → MEU-60
 
 ## Phase-Exit Criteria
 
@@ -110,6 +113,6 @@ Phase 8: MEU-56 → MEU-57 → MEU-58
 - Phase 3: MEU-22 ✅ → Phase 4 unblocked
 - Phase 4: MEU-23..30 ✅ (all routes complete) → Phase 5 unblocked
 - Phase 5: MEU-31..42 ✅ (all MCP tools complete) → Phase 6 unblocked
-- Phase 8: MEU-56..58 ✅ (market data foundation) → Phase 8 adapters unblocked
+- Phase 8: MEU-56..60,62 ✅ (market data foundation + infrastructure) → Phase 8 adapters unblocked
 
 

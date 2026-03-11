@@ -307,7 +307,7 @@ class ProviderConnectionService:
             model = uow.market_provider_settings.get(name)
             if model:
                 model.last_tested_at = datetime.now()
-                model.last_test_status = message
+                model.last_test_status = "success" if success else "failed"
                 model.updated_at = datetime.now()
                 uow.market_provider_settings.save(model)
                 uow.commit()

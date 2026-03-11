@@ -760,7 +760,7 @@ class TestConnectionUpdatesDB:
             model = uow.market_provider_settings.get("Finnhub")
             assert model is not None
             assert model.last_tested_at is not None
-            assert model.last_test_status == "Connection successful"
+            assert model.last_test_status == "success"
 
         asyncio.run(_run())
 
@@ -813,16 +813,16 @@ class TestGenericValidation:
     """AC-27: Providers without validation table entry use generic check."""
 
     def test_openfigi_generic(self) -> None:
+        """OpenFIGI uses generic validation — any valid JSON at 200 = success."""
+
         async def _run() -> None:
             uow = MockUoW()
             _configure_provider_in_uow(uow, "OpenFIGI")
-            http = MockHttpClient(MockResponse(200, _json={"some": "data"}))
+            http = MockHttpClient(MockResponse(200, _json={"data": [{"figi": "BBG"}]}))
             svc, _, _ = _make_service(uow=uow, http=http)
-            # OpenFIGI has its own validator for "data" key
-            success, _ = await svc.test_connection("OpenFIGI")
-            # The response has no "data" key, so it should fail the specific validator
-            # Test with proper response:
-            pass
+            success, msg = await svc.test_connection("OpenFIGI")
+            assert success is True
+            assert msg == "Connection successful"
 
         asyncio.run(_run())
 

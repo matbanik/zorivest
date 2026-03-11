@@ -100,9 +100,9 @@ See `.agent/docs/code-quality.md` for full examples and forbidden patterns.
 
 ## Commits
 
-- **Never auto-commit.** Human always reviews and approves.
+- **Never auto-commit.** Only `git commit` or `git push` when (a) the user explicitly directs it, or (b) it is a defined step in the approved plan/task. Human always reviews and approves.
 - Conventional commits: `feat:`, `fix:`, `refactor:`, `test:`, `docs:`
-- **Git skill:** Read `.agent/skills/git-workflow/SKILL.md` before any git operations.
+- **Git skill:** Read `.agent/skills/git-workflow/SKILL.md` (§Commit Policy + §The One Rule) before any git operations.
   - SSH commit signing is configured — all commits are auto-signed, no GPG prompts.
   - **Always** use `git commit -m "message"` — never bare `git commit` (hangs on editor).
   - **Never** use interactive git commands (`git rebase -i`, `git commit --amend` without `--no-edit`).

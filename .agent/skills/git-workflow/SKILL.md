@@ -5,6 +5,10 @@ description: Agent-safe git operations with SSH commit signing. Handles commit, 
 
 # Git Workflow Skill
 
+## Commit Policy
+
+> **Do NOT `git commit` or `git push` unless (a) the user explicitly directs it, or (b) it is a defined step in the approved plan/task.** Never auto-commit at the end of a correction cycle or verification pass.
+
 ## The One Rule
 
 > **Run the script. Don't improvise git commands.**

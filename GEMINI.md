@@ -61,6 +61,7 @@ Under-specified specs are not permission to narrow scope, invent behavior, or de
 ## Execution Contract
 
 - Follow `AGENTS.md` §Session Discipline for session rules, time/token policy, and session end protocol.
+- **Git commit policy**: See `.agent/skills/git-workflow/SKILL.md` §Commit Policy. Never auto-commit.
 - Run targeted tests after each change.
 - **MEU gate** (per-MEU): `uv run python tools/validate_codebase.py --scope meu` — targeted `pyright`, `ruff`, `pytest`, anti-placeholder scan scoped to touched packages/files.
 - **Phase gate** (phase exit only): `uv run python tools/validate_codebase.py` when ALL MEUs in a phase are complete. Do NOT run it as a MEU-level gate — it validates the full repo and will fail until later phases are scaffolded.

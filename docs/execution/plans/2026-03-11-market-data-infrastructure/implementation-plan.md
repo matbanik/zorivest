@@ -327,14 +327,14 @@ After MEU execution:
 | 11 | Create `ProviderStatus` model | coder | `provider_status.py` | `uv run pyright packages/core/src/zorivest_core/application/provider_status.py` → 0 errors | ⬜ |
 | 12 | Implement ProviderConnectionService (Green) | coder | `provider_connection_service.py` | `uv run pytest tests/unit/test_provider_connection_service.py tests/unit/test_market_provider_settings_repo.py -v` → all PASS | ⬜ |
 | 13 | Refactor + quality pass | coder | Clean code | `uv run ruff check packages/ tests/` → 0 + `uv run pyright packages/` → 0 | ⬜ |
-| 14 | Create handoff 047 (MEU-59) | coder | `047-2026-03-11-market-provider-registry-bp08s8.2.md` | `test -f .agent/context/handoffs/047-2026-03-11-market-provider-registry-bp08s8.2.md` | ⬜ |
-| 15 | Create handoff 048 (MEU-62) | coder | `048-2026-03-11-market-rate-limiter-bp08s8.2.md` | `test -f .agent/context/handoffs/048-2026-03-11-market-rate-limiter-bp08s8.2.md` | ⬜ |
-| 16 | Create handoff 049 (MEU-60) | coder | `049-2026-03-11-market-connection-svc-bp08s8.3+8.6.md` | `test -f .agent/context/handoffs/049-2026-03-11-market-connection-svc-bp08s8.3+8.6.md` | ⬜ |
+| 14 | Create handoff 047 (MEU-59) | coder | `047-2026-03-11-market-provider-registry-bp08s8.2.md` | `Test-Path .agent/context/handoffs/047-2026-03-11-market-provider-registry-bp08s8.2.md` | ⬜ |
+| 15 | Create handoff 048 (MEU-62) | coder | `048-2026-03-11-market-rate-limiter-bp08s8.2.md` | `Test-Path .agent/context/handoffs/048-2026-03-11-market-rate-limiter-bp08s8.2.md` | ⬜ |
+| 16 | Create handoff 049 (MEU-60) | coder | `049-2026-03-11-market-connection-svc-bp08s8.3+8.6.md` | `Test-Path .agent/context/handoffs/049-2026-03-11-market-connection-svc-bp08s8.3+8.6.md` | ⬜ |
 | 17 | Update BUILD_PLAN.md | coder | Updated MEU statuses + summary counts | `rg -c "✅" docs/BUILD_PLAN.md` matches expected count + summary table verified | ⬜ |
 | 18 | Update meu-registry.md | coder | MEU-59/62/60 rows updated | `rg "MEU-59\|MEU-62\|MEU-60" .agent/context/meu-registry.md` shows ✅ | ⬜ |
 | 19 | Run MEU gate | coder | Gate pass | `uv run python tools/validate_codebase.py --scope meu` | ⬜ |
 | 20 | Full regression | coder | All tests pass | `uv run pytest tests/ -v --tb=short` | ⬜ |
-| 21 | Create reflection | coder | Reflection file | `test -f docs/execution/reflections/2026-03-11-market-data-infrastructure-reflection.md` | ⬜ |
+| 21 | Create reflection | coder | Reflection file | `Test-Path docs/execution/reflections/2026-03-11-market-data-infrastructure-reflection.md` | ⬜ |
 | 22 | Update metrics | coder | New row in metrics | `rg "market-data-infrastructure" docs/execution/metrics.md` | ⬜ |
 | 23 | Save pomera session state | coder | pomera note | Workflow action: MCP `pomera_notes` invocation (not a shell command) | ⬜ |
 | 24 | Prepare commit messages | coder | Commit messages | Workflow action: `notify_user` MCP invocation (not a shell command) | ⬜ |

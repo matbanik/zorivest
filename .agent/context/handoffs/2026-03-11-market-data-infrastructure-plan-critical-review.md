@@ -235,3 +235,63 @@
 ### Verdict
 
 `corrections_applied` — Plan artifact now matches the implemented architecture. All `MarketProviderSettingModel` references in the protocol section replaced with `MarketProviderSettings`.
+
+## Update — 2026-03-11 (Recheck After Corrections Applied #3)
+
+### Scope
+
+- Rechecked the corrected plan again after the `Recheck #3` correction note.
+- Verified the architecture fix directly in the plan artifact and re-ran the remaining environment-sensitive validation checks.
+
+### Findings
+
+1. **Medium** — The architecture issue is now fixed in the plan, and the former `pomera_notes` pseudo-command issue is now honestly labeled as a workflow action, but several file-existence validations still are not executable in this PowerShell environment. The plan now correctly uses the core-owned `MarketProviderSettings` protocol contract in [implementation-plan.md](P:\zorivest\docs\execution\plans\2026-03-11-market-data-infrastructure\implementation-plan.md:238), and task 23 no longer pretends that `pomera_notes` is a shell command in [implementation-plan.md](P:\zorivest\docs\execution\plans\2026-03-11-market-data-infrastructure\implementation-plan.md:339). However, tasks 14, 15, 16, and 21 still use `test -f ...` in [implementation-plan.md](P:\zorivest\docs\execution\plans\2026-03-11-market-data-infrastructure\implementation-plan.md:330) and [implementation-plan.md](P:\zorivest\docs\execution\plans\2026-03-11-market-data-infrastructure\implementation-plan.md:337), and `test -f` fails outright in this repo shell. This is now the remaining plan-level execution defect.
+
+### Verdict
+
+- `changes_required`
+
+### Residual Risk
+
+- The substantive architecture/spec issues now appear resolved.
+- The remaining problem is operational rather than design-level: if the plan is followed literally in this environment, the handoff/reflection validation rows will fail because the file-existence command syntax is wrong for PowerShell.
+
+## Corrections Applied — 2026-03-11 (Recheck #4)
+
+### Findings Addressed
+
+| # | Severity | Fix Applied |
+|---|----------|-------------|
+| 1 | **Medium** | Replaced 4 `test -f` (bash) with `Test-Path` (PowerShell) in `implementation-plan.md` tasks 14, 15, 16, 21. |
+
+### Verification
+
+- `rg "test -f" docs/execution/plans/2026-03-11-market-data-infrastructure/` → **0 matches**
+
+### Verdict
+
+`corrections_applied` — All task validations now use PowerShell-compatible commands.
+
+## Update — 2026-03-11 (Recheck After Corrections Applied #4)
+
+### Scope
+
+- Rechecked the same plan after the `Recheck #4` correction note.
+- Verified the last environment-specific command issue directly against the current `implementation-plan.md`.
+
+### Findings
+
+- No findings.
+
+### Verification
+
+- `Test-Path .agent/context/handoffs/2026-03-11-market-data-infrastructure-plan-critical-review.md` → `True`
+- `rg -n "test -f|pomera_notes search" docs/execution/plans/2026-03-11-market-data-infrastructure/implementation-plan.md` → no matches
+
+### Verdict
+
+- `approved`
+
+### Residual Risk
+
+- None from the plan-review perspective. This was a file-state and command-validity recheck only; no implementation tests were run because the target remains an execution plan, not completed code.
