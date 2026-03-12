@@ -217,8 +217,8 @@ Domain → Infrastructure → Services → REST API → MCP Server → GUI → D
 
 | MEU | Slug | Matrix Item | Build Plan Ref | Description | Status |
 |-----|------|:-----------:|----------------|-------------|:------:|
-| MEU-52 | `trade-report-entity` | 17 | [01 §entities](build-plan/01-domain-layer.md) | TradeReport entity + service | ⬜ |
-| MEU-53 | `trade-report-mcp-api` | 18 | [05c](build-plan/05c-mcp-trade-analytics.md) | TradeReport MCP tools + API routes | ⬜ |
+| MEU-52 | `trade-report-entity` | 17 | [01 §entities](build-plan/01-domain-layer.md) | TradeReport entity + service | ✅ |
+| MEU-53 | `trade-report-mcp-api` | 18 | [05c](build-plan/05c-mcp-trade-analytics.md) | TradeReport MCP tools + API routes | 🟡 PARTIAL (API ✅, MCP ⬜) |
 | MEU-54 | `multi-account-ui` | 19 | [06b](build-plan/06b-gui-trades.md) | Multi-account UI (badges, filtering) | ⬜ |
 | MEU-55 | `report-gui` | 20 | [06b](build-plan/06b-gui-trades.md) | Report GUI panel (ratings, tags, lessons) | ⬜ |
 

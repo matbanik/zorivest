@@ -28,6 +28,7 @@ from zorivest_infra.database.repositories import (
     SqlAlchemyBalanceSnapshotRepository,
     SqlAlchemyImageRepository,
     SqlAlchemyRoundTripRepository,
+    SqlAlchemyTradeReportRepository,
     SqlAlchemyTradeRepository,
 )
 
@@ -268,3 +269,115 @@ class TestRoundTripRepository:
         results = repo.list_for_account("ACC001")
         assert len(results) == 1
         assert results[0].instrument == "AAPL"
+
+
+class TestTradeReportRepository:
+    """FIC-52: TradeReport repository integration tests."""
+
+    def _setup_trade(self, session: Session) -> None:
+        """Create FK-satisfying account + trade."""
+        acct_repo = SqlAlchemyAccountRepository(session)
+        acct_repo.save(_make_account())
+        session.flush()
+
+        trade_repo = SqlAlchemyTradeRepository(session)
+        trade_repo.save(_make_trade())
+        session.flush()
+
+    def test_save_and_get(self, session: Session) -> None:
+        self._setup_trade(session)
+        from zorivest_core.domain.entities import TradeReport
+
+        repo = SqlAlchemyTradeReportRepository(session)
+        report = TradeReport(
+            id=0,
+            trade_id="E001",
+            setup_quality=4,
+            execution_quality=3,
+            followed_plan=True,
+            emotional_state="confident",
+            created_at=datetime(2025, 7, 15, 10, 30, 0),
+            lessons_learned="Good entry timing",
+        )
+        repo.save(report)
+        session.commit()
+
+        # get by trade_id since id is autoincrement
+        found = repo.get_for_trade("E001")
+        assert found is not None
+        assert found.trade_id == "E001"
+        assert found.setup_quality == 4
+        assert found.execution_quality == 3
+        assert found.followed_plan is True
+        assert found.emotional_state == "confident"
+        assert found.lessons_learned == "Good entry timing"
+
+    def test_get_for_trade_returns_none_when_missing(
+        self, session: Session
+    ) -> None:
+        self._setup_trade(session)
+        repo = SqlAlchemyTradeReportRepository(session)
+        assert repo.get_for_trade("NONEXISTENT") is None
+
+    def test_update(self, session: Session) -> None:
+        self._setup_trade(session)
+        from zorivest_core.domain.entities import TradeReport
+
+        repo = SqlAlchemyTradeReportRepository(session)
+        report = TradeReport(
+            id=0,
+            trade_id="E001",
+            setup_quality=3,
+            execution_quality=3,
+            followed_plan=False,
+            emotional_state="anxious",
+            created_at=datetime(2025, 7, 15, 10, 30, 0),
+        )
+        repo.save(report)
+        session.commit()
+
+        saved = repo.get_for_trade("E001")
+        assert saved is not None
+
+        updated = TradeReport(
+            id=saved.id,
+            trade_id="E001",
+            setup_quality=5,
+            execution_quality=4,
+            followed_plan=True,
+            emotional_state="confident",
+            created_at=saved.created_at,
+            lessons_learned="Updated after review",
+        )
+        repo.update(updated)
+        session.commit()
+
+        found = repo.get_for_trade("E001")
+        assert found is not None
+        assert found.setup_quality == 5
+        assert found.lessons_learned == "Updated after review"
+
+    def test_delete(self, session: Session) -> None:
+        self._setup_trade(session)
+        from zorivest_core.domain.entities import TradeReport
+
+        repo = SqlAlchemyTradeReportRepository(session)
+        report = TradeReport(
+            id=0,
+            trade_id="E001",
+            setup_quality=4,
+            execution_quality=3,
+            followed_plan=True,
+            emotional_state="neutral",
+            created_at=datetime(2025, 7, 15),
+        )
+        repo.save(report)
+        session.commit()
+
+        saved = repo.get_for_trade("E001")
+        assert saved is not None
+
+        repo.delete(saved.id)
+        session.commit()
+
+        assert repo.get_for_trade("E001") is None

@@ -22,6 +22,7 @@ from zorivest_infra.database.repositories import (
     SqlAlchemyImageRepository,
     SqlAlchemyRoundTripRepository,
     SqlAlchemySettingsRepository,
+    SqlAlchemyTradeReportRepository,
     SqlAlchemyTradeRepository,
     SqlMarketProviderSettingsRepository,
 )
@@ -46,6 +47,7 @@ class SqlAlchemyUnitOfWork:
     settings: SqlAlchemySettingsRepository
     app_defaults: SqlAlchemyAppDefaultsRepository
     market_provider_settings: SqlMarketProviderSettingsRepository
+    trade_reports: SqlAlchemyTradeReportRepository  # MEU-52
 
     def __init__(self, engine: Engine) -> None:
         self._engine = engine
@@ -62,6 +64,7 @@ class SqlAlchemyUnitOfWork:
         self.settings = SqlAlchemySettingsRepository(self._session)
         self.app_defaults = SqlAlchemyAppDefaultsRepository(self._session)
         self.market_provider_settings = SqlMarketProviderSettingsRepository(self._session)
+        self.trade_reports = SqlAlchemyTradeReportRepository(self._session)  # MEU-52
         return self
 
     def __exit__(

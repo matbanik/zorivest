@@ -96,6 +96,13 @@
 | MEU-63 | `market-data-api` | 28 | Market data REST API (8 routes) | ✅ approved |
 | MEU-64 | `market-data-mcp` | 29 | Market data MCP tools (7 tools) | ✅ approved |
 
+## P1: Trade Reviews & Multi-Account
+
+| MEU | Slug | Matrix | Description | Status |
+|-----|------|:------:|-------------|:------:|
+| MEU-52 | `trade-report-entity` | 17 | TradeReport entity + enums + service | ✅ approved |
+| MEU-53 | `trade-report-mcp-api` | 18 | TradeReport API routes (PARTIAL — MCP tools deferred) | 🟡 partial |
+
 ## Execution Order
 
 Phase 1: MEU-1 → MEU-2 → MEU-3 → MEU-4 → MEU-5 → MEU-6 → MEU-7 → MEU-8 → MEU-9 → MEU-10 → MEU-11

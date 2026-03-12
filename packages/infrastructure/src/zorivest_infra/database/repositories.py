@@ -23,6 +23,7 @@ from zorivest_core.domain.entities import (
     BalanceSnapshot,
     ImageAttachment,
     Trade,
+    TradeReport,
 )
 from zorivest_core.domain.enums import (
     AccountType,
@@ -40,6 +41,7 @@ from zorivest_infra.database.models import (
     RoundTripModel,
     SettingModel,
     TradeModel,
+    TradeReportModel,
 )
 
 
@@ -485,6 +487,69 @@ class SqlMarketProviderSettingsRepository:
 
     def delete(self, provider_name: str) -> None:
         m = self._session.get(MarketProviderSettingModel, provider_name)
+        if m:
+            self._session.delete(m)
+
+
+# ── TradeReport Mapping ─────────────────────────────────────────────────
+
+
+def _report_to_model(report: TradeReport) -> TradeReportModel:
+    return TradeReportModel(
+        id=report.id if report.id else None,
+        trade_id=report.trade_id,
+        setup_quality=report.setup_quality,
+        execution_quality=report.execution_quality,
+        followed_plan=report.followed_plan,
+        emotional_state=report.emotional_state,
+        lessons_learned=report.lessons_learned or None,
+        tags=json.dumps(report.tags) if report.tags else None,
+        created_at=report.created_at,
+    )
+
+
+def _model_to_report(m: TradeReportModel) -> TradeReport:
+    return TradeReport(
+        id=m.id,
+        trade_id=m.trade_id,
+        setup_quality=m.setup_quality or 0,
+        execution_quality=m.execution_quality or 0,
+        followed_plan=bool(m.followed_plan),
+        emotional_state=m.emotional_state or "neutral",
+        created_at=m.created_at,
+        lessons_learned=m.lessons_learned or "",
+        tags=json.loads(m.tags) if m.tags else [],
+    )
+
+
+class SqlAlchemyTradeReportRepository:
+    """Concrete TradeReportRepository backed by SQLAlchemy Session (MEU-52)."""
+
+    def __init__(self, session: Session) -> None:
+        self._session = session
+
+    def get(self, report_id: int) -> TradeReport | None:
+        m = self._session.get(TradeReportModel, report_id)
+        return _model_to_report(m) if m else None
+
+    def save(self, report: TradeReport) -> None:
+        self._session.add(_report_to_model(report))
+
+    def get_for_trade(self, trade_id: str) -> TradeReport | None:
+        m = (
+            self._session.query(TradeReportModel)
+            .filter(TradeReportModel.trade_id == trade_id)
+            .first()
+        )
+        return _model_to_report(m) if m else None
+
+    def update(self, report: TradeReport) -> None:
+        """Update existing report via merge (upsert-safe)."""
+        self._session.merge(_report_to_model(report))
+
+    def delete(self, report_id: int) -> None:
+        """Delete a report by ID."""
+        m = self._session.get(TradeReportModel, report_id)
         if m:
             self._session.delete(m)
 

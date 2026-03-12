@@ -135,3 +135,36 @@ class AuthMethod(StrEnum):
     BEARER_HEADER = "bearer_header"
     CUSTOM_HEADER = "custom_header"
     RAW_HEADER = "raw_header"
+
+
+# ── MEU-52: Trade report enums ──────────────────────────────────────────
+
+
+class QualityGrade(StrEnum):
+    """Trade quality rating — maps to int 1-5 for storage."""
+    A = "A"  # Excellent (5)
+    B = "B"  # Good (4)
+    C = "C"  # Average (3)
+    D = "D"  # Below average (2)
+    F = "F"  # Failing (1)
+
+
+class EmotionalState(StrEnum):
+    """Trader's emotional state during execution.
+
+    Superset of MCP spec (05c L585-587) + GUI spec (06b L332).
+    """
+    CALM = "calm"              # MCP + GUI
+    ANXIOUS = "anxious"        # MCP + GUI (implied)
+    FEARFUL = "fearful"        # MCP + GUI
+    GREEDY = "greedy"          # MCP + GUI
+    FRUSTRATED = "frustrated"  # MCP
+    CONFIDENT = "confident"    # MCP + GUI
+    NEUTRAL = "neutral"        # MCP
+    IMPULSIVE = "impulsive"    # GUI
+    HESITANT = "hesitant"      # GUI
+
+
+# Grade ↔ int conversion (used by API/MCP layers)
+QUALITY_INT_MAP: dict[str, int] = {"A": 5, "B": 4, "C": 3, "D": 2, "F": 1}
+QUALITY_GRADE_MAP: dict[int, str] = {v: k for k, v in QUALITY_INT_MAP.items()}

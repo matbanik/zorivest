@@ -79,17 +79,26 @@ class TestUnitOfWork:
         # After exiting, session should be None
         assert uow._session is None
 
-    def test_five_repos_available(self) -> None:
-        """AC-15.4: all 5 repos are accessible within context."""
+    def test_all_repos_available(self) -> None:
+        """AC-15.4: all repos are accessible within context, including MEU-52 trade_reports."""
         engine = _make_engine()
         uow = SqlAlchemyUnitOfWork(engine)
 
         with uow:
+            # Original 5
             assert hasattr(uow, "trades")
             assert hasattr(uow, "images")
             assert hasattr(uow, "accounts")
             assert hasattr(uow, "balance_snapshots")
             assert hasattr(uow, "round_trips")
+            # Phase 2A
+            assert hasattr(uow, "settings")
+            assert hasattr(uow, "app_defaults")
+            # Phase 8
+            assert hasattr(uow, "market_provider_settings")
+            # MEU-52
+            assert hasattr(uow, "trade_reports")
+            assert uow.trade_reports is not None
 
     def test_trade_with_account_fk(self) -> None:
         """Integration: save account + trade with FK via UoW."""

@@ -298,7 +298,7 @@ class TestImportSurface:
 
 
 class TestModuleIntegrity:
-    """Verify the module exports exactly the 4 expected entity classes."""
+    """Verify the module exports exactly the expected entity classes."""
 
     def test_module_has_expected_classes(self) -> None:
         import zorivest_core.domain.entities as mod
@@ -308,7 +308,139 @@ class TestModuleIntegrity:
             for name, obj in inspect.getmembers(mod, inspect.isclass)
             if obj.__module__ == mod.__name__
         ]
-        expected = {"Trade", "Account", "BalanceSnapshot", "ImageAttachment"}
+        expected = {
+            "Trade", "Account", "BalanceSnapshot", "ImageAttachment",
+            "TradeReport",  # MEU-52
+        }
         assert set(class_names) == expected, (
             f"Expected {expected}, got {set(class_names)}"
         )
+
+
+# ── MEU-52: TradeReport entity ──────────────────────────────────────────
+
+
+def _make_trade_report(**overrides: object) -> object:
+    """Construct a TradeReport with sensible defaults. Stays within test file."""
+    from zorivest_core.domain.entities import TradeReport
+
+    defaults: dict[str, object] = {
+        "id": 1,
+        "trade_id": "TEST001",
+        "setup_quality": 4,
+        "execution_quality": 3,
+        "followed_plan": True,
+        "emotional_state": "neutral",
+        "created_at": datetime(2025, 7, 15, 10, 30, 0),
+    }
+    defaults.update(overrides)
+    return TradeReport(**defaults)  # type: ignore[arg-type]
+
+
+class TestTradeReport:
+    """FIC-52 AC-1: TradeReport dataclass with all fields from plan."""
+
+    def test_trade_report_construction_with_required_fields(self) -> None:
+        from zorivest_core.domain.entities import TradeReport
+
+        report = TradeReport(
+            id=1,
+            trade_id="T001",
+            setup_quality=5,
+            execution_quality=4,
+            followed_plan=True,
+            emotional_state="confident",
+            created_at=datetime(2025, 7, 15, 10, 30, 0),
+        )
+        assert report.id == 1
+        assert report.trade_id == "T001"
+        assert report.setup_quality == 5
+        assert report.execution_quality == 4
+        assert report.followed_plan is True
+        assert report.emotional_state == "confident"
+
+    def test_trade_report_defaults(self) -> None:
+        report = _make_trade_report()
+        assert report.lessons_learned == ""
+        assert report.tags == []
+        assert report.images == []
+
+    def test_trade_report_with_all_fields(self) -> None:
+        report = _make_trade_report(
+            lessons_learned="Should have waited for confirmation",
+            tags=["options", "spy"],
+        )
+        assert report.lessons_learned == "Should have waited for confirmation"
+        assert report.tags == ["options", "spy"]
+
+
+class TestTradeReportType:
+    """FIC-52 AC-2: Trade.report type is Optional[TradeReport]."""
+
+    def test_trade_report_field_accepts_trade_report(self) -> None:
+        from zorivest_core.domain.entities import TradeReport
+
+        report = _make_trade_report()
+        trade = _make_trade(report=report)
+        assert isinstance(trade.report, TradeReport)
+
+    def test_trade_report_field_defaults_to_none(self) -> None:
+        trade = _make_trade()
+        assert trade.report is None
+
+
+# ── MEU-52: QualityGrade + EmotionalState enums ─────────────────────────
+
+
+class TestQualityGrade:
+    """FIC-52 AC-3: QualityGrade enum with A-F members and int maps."""
+
+    def test_quality_grade_members(self) -> None:
+        from zorivest_core.domain.enums import QualityGrade
+
+        assert QualityGrade.A == "A"
+        assert QualityGrade.B == "B"
+        assert QualityGrade.C == "C"
+        assert QualityGrade.D == "D"
+        assert QualityGrade.F == "F"
+        assert len(QualityGrade) == 5
+
+    def test_quality_int_map(self) -> None:
+        from zorivest_core.domain.enums import QUALITY_INT_MAP
+
+        assert QUALITY_INT_MAP == {"A": 5, "B": 4, "C": 3, "D": 2, "F": 1}
+
+    def test_quality_grade_map(self) -> None:
+        from zorivest_core.domain.enums import QUALITY_GRADE_MAP
+
+        assert QUALITY_GRADE_MAP == {5: "A", 4: "B", 3: "C", 2: "D", 1: "F"}
+
+    def test_roundtrip_conversion(self) -> None:
+        from zorivest_core.domain.enums import QUALITY_GRADE_MAP, QUALITY_INT_MAP
+
+        for grade, value in QUALITY_INT_MAP.items():
+            assert QUALITY_GRADE_MAP[value] == grade
+
+
+class TestEmotionalState:
+    """FIC-52 AC-4: EmotionalState enum — 9-value MCP+GUI superset."""
+
+    def test_emotional_state_members(self) -> None:
+        from zorivest_core.domain.enums import EmotionalState
+
+        expected = {
+            "calm", "anxious", "fearful", "greedy", "frustrated",
+            "confident", "neutral", "impulsive", "hesitant",
+        }
+        actual = {e.value for e in EmotionalState}
+        assert actual == expected
+
+    def test_emotional_state_count(self) -> None:
+        from zorivest_core.domain.enums import EmotionalState
+
+        assert len(EmotionalState) == 9
+
+    def test_emotional_state_default_is_neutral(self) -> None:
+        from zorivest_core.domain.enums import EmotionalState
+
+        assert EmotionalState.NEUTRAL == "neutral"

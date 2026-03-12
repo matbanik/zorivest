@@ -113,6 +113,14 @@ async def get_provider_connection_service(request: Request):  # noqa: ANN201
         raise HTTPException(500, "ProviderConnectionService not configured")
     return svc
 
+
+async def get_report_service(request: Request):  # noqa: ANN201
+    """Resolve ReportService from app state (MEU-53)."""
+    svc = getattr(request.app.state, "report_service", None)
+    if svc is None:
+        raise HTTPException(500, "ReportService not configured")
+    return svc
+
 # ── Authentication providers ───────────────────────────────────────────
 
 

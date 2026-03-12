@@ -52,6 +52,25 @@ class ImageAttachment:
 
 
 @dataclass
+class TradeReport:
+    """Post-trade review and meta-analysis for a completed trade.
+
+    MEU-52: FIC AC-1. Fields from domain-model-reference.md L50-60.
+    """
+
+    id: int
+    trade_id: str               # FK → Trade.exec_id (unique)
+    setup_quality: int          # 1-5 rating
+    execution_quality: int      # 1-5 rating
+    followed_plan: bool
+    emotional_state: str        # EmotionalState value
+    created_at: datetime
+    lessons_learned: str = ""
+    tags: list[str] = field(default_factory=list)
+    images: list[ImageAttachment] = field(default_factory=list)
+
+
+@dataclass
 class Trade:
     """A single execution (buy or sell) record."""
 
@@ -65,7 +84,7 @@ class Trade:
     commission: float = 0.0
     realized_pnl: float = 0.0
     images: list[ImageAttachment] = field(default_factory=list)
-    report: Optional[object] = None  # TradeReport is P1 — not in MEU-3 scope
+    report: Optional[TradeReport] = None  # MEU-52: typed reference
 
     def attach_image(self, img: ImageAttachment) -> None:
         """Append an ImageAttachment to this trade's image list."""

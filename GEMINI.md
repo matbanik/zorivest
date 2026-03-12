@@ -47,6 +47,9 @@ Follow `AGENTS.md` Session Discipline, plus verify MCP servers (`pomera_diagnose
 
 Follow `AGENTS.md` Roles & Workflows section for plan task fields and role transitions.
 
+> [!CAUTION]
+> **Plan files go to the project, not the brain folder.** Per `create-plan.md` Step 4, `implementation-plan.md` and `task.md` MUST be written to `docs/execution/plans/{YYYY-MM-DD}-{project-slug}/`. The Antigravity brain folder (`~/.gemini/antigravity/brain/{conversation-id}/`) may receive a copy for UI rendering, but the project folder is the single source of truth — it is what Codex validates against and what gets version-controlled. Never write plan files only to the brain folder.
+
 ### Spec Sufficiency Gate
 
 Before approving any plan or starting TDD:

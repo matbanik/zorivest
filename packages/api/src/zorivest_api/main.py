@@ -32,6 +32,7 @@ from zorivest_api.routes.fees import fees_router
 from zorivest_api.routes.calculator import calculator_router
 from zorivest_api.routes.tax import tax_router
 from zorivest_api.routes.market_data import market_data_router
+from zorivest_api.routes.reports import report_router
 from zorivest_api.schemas.common import ErrorEnvelope
 from zorivest_api.auth.auth_service import AuthService
 from zorivest_api.stubs import McpGuardService, StubAnalyticsService, StubMarketDataService, StubProviderConnectionService, StubReviewService, StubTaxService, StubUnitOfWork
@@ -39,6 +40,7 @@ from zorivest_core.services.trade_service import TradeService
 from zorivest_core.services.account_service import AccountService
 from zorivest_core.services.image_service import ImageService
 from zorivest_core.services.settings_service import SettingsService
+from zorivest_core.services.report_service import ReportService
 
 # ── Tag metadata ────────────────────────────────────────────────────────
 
@@ -77,6 +79,7 @@ async def lifespan(app: FastAPI) -> AsyncGenerator[None, None]:
     app.state.tax_service = StubTaxService()
     app.state.market_data_service = StubMarketDataService()
     app.state.provider_connection_service = StubProviderConnectionService()
+    app.state.report_service = ReportService(stub_uow)  # MEU-53
     yield
 
 
@@ -166,5 +169,6 @@ def create_app() -> FastAPI:
     app.include_router(calculator_router)
     app.include_router(tax_router)
     app.include_router(market_data_router)
+    app.include_router(report_router)  # MEU-53
 
     return app
