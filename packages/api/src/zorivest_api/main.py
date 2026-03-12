@@ -31,9 +31,10 @@ from zorivest_api.routes.mistakes import mistakes_router
 from zorivest_api.routes.fees import fees_router
 from zorivest_api.routes.calculator import calculator_router
 from zorivest_api.routes.tax import tax_router
+from zorivest_api.routes.market_data import market_data_router
 from zorivest_api.schemas.common import ErrorEnvelope
 from zorivest_api.auth.auth_service import AuthService
-from zorivest_api.stubs import McpGuardService, StubAnalyticsService, StubReviewService, StubTaxService, StubUnitOfWork
+from zorivest_api.stubs import McpGuardService, StubAnalyticsService, StubMarketDataService, StubProviderConnectionService, StubReviewService, StubTaxService, StubUnitOfWork
 from zorivest_core.services.trade_service import TradeService
 from zorivest_core.services.account_service import AccountService
 from zorivest_core.services.image_service import ImageService
@@ -49,6 +50,7 @@ TAGS_METADATA = [
     {"name": "analytics", "description": "Quantitative analysis: expectancy, drawdown, SQN, fees, mistakes"},
     {"name": "tax", "description": "Simulate, estimate, wash sales, lots, quarterly, harvest"},
     {"name": "system", "description": "Health, version, logging, MCP guard, service lifecycle"},
+    {"name": "market-data", "description": "Quotes, news, search, SEC filings, provider management"},
 ]
 
 
@@ -73,6 +75,8 @@ async def lifespan(app: FastAPI) -> AsyncGenerator[None, None]:
     app.state.analytics_service = StubAnalyticsService()
     app.state.review_service = StubReviewService()
     app.state.tax_service = StubTaxService()
+    app.state.market_data_service = StubMarketDataService()
+    app.state.provider_connection_service = StubProviderConnectionService()
     yield
 
 
@@ -161,5 +165,6 @@ def create_app() -> FastAPI:
     app.include_router(fees_router)
     app.include_router(calculator_router)
     app.include_router(tax_router)
+    app.include_router(market_data_router)
 
     return app

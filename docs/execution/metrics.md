@@ -20,6 +20,7 @@
 | 2026-03-10 | MEU-42 | ~200 | ~8 min | 46 | 8 rounds (3 High + 5 Med + 6 Low, all resolved) | 7/7 | 90% | ~240 min | ToolsetRegistry + adaptive client detection. MCP-local token store, 8 correction rounds for cross-plan doc alignment + evidence drift |
 | 2026-03-11 | MEU-56/57/58 | ~120 | ~5 min | 48 | 1 High + 3 Med + 1 Low (resolved, 2 rounds) | 7/7 | 90% | ~90 min | 3-MEU market data foundation: AuthMethod + ProviderConfig + MarketDataPort + 4 DTOs + API key encryption. Codex caught Any return types, missing round-trip tests, stale counts, validator npx crash |
 | 2026-03-11 | MEU-59/62/60 | ~200 | ~5 min | 147 | 1 High + 1 Med (resolved, 4 rounds) | 7/7 | 90% | ~120 min | 3-MEU market data infra: provider registry + rate limiter + connection service. 4 plan correction rounds for core→infra violation, bash→PowerShell, plan–code sync. Git commit policy codified. |
+| 2026-03-11 | MEU-61/63/64 | ~250 | ~5 min | 58 | 3 High + 2 Med (resolved, 4 rounds) | 7/7 | 85% | ~180 min | 3-MEU market data service + API + MCP tools. 4 correction rounds: app.state wiring, MCP contract drift (configure→disconnect, name→provider_name, readOnlyHint), AV search normalizer, core→infra violation, stub services, TS2353 suppression, closeout artifacts. |
 
 ## Measurement Definitions
 

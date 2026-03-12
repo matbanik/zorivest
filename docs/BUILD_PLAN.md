@@ -235,10 +235,10 @@ Domain → Infrastructure → Services → REST API → MCP Server → GUI → D
 | MEU-58 | `market-provider-settings` | 23 | [08 §settings](build-plan/08-market-data.md) | MarketProviderSettingModel + encrypted key storage | ✅ |
 | MEU-59 | `market-provider-registry` | 24 | [08 §registry](build-plan/08-market-data.md) | Provider registry (12 providers, config map) | ✅ |
 | MEU-60 | `market-connection-svc` | 25 | [08 §connection](build-plan/08-market-data.md) | ProviderConnectionService (test, configure, list) | ✅ |
-| MEU-61 | `market-data-service` | 26 | [08 §service](build-plan/08-market-data.md) | MarketDataService (quote, news, search, SEC filings) | ⬜ |
+| MEU-61 | `market-data-service` | 26 | [08 §service](build-plan/08-market-data.md) | MarketDataService (quote, news, search, SEC filings) | ✅ |
 | MEU-62 | `market-rate-limiter` | 27 | [08 §rate-limit](build-plan/08-market-data.md) | Rate limiter (token-bucket) + log redaction | ✅ |
-| MEU-63 | `market-data-api` | 28 | [08 §api](build-plan/08-market-data.md) | Market data REST API (8 routes) | ⬜ |
-| MEU-64 | `market-data-mcp` | 29 | [05e](build-plan/05e-mcp-market-data.md) | Market data MCP tools (6 tools) | ⬜ |
+| MEU-63 | `market-data-api` | 28 | [08 §api](build-plan/08-market-data.md) | Market data REST API (8 routes) | ✅ |
+| MEU-64 | `market-data-mcp` | 29 | [05e](build-plan/05e-mcp-market-data.md) | Market data MCP tools (7 tools) | ✅ |
 | MEU-65 | `market-data-gui` | 30 | [06f §providers](build-plan/06f-gui-settings.md) | Market Data Providers GUI settings page | ⬜ |
 
 ---

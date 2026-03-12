@@ -25,6 +25,7 @@ import { registerPlanningTools } from "../tools/planning-tools.js";
 import { registerGuiTools } from "../tools/gui-tools.js";
 import { registerAccountTools } from "../tools/accounts-tools.js";
 import { registerDiscoveryTools } from "../tools/discovery-tools.js";
+import { registerMarketDataTools } from "../tools/market-data-tools.js";
 
 // ── Toolset definitions (canonical: 05-mcp-server.md §5.11 L735-745) ──
 
@@ -156,7 +157,7 @@ const TOOLSET_DEFINITIONS: ToolsetDefinition[] = [
     // ── Deferred toolsets ──────────────────────────────────────────────
     {
         name: "market-data",
-        description: "Stock quotes, news, SEC filings, ticker search",
+        description: "Stock quotes, news, SEC filings, ticker search, provider management",
         tools: [
             {
                 name: "get_stock_quote",
@@ -167,15 +168,28 @@ const TOOLSET_DEFINITIONS: ToolsetDefinition[] = [
                 description: "Get market news articles",
             },
             {
-                name: "search_tickers",
+                name: "search_ticker",
                 description: "Search for stock tickers",
             },
             {
                 name: "get_sec_filings",
                 description: "Get SEC filings for a company",
             },
+            {
+                name: "list_market_providers",
+                description: "List all market data providers",
+            },
+            {
+                name: "disconnect_market_provider",
+                description: "Remove provider API key and disable",
+            },
+            {
+                name: "test_market_provider",
+                description: "Test provider connectivity",
+            },
         ],
-        register: () => [],
+        register: (server: McpServer): RegisteredToolHandle[] =>
+            registerMarketDataTools(server),
         loaded: false,
         alwaysLoaded: false,
         isDefault: false,

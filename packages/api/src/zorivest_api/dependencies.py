@@ -98,6 +98,21 @@ async def get_tax_service(request: Request):  # noqa: ANN201
     return svc
 
 
+async def get_market_data_service(request: Request):  # noqa: ANN201
+    """Resolve MarketDataService from app state."""
+    svc = getattr(request.app.state, "market_data_service", None)
+    if svc is None:
+        raise HTTPException(500, "MarketDataService not configured")
+    return svc
+
+
+async def get_provider_connection_service(request: Request):  # noqa: ANN201
+    """Resolve ProviderConnectionService from app state."""
+    svc = getattr(request.app.state, "provider_connection_service", None)
+    if svc is None:
+        raise HTTPException(500, "ProviderConnectionService not configured")
+    return svc
+
 # ── Authentication providers ───────────────────────────────────────────
 
 

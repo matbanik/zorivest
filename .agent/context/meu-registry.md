@@ -92,6 +92,9 @@
 | MEU-59 | `market-provider-registry` | 24 | Static provider registry (12 providers) | ✅ approved |
 | MEU-62 | `market-rate-limiter` | 25 | Token-bucket rate limiter + log redaction | ✅ approved |
 | MEU-60 | `market-connection-svc` | 26 | ProviderConnectionService + persistence | ✅ approved |
+| MEU-61 | `market-data-service` | 27 | MarketDataService + 10 normalizers | ✅ approved |
+| MEU-63 | `market-data-api` | 28 | Market data REST API (8 routes) | ✅ approved |
+| MEU-64 | `market-data-mcp` | 29 | Market data MCP tools (7 tools) | ✅ approved |
 
 ## Execution Order
 

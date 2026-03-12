@@ -356,3 +356,45 @@ class StubTaxService:
         return {"findings": [], "severity_summary": {"error": 0, "warning": 0, "info": 0}}
 
 
+class StubMarketDataService:
+    """Stub market data service — returns empty defaults for all endpoints.
+
+    Source: 08-market-data.md §8.3b
+    Ships shaped responses so the API routes resolve without real providers.
+    Replaced by real MarketDataService when Phase 8 providers are configured.
+    No __getattr__ — explicit methods only.
+    """
+
+    async def get_quote(self, ticker: str) -> dict[str, Any]:
+        return {"ticker": ticker, "price": 0.0, "provider": "stub"}
+
+    async def get_news(self, ticker: Any = None, count: int = 5) -> list:
+        return []
+
+    async def search_ticker(self, query: str) -> list:
+        return []
+
+    async def get_sec_filings(self, ticker: str) -> list:
+        return []
+
+
+class StubProviderConnectionService:
+    """Stub provider connection service — returns empty defaults.
+
+    Source: 08-market-data.md §8.3a
+    Ships shaped responses so provider management routes resolve.
+    Replaced by real ProviderConnectionService when Phase 8 integrates.
+    No __getattr__ — explicit methods only.
+    """
+
+    async def list_providers(self) -> list:
+        return []
+
+    async def configure_provider(self, name: str, **kwargs: Any) -> None:
+        pass
+
+    async def test_connection(self, name: str) -> tuple[bool, str]:
+        return (True, "stub connection — no providers configured")
+
+    async def remove_api_key(self, name: str) -> None:
+        pass
