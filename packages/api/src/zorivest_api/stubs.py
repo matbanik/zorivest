@@ -185,6 +185,71 @@ class _InMemoryTradePlanRepo(_InMemoryRepo):
         return self._auto_id
 
 
+class _InMemoryWatchlistRepo(_InMemoryRepo):
+    """Extends _InMemoryRepo with watchlist-specific methods (MEU-68).
+
+    Supports exists_by_name(), add_item(), remove_item(), get_items()
+    for item management alongside standard CRUD.
+    """
+
+    def __init__(self) -> None:
+        super().__init__()
+        self._items: list[Any] = []  # WatchlistItem storage
+        self._item_auto_id: int = 0
+
+    def save(self, entity: Any, *args: Any, **kwargs: Any) -> int:
+        """Save watchlist with auto-ID assignment."""
+        self._auto_id += 1
+        if hasattr(entity, "id") and entity.id == 0:
+            if hasattr(type(entity), "__dataclass_fields__"):
+                object.__setattr__(entity, "id", self._auto_id)
+            else:
+                setattr(entity, "id", self._auto_id)
+        self._store[self._auto_id] = entity
+        return self._auto_id
+
+    def exists_by_name(self, name: str, *args: Any, **kwargs: Any) -> bool:
+        """Check if a watchlist with this name already exists."""
+        for entity in self._store.values():
+            if getattr(entity, "name", None) == name:
+                return True
+        return False
+
+    def add_item(self, item: Any, *args: Any, **kwargs: Any) -> None:
+        """Add an item to a watchlist."""
+        self._item_auto_id += 1
+        if hasattr(item, "id") and item.id == 0:
+            if hasattr(type(item), "__dataclass_fields__"):
+                object.__setattr__(item, "id", self._item_auto_id)
+            else:
+                setattr(item, "id", self._item_auto_id)
+        self._items.append(item)
+
+    def remove_item(self, watchlist_id: int, ticker: str, *args: Any, **kwargs: Any) -> None:
+        """Remove an item from a watchlist by ticker."""
+        self._items = [
+            i for i in self._items
+            if not (getattr(i, "watchlist_id", None) == watchlist_id
+                    and getattr(i, "ticker", "").upper() == ticker.upper())
+        ]
+
+    def get_items(self, watchlist_id: int, *args: Any, **kwargs: Any) -> list:
+        """Get all items in a watchlist."""
+        return [
+            i for i in self._items
+            if getattr(i, "watchlist_id", None) == watchlist_id
+        ]
+
+    def list_all(self, limit: int = 100, offset: int = 0, *args: Any, **kwargs: Any) -> list:
+        """Return watchlists with pagination."""
+        items = list(self._store.values())
+        return items[offset : offset + limit]
+
+    def delete(self, key: Any, *args: Any, **kwargs: Any) -> None:
+        """Delete watchlist and cascade-delete its items."""
+        self._store.pop(key, None)
+        self._items = [i for i in self._items if getattr(i, "watchlist_id", None) != key]
+
 class StubUnitOfWork:
     """Phase 4 in-memory UoW — satisfies the UnitOfWork protocol.
 
@@ -203,6 +268,7 @@ class StubUnitOfWork:
         self.app_defaults: Any = _InMemoryRepo()
         self.trade_reports: Any = _InMemoryTradeReportRepo()  # MEU-52
         self.trade_plans: Any = _InMemoryTradePlanRepo()      # MEU-66
+        self.watchlists: Any = _InMemoryWatchlistRepo()       # MEU-68
 
     def __enter__(self) -> StubUnitOfWork:
         return self

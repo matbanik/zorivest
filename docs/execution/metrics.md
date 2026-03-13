@@ -22,6 +22,7 @@
 | 2026-03-11 | MEU-59/62/60 | ~200 | ~5 min | 147 | 1 High + 1 Med (resolved, 4 rounds) | 7/7 | 90% | ~120 min | 3-MEU market data infra: provider registry + rate limiter + connection service. 4 plan correction rounds for core→infra violation, bash→PowerShell, plan–code sync. Git commit policy codified. |
 | 2026-03-11 | MEU-61/63/64 | ~250 | ~5 min | 58 | 3 High + 2 Med (resolved, 4 rounds) | 7/7 | 85% | ~180 min | 3-MEU market data service + API + MCP tools. 4 correction rounds: app.state wiring, MCP contract drift (configure→disconnect, name→provider_name, readOnlyHint), AV search normalizer, core→infra violation, stub services, TS2353 suppression, closeout artifacts. |
 | 2026-03-12 | MEU-53/66/67 | ~200 | ~5 min | 74 | 2 High + 2 Med (resolved, 3 rounds) | 7/7 | 90% | ~150 min | 3-MEU trade reports+plans: MCP tools, TradePlan entity+service+API, plan↔trade linking. Codex caught URL drift (/plans→/trade-plans), MCP field alias gap, missing linking validation, no dedup rejection. |
+| 2026-03-13 | MEU-68/69 | ~150 | ~5 min | 55 | 2 High + 5 Med + 1 Low (resolved, 3 rounds) | 7/7 | 85% | ~180 min | 2-MEU watchlist entity+service+API + MCP tools. Codex caught missing entity tests, AC-9 cascade label, MCP count drift, pyright scope. Evidence-freshness recursion was the main lesson. |
 
 ## Measurement Definitions
 

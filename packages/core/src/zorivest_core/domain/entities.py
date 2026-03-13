@@ -148,3 +148,32 @@ class TradePlan:
             return 0.0
         reward = abs(target_price - entry_price)
         return reward / risk
+
+
+@dataclass(frozen=True)
+class WatchlistItem:
+    """Single ticker entry in a Watchlist.
+
+    MEU-68: FIC AC-1. Fields from domain-model-reference.md L71-76.
+    """
+
+    id: int
+    watchlist_id: int
+    ticker: str
+    added_at: datetime
+    notes: str = ""
+
+
+@dataclass
+class Watchlist:
+    """Named collection of tickers for forward-looking research.
+
+    MEU-68: FIC AC-1. Fields from domain-model-reference.md L64-69.
+    """
+
+    id: int
+    name: str
+    description: str
+    created_at: datetime
+    updated_at: datetime
+    tickers: list[WatchlistItem] = field(default_factory=list)

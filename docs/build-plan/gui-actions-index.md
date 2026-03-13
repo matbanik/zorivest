@@ -85,7 +85,7 @@ Canonical registry of **every GUI action** (buttons, triggers, keyboard shortcut
 | 6.2 | Delete watchlist | 🔘 | `DELETE /api/v1/watchlists/{id}` | — | ✅ | [01](01-domain-layer.md), [06c](06c-gui-planning.md) |
 | 6.3 | Add item | 🔘 | `POST /api/v1/watchlists/{id}/items` | — | ✅ | [01](01-domain-layer.md), [06c](06c-gui-planning.md) |
 | 6.4 | Remove item | 🔘 | `DELETE /api/v1/watchlists/{id}/items/{ticker}` | — | ✅ | [06c](06c-gui-planning.md) |
-| 6.5 | Bulk add (comma-separated) | 🔘 | `POST /api/v1/watchlists/{id}/items/bulk` | — | ✅ | [06c](06c-gui-planning.md) |
+| 6.5 | Bulk add (comma-separated) | 🔘 | `POST /api/v1/watchlists/{id}/items/bulk` | — | 📋 | [06c](06c-gui-planning.md) |
 
 ---
 
@@ -311,9 +311,9 @@ Canonical registry of **every GUI action** (buttons, triggers, keyboard shortcut
 |----------|-------|
 | Total GUI actions | 97 (incl. 5 superseded) |
 | Sections | 26 |
-| ✅ Defined (full contract) | 92 |
+| ✅ Defined (full contract) | 91 |
 | 🔶 Domain modeled | 0 |
-| 📋 Planned | 0 |
+| 📋 Planned | 1 |
 | ⛔ Superseded | 5 |
 | Actions with REST endpoints | 66 |
 | Actions with MCP equivalents | 19 |

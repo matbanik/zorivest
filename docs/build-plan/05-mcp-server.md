@@ -16,14 +16,14 @@
 | [05a-mcp-zorivest-settings.md](05a-mcp-zorivest-settings.md) | `zorivest-settings` | 4 | — | 2 | 6 |
 | [05b-mcp-zorivest-diagnostics.md](05b-mcp-zorivest-diagnostics.md) | `zorivest-diagnostics` | 5 | — | — | 5 |
 | [05c-mcp-trade-analytics.md](05c-mcp-trade-analytics.md) | `trade-analytics` | 17 | 2 | — | 19 |
-| [05d-mcp-trade-planning.md](05d-mcp-trade-planning.md) | `trade-planning`, `calculator` | 1 | 1 | — | 2 |
+| [05d-mcp-trade-planning.md](05d-mcp-trade-planning.md) | `trade-planning`, `calculator` | 6 | 1 | — | 7 |
 | [05e-mcp-market-data.md](05e-mcp-market-data.md) | `market-data` | 7 | — | — | 7 |
 | [05f-mcp-accounts.md](05f-mcp-accounts.md) | `accounts` | 7 | 1 | — | 8 |
 | [05g-mcp-scheduling.md](05g-mcp-scheduling.md) | `scheduling` | 6 | — | — | 6 |
 | [05h-mcp-tax.md](05h-mcp-tax.md) | `tax` | — | 8 | — | 8 |
 | [05i-mcp-behavioral.md](05i-mcp-behavioral.md) | `behavioral` | 3 | — | — | 3 |
 | [05j-mcp-discovery.md](05j-mcp-discovery.md) | `discovery` | 4 | — | — | 4 |
-| **Totals** | | **54** | **12** | **2** | **68** |
+| **Totals** | | **59** | **12** | **2** | **73** |
 
 ---
 

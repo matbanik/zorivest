@@ -101,6 +101,101 @@ Create a forward-looking TradePlan from agent research.
 
 ---
 
+### `create_watchlist` [Implemented]
+
+Create a new watchlist for organizing tickers.
+
+**Input:** `name` (required), `description` (optional)
+**Output:** JSON with created watchlist (id, name, description, timestamps)
+**Side Effects:** Writes watchlist to database
+**REST Dependency:** `POST /api/v1/watchlists`
+
+#### Annotations
+
+- `readOnlyHint`: false
+- `destructiveHint`: false
+- `idempotentHint`: false
+- `toolset`: trade-planning
+- `alwaysLoaded`: false
+
+---
+
+### `list_watchlists` [Implemented]
+
+List all watchlists with optional pagination.
+
+**Input:** `limit` (default 100), `offset` (default 0)
+**Output:** JSON array of watchlists
+**Side Effects:** None (read-only)
+**REST Dependency:** `GET /api/v1/watchlists`
+
+#### Annotations
+
+- `readOnlyHint`: true
+- `destructiveHint`: false
+- `idempotentHint`: true
+- `toolset`: trade-planning
+- `alwaysLoaded`: false
+
+---
+
+### `get_watchlist` [Implemented]
+
+Get a single watchlist by ID with its items.
+
+**Input:** `watchlist_id` (required)
+**Output:** JSON with watchlist details and items array
+**Side Effects:** None (read-only)
+**REST Dependency:** `GET /api/v1/watchlists/{id}`
+
+#### Annotations
+
+- `readOnlyHint`: true
+- `destructiveHint`: false
+- `idempotentHint`: true
+- `toolset`: trade-planning
+- `alwaysLoaded`: false
+
+---
+
+### `add_to_watchlist` [Implemented]
+
+Add a ticker to an existing watchlist.
+
+**Input:** `watchlist_id` (required), `ticker` (required), `notes` (optional)
+**Output:** JSON with created watchlist item
+**Side Effects:** Writes item to database
+**REST Dependency:** `POST /api/v1/watchlists/{id}/items`
+
+#### Annotations
+
+- `readOnlyHint`: false
+- `destructiveHint`: false
+- `idempotentHint`: false
+- `toolset`: trade-planning
+- `alwaysLoaded`: false
+
+---
+
+### `remove_from_watchlist` [Implemented]
+
+Remove a ticker from a watchlist.
+
+**Input:** `watchlist_id` (required), `ticker` (required)
+**Output:** JSON with success status
+**Side Effects:** Deletes item from database
+**REST Dependency:** `DELETE /api/v1/watchlists/{id}/items/{ticker}`
+
+#### Annotations
+
+- `readOnlyHint`: false
+- `destructiveHint`: true
+- `idempotentHint`: true
+- `toolset`: trade-planning
+- `alwaysLoaded`: false
+
+---
+
 ## Cross-References
 
 | Tool | Category File | Description |

@@ -130,7 +130,7 @@ const TOOLSET_DEFINITIONS: ToolsetDefinition[] = [
     {
         name: "trade-planning",
         description:
-            "Position calculator, trade plans (includes create_trade cross-tagged from 05c)",
+            "Position calculator, trade plans, watchlist management (includes create_trade cross-tagged from 05c)",
         tools: [
             {
                 name: "calculate_position_size",
@@ -143,6 +143,26 @@ const TOOLSET_DEFINITIONS: ToolsetDefinition[] = [
             {
                 name: "create_trade",
                 description: "Create a new trade (cross-tagged from 05c)",
+            },
+            {
+                name: "create_watchlist",
+                description: "Create a named watchlist",
+            },
+            {
+                name: "list_watchlists",
+                description: "List all watchlists with pagination",
+            },
+            {
+                name: "get_watchlist",
+                description: "Get a watchlist by ID with items",
+            },
+            {
+                name: "add_to_watchlist",
+                description: "Add a ticker to a watchlist",
+            },
+            {
+                name: "remove_from_watchlist",
+                description: "Remove a ticker from a watchlist",
             },
         ],
         register: (server: McpServer): RegisteredToolHandle[] => [

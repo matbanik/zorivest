@@ -18,6 +18,8 @@ from zorivest_core.domain.entities import (
     Trade,
     TradePlan,
     TradeReport,
+    Watchlist,
+    WatchlistItem,
 )
 from zorivest_core.domain.market_provider_settings import MarketProviderSettings
 
@@ -190,6 +192,38 @@ class TradePlanRepository(Protocol):
         ...
 
 
+class WatchlistRepository(Protocol):
+    """Repository for Watchlist entities (MEU-68)."""
+
+    def get(self, watchlist_id: int) -> Optional[Watchlist]: ...
+
+    def save(self, watchlist: Watchlist) -> None: ...
+
+    def list_all(self, limit: int = 100, offset: int = 0) -> list[Watchlist]: ...
+
+    def update(self, watchlist: Watchlist) -> None:
+        """Update an existing watchlist (upsert-safe)."""
+        ...
+
+    def delete(self, watchlist_id: int) -> None:
+        """Delete a watchlist by ID (cascades items)."""
+        ...
+
+    def exists_by_name(self, name: str) -> bool:
+        """Check if a watchlist with this name already exists."""
+        ...
+
+    def add_item(self, item: WatchlistItem) -> None:
+        """Add an item (ticker) to a watchlist."""
+        ...
+
+    def remove_item(self, watchlist_id: int, ticker: str) -> None:
+        """Remove an item (ticker) from a watchlist."""
+        ...
+
+    def get_items(self, watchlist_id: int) -> list[WatchlistItem]: ...
+
+
 class UnitOfWork(Protocol):
     """Transactional unit of work wrapping repository access."""
 
@@ -203,6 +237,7 @@ class UnitOfWork(Protocol):
     market_provider_settings: MarketProviderSettingsRepository
     trade_reports: TradeReportRepository  # MEU-52
     trade_plans: TradePlanRepository      # MEU-66
+    watchlists: WatchlistRepository       # MEU-68
 
     def __enter__(self) -> UnitOfWork: ...
 

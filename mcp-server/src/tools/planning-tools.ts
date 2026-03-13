@@ -120,5 +120,266 @@ export function registerPlanningTools(server: McpServer): RegisteredToolHandle[]
             }),
         ),
     ));
+
+    // ── create_watchlist ──────────────────────────────────────────────
+    // MEU-69 AC-1: Create a named watchlist
+    handles.push(server.registerTool(
+        "create_watchlist",
+        {
+            description:
+                "Create a named watchlist for forward-looking research. Group tickers by theme (e.g. 'Momentum Plays', 'Earnings Watch').",
+            inputSchema: {
+                name: z.string().describe("Watchlist name (must be unique)"),
+                description: z
+                    .string()
+                    .optional()
+                    .describe("Optional description of the watchlist theme"),
+            },
+            annotations: {
+                readOnlyHint: false,
+                destructiveHint: false,
+                idempotentHint: false,
+                openWorldHint: false,
+            },
+            _meta: {
+                toolset: "trade-planning",
+                alwaysLoaded: false,
+            },
+        },
+        withMetrics(
+            "create_watchlist",
+            withGuard(async (params: {
+                name: string;
+                description?: string;
+            }, _extra: unknown) => {
+                const body = {
+                    name: params.name,
+                    description: params.description ?? "",
+                };
+
+                const result = await fetchApi("/watchlists/", {
+                    method: "POST",
+                    headers: { "Content-Type": "application/json" },
+                    body: JSON.stringify(body),
+                });
+
+                return {
+                    content: [
+                        {
+                            type: "text" as const,
+                            text: JSON.stringify(result),
+                        },
+                    ],
+                };
+            }),
+        ),
+    ));
+
+    // ── list_watchlists ──────────────────────────────────────────────
+    // MEU-69 AC-1: List all watchlists with pagination
+    handles.push(server.registerTool(
+        "list_watchlists",
+        {
+            description:
+                "List all watchlists with pagination. Returns name, description, and item count for each.",
+            inputSchema: {
+                limit: z
+                    .number()
+                    .default(100)
+                    .describe("Max results (1-1000)"),
+                offset: z
+                    .number()
+                    .default(0)
+                    .describe("Pagination offset"),
+            },
+            annotations: {
+                readOnlyHint: true,
+                destructiveHint: false,
+                idempotentHint: true,
+                openWorldHint: false,
+            },
+            _meta: {
+                toolset: "trade-planning",
+                alwaysLoaded: false,
+            },
+        },
+        withMetrics(
+            "list_watchlists",
+            withGuard(async (params: {
+                limit: number;
+                offset: number;
+            }, _extra: unknown) => {
+                const result = await fetchApi(
+                    `/watchlists/?limit=${params.limit}&offset=${params.offset}`,
+                );
+
+                return {
+                    content: [
+                        {
+                            type: "text" as const,
+                            text: JSON.stringify(result),
+                        },
+                    ],
+                };
+            }),
+        ),
+    ));
+
+    // ── get_watchlist ────────────────────────────────────────────────
+    // MEU-69 AC-1: Get a watchlist by ID with its items
+    handles.push(server.registerTool(
+        "get_watchlist",
+        {
+            description:
+                "Get a watchlist by ID, including all ticker items with notes.",
+            inputSchema: {
+                watchlist_id: z
+                    .number()
+                    .describe("Watchlist ID to retrieve"),
+            },
+            annotations: {
+                readOnlyHint: true,
+                destructiveHint: false,
+                idempotentHint: true,
+                openWorldHint: false,
+            },
+            _meta: {
+                toolset: "trade-planning",
+                alwaysLoaded: false,
+            },
+        },
+        withMetrics(
+            "get_watchlist",
+            withGuard(async (params: {
+                watchlist_id: number;
+            }, _extra: unknown) => {
+                const result = await fetchApi(
+                    `/watchlists/${params.watchlist_id}`,
+                );
+
+                return {
+                    content: [
+                        {
+                            type: "text" as const,
+                            text: JSON.stringify(result),
+                        },
+                    ],
+                };
+            }),
+        ),
+    ));
+
+    // ── add_to_watchlist ─────────────────────────────────────────────
+    // MEU-69 AC-1: Add a ticker to a watchlist
+    handles.push(server.registerTool(
+        "add_to_watchlist",
+        {
+            description:
+                "Add a ticker symbol to a watchlist with optional research notes.",
+            inputSchema: {
+                watchlist_id: z
+                    .number()
+                    .describe("Target watchlist ID"),
+                ticker: z
+                    .string()
+                    .describe("Ticker symbol to add (e.g. 'AAPL')"),
+                notes: z
+                    .string()
+                    .optional()
+                    .describe("Research notes for this ticker"),
+            },
+            annotations: {
+                readOnlyHint: false,
+                destructiveHint: false,
+                idempotentHint: false,
+                openWorldHint: false,
+            },
+            _meta: {
+                toolset: "trade-planning",
+                alwaysLoaded: false,
+            },
+        },
+        withMetrics(
+            "add_to_watchlist",
+            withGuard(async (params: {
+                watchlist_id: number;
+                ticker: string;
+                notes?: string;
+            }, _extra: unknown) => {
+                const body = {
+                    ticker: params.ticker,
+                    notes: params.notes ?? "",
+                };
+
+                const result = await fetchApi(
+                    `/watchlists/${params.watchlist_id}/items`,
+                    {
+                        method: "POST",
+                        headers: { "Content-Type": "application/json" },
+                        body: JSON.stringify(body),
+                    },
+                );
+
+                return {
+                    content: [
+                        {
+                            type: "text" as const,
+                            text: JSON.stringify(result),
+                        },
+                    ],
+                };
+            }),
+        ),
+    ));
+
+    // ── remove_from_watchlist ────────────────────────────────────────
+    // MEU-69 AC-1: Remove a ticker from a watchlist
+    handles.push(server.registerTool(
+        "remove_from_watchlist",
+        {
+            description:
+                "Remove a ticker from a watchlist.",
+            inputSchema: {
+                watchlist_id: z
+                    .number()
+                    .describe("Source watchlist ID"),
+                ticker: z
+                    .string()
+                    .describe("Ticker symbol to remove"),
+            },
+            annotations: {
+                readOnlyHint: false,
+                destructiveHint: true,
+                idempotentHint: true,
+                openWorldHint: false,
+            },
+            _meta: {
+                toolset: "trade-planning",
+                alwaysLoaded: false,
+            },
+        },
+        withMetrics(
+            "remove_from_watchlist",
+            withGuard(async (params: {
+                watchlist_id: number;
+                ticker: string;
+            }, _extra: unknown) => {
+                const result = await fetchApi(
+                    `/watchlists/${params.watchlist_id}/items/${params.ticker}`,
+                    { method: "DELETE" },
+                );
+
+                return {
+                    content: [
+                        {
+                            type: "text" as const,
+                            text: JSON.stringify(result),
+                        },
+                    ],
+                };
+            }),
+        ),
+    ));
+
     return handles;
 }

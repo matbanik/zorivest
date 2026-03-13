@@ -217,6 +217,16 @@ app.include_router(service_router)     # /api/v1/service
 | fees.summary | `GET` | `/api/v1/fees/summary` | [04e](04e-api-analytics.md) | `get_fee_summary` (05c) | 06b |
 | calculator.size | `POST` | `/api/v1/calculator/position-size` | [04e](04e-api-analytics.md) | `calculate_position_size` (05c) | 06h |
 
+**Watchlists (04 — inline, MEU-68)**
+
+| watchlists.list | `GET` | `/api/v1/watchlists` | 04 (inline) | `list_watchlists` (05d) | 06c |
+| watchlists.create | `POST` | `/api/v1/watchlists` | 04 (inline) | `create_watchlist` (05d) | 06c |
+| watchlists.get | `GET` | `/api/v1/watchlists/{id}` | 04 (inline) | `get_watchlist` (05d) | 06c |
+| watchlists.update | `PUT` | `/api/v1/watchlists/{id}` | 04 (inline) | — | 06c |
+| watchlists.delete | `DELETE` | `/api/v1/watchlists/{id}` | 04 (inline) | — | 06c |
+| watchlists.items.add | `POST` | `/api/v1/watchlists/{id}/items` | 04 (inline) | `add_to_watchlist` (05d) | 06c |
+| watchlists.items.remove | `DELETE` | `/api/v1/watchlists/{id}/items/{ticker}` | 04 (inline) | `remove_from_watchlist` (05d) | 06c |
+
 **Tax (04f)**
 
 | tax.simulate | `POST` | `/api/v1/tax/simulate` | [04f](04f-api-tax.md) | `simulate_tax_impact` (05h) | 06g |

@@ -310,8 +310,10 @@ class TestModuleIntegrity:
         ]
         expected = {
             "Trade", "Account", "BalanceSnapshot", "ImageAttachment",
-            "TradeReport",  # MEU-52
-            "TradePlan",    # MEU-66
+            "TradeReport",      # MEU-52
+            "TradePlan",        # MEU-66
+            "Watchlist",        # MEU-68
+            "WatchlistItem",    # MEU-68
         }
         assert set(class_names) == expected, (
             f"Expected {expected}, got {set(class_names)}"
@@ -579,3 +581,73 @@ class TestPlanStatus:
         from zorivest_core.domain.enums import PlanStatus
 
         assert len(PlanStatus) == 5
+
+
+# ── MEU-68: Watchlist entity ─────────────────────────────────────────────
+
+
+def _make_watchlist(**overrides: object) -> object:
+    """Construct a Watchlist with sensible defaults."""
+    from zorivest_core.domain.entities import Watchlist
+
+    defaults: dict[str, object] = {
+        "id": 1,
+        "name": "Momentum Plays",
+        "description": "High-beta names for swing trades",
+        "created_at": datetime(2026, 3, 12, 10, 0, 0),
+        "updated_at": datetime(2026, 3, 12, 10, 0, 0),
+    }
+    defaults.update(overrides)
+    return Watchlist(**defaults)  # type: ignore[arg-type]
+
+
+def _make_watchlist_item(**overrides: object) -> object:
+    """Construct a WatchlistItem with sensible defaults."""
+    from zorivest_core.domain.entities import WatchlistItem
+
+    defaults: dict[str, object] = {
+        "id": 1,
+        "watchlist_id": 1,
+        "ticker": "AAPL",
+        "added_at": datetime(2026, 3, 12, 10, 0, 0),
+    }
+    defaults.update(overrides)
+    return WatchlistItem(**defaults)  # type: ignore[arg-type]
+
+
+class TestWatchlist:
+    """MEU-68 AC-1: Watchlist dataclass with all fields from domain-model-reference."""
+
+    def test_watchlist_construction(self) -> None:
+        wl = _make_watchlist()
+        assert wl.id == 1
+        assert wl.name == "Momentum Plays"
+        assert wl.description == "High-beta names for swing trades"
+        assert isinstance(wl.created_at, datetime)
+        assert isinstance(wl.updated_at, datetime)
+
+    def test_watchlist_defaults(self) -> None:
+        wl = _make_watchlist()
+        assert wl.tickers == []
+
+    def test_watchlist_with_tickers(self) -> None:
+        item = _make_watchlist_item()
+        wl = _make_watchlist(tickers=[item])
+        assert len(wl.tickers) == 1
+
+
+class TestWatchlistItem:
+    """MEU-68 AC-1: WatchlistItem frozen dataclass."""
+
+    def test_watchlist_item_construction(self) -> None:
+        item = _make_watchlist_item()
+        assert item.id == 1
+        assert item.watchlist_id == 1
+        assert item.ticker == "AAPL"
+        assert isinstance(item.added_at, datetime)
+        assert item.notes == ""
+
+    def test_watchlist_item_is_frozen(self) -> None:
+        item = _make_watchlist_item()
+        with pytest.raises(AttributeError):
+            item.ticker = "MSFT"  # type: ignore[misc]

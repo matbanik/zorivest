@@ -109,6 +109,8 @@
 |-----|------|:------:|-------------|:------:|
 | MEU-66 | `trade-plan-entity` | 31 | TradePlan entity + service + API (full stack) | ✅ approved |
 | MEU-67 | `trade-plan-linking` | 32 | TradePlan ↔ Trade linking (link_plan_to_trade) | ✅ approved |
+| MEU-68 | `watchlist` | 33 | Watchlist entity + service + API (7 REST endpoints) | ✅ approved |
+| MEU-69 | `plan-watchlist-mcp` | 34 | Watchlist MCP tools (5 tools in trade-planning toolset) | ✅ approved |
 
 ## Execution Order
 

@@ -121,6 +121,14 @@ async def get_report_service(request: Request):  # noqa: ANN201
         raise HTTPException(500, "ReportService not configured")
     return svc
 
+
+async def get_watchlist_service(request: Request):  # noqa: ANN201
+    """Resolve WatchlistService from app state (MEU-68)."""
+    svc = getattr(request.app.state, "watchlist_service", None)
+    if svc is None:
+        raise HTTPException(500, "WatchlistService not configured")
+    return svc
+
 # ── Authentication providers ───────────────────────────────────────────
 
 

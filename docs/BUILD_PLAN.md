@@ -251,8 +251,8 @@ Domain → Infrastructure → Services → REST API → MCP Server → GUI → D
 |-----|------|:-----------:|----------------|-------------|:------:|
 | MEU-66 | `trade-plan-entity` | 31 | [01 §entities](build-plan/01-domain-layer.md) | TradePlan entity + service + API | ✅ |
 | MEU-67 | `trade-plan-linking` | 32 | [03](build-plan/03-service-layer.md) | TradePlan ↔ Trade linking (plan → execution) | ✅ |
-| MEU-68 | `watchlist` | 33 | [03](build-plan/03-service-layer.md) | Watchlist entity + service | ⬜ |
-| MEU-69 | `plan-watchlist-mcp` | 34 | [05d](build-plan/05d-mcp-trade-planning.md) | TradePlan + Watchlist MCP tools | ⬜ |
+| MEU-68 | `watchlist` | 33 | [03](build-plan/03-service-layer.md) | Watchlist entity + service | ✅ |
+| MEU-69 | `plan-watchlist-mcp` | 34 | [05d](build-plan/05d-mcp-trade-planning.md) | TradePlan + Watchlist MCP tools | ✅ |
 | MEU-70 | `gui-planning` | 35 | [06c](build-plan/06c-gui-planning.md) | Planning GUI (plan cards, watchlists) | ⬜ |
 | MEU-71 | `gui-accounts` | 35a | [06d](build-plan/06d-gui-accounts.md) | Account Management GUI | ⬜ |
 | MEU-72 | `gui-scheduling` | 35b | [06e](build-plan/06e-gui-scheduling.md) | Scheduling GUI | ⬜ |
