@@ -10,7 +10,9 @@ from typing import Optional
 from zorivest_core.domain.enums import (
     AccountType,
     BalanceSource,
+    ConvictionLevel,
     ImageOwnerType,
+    PlanStatus,
     TradeAction,
 )
 
@@ -105,3 +107,44 @@ class Account:
     sub_accounts: list[str] = field(default_factory=list)
     balance_source: BalanceSource = BalanceSource.MANUAL
     balance_snapshots: list[BalanceSnapshot] = field(default_factory=list)
+
+
+@dataclass
+class TradePlan:
+    """Forward-looking trade thesis — plan before execution.
+
+    MEU-66: FIC AC-1. Fields from domain-model-reference.md L78-96.
+    """
+
+    id: int
+    ticker: str
+    direction: TradeAction         # BOT = bullish, SLD = bearish
+    conviction: ConvictionLevel
+    strategy_name: str
+    strategy_description: str      # Rich text — the thesis
+    entry_price: float
+    stop_loss: float
+    target_price: float
+    entry_conditions: str          # Technical indicators / triggers
+    exit_conditions: str           # When to close regardless
+    timeframe: str                 # e.g., "intraday", "swing 2-5 days"
+    risk_reward_ratio: float       # Computed from entry/stop/target
+    status: PlanStatus
+    created_at: datetime
+    updated_at: datetime
+    linked_trade_id: Optional[str] = None   # FK → Trade, nullable
+    images: list[ImageAttachment] = field(default_factory=list)
+    account_id: Optional[str] = None        # FK → Account, nullable
+
+    @staticmethod
+    def compute_risk_reward(
+        entry_price: float,
+        stop_loss: float,
+        target_price: float,
+    ) -> float:
+        """Compute risk/reward ratio from entry, stop, and target prices."""
+        risk = abs(entry_price - stop_loss)
+        if risk == 0.0:
+            return 0.0
+        reward = abs(target_price - entry_price)
+        return reward / risk

@@ -16,6 +16,7 @@ from zorivest_core.domain.entities import (
     BalanceSnapshot,
     ImageAttachment,
     Trade,
+    TradePlan,
     TradeReport,
 )
 from zorivest_core.domain.market_provider_settings import MarketProviderSettings
@@ -171,6 +172,24 @@ class TradeReportRepository(Protocol):
         ...
 
 
+class TradePlanRepository(Protocol):
+    """Repository for TradePlan entities (MEU-66)."""
+
+    def get(self, plan_id: int) -> Optional[TradePlan]: ...
+
+    def save(self, plan: TradePlan) -> None: ...
+
+    def list_all(self, limit: int = 100, offset: int = 0) -> list[TradePlan]: ...
+
+    def update(self, plan: TradePlan) -> None:
+        """Update an existing plan (upsert-safe)."""
+        ...
+
+    def delete(self, plan_id: int) -> None:
+        """Delete a plan by ID."""
+        ...
+
+
 class UnitOfWork(Protocol):
     """Transactional unit of work wrapping repository access."""
 
@@ -183,6 +202,7 @@ class UnitOfWork(Protocol):
     app_defaults: AppDefaultsRepository
     market_provider_settings: MarketProviderSettingsRepository
     trade_reports: TradeReportRepository  # MEU-52
+    trade_plans: TradePlanRepository      # MEU-66
 
     def __enter__(self) -> UnitOfWork: ...
 

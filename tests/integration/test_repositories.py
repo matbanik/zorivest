@@ -28,6 +28,7 @@ from zorivest_infra.database.repositories import (
     SqlAlchemyBalanceSnapshotRepository,
     SqlAlchemyImageRepository,
     SqlAlchemyRoundTripRepository,
+    SqlAlchemyTradePlanRepository,
     SqlAlchemyTradeReportRepository,
     SqlAlchemyTradeRepository,
 )
@@ -381,3 +382,112 @@ class TestTradeReportRepository:
         session.commit()
 
         assert repo.get_for_trade("E001") is None
+
+
+class TestTradePlanRepository:
+    """FIC-66: TradePlan repository integration tests (MEU-66)."""
+
+    def test_save_and_get(self, session: Session) -> None:
+        from zorivest_core.domain.entities import TradePlan
+
+        repo = SqlAlchemyTradePlanRepository(session)
+        plan = TradePlan(
+            id=0,
+            ticker="AAPL",
+            direction="BOT",
+            conviction="high",
+            strategy_name="Gap & Go",
+            strategy_description="Long after gap up",
+            entry_price=200.0,
+            stop_loss=195.0,
+            target_price=215.0,
+            entry_conditions="Gap > 2%",
+            exit_conditions="Target hit or EOD",
+            timeframe="intraday",
+            risk_reward_ratio=3.0,
+            status="draft",
+            created_at=datetime(2026, 3, 12),
+            updated_at=datetime(2026, 3, 12),
+        )
+        repo.save(plan)
+        session.commit()
+
+        found = repo.get(plan.id)
+        assert found is not None
+        assert found.ticker == "AAPL"
+        assert found.direction == "BOT"
+        assert found.conviction == "high"
+        assert found.risk_reward_ratio == 3.0
+        assert found.status == "draft"
+
+    def test_get_returns_none_when_missing(self, session: Session) -> None:
+        repo = SqlAlchemyTradePlanRepository(session)
+        assert repo.get(999) is None
+
+    def test_list_all(self, session: Session) -> None:
+        from zorivest_core.domain.entities import TradePlan
+
+        repo = SqlAlchemyTradePlanRepository(session)
+        for i in range(3):
+            plan = TradePlan(
+                id=0, ticker=f"T{i}", direction="BOT", conviction="medium",
+                strategy_name="Test", strategy_description="",
+                entry_price=100.0, stop_loss=95.0, target_price=110.0,
+                entry_conditions="", exit_conditions="", timeframe="swing",
+                risk_reward_ratio=2.0, status="draft",
+                created_at=datetime(2026, 3, 12), updated_at=datetime(2026, 3, 12),
+            )
+            repo.save(plan)
+        session.commit()
+
+        plans = repo.list_all(limit=10, offset=0)
+        assert len(plans) == 3
+
+    def test_update(self, session: Session) -> None:
+        from zorivest_core.domain.entities import TradePlan
+
+        repo = SqlAlchemyTradePlanRepository(session)
+        plan = TradePlan(
+            id=0, ticker="AAPL", direction="BOT", conviction="high",
+            strategy_name="Gap & Go", strategy_description="Long gap",
+            entry_price=200.0, stop_loss=195.0, target_price=215.0,
+            entry_conditions="Gap > 2%", exit_conditions="Target or EOD",
+            timeframe="intraday", risk_reward_ratio=3.0, status="draft",
+            created_at=datetime(2026, 3, 12), updated_at=datetime(2026, 3, 12),
+        )
+        repo.save(plan)
+        session.commit()
+
+        saved = repo.get(plan.id)
+        assert saved is not None
+
+        from dataclasses import replace
+        updated = replace(saved, status="active", conviction="max")
+        repo.update(updated)
+        session.commit()
+
+        found = repo.get(plan.id)
+        assert found is not None
+        assert found.status == "active"
+        assert found.conviction == "max"
+
+    def test_delete(self, session: Session) -> None:
+        from zorivest_core.domain.entities import TradePlan
+
+        repo = SqlAlchemyTradePlanRepository(session)
+        plan = TradePlan(
+            id=0, ticker="SPY", direction="SLD", conviction="medium",
+            strategy_name="Breakdown", strategy_description="Short below support",
+            entry_price=600.0, stop_loss=605.0, target_price=585.0,
+            entry_conditions="Break VWAP", exit_conditions="Cover at target",
+            timeframe="intraday", risk_reward_ratio=3.0, status="draft",
+            created_at=datetime(2026, 3, 12), updated_at=datetime(2026, 3, 12),
+        )
+        repo.save(plan)
+        session.commit()
+
+        saved_id = plan.id
+        repo.delete(saved_id)
+        session.commit()
+
+        assert repo.get(saved_id) is None

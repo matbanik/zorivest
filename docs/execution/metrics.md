@@ -21,6 +21,7 @@
 | 2026-03-11 | MEU-56/57/58 | ~120 | ~5 min | 48 | 1 High + 3 Med + 1 Low (resolved, 2 rounds) | 7/7 | 90% | ~90 min | 3-MEU market data foundation: AuthMethod + ProviderConfig + MarketDataPort + 4 DTOs + API key encryption. Codex caught Any return types, missing round-trip tests, stale counts, validator npx crash |
 | 2026-03-11 | MEU-59/62/60 | ~200 | ~5 min | 147 | 1 High + 1 Med (resolved, 4 rounds) | 7/7 | 90% | ~120 min | 3-MEU market data infra: provider registry + rate limiter + connection service. 4 plan correction rounds for core→infra violation, bash→PowerShell, plan–code sync. Git commit policy codified. |
 | 2026-03-11 | MEU-61/63/64 | ~250 | ~5 min | 58 | 3 High + 2 Med (resolved, 4 rounds) | 7/7 | 85% | ~180 min | 3-MEU market data service + API + MCP tools. 4 correction rounds: app.state wiring, MCP contract drift (configure→disconnect, name→provider_name, readOnlyHint), AV search normalizer, core→infra violation, stub services, TS2353 suppression, closeout artifacts. |
+| 2026-03-12 | MEU-53/66/67 | ~200 | ~5 min | 74 | 2 High + 2 Med (resolved, 3 rounds) | 7/7 | 90% | ~150 min | 3-MEU trade reports+plans: MCP tools, TradePlan entity+service+API, plan↔trade linking. Codex caught URL drift (/plans→/trade-plans), MCP field alias gap, missing linking validation, no dedup rejection. |
 
 ## Measurement Definitions
 

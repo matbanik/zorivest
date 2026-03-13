@@ -311,6 +311,7 @@ class TestModuleIntegrity:
         expected = {
             "Trade", "Account", "BalanceSnapshot", "ImageAttachment",
             "TradeReport",  # MEU-52
+            "TradePlan",    # MEU-66
         }
         assert set(class_names) == expected, (
             f"Expected {expected}, got {set(class_names)}"
@@ -444,3 +445,137 @@ class TestEmotionalState:
         from zorivest_core.domain.enums import EmotionalState
 
         assert EmotionalState.NEUTRAL == "neutral"
+
+
+# ── MEU-66: TradePlan entity ──────────────────────────────────────────────
+
+
+def _make_trade_plan(**overrides: object) -> object:
+    """Construct a TradePlan with sensible defaults."""
+    from zorivest_core.domain.entities import TradePlan
+    from zorivest_core.domain.enums import ConvictionLevel, PlanStatus, TradeAction
+
+    defaults: dict[str, object] = {
+        "id": 1,
+        "ticker": "AAPL",
+        "direction": TradeAction.BOT,
+        "conviction": ConvictionLevel.HIGH,
+        "strategy_name": "Gap & Go",
+        "strategy_description": "Long after morning gap on volume",
+        "entry_price": 200.0,
+        "stop_loss": 195.0,
+        "target_price": 215.0,
+        "entry_conditions": "Gap > 2%, volume > 1M",
+        "exit_conditions": "Target hit or EOD",
+        "timeframe": "intraday",
+        "risk_reward_ratio": 3.0,
+        "status": PlanStatus.DRAFT,
+        "linked_trade_id": None,
+        "account_id": None,
+        "created_at": datetime(2026, 3, 12, 9, 0, 0),
+        "updated_at": datetime(2026, 3, 12, 9, 0, 0),
+    }
+    defaults.update(overrides)
+    return TradePlan(**defaults)  # type: ignore[arg-type]
+
+
+class TestTradePlan:
+    """FIC-66 AC-1: TradePlan dataclass with all 18 fields."""
+
+    def test_trade_plan_construction_with_all_fields(self) -> None:
+        from zorivest_core.domain.enums import (
+            ConvictionLevel, PlanStatus, TradeAction,
+        )
+
+        plan = _make_trade_plan()
+        assert plan.id == 1
+        assert plan.ticker == "AAPL"
+        assert plan.direction == TradeAction.BOT
+        assert plan.conviction == ConvictionLevel.HIGH
+        assert plan.strategy_name == "Gap & Go"
+        assert plan.strategy_description == "Long after morning gap on volume"
+        assert plan.entry_price == 200.0
+        assert plan.stop_loss == 195.0
+        assert plan.target_price == 215.0
+        assert plan.entry_conditions == "Gap > 2%, volume > 1M"
+        assert plan.exit_conditions == "Target hit or EOD"
+        assert plan.timeframe == "intraday"
+        assert plan.risk_reward_ratio == 3.0
+        assert plan.status == PlanStatus.DRAFT
+        assert plan.linked_trade_id is None
+        assert plan.account_id is None
+        assert isinstance(plan.created_at, datetime)
+        assert isinstance(plan.updated_at, datetime)
+
+    def test_trade_plan_defaults(self) -> None:
+        plan = _make_trade_plan()
+        assert plan.images == []
+        assert plan.linked_trade_id is None
+        assert plan.account_id is None
+
+    def test_trade_plan_with_images(self) -> None:
+        img = _make_image_attachment()
+        plan = _make_trade_plan(images=[img])
+        assert len(plan.images) == 1
+
+
+class TestTradePlanRiskReward:
+    """FIC-66 AC-2: risk_reward_ratio computed from entry, stop, target."""
+
+    def test_compute_risk_reward_bullish(self) -> None:
+        from zorivest_core.domain.entities import TradePlan
+
+        rr = TradePlan.compute_risk_reward(
+            entry_price=200.0, stop_loss=195.0, target_price=215.0,
+        )
+        # (215 - 200) / (200 - 195) = 15 / 5 = 3.0
+        assert rr == pytest.approx(3.0)
+
+    def test_compute_risk_reward_bearish(self) -> None:
+        from zorivest_core.domain.entities import TradePlan
+
+        rr = TradePlan.compute_risk_reward(
+            entry_price=200.0, stop_loss=205.0, target_price=185.0,
+        )
+        # abs(185 - 200) / abs(200 - 205) = 15 / 5 = 3.0
+        assert rr == pytest.approx(3.0)
+
+    def test_compute_risk_reward_zero_risk_returns_zero(self) -> None:
+        from zorivest_core.domain.entities import TradePlan
+
+        rr = TradePlan.compute_risk_reward(
+            entry_price=200.0, stop_loss=200.0, target_price=210.0,
+        )
+        assert rr == 0.0
+
+
+class TestConvictionLevel:
+    """FIC-66: ConvictionLevel enum (4 values)."""
+
+    def test_conviction_level_members(self) -> None:
+        from zorivest_core.domain.enums import ConvictionLevel
+
+        expected = {"low", "medium", "high", "max"}
+        actual = {e.value for e in ConvictionLevel}
+        assert actual == expected
+
+    def test_conviction_level_count(self) -> None:
+        from zorivest_core.domain.enums import ConvictionLevel
+
+        assert len(ConvictionLevel) == 4
+
+
+class TestPlanStatus:
+    """FIC-66: PlanStatus enum (5 values)."""
+
+    def test_plan_status_members(self) -> None:
+        from zorivest_core.domain.enums import PlanStatus
+
+        expected = {"draft", "active", "executed", "expired", "cancelled"}
+        actual = {e.value for e in PlanStatus}
+        assert actual == expected
+
+    def test_plan_status_count(self) -> None:
+        from zorivest_core.domain.enums import PlanStatus
+
+        assert len(PlanStatus) == 5

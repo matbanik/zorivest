@@ -101,7 +101,14 @@
 | MEU | Slug | Matrix | Description | Status |
 |-----|------|:------:|-------------|:------:|
 | MEU-52 | `trade-report-entity` | 17 | TradeReport entity + enums + service | ✅ approved |
-| MEU-53 | `trade-report-mcp-api` | 18 | TradeReport API routes (PARTIAL — MCP tools deferred) | 🟡 partial |
+| MEU-53 | `trade-report-mcp-api` | 18 | TradeReport MCP tools + API routes | ✅ approved |
+
+## P2: Planning & Watchlists
+
+| MEU | Slug | Matrix | Description | Status |
+|-----|------|:------:|-------------|:------:|
+| MEU-66 | `trade-plan-entity` | 31 | TradePlan entity + service + API (full stack) | ✅ approved |
+| MEU-67 | `trade-plan-linking` | 32 | TradePlan ↔ Trade linking (link_plan_to_trade) | ✅ approved |
 
 ## Execution Order
 

@@ -33,6 +33,7 @@ from zorivest_api.routes.calculator import calculator_router
 from zorivest_api.routes.tax import tax_router
 from zorivest_api.routes.market_data import market_data_router
 from zorivest_api.routes.reports import report_router
+from zorivest_api.routes.plans import plan_router
 from zorivest_api.schemas.common import ErrorEnvelope
 from zorivest_api.auth.auth_service import AuthService
 from zorivest_api.stubs import McpGuardService, StubAnalyticsService, StubMarketDataService, StubProviderConnectionService, StubReviewService, StubTaxService, StubUnitOfWork
@@ -170,5 +171,6 @@ def create_app() -> FastAPI:
     app.include_router(tax_router)
     app.include_router(market_data_router)
     app.include_router(report_router)  # MEU-53
+    app.include_router(plan_router)    # MEU-66
 
     return app

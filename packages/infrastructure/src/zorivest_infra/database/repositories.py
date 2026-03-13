@@ -23,6 +23,7 @@ from zorivest_core.domain.entities import (
     BalanceSnapshot,
     ImageAttachment,
     Trade,
+    TradePlan,
     TradeReport,
 )
 from zorivest_core.domain.enums import (
@@ -41,6 +42,7 @@ from zorivest_infra.database.models import (
     RoundTripModel,
     SettingModel,
     TradeModel,
+    TradePlanModel,
     TradeReportModel,
 )
 
@@ -550,6 +552,105 @@ class SqlAlchemyTradeReportRepository:
     def delete(self, report_id: int) -> None:
         """Delete a report by ID."""
         m = self._session.get(TradeReportModel, report_id)
+        if m:
+            self._session.delete(m)
+
+
+# ── TradePlan mapping helpers (MEU-66) ──────────────────────────────────
+
+
+def _plan_to_model(plan: TradePlan) -> TradePlanModel:
+    """Convert TradePlan domain entity to SQLAlchemy model."""
+    m = TradePlanModel()
+    if plan.id != 0:
+        m.id = plan.id
+    m.ticker = plan.ticker
+    m.direction = str(plan.direction)
+    m.conviction = str(plan.conviction)
+    m.strategy_name = plan.strategy_name
+    m.strategy_description = plan.strategy_description
+    m.entry_price = plan.entry_price
+    m.stop_loss = plan.stop_loss
+    m.target_price = plan.target_price
+    m.entry_conditions = plan.entry_conditions
+    m.exit_conditions = plan.exit_conditions
+    m.timeframe = plan.timeframe
+    m.risk_reward_ratio = plan.risk_reward_ratio
+    m.status = str(plan.status)
+    m.linked_trade_id = plan.linked_trade_id
+    m.account_id = plan.account_id
+    m.created_at = plan.created_at
+    m.updated_at = plan.updated_at
+    return m
+
+
+def _model_to_plan(m: TradePlanModel) -> TradePlan:
+    """Convert SQLAlchemy model to TradePlan domain entity."""
+    return TradePlan(
+        id=m.id,
+        ticker=m.ticker,
+        direction=m.direction,
+        conviction=m.conviction,
+        strategy_name=m.strategy_name or "",
+        strategy_description=m.strategy_description or "",
+        entry_price=m.entry_price or 0.0,
+        stop_loss=m.stop_loss or 0.0,
+        target_price=m.target_price or 0.0,
+        entry_conditions=m.entry_conditions or "",
+        exit_conditions=m.exit_conditions or "",
+        timeframe=m.timeframe or "",
+        risk_reward_ratio=m.risk_reward_ratio or 0.0,
+        status=m.status or "draft",
+        linked_trade_id=m.linked_trade_id,
+        account_id=m.account_id,
+        created_at=m.created_at,
+        updated_at=m.updated_at or m.created_at,
+    )
+
+
+# ── SqlAlchemy TradePlan repository (MEU-66) ────────────────────────────
+
+
+class SqlAlchemyTradePlanRepository:
+    """Concrete SQLAlchemy implementation of TradePlanRepository."""
+
+    def __init__(self, session: Session) -> None:
+        self._session = session
+
+    def get(self, plan_id: int) -> TradePlan | None:
+        """Get plan by ID."""
+        m = self._session.get(TradePlanModel, plan_id)
+        return _model_to_plan(m) if m else None
+
+    def save(self, plan: TradePlan) -> None:
+        """Save a new plan."""
+        m = _plan_to_model(plan)
+        self._session.add(m)
+        self._session.flush()
+        # Hydrate the auto-assigned ID back onto the domain entity
+        if hasattr(type(plan), "__dataclass_fields__"):
+            object.__setattr__(plan, "id", m.id)
+        else:
+            plan.id = m.id  # type: ignore[misc]
+
+    def list_all(self, limit: int = 100, offset: int = 0) -> list[TradePlan]:
+        """List plans with pagination."""
+        models = (
+            self._session.query(TradePlanModel)
+            .order_by(TradePlanModel.id.desc())
+            .offset(offset)
+            .limit(limit)
+            .all()
+        )
+        return [_model_to_plan(m) for m in models]
+
+    def update(self, plan: TradePlan) -> None:
+        """Update existing plan via merge (upsert-safe)."""
+        self._session.merge(_plan_to_model(plan))
+
+    def delete(self, plan_id: int) -> None:
+        """Delete a plan by ID."""
+        m = self._session.get(TradePlanModel, plan_id)
         if m:
             self._session.delete(m)
 

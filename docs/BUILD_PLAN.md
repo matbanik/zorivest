@@ -218,7 +218,7 @@ Domain → Infrastructure → Services → REST API → MCP Server → GUI → D
 | MEU | Slug | Matrix Item | Build Plan Ref | Description | Status |
 |-----|------|:-----------:|----------------|-------------|:------:|
 | MEU-52 | `trade-report-entity` | 17 | [01 §entities](build-plan/01-domain-layer.md) | TradeReport entity + service | ✅ |
-| MEU-53 | `trade-report-mcp-api` | 18 | [05c](build-plan/05c-mcp-trade-analytics.md) | TradeReport MCP tools + API routes | 🟡 PARTIAL (API ✅, MCP ⬜) |
+| MEU-53 | `trade-report-mcp-api` | 18 | [05c](build-plan/05c-mcp-trade-analytics.md) | TradeReport MCP tools + API routes | ✅ |
 | MEU-54 | `multi-account-ui` | 19 | [06b](build-plan/06b-gui-trades.md) | Multi-account UI (badges, filtering) | ⬜ |
 | MEU-55 | `report-gui` | 20 | [06b](build-plan/06b-gui-trades.md) | Report GUI panel (ratings, tags, lessons) | ⬜ |
 
@@ -249,8 +249,8 @@ Domain → Infrastructure → Services → REST API → MCP Server → GUI → D
 
 | MEU | Slug | Matrix Item | Build Plan Ref | Description | Status |
 |-----|------|:-----------:|----------------|-------------|:------:|
-| MEU-66 | `trade-plan-entity` | 31 | [01 §entities](build-plan/01-domain-layer.md) | TradePlan entity + service | ⬜ |
-| MEU-67 | `trade-plan-linking` | 32 | [03](build-plan/03-service-layer.md) | TradePlan ↔ Trade linking (plan → execution) | ⬜ |
+| MEU-66 | `trade-plan-entity` | 31 | [01 §entities](build-plan/01-domain-layer.md) | TradePlan entity + service + API | ✅ |
+| MEU-67 | `trade-plan-linking` | 32 | [03](build-plan/03-service-layer.md) | TradePlan ↔ Trade linking (plan → execution) | ✅ |
 | MEU-68 | `watchlist` | 33 | [03](build-plan/03-service-layer.md) | Watchlist entity + service | ⬜ |
 | MEU-69 | `plan-watchlist-mcp` | 34 | [05d](build-plan/05d-mcp-trade-planning.md) | TradePlan + Watchlist MCP tools | ⬜ |
 | MEU-70 | `gui-planning` | 35 | [06c](build-plan/06c-gui-planning.md) | Planning GUI (plan cards, watchlists) | ⬜ |
@@ -462,18 +462,18 @@ Domain → Infrastructure → Services → REST API → MCP Server → GUI → D
 | P0 — Phase 1A | MEU-1A → MEU-3A | 3 | 3 |
 | P0 — Phase 2/2A | MEU-12 → MEU-21 | 10 | 10 |
 | P0 — Phase 3/4 | MEU-22 → MEU-30 | 9 | 9 |
-| P0 — Phase 5 | MEU-31 → MEU-42 | 12 | 1 |
+| P0 — Phase 5 | MEU-31 → MEU-42 | 12 | 12 |
 | P0 — Phase 6 | MEU-43 → MEU-51 | 9 | 0 |
-| P1 | MEU-52 → MEU-55 | 4 | 0 |
-| P1.5 — Phase 8 | MEU-56 → MEU-65 | 10 | 0 |
-| P2 | MEU-66 → MEU-76 | 11 | 0 |
+| P1 | MEU-52 → MEU-55 | 4 | 2 |
+| P1.5 — Phase 8 | MEU-56 → MEU-65 | 10 | 9 |
+| P2 | MEU-66 → MEU-76 | 11 | 2 |
 | P2.5 — Phase 9 | MEU-77 → MEU-90 | 14 | 0 |
 | P2.6 — Phase 10 | MEU-91 → MEU-95 | 5 | 0 |
 | P2.75 — Expansion | MEU-96 → MEU-122 | 27 | 0 |
 | P3 — Tax | MEU-123 → MEU-156 | 34 | 0 |
 | Phase 7 | MEU-157 | 1 | 0 |
 | Research | MEU-158 → MEU-167 | 10 | 0 |
-| **Total** | | **170** | **22** |
+| **Total** | | **170** | **58** |
 
 ---
 

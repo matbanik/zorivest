@@ -381,5 +381,92 @@ export function registerAnalyticsTools(server: McpServer): RegisteredToolHandle[
             };
         },
     ));
+
+    // 13. create_report → POST /trades/{trade_id}/report
+    handles.push(server.registerTool(
+        "create_report",
+        {
+            description:
+                "Create a post-trade review report for a completed trade. Records execution quality assessment, plan adherence, emotional state, and lessons learned.",
+            inputSchema: {
+                trade_id: z.string().describe("Trade execution ID to report on"),
+                setup_quality: z
+                    .enum(["A", "B", "C", "D", "F"])
+                    .describe("Grade for trade setup quality"),
+                execution_quality: z
+                    .enum(["A", "B", "C", "D", "F"])
+                    .describe("Grade for execution quality"),
+                followed_plan: z
+                    .boolean()
+                    .describe("Whether the trader followed the original plan"),
+                emotional_state: z
+                    .enum([
+                        "calm",
+                        "anxious",
+                        "fearful",
+                        "greedy",
+                        "frustrated",
+                        "confident",
+                        "neutral",
+                    ])
+                    .default("neutral")
+                    .describe("Emotional state during the trade"),
+                lessons_learned: z
+                    .string()
+                    .optional()
+                    .describe("Free-form reflection on the trade"),
+                tags: z
+                    .array(z.string())
+                    .default([])
+                    .describe("Strategy/category tags for the report"),
+            },
+            annotations: {
+                readOnlyHint: false,
+                destructiveHint: false,
+                idempotentHint: false,
+                openWorldHint: false,
+            },
+            _meta: ANALYTICS_META,
+        },
+        async (args) => {
+            const result = await fetchApi(
+                `/trades/${args.trade_id}/report`,
+                {
+                    method: "POST",
+                    body: JSON.stringify(args),
+                    headers: { "Content-Type": "application/json" },
+                },
+            );
+            return {
+                content: [
+                    { type: "text" as const, text: JSON.stringify(result) },
+                ],
+            };
+        },
+    ));
+
+    // 14. get_report_for_trade → GET /trades/{trade_id}/report
+    handles.push(server.registerTool(
+        "get_report_for_trade",
+        {
+            description:
+                "Retrieve the post-trade review report for a specific trade execution.",
+            inputSchema: {
+                trade_id: z.string().describe("Trade execution ID to get report for"),
+            },
+            annotations: READ_ONLY_ANNOTATIONS,
+            _meta: ANALYTICS_META,
+        },
+        async ({ trade_id }) => {
+            const result = await fetchApi(
+                `/trades/${trade_id}/report`,
+            );
+            return {
+                content: [
+                    { type: "text" as const, text: JSON.stringify(result) },
+                ],
+            };
+        },
+    ));
     return handles;
 }

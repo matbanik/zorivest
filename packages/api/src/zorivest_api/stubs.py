@@ -170,6 +170,21 @@ class _InMemoryTradeReportRepo(_InMemoryRepo):
         return None
 
 
+class _InMemoryTradePlanRepo(_InMemoryRepo):
+    """Extends _InMemoryRepo with auto-ID assignment for TradePlan (MEU-66)."""
+
+    def save(self, entity: Any, *args: Any, **kwargs: Any) -> int:
+        """Save plan with auto-ID assignment (matches SqlAlchemy behavior)."""
+        self._auto_id += 1
+        if hasattr(entity, "id") and entity.id == 0:
+            if hasattr(type(entity), "__dataclass_fields__"):
+                object.__setattr__(entity, "id", self._auto_id)
+            else:
+                setattr(entity, "id", self._auto_id)
+        self._store[self._auto_id] = entity
+        return self._auto_id
+
+
 class StubUnitOfWork:
     """Phase 4 in-memory UoW — satisfies the UnitOfWork protocol.
 
@@ -187,6 +202,7 @@ class StubUnitOfWork:
         self.settings: Any = _InMemoryRepo()
         self.app_defaults: Any = _InMemoryRepo()
         self.trade_reports: Any = _InMemoryTradeReportRepo()  # MEU-52
+        self.trade_plans: Any = _InMemoryTradePlanRepo()      # MEU-66
 
     def __enter__(self) -> StubUnitOfWork:
         return self

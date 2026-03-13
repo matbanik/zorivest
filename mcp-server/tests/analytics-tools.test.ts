@@ -1,7 +1,7 @@
 /**
  * Unit tests for trade analytics MCP tools.
  *
- * Tests verify all 12 analytics tools call correct REST endpoints,
+ * Tests verify all 14 analytics tools call correct REST endpoints,
  * forward params/body correctly, and return standard envelope.
  * Uses mocked global.fetch — no live API needed.
  *
@@ -254,8 +254,67 @@ describe("trade analytics tools", () => {
         ]);
     });
 
+    // 13. create_report
+    it("create_report calls POST /trades/{trade_id}/report with body", async () => {
+        mockApiResponse({ id: 1, trade_id: "exec-5" });
+
+        const client = await createTestClient();
+        const result = await client.callTool({
+            name: "create_report",
+            arguments: {
+                trade_id: "exec-5",
+                setup_quality: "A",
+                execution_quality: "B",
+                followed_plan: true,
+                emotional_state: "calm",
+                lessons_learned: "Good patience",
+                tags: ["momentum", "swing"],
+            },
+        });
+
+        const { url, init } = getLastFetchCall();
+        expect(url).toContain("/trades/exec-5/report");
+        expect(init?.method).toBe("POST");
+        const body = JSON.parse(init?.body as string);
+        expect(body.trade_id).toBe("exec-5");
+        expect(body.setup_quality).toBe("A");
+        expect(body.execution_quality).toBe("B");
+        expect(body.followed_plan).toBe(true);
+        expect(body.emotional_state).toBe("calm");
+        expect(body.tags).toEqual(["momentum", "swing"]);
+
+        const content = result.content as Array<{
+            type: string;
+            text: string;
+        }>;
+        expect(content[0].type).toBe("text");
+        expect(JSON.parse(content[0].text)).toHaveProperty("success");
+    });
+
+    // 14. get_report_for_trade
+    it("get_report_for_trade calls GET /trades/{trade_id}/report", async () => {
+        mockApiResponse({ id: 1, setup_quality: "A" });
+
+        const client = await createTestClient();
+        const result = await client.callTool({
+            name: "get_report_for_trade",
+            arguments: { trade_id: "exec-5" },
+        });
+
+        const { url, init } = getLastFetchCall();
+        expect(url).toContain("/trades/exec-5/report");
+        expect(init?.method ?? "GET").toBe("GET");
+
+        const content = result.content as Array<{
+            type: string;
+            text: string;
+        }>;
+        expect(content[0].type).toBe("text");
+        expect(JSON.parse(content[0].text)).toHaveProperty("success");
+    });
+
     // Metadata: annotations per spec
-    it("registers all 12 tools with correct annotations", async () => {
+    it("registers all 14 tools with correct annotations", async () => {
         mockApiResponse();
 
         const client = await createTestClient();
@@ -274,6 +333,8 @@ describe("trade analytics tools", () => {
             "get_cost_of_free",
             "ai_review_trade",
             "detect_options_strategy",
+            "create_report",
+            "get_report_for_trade",
         ];
 
         // All 12 tools registered
@@ -286,7 +347,8 @@ describe("trade analytics tools", () => {
         const readOnlyTools = tools.filter(
             (t) =>
                 expectedTools.includes(t.name) &&
-                t.name !== "enrich_trade_excursion",
+                t.name !== "enrich_trade_excursion" &&
+                t.name !== "create_report",
         );
         for (const tool of readOnlyTools) {
             expect(

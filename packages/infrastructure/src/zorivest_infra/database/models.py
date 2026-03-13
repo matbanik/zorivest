@@ -121,6 +121,7 @@ class TradePlanModel(Base):
     entry_conditions = Column(Text, nullable=True)
     exit_conditions = Column(Text, nullable=True)
     timeframe = Column(String, nullable=True)
+    risk_reward_ratio = Column(Float, nullable=True, default=0.0)  # MEU-66
     status = Column(String(15), default="draft")  # PlanStatus
     linked_trade_id = Column(String, ForeignKey("trades.exec_id"), nullable=True)
     account_id = Column(String, ForeignKey("accounts.account_id"), nullable=True)
