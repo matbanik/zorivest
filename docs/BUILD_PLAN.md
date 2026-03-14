@@ -269,10 +269,10 @@ Domain → Infrastructure → Services → REST API → MCP Server → GUI → D
 
 | MEU | Slug | Matrix Item | Build Plan Ref | Description | Status |
 |-----|------|:-----------:|----------------|-------------|:------:|
-| MEU-77 | `pipeline-enums` | 36 | [09 §enums](build-plan/09-scheduling.md) | PipelineStatus, StepErrorMode, DataType enums | ⬜ |
-| MEU-78 | `policy-models` | 37 | [09 §policy](build-plan/09-scheduling.md) | PolicyDocument + PolicyStep Pydantic models | ⬜ |
-| MEU-79 | `step-registry` | 38 | [09 §registry](build-plan/09-scheduling.md) | StepBase Protocol + RegisteredStep + StepRegistry | ⬜ |
-| MEU-80 | `policy-validator` | 39 | [09 §validator](build-plan/09-scheduling.md) | PolicyValidator (8 validation rules) | ⬜ |
+| MEU-77 | `pipeline-enums` | 36 | [09 §enums](build-plan/09-scheduling.md) | PipelineStatus, StepErrorMode, DataType enums | ✅ |
+| MEU-78 | `policy-models` | 37 | [09 §policy](build-plan/09-scheduling.md) | PolicyDocument + PolicyStep Pydantic models | ✅ |
+| MEU-79 | `step-registry` | 38 | [09 §registry](build-plan/09-scheduling.md) | StepBase Protocol + RegisteredStep + StepRegistry | ✅ |
+| MEU-80 | `policy-validator` | 39 | [09 §validator](build-plan/09-scheduling.md) | PolicyValidator (8 validation rules) | ✅ |
 | MEU-81 | `scheduling-models` | 40 | [09 §tables](build-plan/09-scheduling.md) | SQLAlchemy models (9 tables) | ⬜ |
 | MEU-82 | `scheduling-repos` | 41 | [09 §repos](build-plan/09-scheduling.md) | Repository implementations + audit triggers | ⬜ |
 | MEU-83 | `pipeline-runner` | 42 | [09 §runner](build-plan/09-scheduling.md) | PipelineRunner (sequential async executor) | ⬜ |
@@ -466,8 +466,8 @@ Domain → Infrastructure → Services → REST API → MCP Server → GUI → D
 | P0 — Phase 6 | MEU-43 → MEU-51 | 9 | 0 |
 | P1 | MEU-52 → MEU-55 | 4 | 2 |
 | P1.5 — Phase 8 | MEU-56 → MEU-65 | 10 | 9 |
-| P2 | MEU-66 → MEU-76 | 11 | 2 |
-| P2.5 — Phase 9 | MEU-77 → MEU-90 | 14 | 0 |
+| P2 | MEU-66 → MEU-76 | 11 | 4 |
+| P2.5 — Phase 9 | MEU-77 → MEU-90 | 14 | 4 |
 | P2.6 — Phase 10 | MEU-91 → MEU-95 | 5 | 0 |
 | P2.75 — Expansion | MEU-96 → MEU-122 | 27 | 0 |
 | P3 — Tax | MEU-123 → MEU-156 | 34 | 0 |

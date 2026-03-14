@@ -3,7 +3,9 @@ name = "zorivest-core"
 version = "0.1.0"
 requires-python = ">=3.12"
 dependencies = [
+    "apscheduler>=3.11.2",
     "pydantic>=2.0",
+    "structlog>=25.5.0",
 ]
 
 [build-system]

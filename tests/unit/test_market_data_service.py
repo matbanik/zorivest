@@ -17,8 +17,6 @@ import pytest
 from zorivest_core.application.market_dtos import (
     MarketNewsItem,
     MarketQuote,
-    SecFiling,
-    TickerSearchResult,
 )
 from zorivest_core.services.market_data_service import (
     MarketDataError,

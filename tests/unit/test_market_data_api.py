@@ -6,9 +6,7 @@ Tests 8 endpoints using TestClient with dependency overrides.
 
 from __future__ import annotations
 
-import asyncio
-from typing import Any
-from unittest.mock import AsyncMock, MagicMock
+from unittest.mock import AsyncMock
 
 import pytest
 from fastapi.testclient import TestClient
@@ -194,6 +192,7 @@ class TestConfigureProvider:
         )
         assert resp.status_code == 200
         assert resp.json()["status"] == "configured"
+        assert resp.json()["stub"] is True
 
     def test_unknown_provider_returns_404(
         self, client: TestClient, mock_provider_service: AsyncMock
@@ -215,6 +214,7 @@ class TestTestProvider:
         data = resp.json()
         assert data["success"] is True
         assert data["message"] == "Connection successful"
+        assert data["stub"] is True
 
 
 class TestRemoveProviderKey:
@@ -224,3 +224,4 @@ class TestRemoveProviderKey:
         resp = client.delete("/api/v1/market-data/providers/Alpha%20Vantage/key")
         assert resp.status_code == 200
         assert resp.json()["status"] == "removed"
+        assert resp.json()["stub"] is True

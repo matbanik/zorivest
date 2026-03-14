@@ -168,3 +168,31 @@ class EmotionalState(StrEnum):
 # Grade ↔ int conversion (used by API/MCP layers)
 QUALITY_INT_MAP: dict[str, int] = {"A": 5, "B": 4, "C": 3, "D": 2, "F": 1}
 QUALITY_GRADE_MAP: dict[int, str] = {v: k for k, v in QUALITY_INT_MAP.items()}
+
+
+# ── Phase 9: Scheduling & Pipeline Engine ───────────────────────────────
+
+
+class PipelineStatus(StrEnum):  # §9.1a
+    """Overall execution status of a pipeline run."""
+    PENDING = "pending"
+    RUNNING = "running"
+    SUCCESS = "success"
+    FAILED = "failed"
+    SKIPPED = "skipped"
+    CANCELLED = "cancelled"
+
+
+class StepErrorMode(StrEnum):  # §9.1b
+    """How to handle step failures within a pipeline."""
+    FAIL_PIPELINE = "fail_pipeline"
+    LOG_AND_CONTINUE = "log_and_continue"
+    RETRY_THEN_FAIL = "retry_then_fail"
+
+
+class DataType(StrEnum):  # §9.4a (FetchStep.Params.data_type)
+    """Market data types for fetch pipeline steps."""
+    QUOTE = "quote"
+    OHLCV = "ohlcv"
+    NEWS = "news"
+    FUNDAMENTALS = "fundamentals"

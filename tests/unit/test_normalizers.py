@@ -6,7 +6,7 @@ Tests each normalizer function with realistic provider JSON fixtures.
 
 from __future__ import annotations
 
-from datetime import datetime, timezone
+
 
 import pytest
 

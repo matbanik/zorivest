@@ -140,3 +140,38 @@ class TestRemoveTicker:
         client.post(f"{BASE}/{wl_id}/items", json={"ticker": "MSFT"})
         resp = client.delete(f"{BASE}/{wl_id}/items/MSFT")
         assert resp.status_code == 204
+
+
+# ── Item-load failure path (F2 regression) ──────────────────────────────
+
+
+@pytest.fixture()
+def no_raise_client() -> Generator[TestClient, None, None]:
+    """Test client that returns error responses instead of raising."""
+    app = create_app()
+    with TestClient(app, raise_server_exceptions=False) as c:
+        yield c
+
+
+class TestGetWatchlistItemLoadFailure:
+    """Regression test: get_items() failure must surface as 500, not empty items."""
+
+    def test_get_items_failure_returns_500(self, no_raise_client: TestClient) -> None:
+        create_resp = no_raise_client.post(BASE + "/", json={"name": "FailItems"})
+        wl_id = create_resp.json()["id"]
+
+        # Monkeypatch get_items to raise
+        original_get_items = no_raise_client.app.state.watchlist_service.get_items  # type: ignore[union-attr]
+
+        def _raise(*a: object, **kw: object) -> None:
+            raise ValueError("repo failure")
+
+        no_raise_client.app.state.watchlist_service.get_items = _raise  # type: ignore[union-attr]
+
+        try:
+            resp = no_raise_client.get(f"{BASE}/{wl_id}")
+            assert resp.status_code == 500
+            data = resp.json()
+            assert data["error"] == "internal_error"
+        finally:
+            no_raise_client.app.state.watchlist_service.get_items = original_get_items  # type: ignore[union-attr]

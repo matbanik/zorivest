@@ -9,7 +9,6 @@ Canon: 04a-api-trades.md L126-151 (method names: create, get_for_trade, update, 
 from __future__ import annotations
 
 from datetime import datetime
-from typing import Optional
 from unittest.mock import MagicMock
 
 import pytest

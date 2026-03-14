@@ -46,7 +46,7 @@ uv run python tools/validate_codebase.py --json
 | 4 | TypeScript type check | `tsc --noEmit` | Type error in UI/MCP |
 | 5 | TypeScript lint | `eslint` | Lint violation |
 | 6 | TypeScript unit tests | `vitest` | Failing test |
-| 7 | Anti-placeholder scan | `rg TODO\|FIXME\|NotImplementedError` | Unresolved placeholder |
+| 7 | Anti-placeholder scan | `rg TODO\|FIXME\|NotImplementedError` | Unresolved placeholder (lines with `# noqa: placeholder` excluded) |
 | 8 | Anti-deferral scan | `rg pass.*placeholder\|raise NotImplementedError` | Deferred implementation |
 
 ### Advisory (non-blocking)

@@ -175,9 +175,47 @@ def _scan_check(
     dirs: list[str],
     *,
     blocking: bool = True,
+    exclude_comment: str | None = None,
 ) -> CheckResult:
-    """Run a ripgrep scan as a quality check."""
+    """Run a ripgrep scan as a quality check.
+
+    Args:
+        exclude_comment: If set, lines containing this exact comment are
+            excluded from the match count.  This allows base-class contracts
+            (e.g. ``raise NotImplementedError  # noqa: placeholder``) to
+            coexist with a blocking anti-placeholder gate.
+    """
     start = time.monotonic()
+
+    if exclude_comment:
+        # Two-pass: find matches, then subtract lines with the exclusion tag
+        result = _run(["rg", "-n", pattern] + dirs)
+        duration = time.monotonic() - start
+
+        if result.returncode != 0 or not result.stdout.strip():
+            # No matches at all — pass
+            return CheckResult(
+                name=name, passed=True, blocking=blocking, duration_s=duration
+            )
+
+        # Filter out excluded lines
+        raw_lines = result.stdout.strip().split("\n")
+        filtered = [ln for ln in raw_lines if exclude_comment not in ln]
+
+        if not filtered:
+            # All matches were excluded — pass
+            return CheckResult(
+                name=name, passed=True, blocking=blocking, duration_s=duration,
+                message=f"All matches excluded by '{exclude_comment}'",
+            )
+
+        return CheckResult(
+            name=name,
+            passed=False,
+            blocking=blocking,
+            duration_s=duration,
+            message="\n".join(filtered[:10]),
+        )
 
     result = _run(["rg", "-c", pattern] + dirs)
     duration = time.monotonic() - start
@@ -459,7 +497,10 @@ def run_quality_gate(
 
     # Anti-placeholder scan
     if scan_dirs:
-        check = _scan_check("Anti-Placeholder Scan", PLACEHOLDER_PATTERN, scan_dirs)
+        check = _scan_check(
+            "Anti-Placeholder Scan", PLACEHOLDER_PATTERN, scan_dirs,
+            exclude_comment="# noqa: placeholder",
+        )
         gate.checks.append(check)
         if not json_output:
             status = _color("PASS", GREEN) if check.passed else _color("FAIL", RED)

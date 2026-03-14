@@ -116,7 +116,7 @@ async def configure_provider(
     name: str,
     body: ProviderConfigRequest,
     service: Any = Depends(get_provider_connection_service),
-) -> dict[str, str]:
+) -> dict[str, Any]:
     """Update provider settings. Omitted fields are left unchanged."""
     try:
         await service.configure_provider(
@@ -129,7 +129,7 @@ async def configure_provider(
         )
     except KeyError as e:
         raise HTTPException(404, detail=str(e))
-    return {"status": "configured"}
+    return {"status": "configured", "stub": True}
 
 
 @market_data_router.post(
@@ -144,7 +144,7 @@ async def test_provider(
         success, message = await service.test_connection(name)
     except KeyError as e:
         raise HTTPException(404, detail=str(e))
-    return {"success": success, "message": message}
+    return {"success": success, "message": message, "stub": True}
 
 
 @market_data_router.delete(
@@ -153,10 +153,10 @@ async def test_provider(
 async def remove_provider_key(
     name: str,
     service: Any = Depends(get_provider_connection_service),
-) -> dict[str, str]:
+) -> dict[str, Any]:
     """Remove API key and disable provider."""
     try:
         await service.remove_api_key(name)
     except KeyError as e:
         raise HTTPException(404, detail=str(e))
-    return {"status": "removed"}
+    return {"status": "removed", "stub": True}

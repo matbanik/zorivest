@@ -167,21 +167,17 @@ async def remove_ticker(
 def _to_response(wl: object, service: object) -> dict:
     """Convert Watchlist entity to response dict with items."""
     wl_id = getattr(wl, "id", 0)
-    items = []
-    try:
-        raw_items = service.get_items(wl_id)  # type: ignore[union-attr]
-        items = [
-            {
-                "id": i.id,
-                "watchlist_id": i.watchlist_id,
-                "ticker": i.ticker,
-                "added_at": str(i.added_at),
-                "notes": i.notes,
-            }
-            for i in raw_items
-        ]
-    except (ValueError, AttributeError):
-        pass
+    raw_items = service.get_items(wl_id)  # type: ignore[union-attr]
+    items = [
+        {
+            "id": i.id,
+            "watchlist_id": i.watchlist_id,
+            "ticker": i.ticker,
+            "added_at": str(i.added_at),
+            "notes": i.notes,
+        }
+        for i in raw_items
+    ]
 
     return {
         "id": wl_id,

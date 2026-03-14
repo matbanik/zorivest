@@ -15,20 +15,23 @@ import pytest
 pytestmark = pytest.mark.unit
 
 
-# ── AC-4: Module integrity — exactly 14 enum classes ────────────────────
+# ── AC-4: Module integrity — expected enum classes present ───────────────
 
 
 class TestModuleIntegrity:
-    """Verify the module contains exactly the 17 enum classes from the build plan."""
+    """Verify the module contains at least the expected enum classes.
 
-    def test_module_has_exactly_17_enum_classes(self) -> None:
+    Uses subset assertion so future enum additions don't break the stable suite.
+    """
+
+    def test_module_contains_expected_enum_classes(self) -> None:
         import zorivest_core.domain.enums as mod
 
-        enum_classes = [
+        enum_classes = {
             name
             for name, obj in inspect.getmembers(mod, inspect.isclass)
             if issubclass(obj, StrEnum) and obj is not StrEnum
-        ]
+        }
         expected = {
             "AccountType",
             "TradeAction",
@@ -49,10 +52,11 @@ class TestModuleIntegrity:
             "QualityGrade",
             "EmotionalState",
         }
-        assert set(enum_classes) == expected, (
-            f"Expected 17 enums {expected}, got {set(enum_classes)}"
+        missing = expected - enum_classes
+        assert not missing, f"Missing expected enums: {missing}"
+        assert len(enum_classes) >= len(expected), (
+            f"Expected at least {len(expected)} enums, got {len(enum_classes)}"
         )
-        assert len(enum_classes) == 17
 
 
 # ── AC-3: Every enum subclasses StrEnum ──────────────────────────────────

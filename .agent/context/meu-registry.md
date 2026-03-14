@@ -1,4 +1,4 @@
-# MEU Registry — Phase 1 + 1A + 2 + 2A + 3 + 4 + 5 + 8
+# MEU Registry — Phase 1 + 1A + 2 + 2A + 3 + 4 + 5 + 8 + 9
 
 > Source: [BUILD_PLAN.md](../docs/BUILD_PLAN.md) | [build-priority-matrix.md](../docs/build-plan/build-priority-matrix.md)
 
@@ -112,6 +112,15 @@
 | MEU-68 | `watchlist` | 33 | Watchlist entity + service + API (7 REST endpoints) | ✅ approved |
 | MEU-69 | `plan-watchlist-mcp` | 34 | Watchlist MCP tools (5 tools in trade-planning toolset) | ✅ approved |
 
+## Phase 9: Scheduling & Pipeline Engine — Domain Foundation (P2.5)
+
+| MEU | Slug | Matrix | Description | Status |
+|-----|------|:------:|-------------|:------:|
+| MEU-77 | `pipeline-enums` | 36 | PipelineStatus, StepErrorMode, DataType enums | ✅ approved |
+| MEU-78 | `policy-models` | 37 | PolicyDocument + PolicyStep Pydantic models + StepContext/StepResult | ✅ approved |
+| MEU-79 | `step-registry` | 38 | StepBase Protocol + RegisteredStep + STEP_REGISTRY + helpers | ✅ approved |
+| MEU-80 | `policy-validator` | 39 | PolicyValidator (8 rules) + SHA-256 hash + SQL blocklist | ✅ approved |
+
 ## Execution Order
 
 Phase 1: MEU-1 → MEU-2 → MEU-3 → MEU-4 → MEU-5 → MEU-6 → MEU-7 → MEU-8 → MEU-9 → MEU-10 → MEU-11
@@ -122,6 +131,7 @@ Phase 3: MEU-22
 Phase 4: MEU-23 → MEU-24 → MEU-25 → MEU-26 → MEU-27 → MEU-28 → MEU-29 → MEU-30
 Phase 5: MEU-31 → MEU-32 → MEU-33 → MEU-34 → MEU-35 → MEU-36 → MEU-37 → MEU-38 → MEU-39 → MEU-40 → MEU-41 → MEU-42
 Phase 8: MEU-56 → MEU-57 → MEU-58 → MEU-59 → MEU-62 → MEU-60
+Phase 9 (domain foundation): MEU-77 → MEU-78 → MEU-79 → MEU-80
 
 ## Phase-Exit Criteria
 
@@ -133,5 +143,6 @@ Phase 8: MEU-56 → MEU-57 → MEU-58 → MEU-59 → MEU-62 → MEU-60
 - Phase 4: MEU-23..30 ✅ (all routes complete) → Phase 5 unblocked
 - Phase 5: MEU-31..42 ✅ (all MCP tools complete) → Phase 6 unblocked
 - Phase 8: MEU-56..60,62 ✅ (market data foundation + infrastructure) → Phase 8 adapters unblocked
+- Phase 9 (domain): MEU-77..80 ✅ (pipeline enums, models, registry, validator) → Phase 9 infrastructure unblocked
 
 
