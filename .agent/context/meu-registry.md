@@ -132,6 +132,14 @@ Phase 4: MEU-23 → MEU-24 → MEU-25 → MEU-26 → MEU-27 → MEU-28 → MEU-2
 Phase 5: MEU-31 → MEU-32 → MEU-33 → MEU-34 → MEU-35 → MEU-36 → MEU-37 → MEU-38 → MEU-39 → MEU-40 → MEU-41 → MEU-42
 Phase 8: MEU-56 → MEU-57 → MEU-58 → MEU-59 → MEU-62 → MEU-60
 Phase 9 (domain foundation): MEU-77 → MEU-78 → MEU-79 → MEU-80
+P2.75 (broker adapters): MEU-96 → MEU-99
+
+## P2.75 — Expansion: Broker Adapters & Import
+
+| MEU | Slug | Matrix | Description | Status |
+|-----|------|:------:|-------------|:------:|
+| MEU-96 | `ibkr-adapter` | 50e | IBKR FlexQuery XML adapter (defusedxml, OCC symbols, multi-currency) | ✅ approved |
+| MEU-99 | `csv-import` | 53e | CSV import framework + broker auto-detection (TOS, NinjaTrader, ImportService) | ✅ approved |
 
 ## Phase-Exit Criteria
 

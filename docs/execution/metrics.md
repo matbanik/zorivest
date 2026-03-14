@@ -24,6 +24,7 @@
 | 2026-03-12 | MEU-53/66/67 | ~200 | ~5 min | 74 | 2 High + 2 Med (resolved, 3 rounds) | 7/7 | 90% | ~150 min | 3-MEU trade reports+plans: MCP tools, TradePlan entity+service+API, plan↔trade linking. Codex caught URL drift (/plans→/trade-plans), MCP field alias gap, missing linking validation, no dedup rejection. |
 | 2026-03-13 | MEU-68/69 | ~150 | ~5 min | 55 | 2 High + 5 Med + 1 Low (resolved, 3 rounds) | 7/7 | 85% | ~180 min | 2-MEU watchlist entity+service+API + MCP tools. Codex caught missing entity tests, AC-9 cascade label, MCP count drift, pyright scope. Evidence-freshness recursion was the main lesson. |
 | 2026-03-13 | MEU-77/78/79/80 | ~200 | ~5 min | 143 | 2 High + 2 Med + 1 Low (resolved, 4 rounds) | 7/7 | 85% | ~300 min | 4-MEU scheduling domain foundation: enums, policy models, step registry, policy validator. Codex caught malformed ref acceptance, list-of-list recursion gap, StepBase import surface, get_all_steps() dict/class contract drift, stale doc references. |
+| 2026-03-13 | MEU-96/99 | ~180 | ~5 min | 66 | 1 High + 3 Med + 1 Low (resolved, 2 rounds) | 7/7 | 85% | ~120 min | 2-MEU broker import foundation: IBKR FlexQuery XML + CSV framework (TOS, NinjaTrader) + ImportService. Codex caught fractional strike floor division, BOM path gap, weak AC-9 assertion, stale evidence counts. |
 
 ## Measurement Definitions
 

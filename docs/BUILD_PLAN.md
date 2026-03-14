@@ -308,10 +308,10 @@ Domain → Infrastructure → Services → REST API → MCP Server → GUI → D
 
 | MEU | Slug | Matrix Item | Build Plan Ref | Description | Status |
 |-----|------|:-----------:|----------------|-------------|:------:|
-| MEU-96 | `ibkr-adapter` | 50e | [matrix §brokers](build-plan/build-priority-matrix.md) | IBKR FlexQuery adapter | ⬜ |
+| MEU-96 | `ibkr-adapter` | 50e | [matrix §brokers](build-plan/build-priority-matrix.md) | IBKR FlexQuery adapter | ✅ |
 | MEU-97 | `alpaca-adapter` | 51e | [matrix §brokers](build-plan/build-priority-matrix.md) | Alpaca REST adapter | ⬜ |
 | MEU-98 | `tradier-adapter` | 52e | [matrix §brokers](build-plan/build-priority-matrix.md) | Tradier REST adapter | ⬜ |
-| MEU-99 | `csv-import` | 53e | [matrix §brokers](build-plan/build-priority-matrix.md) | CSV import + broker auto-detection | ⬜ |
+| MEU-99 | `csv-import` | 53e | [matrix §brokers](build-plan/build-priority-matrix.md) | CSV import + broker auto-detection | ✅ |
 | MEU-100 | `pdf-parser` | 54e | [matrix §brokers](build-plan/build-priority-matrix.md) | PDF statement parser (pdfplumber) | ⬜ |
 | MEU-101 | `dedup-service` | 55e | [matrix §brokers](build-plan/build-priority-matrix.md) | Deduplication service (exact + fuzzy) | ⬜ |
 | MEU-102 | `identifier-resolver` | 56e | [matrix §brokers](build-plan/build-priority-matrix.md) | CUSIP→ticker resolver (OpenFIGI) | ⬜ |
@@ -469,11 +469,11 @@ Domain → Infrastructure → Services → REST API → MCP Server → GUI → D
 | P2 | MEU-66 → MEU-76 | 11 | 4 |
 | P2.5 — Phase 9 | MEU-77 → MEU-90 | 14 | 4 |
 | P2.6 — Phase 10 | MEU-91 → MEU-95 | 5 | 0 |
-| P2.75 — Expansion | MEU-96 → MEU-122 | 27 | 0 |
+| P2.75 — Expansion | MEU-96 → MEU-122 | 27 | 2 |
 | P3 — Tax | MEU-123 → MEU-156 | 34 | 0 |
 | Phase 7 | MEU-157 | 1 | 0 |
 | Research | MEU-158 → MEU-167 | 10 | 0 |
-| **Total** | | **170** | **58** |
+| **Total** | | **170** | **60** |
 
 ---
 

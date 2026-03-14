@@ -2,7 +2,11 @@
 
 from __future__ import annotations
 
+from pathlib import Path
 from typing import Any, Optional, Protocol
+
+from zorivest_core.domain.enums import BrokerType
+from zorivest_core.domain.import_types import ImportResult, RawExecution
 
 from zorivest_core.application.market_dtos import (
     MarketNewsItem,
@@ -288,6 +292,33 @@ class IdentifierResolverPort(Protocol):
 
     def batch_resolve(self, identifiers: list[dict]) -> list[dict]: ...  # type: ignore[type-arg]
 
+
+# ── Phase 2.75: Broker Import Protocols ──────────────────────────────────
+
+
+class BrokerFileAdapter(Protocol):
+    """Abstract adapter for file-based broker data import.
+
+    Handles structured file formats (XML, proprietary).
+    The existing ``BrokerPort`` handles live API operations;
+    ``BrokerFileAdapter`` handles offline file imports.
+    """
+
+    @property
+    def broker_type(self) -> BrokerType: ...
+
+    def parse_file(self, file_path: Path) -> ImportResult: ...
+
+
+class CSVBrokerAdapter(BrokerFileAdapter, Protocol):
+    """Extended adapter for CSV-based broker imports.
+
+    Adds header fingerprint detection for auto-detection routing.
+    """
+
+    def detect(self, headers: list[str]) -> bool: ...
+
+    def parse_rows(self, rows: list[dict[str, str]]) -> list[RawExecution]: ...
 
 class MarketDataPort(Protocol):
     """Abstract interface for market data queries."""

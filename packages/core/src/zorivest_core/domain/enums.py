@@ -196,3 +196,39 @@ class DataType(StrEnum):  # §9.4a (FetchStep.Params.data_type)
     OHLCV = "ohlcv"
     NEWS = "news"
     FUNDAMENTALS = "fundamentals"
+
+
+# ── Phase 2.75: Broker Import Foundation ─────────────────────────────────
+
+
+class BrokerType(StrEnum):  # §1 IBroker Interface Pattern
+    """Registered broker identifiers for trade import."""
+    IBKR = "ibkr"
+    THINKORSWIM = "thinkorswim"
+    NINJATRADER = "ninjatrader"
+    WEBULL = "webull"
+    LIGHTSPEED = "lightspeed"
+    ETRADE = "etrade"
+    TASTYTRADE = "tastytrade"
+    ALPACA = "alpaca"
+    TRADIER = "tradier"
+    SCHWAB = "schwab"
+    GENERIC = "generic"
+
+
+class AssetClass(StrEnum):  # §1 IBroker Interface Pattern
+    """Instrument classification for trade imports."""
+    EQUITY = "EQUITY"
+    OPTION = "OPTION"
+    FUTURE = "FUTURE"
+    FOREX = "FOREX"
+    CRYPTO = "CRYPTO"
+    BOND = "BOND"
+    MUTUAL_FUND = "MUTUAL_FUND"
+
+
+class ImportStatus(StrEnum):  # ADR-0003
+    """Import job result status — graceful degradation pattern."""
+    SUCCESS = "SUCCESS"    # All rows parsed successfully
+    PARTIAL = "PARTIAL"    # Some rows errored, others parsed
+    FAILED = "FAILED"      # No rows could be parsed

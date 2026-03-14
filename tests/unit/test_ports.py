@@ -240,6 +240,7 @@ class TestImportSurface:
 
         allowed_modules = {
             "__future__",
+            "pathlib",
             "typing",
             "zorivest_core",
         }
@@ -264,7 +265,7 @@ class TestImportSurface:
 class TestModuleIntegrity:
     """Verify the module exports exactly the 14 expected Protocol classes."""
 
-    def test_module_has_exactly_16_protocol_classes(self) -> None:
+    def test_module_has_exactly_18_protocol_classes(self) -> None:
         import zorivest_core.application.ports as mod
 
         class_names = [
@@ -296,6 +297,9 @@ class TestModuleIntegrity:
             "TradePlanRepository",
             # Phase 1 additions (MEU-68)
             "WatchlistRepository",
+            # Phase 2.75 additions (MEU-96)
+            "BrokerFileAdapter",
+            "CSVBrokerAdapter",
         }
         assert set(class_names) == expected, (
             f"Expected {expected}, got {set(class_names)}"
