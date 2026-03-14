@@ -37,6 +37,7 @@ Build the Electron shell and foundational React infrastructure that all other GU
 
 import { Toaster, toast } from 'sonner';
 import { useQuery } from '@tanstack/react-query';
+import { apiFetch } from '../lib/api';
 
 type NotificationCategory = 'success' | 'info' | 'warning' | 'error' | 'confirmation';
 
@@ -49,7 +50,7 @@ interface NotificationPreference {
 export function useNotifications() {
   const { data: prefs } = useQuery<Record<string, string>>({
     queryKey: ['settings'],
-    queryFn: () => fetch(`${API}/settings`).then(r => r.json()),
+    queryFn: () => apiFetch<Record<string, string>>('/settings'),
     select: (data) => data,  // extract notification.*.enabled keys
   });
 
@@ -88,7 +89,7 @@ export function useNotifications() {
 | Theme (light/dark) | `SettingModel` via REST | App launch | P1 |
 | Active page (route) | `SettingModel` via REST | App launch | P1 |
 | Panel collapse states | `SettingModel` via REST | Page render | P2 |
-| Sidebar width | `SettingModel` via REST | App launch | P2 |
+| Sidebar width | Zustand + `electron-store` | App launch | P2 |
 
 ### Window State (Electron Main Process)
 
@@ -120,9 +121,8 @@ function createWindow() {
 // ui/src/hooks/usePersistedState.ts
 
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
-import { useCallback, useRef } from 'react';
-
-const API = (window as any).__ZORIVEST_API_URL__ ?? 'http://localhost:8765/api/v1';
+import { useRef } from 'react';
+import { apiFetch } from '../lib/api';  // Uses contextBridge baseUrl + Bearer token
 
 export function usePersistedState<T extends string>(key: string, defaultValue: T): [T, (value: T) => void] {
   const queryClient = useQueryClient();
@@ -130,24 +130,24 @@ export function usePersistedState<T extends string>(key: string, defaultValue: T
 
   const { data } = useQuery<string>({
     queryKey: ['settings', key],
-    queryFn: () => fetch(`${API}/settings/${key}`).then(r => r.json()).then(d => d.value),
+    queryFn: () => apiFetch<{ value: string }>(`/settings/${key}`).then(d => d.value),
     placeholderData: defaultValue,
   });
 
   const mutation = useMutation({
     mutationFn: (value: string) =>
-      fetch(`${API}/settings`, {
+      apiFetch(`/settings`, {
         method: 'PUT',
-        headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({ [key]: value }),
       }),
     onSuccess: () => queryClient.invalidateQueries({ queryKey: ['settings', key] }),
   });
 
-  const setValue = useCallback((value: T) => {
+  // React Compiler handles memoization — no useCallback needed
+  const setValue = (value: T) => {
     clearTimeout(debounceRef.current);
     debounceRef.current = setTimeout(() => mutation.mutate(value), 500);
-  }, [mutation]);
+  };
 
   return [data as T ?? defaultValue, setValue];
 }
@@ -155,14 +155,13 @@ export function usePersistedState<T extends string>(key: string, defaultValue: T
 
 ### Settings Key Convention
 
-All UI state keys follow namespaced dot notation persisted in the `SettingModel` table (see [Phase 2](02-infrastructure.md)):
+UI state keys that require server persistence follow namespaced dot notation in the `SettingModel` table (see [Phase 2](02-infrastructure.md)). Client-only state (sidebar width, window bounds) uses Zustand + `electron-store` instead.
 
 | Key Pattern | Example Value |
 |---|---|
 | `ui.theme` | `"dark"` |
 | `ui.activePage` | `"/trades"` |
 | `ui.panel.screenshot.collapsed` | `"true"` |
-| `ui.sidebar.width` | `"280"` |
 | `notification.success.enabled` | `"true"` |
 | `notification.info.enabled` | `"true"` |
 | `notification.warning.enabled` | `"true"` |
@@ -198,26 +197,28 @@ export interface CommandRegistryEntry {
 
 ```typescript
 // ui/src/registry/commandRegistry.ts
+// Uses TanStack Router's navigate() — routes aligned with 06-gui.md nav rail table
 
 import { CommandRegistryEntry } from './types';
+import { router } from '../router';
+
+const navigate = (to: string) => router.navigate({ to });
 
 // Populated at app init — every page/action registers here
 export const staticRegistry: CommandRegistryEntry[] = [
-  // Navigation
-  { id: 'nav:dashboard',   label: 'Dashboard',        category: 'navigation', keywords: ['home', 'overview'],         action: () => navigate('/'),          shortcut: 'Ctrl+1' },
-  { id: 'nav:trades',      label: 'Trades',           category: 'navigation', keywords: ['executions', 'positions'],  action: () => navigate('/trades'),    shortcut: 'Ctrl+2' },
-  { id: 'nav:plans',       label: 'Trade Plans',      category: 'navigation', keywords: ['thesis', 'strategy'],       action: () => navigate('/plans'),     shortcut: 'Ctrl+3' },
-  { id: 'nav:reports',     label: 'Trade Reports',    category: 'navigation', keywords: ['journal', 'review'],        action: () => navigate('/reports') },
-  { id: 'nav:watchlists',  label: 'Watchlists',       category: 'navigation', keywords: ['tickers', 'monitor'],       action: () => navigate('/watchlists') },
-  { id: 'nav:accounts',    label: 'Accounts',         category: 'navigation', keywords: ['broker', 'bank', 'balance'], action: () => navigate('/accounts') },
-  { id: 'nav:schedules',   label: 'Scheduled Jobs',   category: 'navigation', keywords: ['cron', 'pipeline', 'report'], action: () => navigate('/schedules') },
+  // Navigation — routes match 06-gui.md nav rail (canonical route map)
+  { id: 'nav:accounts',    label: 'Accounts',         category: 'navigation', keywords: ['home', 'overview', 'dashboard', 'broker', 'bank', 'balance'], action: () => navigate('/'),            shortcut: 'Ctrl+1' },
+  { id: 'nav:trades',      label: 'Trades',           category: 'navigation', keywords: ['executions', 'positions', 'journal', 'review'], action: () => navigate('/trades'),      shortcut: 'Ctrl+2' },
+  { id: 'nav:planning',    label: 'Planning',         category: 'navigation', keywords: ['plans', 'thesis', 'strategy', 'watchlists', 'tickers'], action: () => navigate('/planning'),    shortcut: 'Ctrl+3' },
+  { id: 'nav:scheduling',  label: 'Scheduling',       category: 'navigation', keywords: ['schedules', 'cron', 'pipeline', 'report', 'jobs'], action: () => navigate('/scheduling'),  shortcut: 'Ctrl+4' },
+  { id: 'nav:settings',    label: 'Settings',         category: 'navigation', keywords: ['config', 'preferences', 'theme', 'display'],      action: () => navigate('/settings'),    shortcut: 'Ctrl+,' },
 
   // Actions
   { id: 'action:calc',     label: 'Position Calculator', category: 'action', keywords: ['size', 'risk', 'shares'],   action: () => openCalculator(),       shortcut: 'Ctrl+Shift+C' },
   { id: 'action:import',   label: 'Import Trades',       category: 'action', keywords: ['upload', 'csv', 'ibkr'],    action: () => openImport() },
   { id: 'action:review',   label: 'Account Review',      category: 'action', keywords: ['balance', 'wizard', 'update'], action: () => openAccountReview() },
 
-  // Settings
+  // Settings — subroutes within /settings
   { id: 'settings:market',        label: 'Market Data Providers', category: 'settings', keywords: ['api', 'keys', 'polygon'], action: () => navigate('/settings/market') },
   { id: 'settings:email',         label: 'Email Provider',        category: 'settings', keywords: ['smtp', 'gmail', 'brevo'], action: () => navigate('/settings/email') },
   { id: 'settings:display',       label: 'Display Preferences',   category: 'settings', keywords: ['privacy', 'dollar', 'percent'], action: () => navigate('/settings/display') },
@@ -257,7 +258,7 @@ export function useDynamicEntries(): CommandRegistryEntry[] {
         label: item.ticker,
         category: 'search' as const,
         keywords: [wl.name],
-        action: () => navigate(`/watchlists/${wl.id}?ticker=${item.ticker}`),
+        action: () => navigate(`/planning/watchlists/${wl.id}?ticker=${item.ticker}`),
       }))
     ),
   ];
@@ -293,27 +294,22 @@ export function useDynamicEntries(): CommandRegistryEntry[] {
 ```typescript
 // ui/src/components/CommandPalette.tsx
 
-import { useState, useEffect, useMemo } from 'react';
+import { useState, useEffect } from 'react';
 import Fuse from 'fuse.js';
 import { staticRegistry } from '../registry/commandRegistry';
 import { useDynamicEntries } from '../registry/useDynamicEntries';
 import { CommandRegistryEntry } from '../registry/types';
 
+// NOTE: React Compiler handles memoization automatically — do NOT add useMemo/useCallback
 export function CommandPalette() {
   const [isOpen, setIsOpen] = useState(false);
   const [query, setQuery] = useState('');
   const [selectedIndex, setSelectedIndex] = useState(0);
   const dynamicEntries = useDynamicEntries();
 
-  const allEntries = useMemo(
-    () => [...staticRegistry, ...dynamicEntries],
-    [dynamicEntries]
-  );
+  const allEntries = [...staticRegistry, ...dynamicEntries];
 
-  const fuse = useMemo(
-    () => new Fuse(allEntries, { keys: ['label', 'keywords'], threshold: 0.4 }),
-    [allEntries]
-  );
+  const fuse = new Fuse(allEntries, { keys: ['label', 'keywords'], threshold: 0.4 });
 
   const results = query
     ? fuse.search(query).map(r => r.item)
@@ -384,21 +380,153 @@ export function CommandPalette() {
 
 ---
 
+## Build Tool — electron-vite `[Research-backed: Gemini §Build Pipeline, Claude ADR-1]`
+
+electron-vite replaces standalone Vite for Electron-aware builds. It provides three separate Vite configs (main, preload, renderer) in a single `electron.vite.config.ts`. See `docs/research/gui-shell-foundation/ai-instructions.md` §2 for the config template.
+
+---
+
+## Security — Ephemeral Bearer Token `[Research-backed: Gemini §Security Architecture]`
+
+Every app launch generates a `crypto.randomBytes(32).toString('hex')` nonce:
+1. Passed to Python subprocess via spawn args: `['--token', nonce]`
+2. Exposed to renderer via `contextBridge.exposeInMainWorld('api', { token })`
+3. TanStack Query `queryFn` includes `Authorization: Bearer {token}` header
+4. FastAPI middleware validates token on every request
+5. BrowserWindow CSP: `default-src 'self'; connect-src 'self' http://localhost:*`
+
+See `docs/research/gui-shell-foundation/ai-instructions.md` §3 for BrowserWindow settings and §4 for PythonManager skeleton.
+
+---
+
+## Startup — Splash Window + Python Health Check `[Research-backed: Claude ADR-7]`
+
+1. `splash.html` — lightweight HTML/CSS (no React), shown immediately via `BrowserWindow({ show: true })`
+2. Main window created with `show: false`
+3. PythonManager spawns Python, polls `GET /health` with exponential backoff (100ms → 5s cap)
+4. On healthy: hide splash, show main window
+5. On timeout (30s): show error + retry button in splash
+
+See `docs/research/gui-shell-foundation/ai-instructions.md` §4 for PythonManager class.
+
+---
+
+## TanStack Query Configuration `[Research-backed: Claude ADR-3, synthesis §staleTime]`
+
+```typescript
+// Trading-specific query client defaults
+queries: {
+  staleTime: 0,              // Financial data is ALWAYS stale — always background-refetch
+  gcTime: 5 * 60 * 1000,     // 5min — prevent cache bloat in 8-16hr sessions
+  refetchOnWindowFocus: true, // Re-validate when trader returns
+  retry: 2,                  // Retry failed reads twice
+}
+mutations: {
+  retry: false,              // NEVER auto-retry financial transactions
+}
+```
+
+Show "last updated" timestamps on all data displays.
+
+---
+
+## Local UI State — Zustand `[Research-backed: Claude ADR-5, synthesis §Zustand]`
+
+Zustand handles fast, client-only UI state that doesn't need server persistence:
+- Sidebar drag width, dialog visibility, column sort order, command palette state
+- Slice pattern: one store per feature module (`useTradesStore`, `useLayoutStore`)
+- `persist` middleware pipes to electron-store for window bounds
+- `getState()` available outside React (IPC handlers, Electron main → renderer)
+
+**Coexistence**: `usePersistedState` (TanStack Query + REST → SQLCipher) remains for server-persisted settings (theme, active account, panel collapse). Zustand is a **different layer**.
+
+See `docs/research/gui-shell-foundation/ai-instructions.md` §7 for store pattern.
+
+---
+
+## React Compiler `[Research-backed: Claude ADR-6, synthesis §React Compiler]`
+
+Enabled as Babel plugin in electron-vite renderer config (see `ai-instructions.md` §2).
+
+**Rules for new code:**
+- Do NOT write manual `useMemo`, `useCallback`, or `React.memo` — compiler handles it
+- Use `useWatch()` not `watch()` with React Hook Form
+- Escape hatch: `"use no memo"` directive per-component if compiler causes issues
+
+---
+
+## shadcn/ui Mira Preset `[Research-backed: Claude ADR-4]`
+
+- Initialize with `npx shadcn@latest init --defaults --force`
+- Mira preset provides compact, dense spacing for Bloomberg-grade trading density
+- Dark-first theme with Dracula-based tokens from `style-guide-zorivest.md`
+- Covers Tier 1 accessibility: ARIA landmarks, focus-visible ring, skip-to-content, heading hierarchy
+
+---
+
+## Python Spawn — Production Mode `[Research-backed: Gemini §Python Lifecycle, Claude ADR-7]`
+
+- **Dev**: `uv run uvicorn` with `stdio: 'pipe'`
+- **Production**: PyInstaller `--onedir` binary at `process.resourcesPath/python/zorivest.exe` with `stdio: 'ignore'`
+- `stdio: 'ignore'` prevents the 64KB OS pipe buffer from filling when Python logs heavily
+- Process tree kill on Windows (`taskkill /T`) when app exits to prevent orphaned Python processes
+- Orphan detection: Python checks parent PID heartbeat
+
+See `docs/research/gui-shell-foundation/ai-instructions.md` §4 for PythonManager.
+
+---
+
+## Accessibility Infrastructure `[Spec: WCAG 2.1 AA; Research-backed: style-guide-zorivest.md §9]`
+
+Tier 1 features built into the shell (MEU-43):
+- Keyboard navigation (Tab order, focus management)
+- Focus-visible ring: `2px solid cyan`, `2px` offset
+- ARIA landmarks: `<nav>`, `<main>`, `<aside>`, `<header>`
+- Skip-to-content link (hidden until focused)
+- Heading hierarchy: single `<h1>`, sequential structure
+- `<html lang="en">`
+- `prefers-reduced-motion` media query
+- Color contrast ≥ 4.5:1 (enforced via token palette)
+- Semantic HTML (`<button>`, `<a>`, `<input>`, never `<div onClick>`)
+
+See `docs/research/gui-shell-foundation/style-guide-zorivest.md` §9 for full table.
+
+---
+
+## Design System Reference `[Research-backed: style-guide-zorivest.md]`
+
+The visual design system is defined in `docs/research/gui-shell-foundation/style-guide-zorivest.md`:
+- §0: Cognitive Load Balance Equation + 5-point per-screen protocol
+- §1-§6: Design tokens (colors, typography, spacing, radius, effects, motion)
+- §9: Accessibility infrastructure (Tier 1)
+- §10: Tailwind `@theme` block template for `globals.css`
+
+---
+
 ## Exit Criteria
 
-- Electron app launches, spawns Python backend
+- Electron app launches with splash window, spawns Python backend with ephemeral Bearer token
+- Health check polling detects Python readiness, transitions splash → main window
 - Notification toasts display by category with suppression preferences
-- Window position/size restored on app restart
+- Window position/size restored on app restart (via Zustand + electron-store)
 - Command palette opens on Ctrl+K, fuzzy-searches all registered entries
-- Theme preference persists across sessions
+- Theme preference persists across sessions (via `usePersistedState`)
 - All registered pages/actions/settings reachable via command palette
+- TanStack Router hash routing works for all 5 primary routes
+- Accessibility: skip-to-content link, focus-visible ring, ARIA landmarks present
+- Security: Bearer token validated on REST requests, CSP header set
 
 ## Outputs
 
-- Electron main process with Python backend lifecycle management
-- React components: `NotificationProvider`, `CommandPalette`
+- Electron main process with PythonManager lifecycle management + ephemeral Bearer token
+- Splash window (`splash.html`) for cold start
+- React components: `NotificationProvider`, `CommandPalette`, `AppShell`, `NavRail`
 - React hooks: `useNotifications()`, `usePersistedState()`
-- Static command registry: `commandRegistry.ts`
+- TanStack Router configuration with hash history
+- TanStack Query client with trading-specific defaults
+- Zustand layout store with persist middleware
+- Static command registry: `commandRegistry.ts` (routes aligned with `06-gui.md`)
 - Dynamic entry composition: `useDynamicEntries.ts`
-- Window state persistence via `electron-store`
+- Window state persistence via electron-store
+- `globals.css` with Tailwind `@theme` block from style guide
 - Settings key convention for all UI state

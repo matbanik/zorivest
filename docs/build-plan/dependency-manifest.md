@@ -41,11 +41,28 @@ npm install -D typescript vitest @types/node tsx
 cd ..
 
 # Phase 6: GUI (Electron + React)
+# See docs/research/gui-shell-foundation/decision.md for version rationale
 cd ui
 npm init -y
-npm install react react-dom @tanstack/react-table @tanstack/react-query lightweight-charts fuse.js sonner electron-store
-npm install -D electron electron-builder vite @vitejs/plugin-react typescript vitest
-npm install -D @testing-library/react playwright
+# ── Production Dependencies ──
+npm install react react-dom \
+  @tanstack/react-query @tanstack/react-table @tanstack/react-virtual \
+  @tanstack/react-router \
+  zustand \
+  react-hook-form @hookform/resolvers zod \
+  lightweight-charts fuse.js sonner electron-store \
+  lucide-react class-variance-authority clsx tailwind-merge
+# Radix UI primitives (required by shadcn/ui — add more as needed)
+npm install @radix-ui/react-dialog @radix-ui/react-dropdown-menu \
+  @radix-ui/react-popover @radix-ui/react-tabs @radix-ui/react-tooltip \
+  @radix-ui/react-scroll-area @radix-ui/react-select @radix-ui/react-slot
+# ── Dev Dependencies ──
+npm install -D electron electron-vite electron-builder electron-updater \
+  typescript tailwindcss @tailwindcss/vite \
+  @vitejs/plugin-react babel-plugin-react-compiler \
+  vitest @testing-library/react @testing-library/jest-dom @testing-library/user-event \
+  playwright \
+  eslint prettier @types/react @types/react-dom
 cd ..
 
 # Phase 7: Distribution & Release
@@ -79,7 +96,7 @@ cd ui && npm install @vscode/sudo-prompt && cd ..   # Windows UAC elevation for 
 | 3 | `zorivest-core` (services) | No new deps |
 | 4 | `zorivest-api` | `fastapi`, `uvicorn`, `pydantic`, `httpx` |
 | 5 | `mcp-server` (TS) | `@modelcontextprotocol/sdk@^1.26.0`, `zod` |
-| 6 | `ui` (TS) | `react`, `electron`, `@tanstack/react-table`, `@tanstack/react-query`, `lightweight-charts`, `fuse.js`, `sonner`, `electron-store` |
+| 6 | `ui` (TS) | `react`, `electron`, `electron-vite`, `@tanstack/react-router`, `@tanstack/react-query`, `@tanstack/react-table`, `zustand`, `react-hook-form`, `zod`, `lightweight-charts`, `fuse.js`, `sonner`, `electron-store`, `tailwindcss`, `lucide-react`, Radix UI |
 | 7 | distribution | `pyinstaller`, `electron-builder`, `pip-audit`, `twine` (check only), npm ≥ 11.5.1 |
 | 8 | `zorivest-infra` (market) | `cryptography`, `httpx` |
 | 9 | `zorivest-core` (scheduling) | `apscheduler`, `aiolimiter`, `tenacity`, `structlog`, `pandera` |

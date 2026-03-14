@@ -25,30 +25,32 @@ This phase is split into eight domain-specific sub-files:
 
 ## Loading & Startup (Performance-Tracked)
 
-> **Research basis**: OpenAI GPT-5.2 analysis of Electron startup best practices ([BrowserWindow API](https://www.electronjs.org/docs/api/browser-window), [context isolation](https://www.electronjs.org/docs/latest/tutorial/context-isolation)) and React code-splitting via [`React.lazy()`](https://react.dev/reference/react/lazy). Professional trading platform patterns (thinkorswim, TradingView Desktop, TradeStation) consistently use "shell first, content second" rendering.
+> **Research basis**: OpenAI GPT-5.2 analysis of Electron startup best practices ([BrowserWindow API](https://www.electronjs.org/docs/api/browser-window), [context isolation](https://www.electronjs.org/docs/latest/tutorial/context-isolation)) and route-level code splitting via TanStack Router's [`lazy()`](https://tanstack.com/router/latest/docs/framework/react/guide/code-splitting) route definitions. Professional trading platform patterns (thinkorswim, TradingView Desktop, TradeStation) consistently use "shell first, content second" rendering.
 
 ### Startup Sequence
 
 ```
  Electron Main Process                  Renderer (React)
  ─────────────────────                  ─────────────────
- 1. Create BrowserWindow                
-    show: false                         
-    backgroundColor: store.get('theme') === 'light'
-      ? '#f5f5f5' : '#1a1a2e'
-    (reads persisted theme from electron-store)
+ 1. Show splash.html (lightweight)
+    BrowserWindow with themed background
 
  2. Start Python backend ──────────────▶ (child_process.spawn)
-    └─ Log: startup.python_spawn_ms     
+    └─ Log: startup.python_spawn_ms
+    └─ Health check polling (100ms → 5s)
 
- 3. Load index.html ───────────────────▶ 4. React mounts AppShell
+ 3. On Python healthy:
+    Create main BrowserWindow
+    show: false                          
+    Load index.html ──────────────────▶ 4. React mounts AppShell
     └─ Log: startup.renderer_load_ms       └─ Nav rail renders (sync)
                                             └─ Accounts Home skeleton
                                             └─ Log: startup.shell_paint_ms
 
  5. win.once('ready-to-show')           
     └─ win.show() ─────────────────────▶ 6. User sees app structure
-    └─ Log: startup.window_show_ms         (skeleton screens, not blank)
+    └─ Hide splash window                  (skeleton screens, not blank)
+    └─ Log: startup.window_show_ms
 
                                         7. Fetch MRU accounts + balances
                                            └─ Skeleton → data hydrate
@@ -112,42 +114,90 @@ ipcMain.on('startup-metric', (_event, metric) => {
 | > 2s | Localized "Still loading…" message per panel | Only in the affected panel, never full-screen block |
 
 **Key rules:**
-- **No full-screen splash/spinner** — the app shell is the splash screen
+- **No full-screen splash/spinner in the React app** — Python cold start uses a separate Electron `splash.html` window; once the main window appears, only skeleton screens are shown
 - **Skeleton screens** over shimmer effects (trading context; shimmer is distracting)
-- **`React.lazy()`** for all routes except Accounts Home (Accounts Home is in the main bundle)
+- **TanStack Router `lazy()`** for all routes except Accounts Home (Accounts Home is in the main bundle)
 - **Idle pre-caching**: after Accounts Home renders, use `requestIdleCallback` to pre-import lazy modules
 
+**Technology stack** (see `docs/research/gui-shell-foundation/decision.md` for rationale):
+- **Routing**: TanStack Router v1 with `createHashHistory()` (required for Electron)
+- **Server state**: TanStack Query v5 (`staleTime: 0` for financial data)
+- **Local UI state**: Zustand v5 (slice pattern, `persist` → electron-store)
+- **CSS**: Tailwind CSS v4 with `@tailwindcss/vite`
+- **Components**: shadcn/ui (Mira preset for dense layout) + Radix UI
+- **Performance**: React Compiler 1.0 (Babel plugin, automatic memoization)
+- **Forms**: React Hook Form v7 + Zod (`useWatch()` not `watch()` for React Compiler compat)
+
 ```typescript
-// ui/src/App.tsx — route-level code splitting
+// ui/src/renderer/src/router.tsx — TanStack Router with hash history + lazy code splitting
 
-import { lazy, Suspense } from 'react';
-import { AppShell } from './components/AppShell';
-import { AccountsHome } from './pages/AccountsHome';  // in main bundle
-import { ModuleSkeleton } from './components/ModuleSkeleton';
+import {
+  createRouter,
+  createHashHistory,
+  createRootRoute,
+  createRoute,
+  Outlet,
+} from '@tanstack/react-router'
+import { AppShell } from './components/layout/AppShell'
+import { AccountsHome } from './features/accounts/AccountsHome'  // in main bundle
+import { ModuleSkeleton } from './components/ModuleSkeleton'
 
-const Trades        = lazy(() => import('./pages/Trades'));
-const TradePlanning = lazy(() => import('./pages/TradePlanning'));
-const Scheduling    = lazy(() => import('./pages/Scheduling'));
-const Settings      = lazy(() => import('./pages/Settings'));
-const TaxEstimator  = lazy(() => import('./pages/TaxEstimator'));
+const hashHistory = createHashHistory()
 
-export function App() {
-  return (
+const rootRoute = createRootRoute({
+  component: () => (
     <AppShell>
-      <Suspense fallback={<ModuleSkeleton />}>
-        <Routes>
-          <Route path="/" element={<AccountsHome />} />
-          <Route path="/trades/*" element={<Trades />} />
-          <Route path="/planning/*" element={<TradePlanning />} />
-          <Route path="/scheduling/*" element={<Scheduling />} />
-          <Route path="/settings/*" element={<Settings />} />
-          <Route path="/tax/*" element={<TaxEstimator />} />
-          {/* Sub-routes handled within each lazy module */}
-        </Routes>
-      </Suspense>
+      <Outlet />
     </AppShell>
-  );
-}
+  ),
+  pendingComponent: ModuleSkeleton,
+})
+
+const accountsRoute = createRoute({
+  getParentRoute: () => rootRoute,
+  path: '/',
+  component: AccountsHome,
+})
+
+const tradesRoute = createRoute({
+  getParentRoute: () => rootRoute,
+  path: '/trades/$',
+}).lazy(() => import('./features/trades/TradesLayout'))
+
+const planningRoute = createRoute({
+  getParentRoute: () => rootRoute,
+  path: '/planning/$',
+}).lazy(() => import('./features/planning/PlanningLayout'))
+
+const schedulingRoute = createRoute({
+  getParentRoute: () => rootRoute,
+  path: '/scheduling/$',
+}).lazy(() => import('./features/scheduling/SchedulingLayout'))
+
+const settingsRoute = createRoute({
+  getParentRoute: () => rootRoute,
+  path: '/settings/$',
+}).lazy(() => import('./features/settings/SettingsLayout'))
+
+const taxRoute = createRoute({
+  getParentRoute: () => rootRoute,
+  path: '/tax/$',
+}).lazy(() => import('./features/tax/TaxEstimator'))
+
+const routeTree = rootRoute.addChildren([
+  accountsRoute,
+  tradesRoute,
+  planningRoute,
+  schedulingRoute,
+  settingsRoute,
+  taxRoute,
+])
+
+export const router = createRouter({
+  routeTree,
+  history: hashHistory,
+  defaultPreload: 'intent',  // Preload on hover/focus
+})
 ```
 
 ---
@@ -299,7 +349,7 @@ When the user selects an account (via MRU card, All Accounts table, or the heade
 ```typescript
 // ui/src/context/AccountContext.tsx
 
-import { createContext, useContext, useState, useCallback } from 'react';
+import { createContext, useContext, useState } from 'react';
 
 interface AccountContextValue {
   activeAccountId: string;       // '' = no account selected
@@ -311,11 +361,12 @@ const AccountContext = createContext<AccountContextValue>(/* ... */);
 export function AccountProvider({ children }: { children: React.ReactNode }) {
   const [activeAccountId, setActiveAccountId] = usePersistedState('ui.accounts.active', '');
 
-  const selectAccount = useCallback((id: string) => {
+  // React Compiler handles memoization automatically — no useCallback needed
+  const selectAccount = (id: string) => {
     setActiveAccountId(id);
     // Update MRU list
     updateMruList(id);
-  }, []);
+  };
 
   return (
     <AccountContext.Provider value={{ activeAccountId, selectAccount }}>
@@ -381,7 +432,7 @@ export const useAccountContext = () => useContext(AccountContext);
 - **AccountsHome page** with MRU cards, "Add New" card, and All Accounts table
 - **AccountContext provider** for global account selection
 - **Startup performance logging** via preload bridge → REST → Python logger
-- **Route-level code splitting** via `React.lazy()` + `Suspense` + `ModuleSkeleton`
+- **Route-level code splitting** via TanStack Router `lazy()` route definitions + `pendingComponent`
 - React components across all 8 sub-files (see table above)
 - React hooks: `useNotifications()`, `usePersistedState()`, `useCommandPalette()`, `useAccountContext()`
 - TanStack Table integration with image badge column

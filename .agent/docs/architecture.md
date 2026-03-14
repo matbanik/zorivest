@@ -22,7 +22,7 @@ All merge/release/deploy actions require explicit human approval.
 │  Electron + React GUI (TypeScript)              │
 │  └─ TanStack Table, Lightweight Charts, Shadcn  │
 ├──────────────┬──────────────────────────────────┤
-│  MCP Server  │  REST API (localhost:8000)       │
+│  MCP Server  │  REST API (localhost, dynamic port)  │
 │  (TypeScript)│  ← httpx / fetch →               │
 ├──────────────┴──────────────────────────────────┤
 │              FastAPI (Python)                    │
@@ -65,7 +65,7 @@ Domain (innermost) → Application (ports) → Infrastructure (outermost)
 
 ## Communication
 
-- **UI ↔ API:** REST over `localhost:8000`. UI uses `fetch`/`httpx`. No authentication needed (local-only).
+- **UI ↔ API:** REST over `localhost` (dynamic port via `net.createServer(0)`). Ephemeral Bearer token (nonce-based, generated per-launch) for defense-in-depth against local malware. UI uses `fetch` with token header.
 - **MCP ↔ API:** Same REST endpoints. MCP server is a thin wrapper that translates MCP tool calls → REST requests.
 - **API ↔ TWS:** `ibapi` library for Interactive Brokers TWS/Gateway connection.
 
