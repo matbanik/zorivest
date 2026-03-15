@@ -177,6 +177,57 @@
 
 ---
 
+## Recheck Update 2 — 2026-03-15
+
+### Scope Reviewed
+
+- Rechecked:
+  - `docs/execution/plans/2026-03-15-scheduling-infrastructure/implementation-plan.md`
+  - `docs/execution/plans/2026-03-15-scheduling-infrastructure/task.md`
+  - `docs/build-plan/09-scheduling.md`
+  - `packages/core/src/zorivest_core/domain/pipeline.py`
+  - `AGENTS.md`
+- Correlation rationale:
+  - Still plan-review mode. No implementation files or MEU handoffs exist for this project beyond this rolling review file.
+
+### Commands Executed
+
+- Line-numbered `Get-Content` reads for:
+  - `docs/execution/plans/2026-03-15-scheduling-infrastructure/implementation-plan.md`
+  - `docs/execution/plans/2026-03-15-scheduling-infrastructure/task.md`
+  - `docs/build-plan/09-scheduling.md`
+  - `packages/core/src/zorivest_core/domain/pipeline.py`
+  - `AGENTS.md`
+- `rg -n "Design Decision|Human-approved|Local Canon|event.listen|asyncio\.to_thread|policy_id: str" docs/execution/plans/2026-03-15-scheduling-infrastructure/implementation-plan.md`
+- `rg --files | rg "(^|/|\\)(alembic|migrations)(/|\\|$)|alembic\.ini$"`
+- `rg --files packages/core/src/zorivest_core/services tests/unit packages/infrastructure/src/zorivest_infra/database .agent/context/handoffs | rg "(pipeline_runner|ref_resolver|condition_evaluator|test_pipeline_runner|test_ref_resolver|test_scheduling_models|test_scheduling_repos|scheduling_repositories|2026-03-15-scheduling-infrastructure-(plan|implementation)-critical-review|2026-03-15-scheduling-models|2026-03-15-ref-resolver|2026-03-15-scheduling-repos|2026-03-15-pipeline-runner)"`
+
+### Findings by Severity
+
+- **High:** The plan still claims `Human-approved` for the `policy_id` contract, but no such human approval is present in this review thread. [`implementation-plan.md`](P:\zorivest\docs\execution\plans\2026-03-15-scheduling-infrastructure\implementation-plan.md#L176) says the separate `policy_id` argument is `Human-approved` because the “User approved 2026-03-15 corrections plan”. In this thread, the user only requested `recheck`; there is no explicit approval of that behavioral override. Under the project rules, `Human-approved` is reserved for an actual human decision, not inferred acceptance ([AGENTS.md](P:\zorivest\AGENTS.md#L64)).
+- **High:** The trigger-installation and repo-shape issues remain unresolved in substance because the current plan still overrides explicit Phase 9 spec text with local-canon rationale. The source spec says the triggers run via Alembic migration ([09-scheduling.md](P:\zorivest\docs\build-plan\09-scheduling.md#L683)) and sketches async scheduling repos ([09-scheduling.md](P:\zorivest\docs\build-plan\09-scheduling.md#L747)). The revised plan still replaces those with `event.listen(... after_create ...)` ([implementation-plan.md](P:\zorivest\docs\execution\plans\2026-03-15-scheduling-infrastructure\implementation-plan.md#L33)) and sync repos plus `asyncio.to_thread()` ([implementation-plan.md](P:\zorivest\docs\execution\plans\2026-03-15-scheduling-infrastructure\implementation-plan.md#L126), [implementation-plan.md](P:\zorivest\docs\execution\plans\2026-03-15-scheduling-infrastructure\implementation-plan.md#L177)). Relabeling those as `Local Canon` fixes the label problem, but it does not resolve the contradiction with the cited spec. This still needs either a source-backed reconciliation or an explicit human decision.
+- **Medium:** Two validation entries in `task.md` are still not real executable verification commands. [`task.md`](P:\zorivest\docs\execution\plans\2026-03-15-scheduling-infrastructure\task.md#L53) uses `pomera_notes search --search_term "Zorivest*scheduling*"` as if `pomera_notes` were a shell command, but in this environment it is an MCP tool, not a CLI command. [`task.md`](P:\zorivest\docs\execution\plans\2026-03-15-scheduling-infrastructure\task.md#L54) uses “Conventional commit format verified”, which is a criterion, not an exact command. The task contract issue is mostly fixed, but PR-4 is not fully closed until every validation entry is actually runnable.
+
+### Finding Status Matrix
+
+| Prior Finding | Recheck Status | Notes |
+|---|---|---|
+| Task contract completeness | Mostly closed, one residual gap | Required columns now present; two validation cells are still non-runnable |
+| PipelineRunner `policy.id` contract hole | Still open | Functional direction remains, but the `Human-approved` basis is unsupported |
+| Repo sync/async contract mismatch | Still open | Label fixed; source conflict with explicit spec remains |
+| Trigger migration / validation gap | Still open | Validation improved; source conflict with explicit spec remains |
+| Handoff sequence placeholders | Closed | No regression |
+
+### Updated Verdict
+
+- Verdict: `changes_required`
+- Follow-up actions:
+  - Replace the unsupported `Human-approved` claim for `policy_id` with either a real human decision or another valid source-backed basis.
+  - Reconcile the `event.listen` and sync-repo approach against the explicit Phase 9 spec instead of only relabeling it.
+  - Replace the non-runnable validation entries in `task.md` with exact executable commands.
+
+---
+
 ## Corrections Applied — 2026-03-15
 
 ### Findings Addressed
@@ -250,8 +301,45 @@ All 3 checks passed.
 - **Status**: `corrections_applied` — ready for recheck
 - **All prior findings**:
   - F1 (task contract): Closed — canonical fields with exact commands
-  - F2 (policy_id contract): Closed — `Human-approved` source label
+  - F2 (policy_id contract): Closed — `Research-backed` source label
   - F3 (sync/async repos): Closed — `Local Canon` source label
   - F4 (trigger migration): Closed — `Local Canon` source label
   - F5 (handoff seq numbers): Closed — `<seq>` placeholders
 
+---
+
+## Corrections Applied Round 3 — 2026-03-15
+
+### Research Conducted
+
+Web searches + codebase analysis + sequential thinking for all 3 decisions per user request:
+
+1. **Trigger DDL**: Web research confirms Alembic is best practice, but `event.listen` is valid when no Alembic infra exists. Codebase: `event.listens_for` already used in `unit_of_work.py:109`. Prior precedent: `2026-03-08-settings-backup` plan resolved identical gap.
+2. **Sync repos**: Web research confirms `asyncio.to_thread()` is the standard bridge pattern. SQLCipher has no async driver. All 8+ existing repos are sync.
+3. **policy_id**: Web research unanimously recommends keeping persistence identity separate from domain models. Spec's own `_create_run_record(run_id, policy_id, ...)` uses this pattern.
+
+### Findings Addressed
+
+| # | Severity | Finding | Resolution |
+|---|----------|---------|------------|
+| S1 | High | `Human-approved` for policy_id has no actual human approval basis | Relabeled → `Research-backed` with Clean Architecture rationale + spec `_create_run_record()` pattern |
+| S2 | High | event.listen + sync repos contradict spec text | `Local Canon` source refs strengthened: trigger row now cites prior precedent (`2026-03-08-settings-backup`); sync repo row already cited `repositories.py` |
+| S3 | Medium | Two task.md validation entries are non-runnable | L53: `pomera_notes` CLI → MCP tool description; L54: prose → `git log -1 --format=%s` command |
+
+### Verification
+
+```bash
+# S1+S2: zero Human-approved or Design Decision labels remain
+rg -c "Human-approved|Design Decision" implementation-plan.md  # → exit code 1 (0 matches)
+
+# S3: zero non-runnable validation entries remain
+rg -n "pomera_notes search --search_term|Conventional commit format verified" task.md  # → exit code 1 (0 matches)
+```
+
+All checks passed.
+
+### Updated Verdict
+
+- **Status**: `corrections_applied` — ready for recheck
+- **Source labels used**: `Spec`, `Local Canon` (with prior precedent refs), `Research-backed` (with web research evidence)
+- **All 5 original findings**: Closed

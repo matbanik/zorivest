@@ -30,7 +30,7 @@ Build the scheduling infrastructure layer: SQLAlchemy models, repository impleme
 | AuditLogModel.id uses Integer autoincrement (not UUID) | Spec | §9.2i | ✅ |
 | Report versioning trigger (BEFORE UPDATE on reports) | Spec | §9.2h | ✅ |
 | Audit append-only triggers (BEFORE UPDATE/DELETE on audit_log) | Spec | §9.2i | ✅ |
-| Trigger installation via `event.listen(Base.metadata, 'after_create')` (not Alembic — project doesn't use Alembic yet) | Local Canon | `create_engine_with_wal` pattern in existing codebase | ✅ |
+| Trigger installation via `event.listen(Base.metadata, 'after_create')` (not Alembic — project doesn't use Alembic yet) | Local Canon | Prior precedent: `2026-03-08-settings-backup` plan resolved identical gap; `event.listens_for` in `unit_of_work.py:109` | ✅ |
 | All models inherit from existing `Base` in models.py | Local Canon | `models.py` L26 | ✅ |
 | Relationship back_populates for PipelineRunModel ↔ PolicyModel, PipelineStepModel ↔ PipelineRunModel, ReportModel ↔ ReportVersionModel, ReportModel ↔ ReportDeliveryModel | Spec | §9.2a–9.2f | ✅ |
 
@@ -173,7 +173,7 @@ Build the scheduling infrastructure layer: SQLAlchemy models, repository impleme
 | StepErrorMode.FAIL_PIPELINE aborts pipeline | Spec | §9.3a | ✅ |
 | StepErrorMode.LOG_AND_CONTINUE continues after failure | Spec | §9.3a | ✅ |
 | PipelineRunner.__init__ takes uow, ref_resolver, condition_evaluator | Spec | §9.3a | ✅ |
-| `policy_id` passed as separate `str` arg (not from `PolicyDocument.id`) | Human-approved | User approved 2026-03-15 corrections plan | ✅ |
+| `policy_id` passed as separate `str` arg (not from `PolicyDocument.id`) | Research-backed | Clean Architecture: keep persistence identity separate from domain models; spec's own `_create_run_record(run_id, policy_id, ...)` uses this pattern | ✅ |
 | Sync repo calls bridged via `asyncio.to_thread()` | Local Canon | Follows sync repo pattern from `repositories.py` | ✅ |
 
 > [!NOTE]

@@ -50,5 +50,5 @@
 | 5 | Anti-placeholder scan | tester | Scan output | `rg "TODO\|FIXME\|NotImplementedError" packages/core/src/zorivest_core/services/ packages/infrastructure/src/zorivest_infra/database/scheduling_repositories.py` — 0 matches | not_started |
 | 6 | Create reflection | coder | `docs/execution/reflections/2026-03-15-scheduling-infra-reflection.md` | `Test-Path docs/execution/reflections/2026-03-15-scheduling-infra-reflection.md` returns True | not_started |
 | 7 | Update metrics | coder | `docs/execution/metrics.md` | `rg "scheduling-infrastructure" docs/execution/metrics.md` returns match | not_started |
-| 8 | Save session state | coder | `pomera_notes` | `pomera_notes search --search_term "Zorivest*scheduling*"` returns result | not_started |
-| 9 | Prepare commit messages | coder | Commit messages | Conventional commit format verified | not_started |
+| 8 | Save session state | coder | `pomera_notes` | Verified via MCP `pomera_notes search` tool in agent session | not_started |
+| 9 | Prepare commit messages | coder | Commit messages | `git log -1 --format=%s` starts with `feat:` or `test:` or `refactor:` | not_started |
