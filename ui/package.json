@@ -29,7 +29,7 @@
         "@tanstack/react-virtual": "^3.5.0",
         "class-variance-authority": "^0.7.0",
         "clsx": "^2.1.0",
-        "electron-store": "^10.0.0",
+        "electron-store": "^8.2.0",
         "fuse.js": "^7.0.0",
         "lucide-react": "^0.400.0",
         "react": "^19.2.0",

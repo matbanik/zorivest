@@ -269,7 +269,8 @@
 | **5.E** | Structured output schemas (Tier 2) | ✅ Yes | Item 15k | Internal TypeScript interfaces first. Dual-format after SDK #911. |
 | **5.F** | BM25 tool search (Tier 1) | ✅ Yes | Item 15k | Indexes tags from 5.A. Powers Anthropic discovery mode. |
 | **5.G** | Keyword-triggered loading (Tier 2) | ✅ Yes | After 5.F | "tax" mention → suggest `enable_toolset('tax')`. Requires toolsets + client detection. |
-| **5.H** | IDE config templates (Tier 2) | ✅ Yes | After 15k | Auto-generate per-IDE MCP configs. Requires client detection to know IDE types. |
+| **5.H1** | Workspace setup tool core (Tier 2) ([05k](05k-mcp-setup-workspace.md)) | ✅ Yes | After 15k, after Phase 9 domain | `zorivest_setup_workspace` MCP tool — path confinement, atomic writes, `.scaffold-meta.json`, idempotency, core toolset registration. |
+| **5.H2** | Workspace template content (Tier 2) ([05k](05k-mcp-setup-workspace.md)) | ✅ Yes | After 5.H1 | `AGENTS.md`, IDE shims (GEMINI/CLAUDE/CURSOR/CODEX), `.agent/` directory templates (docs, workflows, roles, rules, skills). |
 
 ### Post-Phase 8: Market Data — Research Items
 

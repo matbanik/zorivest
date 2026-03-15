@@ -158,16 +158,16 @@ A tool is **Specified** when it has:
 
 ## Annotations Status
 
-> All 68 tools now have `#### Annotations` blocks with `readOnlyHint`, `destructiveHint`, `idempotentHint`, `toolset`, and `alwaysLoaded` fields.
+> All 69 tools now have `#### Annotations` blocks with `readOnlyHint`, `destructiveHint`, `idempotentHint`, `toolset`, and `alwaysLoaded` fields.
 > Completed in Session 2 of the MCP Integration Plan.
 
 | Metric | Count |
 |--------|-------|
 | Total annotation blocks | 69 |
-| Files annotated | 10 (`05a`–`05j`) |
+| Files annotated | 11 (`05a`–`05k`) |
 | Destructive tools | 4 (`emergency_stop`, `service_restart`, `disconnect_market_provider`, `sync_broker`) |
 | Toolsets defined | 8 (`core`, `trade-analytics`, `trade-planning`, `market-data`, `accounts`, `scheduling`, `tax`, `behavioral`) |
-| Always-loaded toolsets | 1 (`core`: 11 tools in `05a` + `05b`) |
+| Always-loaded toolsets | 1 (`core`: 12 tools in `05a` + `05b` + `05k`) |
 
 ---
 

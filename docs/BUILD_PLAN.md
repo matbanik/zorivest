@@ -438,7 +438,8 @@ Domain → Infrastructure → Services → REST API → MCP Server → GUI → D
 | MEU-162 | `mcp-structured-output` | 5.E | [matrix §5.E](build-plan/build-priority-matrix.md) | Structured output schemas (Tier 2) | ⬜ |
 | MEU-163 | `mcp-bm25-search` | 5.F | [matrix §5.F](build-plan/build-priority-matrix.md) | BM25 tool search (Tier 1) | ⬜ |
 | MEU-164 | `mcp-keyword-loading` | 5.G | [matrix §5.G](build-plan/build-priority-matrix.md) | Keyword-triggered loading (Tier 2) | ⬜ |
-| MEU-165 | `mcp-ide-config` | 5.H | [matrix §5.H](build-plan/build-priority-matrix.md) | IDE config templates (Tier 2) | ⬜ |
+| MEU-165a | `setup-workspace-core` | 5.H1 | [05k](build-plan/05k-mcp-setup-workspace.md) | Workspace setup tool core (Tier 2) | ⬜ |
+| MEU-165b | `setup-workspace-templates` | 5.H2 | [05k](build-plan/05k-mcp-setup-workspace.md) | Workspace template content (Tier 2) | ⬜ |
 
 #### Post-Phase 8 Research Items
 

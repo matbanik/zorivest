@@ -2,7 +2,7 @@
 
 Generated from docs/build-plan/ on 2026-02-26. This index is agent-facing and optimized for reliable tool selection and invocation.
 
-> **Tool spec locations:** Full MCP tool contracts (Zod schemas, handlers, side effects, error posture) live in category files [05a](05a-mcp-zorivest-settings.md)–[05j](05j-mcp-discovery.md). Shared infrastructure (auth, guard, metrics, toolsets, client detection) remains in [05-mcp-server.md](05-mcp-server.md).
+> **Tool spec locations:** Full MCP tool contracts (Zod schemas, handlers, side effects, error posture) live in category files [05a](05a-mcp-zorivest-settings.md)–[05k](05k-mcp-setup-workspace.md). Shared infrastructure (auth, guard, metrics, toolsets, client detection) remains in [05-mcp-server.md](05-mcp-server.md).
 
 ## Description Style Used
 
@@ -84,6 +84,7 @@ Generated from docs/build-plan/ on 2026-02-26. This index is agent-facing and op
 | describe_toolset | Specified | `discovery` | Inspect tools in a specific toolset before deciding to enable it. | toolset_name. | JSON: `{ name, description, loaded, tools: [{ name, description, annotations }] }`. | Always loaded. Read-only. |
 | enable_toolset | Specified | `discovery` | Dynamically activate a deferred toolset for the current session. | toolset_name. | Text confirmation or guidance for static clients. | Sends `notifications/tools/list_changed`. Dynamic clients only. |
 | get_confirmation_token | Specified | `discovery` | Obtain a time-limited token before executing a destructive operation. | action (tool name); params_summary. | JSON: `{ token, action, params_summary, expires_in_seconds }`. | Always loaded. 60s TTL. Required on annotation-unaware clients. |
+| zorivest_setup_workspace | Specified | `core` | Bootstrap AI agent workspace configuration. Creates AGENTS.md, IDE shims, and optional .agent/ directory with trading workflows, roles, and docs. Idempotent. | project_root (optional, default CWD); scope (minimal/standard/full, default standard); force (bool, default false). | JSON: `{ scope, detected_ide, files_created, files_skipped, files_backed_up, created[], skipped[], backed_up[], warnings[] }`. | Writes files; backs up user-modified files. Never throws. |
 
 
 ---
@@ -104,7 +105,7 @@ Generated from docs/build-plan/ on 2026-02-26. This index is agent-facing and op
 | `calculator` | 1 | — | — | 1 |
 | `discovery` | 4 | — | — | 4 |
 
-> **Note:** Tools with multiple categories are counted in each. Primary category listed first in the Categories column. Unique tool count: 68 (all Specified).
+> **Note:** Tools with multiple categories are counted in each. Primary category listed first in the Categories column. Unique tool count: 69 (all Specified).
 
 ---
 
@@ -114,7 +115,7 @@ Generated from docs/build-plan/ on 2026-02-26. This index is agent-facing and op
 
 | Toolset | Category File(s) | Tools | Default Loaded | Description |
 |---------|-----------------|-------|---------------|-------------|
-| `core` | 05a, 05b | 11 | ✅ Always | Settings, emergency stop/unlock, diagnostics, GUI launch, service tools |
+| `core` | 05a, 05b, 05k | 12 | ✅ Always | Settings, emergency stop/unlock, diagnostics, GUI launch, service tools, workspace setup |
 | `discovery` | 05j | 4 | ✅ Always | Meta-tools for toolset browsing, enabling, and confirmation tokens |
 | `trade-analytics` | 05c | 19 | ✅ Default | Trade CRUD, screenshots, analytics, reports |
 | `trade-planning` | 05c, 05d | 3 | ✅ Default | Position calculator, trade plans (includes `create_trade` cross-tagged from 05c) |
@@ -124,14 +125,14 @@ Generated from docs/build-plan/ on 2026-02-26. This index is agent-facing and op
 | `tax` | 05h | 8 | ⬜ Deferred | Tax estimation, wash sales, lot management, harvesting |
 | `behavioral` | 05i | 3 | ⬜ Deferred | Mistake tracking, expectancy, Monte Carlo |
 
-**Default active:** `core` + `discovery` + `trade-analytics` + `trade-planning` = **37 tools** (fits under Cursor’s 40-tool limit).
+**Default active:** `core` + `discovery` + `trade-analytics` + `trade-planning` = **38 tools** (fits under Cursor’s 40-tool limit).
 
 
 ## Reference Map (All Mentions in docs/build-plan/)
 
 
 
-> **Primary spec locations:** Each tool's authoritative contract is in its category file (`05a`–`05j`). References below list all mentions across build-plan docs (deduplicated per file).
+> **Primary spec locations:** Each tool's authoritative contract is in its category file (`05a`–`05k`). References below list all mentions across build-plan docs (deduplicated per file).
 
 
 
@@ -808,4 +809,14 @@ Generated from docs/build-plan/ on 2026-02-26. This index is agent-facing and op
 ### update_log_level
 
 - **05a-mcp-*.md** ← primary spec
+
+
+
+### zorivest_setup_workspace
+
+- **05k-mcp-*.md** ← primary spec
+
+- docs/build-plan/05-mcp-server.md
+
+- docs/build-plan/build-priority-matrix.md
 

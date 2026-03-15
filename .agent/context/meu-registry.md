@@ -165,4 +165,10 @@ P2.75 (broker adapters): MEU-96 → MEU-99
 
 - Phase 6 (foundation): MEU-43..45 ✅ (shell + commands + window state) → Phase 6 features unblocked
 
+## Research-Enhanced: Workspace Setup (Tier 2, after Phase 9 domain)
+
+| MEU | Slug | Matrix | Description | Status |
+|-----|------|:------:|-------------|:------:|
+| MEU-165a | `setup-workspace-core` | 5.H1 | `zorivest_setup_workspace` tool: path confinement, atomic writes, `.scaffold-meta.json`, idempotency, core toolset registration | 🔲 planned |
+| MEU-165b | `setup-workspace-templates` | 5.H2 | AGENTS.md, IDE shims, `.agent/` templates (docs, workflows, roles, rules, skills) | 🔲 planned |
 

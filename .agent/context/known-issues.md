@@ -44,6 +44,14 @@
 - **Details:** Stateless mode broken (#340), async timeouts (#1106), cross-client data leak (GHSA-345p), SSE disconnects (#1211), EPIPE crash (#1564). See `friction-inventory.md` FR-6.x.
 - **Workaround:** Use stdio as primary transport. Pin SDK version. Never use stateless mode.
 
+### [UI-ESMSTORE] — electron-store v9+ (ESM-only) crashes electron-vite main process
+- **Severity:** Medium
+- **Component:** ui
+- **Discovered:** 2026-03-14
+- **Status:** Workaround Applied (pinned to v8)
+- **Details:** `electron-store` v9+ is `"type": "module"` (ESM-only). electron-vite compiles the main process as CJS, so `import Store from 'electron-store'` resolves to `{ default: [class] }` instead of the class — `new Store()` throws `"Store is not a constructor"`. The app crashes before the window opens.
+- **Workaround:** Pinned to `electron-store@8` (last CJS version). Same API (`new Store()`, `.get()`, `.set()`), zero code changes. Upgrade back to v10 when electron-vite adds native ESM output for the main process.
+
 ## Template
 
 When adding issues, use this format:

@@ -23,7 +23,8 @@
 | [05h-mcp-tax.md](05h-mcp-tax.md) | `tax` | — | 8 | — | 8 |
 | [05i-mcp-behavioral.md](05i-mcp-behavioral.md) | `behavioral` | 3 | — | — | 3 |
 | [05j-mcp-discovery.md](05j-mcp-discovery.md) | `discovery` | 4 | — | — | 4 |
-| **Totals** | | **59** | **12** | **2** | **73** |
+| [05k-mcp-setup-workspace.md](05k-mcp-setup-workspace.md) | `core` | 1 | — | — | 1 |
+| **Totals** | | **60** | **12** | **2** | **74** |
 
 ---
 
@@ -734,7 +735,7 @@ Toolsets group related MCP tools into named categories for selective loading. Th
 
 | Toolset | Category File(s) | Tools | Default Loaded | Description |
 |---------|-----------------|-------|---------------|-------------|
-| `core` | 05a, 05b | 11 | ✅ Always | Settings, emergency stop/unlock, diagnostics, GUI launch, service tools |
+| `core` | 05a, 05b, 05k | 12 | ✅ Always | Settings, emergency stop/unlock, diagnostics, GUI launch, service tools, workspace setup |
 | `discovery` | 05j | 4 | ✅ Always | Meta-tools for toolset browsing, enabling, and confirmation tokens |
 | `trade-analytics` | 05c | 19 | ✅ Default | Trade CRUD, screenshots, analytics, reports |
 | `trade-planning` | 05c, 05d | 3 | ✅ Default | Position calculator, trade plans (includes `create_trade` cross-tagged from 05c) |
@@ -744,12 +745,12 @@ Toolsets group related MCP tools into named categories for selective loading. Th
 | `tax` | 05h | 8 | ⬜ Deferred | Tax estimation, wash sales, lot management, harvesting |
 | `behavioral` | 05i | 3 | ⬜ Deferred | Mistake tracking, expectancy, Monte Carlo |
 
-**Default active tools:** `core` + `discovery` + `trade-analytics` + `trade-planning` = **37 tools**.
+**Default active tools:** `core` + `discovery` + `trade-analytics` + `trade-planning` = **38 tools**.
 
 > [!NOTE]
-> **Capability-first sizing (2026-03-06):** The 37-tool default is NOT optimized for Cursor's 40-tool limit. Cursor is the lowest-priority client (see [MCP Rollout Stages](00-overview.md#mcp-rollout-stages)). Dynamic clients (Antigravity, Cline) load all defaults without cap. The 37-tool count is a natural grouping. Static clients with hard limits use `--toolsets` to reduce below their cap.
+> **Capability-first sizing (2026-03-06):** The 38-tool default is NOT optimized for Cursor's 40-tool limit. Cursor is the lowest-priority client (see [MCP Rollout Stages](00-overview.md#mcp-rollout-stages)). Dynamic clients (Antigravity, Cline) load all defaults without cap. The 38-tool count is a natural grouping. Static clients with hard limits use `--toolsets` to reduce below their cap.
 >
-> **Rollout scope (2026-03-06):** The 37-tool default is the **Stage 2** target per the [MCP Rollout Stages](00-overview.md#mcp-rollout-stages). Day-1 implementation (Stage 1) starts with **8–12 tools** for the trade CRUD vertical slice. Tools are added incrementally; the full default loadout is reached when all default toolset implementations are complete.
+> **Rollout scope (2026-03-06):** The 38-tool default is the **Stage 2** target per the [MCP Rollout Stages](00-overview.md#mcp-rollout-stages). Day-1 implementation (Stage 1) starts with **8–12 tools** for the trade CRUD vertical slice. Tools are added incrementally; the full default loadout is reached when all default toolset implementations are complete.
 
 ### `--toolsets` CLI Flag
 
@@ -766,7 +767,7 @@ npx @zorivest/mcp-server --toolsets trade-analytics,market-data,accounts
 npx @zorivest/mcp-server --toolsets all
 ```
 
-`core` and `discovery` are **always loaded** regardless of the `--toolsets` flag (15 tools minimum).
+`core` and `discovery` are **always loaded** regardless of the `--toolsets` flag (16 tools minimum).
 
 ### `toolset-config.json`
 
@@ -995,7 +996,7 @@ Tool call → withMetrics() → withGuard() → withConfirmation() → handler
 
 ## Outputs
 
-- **Tool specs**: 68 tools across 10 category files (see [Category Files](#category-files) above)
+- **Tool specs**: 69 tools across 11 category files (see [Category Files](#category-files) above)
 - **Shared infrastructure** (this file):
   - MCP guard middleware: `withGuard()` wrapper, `guardCheck()` REST client
   - MCP metrics middleware: `withMetrics()` wrapper, `MetricsCollector` class

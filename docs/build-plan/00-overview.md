@@ -104,11 +104,11 @@ BUILD ORDER (left to right):
 | Stage | Scope | Evidence Gate |
 |---|---|---|
 | **1. Prototype** (MEU 4–5) | 8–12 simplest tools. Antigravity only. Text-only responses (`{success, data, error}` envelope). Pipeline registry + tags exercised but with minimal tool surface. | All tools pass contract tests. Antigravity integration validated. |
-| **2. Single-client production** (MEU 6–8) | Full default toolset (37 tools). BM25 search active. `outputSchema` TypeScript interfaces for internal contracts. Dynamic toolset loading exercised. | All default toolsets pass. BM25 returns relevant results. No regressions from Stage 1. |
+| **2. Single-client production** (MEU 6–8) | Full default toolset (38 tools). BM25 search active. `outputSchema` TypeScript interfaces for internal contracts. Dynamic toolset loading exercised. | All default toolsets pass. BM25 returns relevant results. No regressions from Stage 1. |
 | **3. Multi-client platform** (MEU 9+) | Second+ client targets (VS Code + ChatGPT Codex, Claude Code). Dual-format responses (`text` + `structuredContent`). IDE config template generation. | Multi-client contract tests pass. Dual-format responses validated on 2+ clients. |
 
 > [!NOTE]
-> The 37-tool default loadout in [05-mcp-server.md](05-mcp-server.md) is the **Stage 2 target**, not the day-1 starting point. Implementation begins with 8–12 tools in Stage 1.
+> The 38-tool default loadout in [05-mcp-server.md](05-mcp-server.md) is the **Stage 2 target**, not the day-1 starting point. Implementation begins with 8–12 tools in Stage 1.
 
 ## Execution Integrity Gates
 
