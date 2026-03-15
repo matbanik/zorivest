@@ -122,6 +122,61 @@
 
 ---
 
+## Recheck Update — 2026-03-15
+
+### Scope Reviewed
+
+- Rechecked:
+  - `docs/execution/plans/2026-03-15-scheduling-infrastructure/implementation-plan.md`
+  - `docs/execution/plans/2026-03-15-scheduling-infrastructure/task.md`
+  - `docs/build-plan/09-scheduling.md`
+  - `packages/core/src/zorivest_core/domain/pipeline.py`
+  - `packages/infrastructure/src/zorivest_infra/database/repositories.py`
+  - `packages/infrastructure/src/zorivest_infra/database/unit_of_work.py`
+- Correlation rationale:
+  - Still plan-review mode. No implementation files or MEU handoffs exist yet for this project.
+
+### Commands Executed
+
+- `Get-Item .agent/context/handoffs/2026-03-15-scheduling-infrastructure-plan-critical-review.md | Select-Object FullName,LastWriteTime`
+- Line-numbered `Get-Content` reads for:
+  - `docs/execution/plans/2026-03-15-scheduling-infrastructure/implementation-plan.md`
+  - `docs/execution/plans/2026-03-15-scheduling-infrastructure/task.md`
+  - `docs/build-plan/09-scheduling.md`
+  - `packages/core/src/zorivest_core/domain/pipeline.py`
+  - `packages/infrastructure/src/zorivest_infra/database/repositories.py`
+  - `packages/infrastructure/src/zorivest_infra/database/unit_of_work.py`
+- `rg --files | rg "(^|/|\\)(alembic|migrations)(/|\\|$)|alembic\.ini$"`
+
+### Findings by Severity
+
+- **High:** `task.md` still does not satisfy the required canonical task contract. The required fields are exact: `task`, `owner_role`, `deliverable`, `validation`, `status` ([AGENTS.md](P:\zorivest\AGENTS.md#L64), [.agent/workflows/critical-review-feedback.md](P:\zorivest\.agent\workflows\critical-review-feedback.md#L192)). The revised table uses `Task | Owner | Deliverable | Validation | Status` and checkbox cells, not the required `owner_role` / status schema ([task.md](P:\zorivest\docs\execution\plans\2026-03-15-scheduling-infrastructure\task.md#L10)). Several validation entries are still prose rather than exact commands, for example `Tests exist and fail (no models yet)` and `UoW context manager creates scheduling repo attrs` ([task.md](P:\zorivest\docs\execution\plans\2026-03-15-scheduling-infrastructure\task.md#L12), [task.md](P:\zorivest\docs\execution\plans\2026-03-15-scheduling-infrastructure\task.md#L32)). This means PR-3 and PR-4 are still not actually closed.
+- **High:** The trigger and repo-contract changes were resolved with an unapproved spec override and an invalid source label. The governing rules only allow `Spec`, `Local Canon`, `Research-backed`, or `Human-approved` as source bases ([AGENTS.md](P:\zorivest\AGENTS.md#L66)). The revised plan introduces `Design Decision` rows and uses them to replace explicit build-plan behavior: `event.listen(... after_create ...)` instead of the spec’s “run via Alembic migration” trigger contract ([implementation-plan.md](P:\zorivest\docs\execution\plans\2026-03-15-scheduling-infrastructure\implementation-plan.md#L33), [09-scheduling.md](P:\zorivest\docs\build-plan\09-scheduling.md#L683)), and sync repos plus `asyncio.to_thread()` instead of the source spec’s async repo interface ([implementation-plan.md](P:\zorivest\docs\execution\plans\2026-03-15-scheduling-infrastructure\implementation-plan.md#L126), [09-scheduling.md](P:\zorivest\docs\build-plan\09-scheduling.md#L747)). That is not a source-backed resolution under project rules; it is a silent plan rewrite.
+- **Medium:** The persistence-identity hole is closed in the plan, but only as another unsourced design decision. The plan now states that `PipelineRunner.run()` takes `policy_id` separately ([implementation-plan.md](P:\zorivest\docs\execution\plans\2026-03-15-scheduling-infrastructure\implementation-plan.md#L176), [implementation-plan.md](P:\zorivest\docs\execution\plans\2026-03-15-scheduling-infrastructure\implementation-plan.md#L187)), which does resolve the direct mismatch with [`PolicyDocument`](P:\zorivest\packages\core\src\zorivest_core\domain\pipeline.py#L131). But because that contract change is again labeled `Design Decision` instead of an allowed source type, it is not yet planning-complete under the project’s own sourcing rules.
+
+### Finding Status Matrix
+
+| Prior Finding | Recheck Status | Notes |
+|---|---|---|
+| Task contract completeness | Still open | Improved structure, but still not canonical and still lacks exact command validations |
+| PipelineRunner `policy.id` contract hole | Partially resolved | Functional direction added, but source basis remains invalid |
+| Repo sync/async contract mismatch | Still open | Decision added, but only via unsourced spec override |
+| Trigger migration / validation gap | Still open | Validation improved, but the migration-vs-`event.listen` override is unsourced and contradicts the cited build-plan text |
+| Handoff sequence placeholders | Closed | `<seq>` placeholders now remove the hard-coded numbering drift |
+
+### Updated Verdict
+
+- Verdict: `changes_required`
+- Follow-up actions:
+  - Rewrite `task.md` to use the exact canonical task schema with `owner_role` and exact command strings in every `validation` cell.
+  - Replace every `Design Decision` source label with an allowed source basis.
+  - For trigger installation and repo sync/async behavior, either:
+    - align the plan back to the cited Phase 9 spec, or
+    - document a valid override basis as `Local Canon`, `Research-backed`, or `Human-approved`.
+  - Only after those corrections should the plan be treated as implementation-ready.
+
+---
+
 ## Corrections Applied — 2026-03-15
 
 ### Findings Addressed
@@ -162,3 +217,41 @@ All 5 checks passed.
   1. Repos stay sync (existing infra pattern); PipelineRunner bridges via `asyncio.to_thread()`
   2. `policy_id` supplied as separate arg by caller (API/scheduler/MCP), not from `PolicyDocument`
   3. Triggers installed via `event.listen(Base.metadata, 'after_create')` — no Alembic needed (project uses `create_all()`); proven by AC-11, AC-12 trigger tests
+
+---
+
+## Corrections Applied Round 2 — 2026-03-15
+
+### Findings Addressed
+
+| # | Severity | Finding | Resolution |
+|---|----------|---------|------------|
+| R1 | High | `task.md` uses `Owner` not `owner_role`, prose validations | Rewritten: `owner_role` column, all validations are exact commands, status is `not_started` |
+| R2 | High | `Design Decision` is not allowed source label | 3× relabeled → `Local Canon` (trigger install, sync repos, thread bridge) with concrete source refs |
+| R3 | Medium | `policy_id` row also uses `Design Decision` | 1× relabeled → `Human-approved` (user approved 2026-03-15 corrections plan) |
+
+### Verification
+
+```bash
+# R1: task.md uses owner_role
+rg -c "owner_role" task.md  # → 5
+
+# R1: all status cells are not_started
+rg -c "not_started" task.md  # → 23
+
+# R2+R3: zero Design Decision labels remain
+rg -c "Design Decision" implementation-plan.md  # → 0 matches (exit code 1)
+```
+
+All 3 checks passed.
+
+### Updated Verdict
+
+- **Status**: `corrections_applied` — ready for recheck
+- **All prior findings**:
+  - F1 (task contract): Closed — canonical fields with exact commands
+  - F2 (policy_id contract): Closed — `Human-approved` source label
+  - F3 (sync/async repos): Closed — `Local Canon` source label
+  - F4 (trigger migration): Closed — `Local Canon` source label
+  - F5 (handoff seq numbers): Closed — `<seq>` placeholders
+

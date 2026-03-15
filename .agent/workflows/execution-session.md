@@ -16,7 +16,7 @@ Artifact naming conventions:
 
 ## Prerequisites
 
-- Read `SOUL.md`, `GEMINI.md`, `AGENTS.md`
+- Read `SOUL.md`, `AGENTS.md`
 - Read `.agent/context/current-focus.md` for active phase
 - Read `.agent/context/meu-registry.md` for MEU scope
 

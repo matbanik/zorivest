@@ -41,7 +41,7 @@ Count how many of these 7 required sections are substantively filled (not blank/
 
 ### Rule Adherence (%)
 At session end, score: (rules followed / rules applicable) × 100.
-Sample the top 10 most-relevant rules from AGENTS.md + GEMINI.md for the session's task type. Document which rules were checked in the reflection file.
+Sample the top 10 most-relevant rules from AGENTS.md for the session's task type. Document which rules were checked in the reflection file.
 
 ### Trend Alerts
 - Handoff Score below 5/7 for 2+ consecutive sessions → review template compliance

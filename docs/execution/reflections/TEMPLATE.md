@@ -117,4 +117,4 @@ EXAMPLE: {before → after}
 | Rule | Source | Followed? |
 |------|--------|-----------|
 | _{rule description}_ | AGENTS.md §X | Yes/No |
-| _{rule description}_ | GEMINI.md §X | Yes/No |
+| _{rule description}_ | AGENTS.md §X | Yes/No |

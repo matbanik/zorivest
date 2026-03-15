@@ -11,11 +11,10 @@ Own one scoped project from intake to completion. Select the minimum set of role
 ## Inputs (Read In Order)
 
 1. `AGENTS.md`
-2. `GEMINI.md` (if present)
-3. `.agent/workflows/orchestrated-delivery.md`
-4. `.agent/context/current-focus.md`
-5. `.agent/context/known-issues.md`
-6. Task-specific specs/docs referenced by the user
+2. `.agent/workflows/orchestrated-delivery.md`
+3. `.agent/context/current-focus.md`
+4. `.agent/context/known-issues.md`
+5. Task-specific specs/docs referenced by the user
 
 ## Must Do
 

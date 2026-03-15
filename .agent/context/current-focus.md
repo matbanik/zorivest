@@ -14,7 +14,7 @@ Execute Phase 1 + 1A using the dual-agent workflow (Opus 4.6 implementation → 
 
 | Agent | Role | Config File | Workflow |
 |-------|------|------------|----------|
-| Opus 4.6 (Antigravity) | Implementation (orchestrator, coder, tester) | `GEMINI.md` | `.agent/workflows/tdd-implementation.md` |
+| Opus 4.6 (Antigravity) | Implementation (orchestrator, coder, tester) | `AGENTS.md` (via `GEMINI.md` shim) | `.agent/workflows/tdd-implementation.md` |
 | GPT-5.4 Codex | Validation (reviewer, guardrail) | `AGENTS.md` | `.agent/workflows/validation-review.md` |
 | Handoff Protocol | — | — | `.agent/workflows/meu-handoff.md` |
 

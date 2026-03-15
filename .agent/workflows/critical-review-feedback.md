@@ -31,11 +31,10 @@ This is the workflow for prompts like:
 Read these files in order:
 
 1. `SOUL.md`
-2. `GEMINI.md`
-3. `AGENTS.md`
-4. `.agent/context/current-focus.md`
-5. `.agent/context/known-issues.md`
-6. `pomera_notes` search (`Zorivest`, `Memory/Session/*`, `Memory/Decisions/*`)
+2. `AGENTS.md`
+3. `.agent/context/current-focus.md`
+4. `.agent/context/known-issues.md`
+5. `pomera_notes` search (`Zorivest`, `Memory/Session/*`, `Memory/Decisions/*`)
 
 ---
 

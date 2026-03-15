@@ -24,7 +24,7 @@ applies_to: [packages/core, packages/infrastructure, etc.]
 
 ## Loading Strategy
 
-- Agents read AGENTS.md + GEMINI.md at session start (always)
+- Agents read AGENTS.md at session start (always)
 - Skills are loaded only when the task touches the skill's `applies_to` packages
 - The orchestrator role determines which skills to load during PLANNING mode
 

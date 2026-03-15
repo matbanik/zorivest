@@ -8,7 +8,7 @@ Use this workflow when implementing a Manageable Execution Unit (MEU). Opus is t
 
 ## Prerequisites
 
-- Read `GEMINI.md` for project config
+- Read `AGENTS.md` for project config
 - Read `SOUL.md` for identity
 - Read `.agent/context/meu-registry.md` for MEU scope
 - Read `.agent/context/current-focus.md` for active phase
