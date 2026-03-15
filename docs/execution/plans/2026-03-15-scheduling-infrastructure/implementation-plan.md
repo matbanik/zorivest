@@ -7,7 +7,7 @@ Build the scheduling infrastructure layer: SQLAlchemy models, repository impleme
 - **Slug**: `2026-03-15-scheduling-infrastructure`
 - **MEUs**: MEU-81, MEU-82, MEU-83, MEU-84 (in execution order: 81 → 84 → 82 → 83)
 - **Build plan sections**: [09-scheduling.md](../../build-plan/09-scheduling.md) §9.2a–9.2j (models, triggers, repos), §9.3a–9.3e (PipelineRunner, zombie detection), §9.3b–9.3c (RefResolver, ConditionEvaluator)
-- **In scope**: Models, repos, UoW extension, PipelineRunner, RefResolver, ConditionEvaluator, SQL triggers (report versioning + audit append-only)
+- **In scope**: Models, repos, UoW extension, PipelineRunner, RefResolver, ConditionEvaluator, SQL trigger DDL via `event.listen` (report versioning + audit append-only)
 - **Out of scope**: SchedulerService/APScheduler integration (§9.3d), FetchStep (§9.4), TransformStep (§9.5), StoreReportStep/RenderStep (§9.6), SendStep (§9.7), REST API (§9.8), MCP tools, GUI, sleep/wake handler (§9.3f)
 
 ---
@@ -30,6 +30,7 @@ Build the scheduling infrastructure layer: SQLAlchemy models, repository impleme
 | AuditLogModel.id uses Integer autoincrement (not UUID) | Spec | §9.2i | ✅ |
 | Report versioning trigger (BEFORE UPDATE on reports) | Spec | §9.2h | ✅ |
 | Audit append-only triggers (BEFORE UPDATE/DELETE on audit_log) | Spec | §9.2i | ✅ |
+| Trigger installation via `event.listen(Base.metadata, 'after_create')` (not Alembic — project doesn't use Alembic yet) | Design Decision | Local Canon (`create_engine_with_wal` pattern) | ✅ |
 | All models inherit from existing `Base` in models.py | Local Canon | `models.py` L26 | ✅ |
 | Relationship back_populates for PipelineRunModel ↔ PolicyModel, PipelineStepModel ↔ PipelineRunModel, ReportModel ↔ ReportVersionModel, ReportModel ↔ ReportDeliveryModel | Spec | §9.2a–9.2f | ✅ |
 
@@ -45,15 +46,19 @@ Build the scheduling infrastructure layer: SQLAlchemy models, repository impleme
 - **AC-8** (Spec): AuditLogModel uses `Integer` PK with `autoincrement=True` (not UUID)
 - **AC-9** (Spec): ReportModel has cascade relationships to versions and deliveries
 - **AC-10** (Spec): ReportDeliveryModel.dedup_key is `unique=True`
+- **AC-11** (Spec): Report versioning trigger: UPDATE on `reports` inserts prior row into `report_versions`
+- **AC-12** (Spec): Audit append-only triggers: UPDATE and DELETE on `audit_log` raise ABORT errors
 
 ### Files
 
 #### [MODIFY] [models.py](file:///p:/zorivest/packages/infrastructure/src/zorivest_infra/database/models.py)
 - Append 9 model classes after existing models (PolicyModel, PipelineRunModel, PipelineStepModel, PipelineStateModel, ReportModel, ReportVersionModel, ReportDeliveryModel, FetchCacheModel, AuditLogModel)
 - Add `UniqueConstraint` and `Index` imports as needed
+- Add trigger DDL via `event.listen(Base.metadata, 'after_create', _install_scheduling_triggers)` — installs report versioning trigger + audit append-only triggers
 
 #### [NEW] [test_scheduling_models.py](file:///p:/zorivest/tests/unit/test_scheduling_models.py)
 - In-memory SQLite tests for all 9 models: table creation, CRUD, FK constraints, unique constraints
+- Trigger behavior tests: AC-11 (report versioning on UPDATE) and AC-12 (audit append-only rejects UPDATE/DELETE)
 
 ---
 
@@ -118,6 +123,10 @@ Build the scheduling infrastructure layer: SQLAlchemy models, repository impleme
 | AuditLogRepository: append, list_recent | Spec | §9.2j | ✅ |
 | Repos follow existing `__init__(self, session)` pattern | Local Canon | `repositories.py` | ✅ |
 | UoW needs scheduling repo attributes | Local Canon | `unit_of_work.py` | ✅ |
+| **Sync repos** (spec shows `async def` but existing infra is sync Session-based) | Design Decision | See note below | ✅ |
+
+> [!IMPORTANT]
+> **Sync/Async Decision**: Scheduling repos use **synchronous** `Session`-based pattern matching the existing infrastructure convention (`repositories.py`). The build plan spec shows `async def` signatures, but the project has no async SQLAlchemy infrastructure. `PipelineRunner` (which is async) will bridge to sync repos via `asyncio.to_thread()`. This avoids introducing a parallel async repo pattern and keeps all persistence code in one consistent style.
 
 ### Feature Intent Contract (FIC)
 
@@ -164,13 +173,18 @@ Build the scheduling infrastructure layer: SQLAlchemy models, repository impleme
 | StepErrorMode.FAIL_PIPELINE aborts pipeline | Spec | §9.3a | ✅ |
 | StepErrorMode.LOG_AND_CONTINUE continues after failure | Spec | §9.3a | ✅ |
 | PipelineRunner.__init__ takes uow, ref_resolver, condition_evaluator | Spec | §9.3a | ✅ |
+| `policy_id` passed as separate `str` arg (not from `PolicyDocument.id`) | Design Decision | See note below | ✅ |
+| Sync repo calls bridged via `asyncio.to_thread()` | Design Decision | See MEU-82 note | ✅ |
 
 > [!NOTE]
-> The PipelineRunner spec references `_create_run_record`, `_persist_step`, `_finalize_run`, `_load_prior_output` as stub methods. These will be implemented using the scheduling repos from MEU-82. For unit tests, we mock the UoW to isolate the runner logic.
+> **Persistence identity**: `PipelineRunner.run()` receives `policy_id: str` as a separate argument alongside `PolicyDocument`. The `PolicyDocument` Pydantic model remains a pure authoring model without persistence identity — the caller (API/scheduler/MCP) supplies the UUID from the `policies` table. This matches the spec's `_create_run_record(run_id, policy_id, ...)` signature pattern.
+
+> [!NOTE]
+> **Repo bridge**: The PipelineRunner is async but calls sync repos. Persistence methods (`_create_run_record`, `_persist_step`, `_finalize_run`, `_load_prior_output`) wrap sync UoW calls via `asyncio.to_thread()`. For unit tests, we mock the UoW to isolate the runner logic.
 
 ### Feature Intent Contract (FIC)
 
-- **AC-1** (Spec): `PipelineRunner.run()` executes steps sequentially and returns `{run_id, status, duration_ms, error, steps}`
+- **AC-1** (Spec): `PipelineRunner.run(policy, policy_id, trigger_type, ...)` executes steps sequentially and returns `{run_id, status, duration_ms, error, steps}`
 - **AC-2** (Spec): Steps with `skip_if` condition met → `StepResult(status=SKIPPED)`
 - **AC-3** (Spec): Dry-run mode → steps with `side_effects=True` are skipped with `{"dry_run": True}` output
 - **AC-4** (Spec): `StepErrorMode.FAIL_PIPELINE` → pipeline stops, returns FAILED
@@ -214,7 +228,7 @@ rg "⬜.*scheduling-models\|⬜.*scheduling-repos\|⬜.*pipeline-runner\|⬜.*re
 ### Automated Tests
 
 ```bash
-# MEU-81: Scheduling models (in-memory SQLite)
+# MEU-81: Scheduling models (in-memory SQLite) + trigger behavior
 uv run pytest tests/unit/test_scheduling_models.py -v
 
 # MEU-84: RefResolver + ConditionEvaluator (pure unit tests)
@@ -236,6 +250,15 @@ uv run python tools/validate_codebase.py --scope meu
 rg "TODO|FIXME|NotImplementedError" packages/core/src/zorivest_core/services/pipeline_runner.py packages/core/src/zorivest_core/services/ref_resolver.py packages/core/src/zorivest_core/services/condition_evaluator.py packages/infrastructure/src/zorivest_infra/database/scheduling_repositories.py
 ```
 
+### Trigger Validation (MEU-81)
+```bash
+# Trigger tests are included in test_scheduling_models.py:
+# - test_report_versioning_trigger: UPDATE on reports → row inserted into report_versions
+# - test_audit_no_update_trigger: UPDATE on audit_log → ABORT error
+# - test_audit_no_delete_trigger: DELETE on audit_log → ABORT error
+uv run pytest tests/unit/test_scheduling_models.py -v -k "trigger"
+```
+
 ### Type Checking
 ```bash
 uv run pyright packages/core/src/zorivest_core/services/pipeline_runner.py packages/core/src/zorivest_core/services/ref_resolver.py packages/core/src/zorivest_core/services/condition_evaluator.py packages/infrastructure/src/zorivest_infra/database/scheduling_repositories.py packages/infrastructure/src/zorivest_infra/database/models.py
@@ -247,9 +270,9 @@ uv run pyright packages/core/src/zorivest_core/services/pipeline_runner.py packa
 
 | MEU | Handoff Path |
 |-----|-------------|
-| MEU-81 | `.agent/context/handoffs/061-2026-03-15-scheduling-models-bp09s9.2.md` |
-| MEU-84 | `.agent/context/handoffs/062-2026-03-15-ref-resolver-bp09s9.3b+9.3c.md` |
-| MEU-82 | `.agent/context/handoffs/063-2026-03-15-scheduling-repos-bp09s9.2j.md` |
-| MEU-83 | `.agent/context/handoffs/064-2026-03-15-pipeline-runner-bp09s9.3a+9.3e.md` |
+| MEU-81 | `.agent/context/handoffs/<seq>-2026-03-15-scheduling-models-bp09s9.2.md` |
+| MEU-84 | `.agent/context/handoffs/<seq>-2026-03-15-ref-resolver-bp09s9.3b+9.3c.md` |
+| MEU-82 | `.agent/context/handoffs/<seq>-2026-03-15-scheduling-repos-bp09s9.2j.md` |
+| MEU-83 | `.agent/context/handoffs/<seq>-2026-03-15-pipeline-runner-bp09s9.3a+9.3e.md` |
 
-> Sequence numbers are estimates — will be finalized by checking `ls .agent/context/handoffs/ | Sort-Object` at execution time.
+> `<seq>` determined at execution time by checking `Get-ChildItem .agent/context/handoffs/ | Sort-Object Name`.
