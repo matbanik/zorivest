@@ -1,4 +1,4 @@
-# MEU Registry — Phase 1 + 1A + 2 + 2A + 3 + 4 + 5 + 8 + 9
+# MEU Registry — Phase 1 + 1A + 2 + 2A + 3 + 4 + 5 + 6 + 8 + 9
 
 > Source: [BUILD_PLAN.md](../docs/BUILD_PLAN.md) | [build-priority-matrix.md](../docs/build-plan/build-priority-matrix.md)
 
@@ -152,5 +152,17 @@ P2.75 (broker adapters): MEU-96 → MEU-99
 - Phase 5: MEU-31..42 ✅ (all MCP tools complete) → Phase 6 unblocked
 - Phase 8: MEU-56..60,62 ✅ (market data foundation + infrastructure) → Phase 8 adapters unblocked
 - Phase 9 (domain): MEU-77..80 ✅ (pipeline enums, models, registry, validator) → Phase 9 infrastructure unblocked
+
+## Phase 6: GUI Shell Foundation (P0)
+
+| MEU | Slug | Matrix | Description | Status |
+|-----|------|:------:|-------------|:------:|
+| MEU-43 | `gui-shell` | 15 | Electron + React UI shell (AppShell, NavRail, Header, StatusFooter, splash, Python lifecycle) | ✅ approved |
+| MEU-44 | `gui-command-registry` | 15c | Command registry + CommandPalette (13 static entries, Fuse.js fuzzy search, keyboard nav) | ✅ approved |
+| MEU-45 | `gui-window-state` | 15d | Window state persistence (electron-store, bounds save/restore, first-launch defaults) | ✅ approved |
+
+## Phase-Exit Criteria (Updated)
+
+- Phase 6 (foundation): MEU-43..45 ✅ (shell + commands + window state) → Phase 6 features unblocked
 
 

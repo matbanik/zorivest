@@ -25,6 +25,7 @@
 | 2026-03-13 | MEU-68/69 | ~150 | ~5 min | 55 | 2 High + 5 Med + 1 Low (resolved, 3 rounds) | 7/7 | 85% | ~180 min | 2-MEU watchlist entity+service+API + MCP tools. Codex caught missing entity tests, AC-9 cascade label, MCP count drift, pyright scope. Evidence-freshness recursion was the main lesson. |
 | 2026-03-13 | MEU-77/78/79/80 | ~200 | ~5 min | 143 | 2 High + 2 Med + 1 Low (resolved, 4 rounds) | 7/7 | 85% | ~300 min | 4-MEU scheduling domain foundation: enums, policy models, step registry, policy validator. Codex caught malformed ref acceptance, list-of-list recursion gap, StepBase import surface, get_all_steps() dict/class contract drift, stale doc references. |
 | 2026-03-13 | MEU-96/99 | ~180 | ~5 min | 66 | 1 High + 3 Med + 1 Low (resolved, 2 rounds) | 7/7 | 85% | ~120 min | 2-MEU broker import foundation: IBKR FlexQuery XML + CSV framework (TOS, NinjaTrader) + ImportService. Codex caught fractional strike floor division, BOM path gap, weak AC-9 assertion, stale evidence counts. |
+| 2026-03-14 | MEU-43/44/45 | ~250 | ~6 min | 56 | 1 High + 3 Med + 1 Low (resolved, 4 rounds) | 7/7 | 85% | ~180 min | 3-MEU GUI shell foundation: Electron+React scaffolding, command registry+palette, window state persistence. 4 review rounds — dominant finding category: evidence-quality gaps (stale counts, overstated claims, unmapped ACs). |
 
 ## Measurement Definitions
 
