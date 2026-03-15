@@ -1,12 +1,14 @@
 """SQLAlchemy ORM models for Zorivest database schema.
 
-Source: 02-infrastructure.md §2.1
+Source: 02-infrastructure.md §2.1, 09-scheduling.md §9.2
 
-Contains all 21 model classes + Base. Financial columns use Numeric(15,6)
+Contains all 30 model classes + Base. Financial columns use Numeric(15,6)
 per the precision warning in the spec. Display-only columns use Float.
 """
 
 from __future__ import annotations
+
+import uuid
 
 from sqlalchemy import (
     Boolean,
@@ -19,6 +21,9 @@ from sqlalchemy import (
     Numeric,
     String,
     Text,
+    UniqueConstraint,
+    event,
+    text,
 )
 from sqlalchemy.orm import DeclarativeBase, relationship
 
@@ -381,3 +386,249 @@ class BankImportConfigModel(Base):
     config = Column(Text, nullable=False)  # YAML or JSON
     created_at = Column(DateTime, nullable=False)
     updated_at = Column(DateTime, nullable=True)
+
+
+# ── Scheduling & Pipeline Models (Phase 9, §9.2) ─────────────────────────────
+
+
+class PolicyModel(Base):
+    """Persisted pipeline policy document (§9.2c)."""
+
+    __tablename__ = "policies"
+
+    id = Column(String(36), primary_key=True, default=lambda: str(uuid.uuid4()))
+    name = Column(String(128), unique=True, nullable=False)
+    schema_version = Column(Integer, nullable=False, default=1)
+    policy_json = Column(Text, nullable=False)  # Full PolicyDocument JSON
+    content_hash = Column(String(64), nullable=False)
+    enabled = Column(Boolean, default=True)
+    approved = Column(Boolean, default=False)
+    approved_at = Column(DateTime, nullable=True)
+    approved_hash = Column(String(64), nullable=True)  # Hash that was approved
+    created_at = Column(DateTime, nullable=False)
+    updated_at = Column(DateTime, nullable=True)
+    created_by = Column(String(128), default="")
+
+    runs = relationship("PipelineRunModel", back_populates="policy")
+
+
+class PipelineRunModel(Base):
+    """A single execution of a pipeline policy (§9.2a)."""
+
+    __tablename__ = "pipeline_runs"
+
+    id = Column(String(36), primary_key=True, default=lambda: str(uuid.uuid4()))
+    policy_id = Column(String(36), ForeignKey("policies.id"), nullable=False, index=True)
+    status = Column(String(20), nullable=False, default="pending")  # PipelineStatus
+    trigger_type = Column(String(20), nullable=False)  # "scheduled" | "manual" | "mcp"
+    started_at = Column(DateTime, nullable=True)
+    completed_at = Column(DateTime, nullable=True)
+    duration_ms = Column(Integer, nullable=True)
+    error = Column(Text, nullable=True)
+    dry_run = Column(Boolean, default=False)
+    created_by = Column(String(128), default="")
+    content_hash = Column(String(64), nullable=False)  # Policy hash at execution time
+
+    steps = relationship(
+        "PipelineStepModel", back_populates="run", cascade="all, delete-orphan"
+    )
+    policy = relationship("PolicyModel", back_populates="runs")
+
+
+class PipelineStepModel(Base):
+    """Execution record for a single step within a pipeline run (§9.2b)."""
+
+    __tablename__ = "pipeline_steps"
+
+    id = Column(String(36), primary_key=True, default=lambda: str(uuid.uuid4()))
+    run_id = Column(
+        String(36), ForeignKey("pipeline_runs.id"), nullable=False, index=True
+    )
+    step_id = Column(String(64), nullable=False)  # Matches PolicyStep.id
+    step_type = Column(String(64), nullable=False)  # e.g. "fetch", "transform"
+    status = Column(String(20), nullable=False, default="pending")
+    started_at = Column(DateTime, nullable=True)
+    completed_at = Column(DateTime, nullable=True)
+    duration_ms = Column(Integer, nullable=True)
+    output_json = Column(Text, nullable=True)  # JSON-serialized step output
+    error = Column(Text, nullable=True)
+    attempt = Column(Integer, default=1)
+
+    run = relationship("PipelineRunModel", back_populates="steps")
+
+
+class PipelineStateModel(Base):
+    """Incremental state for fetch steps — high-water marks, cursors (§9.2d)."""
+
+    __tablename__ = "pipeline_state"
+    __table_args__ = (
+        UniqueConstraint(
+            "policy_id", "provider_id", "data_type", "entity_key",
+            name="uq_pipeline_state",
+        ),
+    )
+
+    id = Column(String(36), primary_key=True, default=lambda: str(uuid.uuid4()))
+    policy_id = Column(String(36), ForeignKey("policies.id"), nullable=False)
+    provider_id = Column(String(64), nullable=False)
+    data_type = Column(String(64), nullable=False)
+    entity_key = Column(String(128), nullable=False)
+    last_cursor = Column(String(256), nullable=True)
+    last_hash = Column(String(64), nullable=True)
+    updated_at = Column(DateTime, nullable=False)
+
+
+class ReportModel(Base):
+    """Current version of a generated report (§9.2e)."""
+
+    __tablename__ = "reports"
+
+    id = Column(String(36), primary_key=True, default=lambda: str(uuid.uuid4()))
+    name = Column(String(256), nullable=False)
+    version = Column(Integer, default=1)
+    spec_json = Column(Text, nullable=False)  # ReportSpec JSON
+    snapshot_json = Column(Text, nullable=True)  # Frozen query results
+    snapshot_hash = Column(String(64), nullable=True)  # SHA-256 of snapshot
+    format = Column(String(10), nullable=False, default="pdf")  # "html" | "pdf"
+    rendered_at = Column(DateTime, nullable=True)
+    created_at = Column(DateTime, nullable=False)
+    created_by = Column(String(128), default="")
+
+    versions = relationship(
+        "ReportVersionModel", back_populates="report", cascade="all, delete-orphan"
+    )
+    deliveries = relationship(
+        "ReportDeliveryModel", back_populates="report", cascade="all, delete-orphan"
+    )
+
+
+class ReportVersionModel(Base):
+    """Historical versions of a report — populated by trigger (§9.2e)."""
+
+    __tablename__ = "report_versions"
+
+    id = Column(String(36), primary_key=True, default=lambda: str(uuid.uuid4()))
+    report_id = Column(
+        String(36), ForeignKey("reports.id"), nullable=False, index=True
+    )
+    version = Column(Integer, nullable=False)
+    spec_json = Column(Text, nullable=False)
+    snapshot_json = Column(Text, nullable=True)
+    snapshot_hash = Column(String(64), nullable=True)
+    created_at = Column(DateTime, nullable=False)
+
+    report = relationship("ReportModel", back_populates="versions")
+
+
+class ReportDeliveryModel(Base):
+    """Delivery tracking for rendered reports (§9.2f)."""
+
+    __tablename__ = "report_delivery"
+
+    id = Column(String(36), primary_key=True, default=lambda: str(uuid.uuid4()))
+    report_id = Column(
+        String(36), ForeignKey("reports.id"), nullable=False, index=True
+    )
+    channel = Column(String(20), nullable=False)  # "email" | "local_file"
+    recipient = Column(String(256), nullable=False)
+    status = Column(String(20), nullable=False, default="pending")
+    sent_at = Column(DateTime, nullable=True)
+    error = Column(Text, nullable=True)
+    dedup_key = Column(String(64), unique=True, nullable=False)  # SHA-256 idempotency
+
+    report = relationship("ReportModel", back_populates="deliveries")
+
+
+class FetchCacheModel(Base):
+    """HTTP response cache for fetch steps (§9.2g)."""
+
+    __tablename__ = "fetch_cache"
+    __table_args__ = (
+        UniqueConstraint(
+            "provider", "data_type", "entity_key", name="uq_fetch_cache"
+        ),
+    )
+
+    id = Column(String(36), primary_key=True, default=lambda: str(uuid.uuid4()))
+    provider = Column(String(64), nullable=False)
+    data_type = Column(String(64), nullable=False)
+    entity_key = Column(String(128), nullable=False)
+    payload_json = Column(Text, nullable=False)
+    content_hash = Column(String(64), nullable=False)
+    etag = Column(String(256), nullable=True)
+    last_modified = Column(String(128), nullable=True)
+    fetched_at = Column(DateTime, nullable=False)
+    ttl_seconds = Column(Integer, nullable=False)
+
+
+class AuditLogModel(Base):
+    """Append-only audit trail for pipeline operations (§9.2i)."""
+
+    __tablename__ = "audit_log"
+
+    id = Column(Integer, primary_key=True, autoincrement=True)
+    actor = Column(String(128), nullable=False)  # "scheduler", "mcp:agent", "gui:user"
+    action = Column(String(64), nullable=False)  # "policy.create", "pipeline.run"
+    resource_type = Column(String(64), nullable=False)  # "policy", "pipeline_run"
+    resource_id = Column(String(36), nullable=False)
+    details_json = Column(Text, nullable=True)
+    created_at = Column(DateTime, nullable=False)
+
+
+# ── Scheduling Triggers (§9.2h, §9.2i) ───────────────────────────────────
+
+
+def _install_scheduling_triggers(
+    target,  # noqa: ANN001
+    connection,  # noqa: ANN001
+    **_kw,  # noqa: ANN003
+) -> None:
+    """Install report-versioning and audit-append-only triggers.
+
+    Connected via event.listen(Base.metadata, 'after_create') — Local Canon
+    precedent from 2026-03-08-settings-backup plan (no Alembic infrastructure).
+    """
+    # §9.2h: Report versioning trigger
+    connection.execute(
+        text(
+            """CREATE TRIGGER IF NOT EXISTS reports_version_on_update
+            BEFORE UPDATE ON reports
+            FOR EACH ROW
+            BEGIN
+                INSERT INTO report_versions (
+                    id, report_id, version, spec_json, snapshot_json,
+                    snapshot_hash, created_at
+                ) VALUES (
+                    lower(hex(randomblob(4)) || '-' || hex(randomblob(2)) || '-4' ||
+                          substr(hex(randomblob(2)),2) || '-' ||
+                          substr('89ab', abs(random()) % 4 + 1, 1) ||
+                          substr(hex(randomblob(2)),2) || '-' || hex(randomblob(6))),
+                    OLD.id, OLD.version, OLD.spec_json, OLD.snapshot_json,
+                    OLD.snapshot_hash, datetime('now')
+                );
+            END;"""
+        )
+    )
+
+    # §9.2i: Audit log append-only triggers
+    connection.execute(
+        text(
+            """CREATE TRIGGER IF NOT EXISTS audit_no_update
+            BEFORE UPDATE ON audit_log
+            BEGIN
+                SELECT RAISE(ABORT, 'audit_log is append-only: UPDATE not allowed');
+            END;"""
+        )
+    )
+    connection.execute(
+        text(
+            """CREATE TRIGGER IF NOT EXISTS audit_no_delete
+            BEFORE DELETE ON audit_log
+            BEGIN
+                SELECT RAISE(ABORT, 'audit_log is append-only: DELETE not allowed');
+            END;"""
+        )
+    )
+
+
+event.listen(Base.metadata, "after_create", _install_scheduling_triggers)

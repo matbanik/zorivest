@@ -228,6 +228,52 @@
 
 ---
 
+## Recheck Update 3 — 2026-03-15
+
+### Scope Reviewed
+
+- Rechecked:
+  - `docs/execution/plans/2026-03-15-scheduling-infrastructure/implementation-plan.md`
+  - `docs/execution/plans/2026-03-15-scheduling-infrastructure/task.md`
+  - `docs/build-plan/09-scheduling.md`
+  - `AGENTS.md`
+- Correlation rationale:
+  - Still plan-review mode. No implementation artifacts or MEU handoffs exist yet for this project.
+
+### Commands Executed
+
+- Line-numbered `Get-Content` reads for:
+  - `docs/execution/plans/2026-03-15-scheduling-infrastructure/implementation-plan.md`
+  - `docs/execution/plans/2026-03-15-scheduling-infrastructure/task.md`
+  - `docs/build-plan/09-scheduling.md`
+  - `AGENTS.md`
+- `rg -n "Human-approved|Local Canon|event.listen|asyncio\.to_thread|policy_id: str|pomera_notes search|Conventional commit format verified" docs/execution/plans/2026-03-15-scheduling-infrastructure/implementation-plan.md docs/execution/plans/2026-03-15-scheduling-infrastructure/task.md`
+- `rg -n "Research-backed|policy_id|Clean Architecture|event.listens_for|2026-03-08-settings-backup" docs/execution/plans/2026-03-15-scheduling-infrastructure/implementation-plan.md`
+- `rg --files packages/core/src/zorivest_core/services tests/unit packages/infrastructure/src/zorivest_infra/database .agent/context/handoffs | rg "(pipeline_runner|ref_resolver|condition_evaluator|test_pipeline_runner|test_ref_resolver|test_scheduling_models|test_scheduling_repos|scheduling_repositories|2026-03-15-scheduling-infrastructure-(plan|implementation)-critical-review|2026-03-15-scheduling-models|2026-03-15-ref-resolver|2026-03-15-scheduling-repos|2026-03-15-pipeline-runner)"`
+
+### Findings by Severity
+
+- **Medium:** The last two post-MEU validation rows are still not fully reproducible “exact commands” for the stated deliverables. [`task.md`](P:\zorivest\docs\execution\plans\2026-03-15-scheduling-infrastructure\task.md#L53) now says “Verified via MCP `pomera_notes search` tool in agent session”, which is a description of a tool action, not an exact runnable command string in the task artifact. [`task.md`](P:\zorivest\docs\execution\plans\2026-03-15-scheduling-infrastructure\task.md#L54) uses `git log -1 --format=%s`, but that checks the latest existing commit message, not the planned deliverable “Prepare commit messages”; it does not actually validate the proposed messages for this project. The plan is close, but PR-4 is still not fully closed.
+
+### Finding Status Matrix
+
+| Prior Finding | Recheck Status | Notes |
+|---|---|---|
+| Task contract completeness | Mostly closed, one residual gap | Required columns and most validation commands are now correct |
+| PipelineRunner `policy.id` contract hole | Closed | `Research-backed` basis now replaces unsupported `Human-approved` claim |
+| Repo sync/async contract mismatch | Closed for planning purposes | Local-canon rationale is now explicit and consistent with current repo shape |
+| Trigger migration / validation gap | Closed for planning purposes | Local-canon precedent plus trigger-specific validation now documented |
+| Handoff sequence placeholders | Closed | No regression |
+
+### Updated Verdict
+
+- Verdict: `changes_required`
+- Follow-up actions:
+  - Replace the `pomera_notes` validation prose with a concrete executable verification step or explicitly mark it as an MCP-tool verification artifact.
+  - Replace the commit-message validation with a command or artifact check that validates the proposed commit-message deliverable itself, not the repo’s prior commit history.
+
+---
+
 ## Corrections Applied — 2026-03-15
 
 ### Findings Addressed
@@ -343,3 +389,71 @@ All checks passed.
 - **Status**: `corrections_applied` — ready for recheck
 - **Source labels used**: `Spec`, `Local Canon` (with prior precedent refs), `Research-backed` (with web research evidence)
 - **All 5 original findings**: Closed
+
+---
+
+## Corrections Applied Round 4 — 2026-03-15
+
+### Findings Addressed
+
+| # | Severity | Finding | Resolution |
+|---|----------|---------|------------|
+| R4-1a | Medium | L53 pomera_notes: prose description, not executable | Replaced with MCP command: `pomera_notes action=search search_term="scheduling-infrastructure*" limit=1` returns ≥1 result |
+| R4-1b | Medium | L54 commit messages: `git log -1` checks repo history, not deliverable | Replaced with `Test-Path .../commit-messages.md` — validates the artifact itself |
+
+### Precedent
+
+Patterns sourced from approved `2026-03-14-gui-shell-foundation/task.md` L350-376.
+
+### Verification
+
+```bash
+rg -n "Verified via MCP|git log -1|Conventional commit format" task.md  # → exit code 1 (0 matches)
+```
+
+All stale patterns removed.
+
+### Updated Verdict
+
+- **Status**: `corrections_applied` — ready for recheck
+- **All findings across 4 rounds**: Closed
+
+---
+
+## Recheck Update 4 — 2026-03-15
+
+### Scope Reviewed
+
+- Rechecked:
+  - `docs/execution/plans/2026-03-15-scheduling-infrastructure/implementation-plan.md`
+  - `docs/execution/plans/2026-03-15-scheduling-infrastructure/task.md`
+  - `docs/build-plan/09-scheduling.md`
+  - `AGENTS.md`
+- Correlation rationale:
+  - Still plan-review mode. No implementation artifacts or MEU handoffs exist yet for this project.
+
+### Commands Executed
+
+- Line-numbered `Get-Content` reads for:
+  - `docs/execution/plans/2026-03-15-scheduling-infrastructure/implementation-plan.md`
+  - `docs/execution/plans/2026-03-15-scheduling-infrastructure/task.md`
+  - `docs/build-plan/09-scheduling.md`
+  - `AGENTS.md`
+- `rg -n "pomera_notes search|Verified via MCP|git log -1 --format=%s|Conventional commit format verified|validation \| status" docs/execution/plans/2026-03-15-scheduling-infrastructure/task.md docs/execution/plans/2026-03-15-scheduling-infrastructure/implementation-plan.md`
+- `rg --files packages/core/src/zorivest_core/services tests/unit packages/infrastructure/src/zorivest_infra/database .agent/context/handoffs | rg "(pipeline_runner|ref_resolver|condition_evaluator|test_pipeline_runner|test_ref_resolver|test_scheduling_models|test_scheduling_repos|scheduling_repositories|2026-03-15-scheduling-infrastructure-(plan|implementation)-critical-review|2026-03-15-scheduling-models|2026-03-15-ref-resolver|2026-03-15-scheduling-repos|2026-03-15-pipeline-runner)"`
+
+### Findings by Severity
+
+- No findings.
+
+### Residual Risk
+
+- Planning-only residual risk remains normal for an unstarted project: implementation still needs to follow the stated TDD, verification, and handoff evidence requirements.
+- No additional plan-quality blockers were found in this pass.
+
+### Updated Verdict
+
+- Verdict: `approved`
+- Follow-up actions:
+  - Proceed to implementation using this plan.
+  - Preserve the documented source bases and verification steps during execution so later implementation review can audit them.

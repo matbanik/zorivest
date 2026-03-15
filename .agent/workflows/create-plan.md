@@ -7,6 +7,8 @@ description: Reason about what to build next — read handoffs, check build-plan
 Use this workflow to start a new build session. Instead of reading a pre-written prompt, the agent discovers what's done, identifies what's next, and uses reasoning to scope a coherent project of related MEUs.
 
 // turbo-all
+// NOTE: turbo-all sets SafeToAutoRun=true for non-destructive commands (rg, Get-Content, etc.).
+// It does NOT override AGENTS.md §Commits: "Never auto-commit." Git commit/push still requires explicit user direction.
 
 ## Prerequisites
 

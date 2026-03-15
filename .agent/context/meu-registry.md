@@ -120,6 +120,10 @@
 | MEU-78 | `policy-models` | 37 | PolicyDocument + PolicyStep Pydantic models + StepContext/StepResult | ✅ approved |
 | MEU-79 | `step-registry` | 38 | StepBase Protocol + RegisteredStep + STEP_REGISTRY + helpers | ✅ approved |
 | MEU-80 | `policy-validator` | 39 | PolicyValidator (8 rules) + SHA-256 hash + SQL blocklist | ✅ approved |
+| MEU-81 | `scheduling-models` | 40 | SQLAlchemy models (9 scheduling tables) + Alembic DDL trigger | ✅ approved |
+| MEU-82 | `scheduling-repos` | 41 | 5 scheduling repositories + UoW extension (10→15 repos) | ✅ approved |
+| MEU-83 | `pipeline-runner` | 42 | PipelineRunner (async executor with persistence/resume/zombie) | ✅ approved |
+| MEU-84 | `ref-resolver` | 43 | RefResolver + ConditionEvaluator (param resolution + skip logic) | ✅ approved |
 
 ## Execution Order
 

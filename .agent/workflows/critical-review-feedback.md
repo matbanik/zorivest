@@ -25,6 +25,8 @@ This is the workflow for prompts like:
 - "Find regressions/missed references after a docs refactor"
 
 // turbo-all
+// NOTE: turbo-all sets SafeToAutoRun=true for non-destructive commands (rg, Get-Content, etc.).
+// It does NOT override AGENTS.md §Commits: "Never auto-commit." Git commit/push still requires explicit user direction.
 
 ## Prerequisites
 

@@ -3,8 +3,8 @@
 
 """SqlAlchemy Unit of Work implementation.
 
-Source: 02-infrastructure.md §2.2, ports.py UnitOfWork Protocol
-Provides transactional boundary with 5 repository attributes.
+Source: 02-infrastructure.md §2.2, 09-scheduling.md §9.2j
+Provides transactional boundary with 15 repository attributes.
 """
 
 from __future__ import annotations
@@ -26,6 +26,13 @@ from zorivest_infra.database.repositories import (
     SqlAlchemyTradeReportRepository,
     SqlAlchemyTradeRepository,
     SqlMarketProviderSettingsRepository,
+)
+from zorivest_infra.database.scheduling_repositories import (
+    AuditLogRepository,
+    FetchCacheRepository,
+    PipelineRunRepository,
+    PolicyRepository,
+    ReportRepository,
 )
 
 
@@ -50,6 +57,12 @@ class SqlAlchemyUnitOfWork:
     market_provider_settings: SqlMarketProviderSettingsRepository
     trade_reports: SqlAlchemyTradeReportRepository  # MEU-52
     trade_plans: SqlAlchemyTradePlanRepository      # MEU-66
+    # Scheduling repos (MEU-82)
+    policies: PolicyRepository
+    pipeline_runs: PipelineRunRepository
+    reports: ReportRepository
+    fetch_cache: FetchCacheRepository
+    audit_log: AuditLogRepository
 
     def __init__(self, engine: Engine) -> None:
         self._engine = engine
@@ -68,6 +81,12 @@ class SqlAlchemyUnitOfWork:
         self.market_provider_settings = SqlMarketProviderSettingsRepository(self._session)
         self.trade_reports = SqlAlchemyTradeReportRepository(self._session)  # MEU-52
         self.trade_plans = SqlAlchemyTradePlanRepository(self._session)      # MEU-66
+        # Scheduling repos (MEU-82)
+        self.policies = PolicyRepository(self._session)
+        self.pipeline_runs = PipelineRunRepository(self._session)
+        self.reports = ReportRepository(self._session)
+        self.fetch_cache = FetchCacheRepository(self._session)
+        self.audit_log = AuditLogRepository(self._session)
         return self
 
     def __exit__(

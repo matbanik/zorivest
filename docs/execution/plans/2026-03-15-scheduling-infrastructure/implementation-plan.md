@@ -126,7 +126,7 @@ Build the scheduling infrastructure layer: SQLAlchemy models, repository impleme
 | **Sync repos** (spec shows `async def` but existing infra is sync Session-based) | Local Canon | `repositories.py` — all existing repos are sync `Session`-backed | ✅ |
 
 > [!IMPORTANT]
-> **Sync/Async Decision**: Scheduling repos use **synchronous** `Session`-based pattern matching the existing infrastructure convention (`repositories.py`). The build plan spec shows `async def` signatures, but the project has no async SQLAlchemy infrastructure. `PipelineRunner` (which is async) will bridge to sync repos via `asyncio.to_thread()`. This avoids introducing a parallel async repo pattern and keeps all persistence code in one consistent style.
+> **Sync/Async Decision**: Scheduling repos use **synchronous** `Session`-based pattern matching the existing infrastructure convention (`repositories.py`). The build plan spec shows `async def` signatures, but the project has no async SQLAlchemy infrastructure. `PipelineRunner` (which is async) calls sync repos directly — SQLite sessions are fast and non-blocking for the expected workload. This avoids introducing a parallel async repo pattern and keeps all persistence code in one consistent style.
 
 ### Feature Intent Contract (FIC)
 
@@ -174,13 +174,13 @@ Build the scheduling infrastructure layer: SQLAlchemy models, repository impleme
 | StepErrorMode.LOG_AND_CONTINUE continues after failure | Spec | §9.3a | ✅ |
 | PipelineRunner.__init__ takes uow, ref_resolver, condition_evaluator | Spec | §9.3a | ✅ |
 | `policy_id` passed as separate `str` arg (not from `PolicyDocument.id`) | Research-backed | Clean Architecture: keep persistence identity separate from domain models; spec's own `_create_run_record(run_id, policy_id, ...)` uses this pattern | ✅ |
-| Sync repo calls bridged via `asyncio.to_thread()` | Local Canon | Follows sync repo pattern from `repositories.py` | ✅ |
+| Sync repo calls from async runner | Local Canon | Follows sync repo pattern from `repositories.py`; direct calls acceptable for SQLite workload | ✅ |
 
 > [!NOTE]
 > **Persistence identity**: `PipelineRunner.run()` receives `policy_id: str` as a separate argument alongside `PolicyDocument`. The `PolicyDocument` Pydantic model remains a pure authoring model without persistence identity — the caller (API/scheduler/MCP) supplies the UUID from the `policies` table. This matches the spec's `_create_run_record(run_id, policy_id, ...)` signature pattern.
 
 > [!NOTE]
-> **Repo bridge**: The PipelineRunner is async but calls sync repos. Persistence methods (`_create_run_record`, `_persist_step`, `_finalize_run`, `_load_prior_output`) wrap sync UoW calls via `asyncio.to_thread()`. For unit tests, we mock the UoW to isolate the runner logic.
+> **Repo bridge**: The PipelineRunner is async but calls sync repos. Persistence methods (`_create_run_record`, `_persist_step`, `_finalize_run`, `_load_prior_output`) call sync UoW/session methods directly. SQLite sessions are fast and non-blocking for the expected workload, so `asyncio.to_thread()` wrapping is unnecessary. For unit tests, we mock the UoW to isolate the runner logic.
 
 ### Feature Intent Contract (FIC)
 

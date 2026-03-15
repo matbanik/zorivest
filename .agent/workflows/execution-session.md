@@ -13,6 +13,8 @@ Artifact naming conventions:
 - If a project is replanned on the same day, append `-v2`, `-v3`, etc. to the folder name.
 
 // turbo-all
+// NOTE: turbo-all sets SafeToAutoRun=true for non-destructive commands (rg, Get-Content, etc.).
+// It does NOT override AGENTS.md §Commits: "Never auto-commit." Git commit/push still requires explicit user direction.
 
 ## Prerequisites
 
