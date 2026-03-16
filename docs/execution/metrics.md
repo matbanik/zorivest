@@ -27,6 +27,7 @@
 | 2026-03-13 | MEU-96/99 | ~180 | ~5 min | 66 | 1 High + 3 Med + 1 Low (resolved, 2 rounds) | 7/7 | 85% | ~120 min | 2-MEU broker import foundation: IBKR FlexQuery XML + CSV framework (TOS, NinjaTrader) + ImportService. Codex caught fractional strike floor division, BOM path gap, weak AC-9 assertion, stale evidence counts. |
 | 2026-03-14 | MEU-43/44/45 | ~250 | ~6 min | 56 | 1 High + 3 Med + 1 Low (resolved, 4 rounds) | 7/7 | 85% | ~180 min | 3-MEU GUI shell foundation: Electron+React scaffolding, command registry+palette, window state persistence. 4 review rounds — dominant finding category: evidence-quality gaps (stale counts, overstated claims, unmapped ACs). |
 | 2026-03-15 | MEU-81/82/83/84 | ~200 | ~5 min | 77 | 4 High + 7 Med + 3 Low (resolved, 4 rounds) | 7/7 | 85% | ~180 min | 4-MEU scheduling infra: models, repos, pipeline runner, ref resolver. Codex caught: persistence column mismatch (pipeline_run_id vs run_id), missing live UoW test, plan-contract drift (to_thread), stale evidence/handoff text, post-MEU procrastination. |
+| 2026-03-15 | MEU-85/86/87 | ~250 | ~5 min | 64 | 2 High + 2 Med (resolved, 7 rounds) | 7/7 | 85% | ~300 min | 3-MEU pipeline-steps: fetch, transform, store-report, render. CriteriaResolver per-field rewrite. 7 review rounds — dominant patterns: degraded-behavior codification in tests, pyright narrowing gaps, missing-collaborator false success. |
 
 ## Measurement Definitions
 

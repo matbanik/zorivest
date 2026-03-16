@@ -300,7 +300,7 @@ Canonical registry of **every computed or derived output** the system produces �
 | 16.5 | Run history (per policy) | List | `PipelineRunModel` | 🖥️🤖🔌 | `GET /scheduling/policies/{id}/runs` | ✅ | [09](09-scheduling.md) |
 | 16.6 | Scheduler status | Object | `SchedulerService.get_status()` | 🖥️🤖🔌 | `GET /scheduling/scheduler/status` | ✅ | [09](09-scheduling.md) |
 | 16.7 | Rendered report (HTML) | HTML | `RenderStep` output | 🖥️ | local file | ✅ | [09](09-scheduling.md) |
-| 16.8 | Rendered report (PDF) | File | `WeasyPrint` output | 🖥️✉️ | local file / email attachment | ✅ | [09](09-scheduling.md) |
+| 16.8 | Rendered report (PDF) | File | `Playwright` output | 🖥️✉️ | local file / email attachment | ✅ | [09](09-scheduling.md) |
 | 16.9 | Delivery tracking result | Object | `ReportDeliveryModel` | 🖥️🤖 | `GET /scheduling/runs/{id}` | ✅ | [09](09-scheduling.md) |
 
 ---

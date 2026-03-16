@@ -262,6 +262,9 @@ Use fast, reproducible command checks. Prefer `rg`.
    - Are diffs/commands reproducible and auditable?
 7. **Actual build-plan file changes (Zorivest required when in scope)**
    - Did the claimed changes materially appear in `docs/build-plan/*`, with evidence tied to file lines/state?
+8. **Test rigor audit (required when test files are in scope)**
+   - Do tests assert meaningful behavior, or do they trivially pass with weak/vacuous assertions?
+   - See IR-5 checklist item for grading criteria
 
 ### Additional Required Sweep Types (Plan Review Mode)
 
@@ -347,6 +350,26 @@ Use the reviewer role output contract and report **findings first**.
 | IR-2 | Stub behavioral compliance | Stubs honor save→get consistency, filter semantics, correct `exists()` returns; no `__getattr__` silently returning values (explicit-error form permitted) |
 | IR-3 | Error mapping completeness | Every write-adjacent route maps `NotFoundError → 404`, `BusinessRuleError → 409`, `ValueError → 422` AND at least one test asserts response body shape (not just status code) |
 | IR-4 | Fix generalization | When a finding was fixed, similar instances in other files/routes were also checked and fixed |
+| IR-5 | Test rigor audit | Every test file in scope is audited for assertion strength. Each test is rated 🟢 Strong / 🟡 Adequate / 🔴 Weak using the criteria below. Any 🔴 is `Medium` minimum; > 3 🟡 in one file is `Low` |
+
+#### IR-5 Test Rigor Grading Criteria
+
+For each test, check whether it would still pass if the production code were subtly broken:
+
+| Rating | Definition | Example |
+|--------|------------|----------|
+| 🟢 Strong | Asserts specific values, exercises real behavior, tests both positive and negative paths | `assert delta.days == 30`, `assert result == expected_bytes` |
+| 🟡 Adequate | Tests the right thing but uses weak assertions (key-exists, non-empty, mock-was-called without arg check) or couples to private internals | `assert "key" in result`, `mock.assert_called_once()` without verifying args |
+| 🔴 Weak | Trivially passes even if code is broken: try/except swallows failures, only checks types not values, patches a private method that may not exist | `try: fn() except: assert dir.exists()` |
+
+Common weakness patterns to flag:
+
+- **Try/except safety nets** that let tests pass when the feature under test actually fails
+- **Asserting only key existence** instead of checking the returned value matches expectations
+- **Patching private methods** (`_check_cache`, `_internal`) — fragile to refactoring; if method is renamed the patch is silently ignored and test passes vacuously
+- **Testing only the "not found" path** without an insert+get round-trip for repository methods
+- **Missing boundary assertions** — e.g., testing a 30-day delta but only asserting `start < end` instead of `delta.days == 30`
+- **Data format assertions** — checking a data URI key exists but not verifying the `data:image/png;base64,` prefix or payload size
 
 ### Plan Review Checklist (required in plan review mode)
 
@@ -412,6 +435,7 @@ If `.agent/context/current-focus.md` already has unrelated user edits in progres
 9. **When plan-review findings require changes, route the fix phase through `/planning-corrections`.** That workflow applies to plan adjustments as well as post-implementation corrections.
 10. **Auto-discovery starts from `docs/execution/plans/` first.** Do not begin by picking the newest handoff unless the user explicitly provides a handoff path.
 11. **One rolling review file per target.** For the same execution plan folder, keep plan-review updates in the same `-plan-critical-review.md` file and implementation-review updates in the same `-implementation-critical-review.md` file.
+12. **When test files are in review scope, audit every test for assertion strength (IR-5).** A test suite where all tests pass is not evidence of quality — tests that trivially pass with weak assertions (try/except safety nets, key-only checks, private-method patching) must be flagged. Report the per-test rating table in the review handoff.
 
 ---
 

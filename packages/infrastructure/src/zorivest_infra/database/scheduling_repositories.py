@@ -4,7 +4,7 @@
 """Scheduling repository implementations (§9.2j).
 
 Source: 09-scheduling.md §9.2j
-Provides 5 concrete repositories for scheduling infrastructure.
+Provides 6 concrete repositories for scheduling infrastructure.
 """
 
 from __future__ import annotations
@@ -19,6 +19,7 @@ from zorivest_infra.database.models import (
     AuditLogModel,
     FetchCacheModel,
     PipelineRunModel,
+    PipelineStateModel,
     PolicyModel,
     ReportModel,
     ReportVersionModel,
@@ -183,6 +184,8 @@ class ReportRepository:
         spec_json: str,
         format: str = "pdf",
         created_by: str = "",
+        snapshot_json: str | None = None,
+        snapshot_hash: str | None = None,
     ) -> str:
         rid = id or str(uuid.uuid4())
         model = ReportModel(
@@ -193,6 +196,8 @@ class ReportRepository:
             format=format,
             created_at=datetime.now(timezone.utc),
             created_by=created_by,
+            snapshot_json=snapshot_json,
+            snapshot_hash=snapshot_hash,
         )
         self._session.add(model)
         self._session.flush()
@@ -269,6 +274,61 @@ class FetchCacheRepository:
         count = q.count()
         q.delete(synchronize_session="fetch")
         return count
+
+
+class PipelineStateRepository:
+    """Incremental state tracking for fetch steps — high-water marks, cursors."""
+
+    def __init__(self, session: Session) -> None:
+        self._session = session
+
+    def get(
+        self,
+        policy_id: str,
+        provider_id: str,
+        data_type: str,
+        entity_key: str = "",
+    ) -> PipelineStateModel | None:
+        """Get pipeline state for a specific policy/provider/data_type/entity combination."""
+        return (
+            self._session.query(PipelineStateModel)
+            .filter_by(
+                policy_id=policy_id,
+                provider_id=provider_id,
+                data_type=data_type,
+                entity_key=entity_key,
+            )
+            .first()
+        )
+
+    def upsert(
+        self,
+        *,
+        policy_id: str,
+        provider_id: str,
+        data_type: str,
+        entity_key: str = "",
+        last_cursor: str | None = None,
+        last_hash: str | None = None,
+    ) -> None:
+        """Create or update pipeline state record."""
+        existing = self.get(policy_id, provider_id, data_type, entity_key)
+        if existing is not None:
+            existing.last_cursor = last_cursor
+            existing.last_hash = last_hash
+            existing.updated_at = datetime.now(timezone.utc)
+        else:
+            model = PipelineStateModel(
+                id=str(uuid.uuid4()),
+                policy_id=policy_id,
+                provider_id=provider_id,
+                data_type=data_type,
+                entity_key=entity_key,
+                last_cursor=last_cursor,
+                last_hash=last_hash,
+                updated_at=datetime.now(timezone.utc),
+            )
+            self._session.add(model)
 
 
 class AuditLogRepository:

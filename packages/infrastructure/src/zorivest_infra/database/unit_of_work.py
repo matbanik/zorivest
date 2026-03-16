@@ -31,6 +31,7 @@ from zorivest_infra.database.scheduling_repositories import (
     AuditLogRepository,
     FetchCacheRepository,
     PipelineRunRepository,
+    PipelineStateRepository,
     PolicyRepository,
     ReportRepository,
 )
@@ -62,6 +63,7 @@ class SqlAlchemyUnitOfWork:
     pipeline_runs: PipelineRunRepository
     reports: ReportRepository
     fetch_cache: FetchCacheRepository
+    pipeline_state: PipelineStateRepository  # MEU-85
     audit_log: AuditLogRepository
 
     def __init__(self, engine: Engine) -> None:
@@ -86,6 +88,7 @@ class SqlAlchemyUnitOfWork:
         self.pipeline_runs = PipelineRunRepository(self._session)
         self.reports = ReportRepository(self._session)
         self.fetch_cache = FetchCacheRepository(self._session)
+        self.pipeline_state = PipelineStateRepository(self._session)  # MEU-85
         self.audit_log = AuditLogRepository(self._session)
         return self
 

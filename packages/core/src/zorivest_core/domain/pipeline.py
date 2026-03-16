@@ -13,9 +13,11 @@ Spec references: 09-scheduling.md §9.1c, §9.1d
 from __future__ import annotations
 
 from dataclasses import dataclass, field as dc_field
-from datetime import datetime
+from datetime import datetime, timedelta, timezone
 from enum import StrEnum
 from typing import Any
+
+import hashlib
 
 import structlog
 from pydantic import BaseModel, Field, field_validator
@@ -187,6 +189,95 @@ class StepResult:
     started_at: datetime | None = None
     completed_at: datetime | None = None
     duration_ms: int = 0
+
+
+# ---------------------------------------------------------------------------
+# §9.4d: FetchResult Provenance Envelope (MEU-85)
+# ---------------------------------------------------------------------------
+
+
+@dataclass
+class FetchResult:
+    """Output envelope for FetchStep with provenance tracking.
+
+    Computes SHA-256 content hash on init for data integrity verification.
+    """
+
+    provider: str
+    data_type: str
+    content: bytes
+    content_hash: str = dc_field(init=False)
+    cache_status: str = "miss"  # miss | hit | revalidated
+    fetched_at: datetime = dc_field(
+        default_factory=lambda: datetime.now(timezone.utc)
+    )
+
+    def __post_init__(self) -> None:
+        self.content_hash = hashlib.sha256(self.content).hexdigest()
+
+
+# ---------------------------------------------------------------------------
+# §9.4f: Freshness TTL + Market Hours (MEU-85)
+# ---------------------------------------------------------------------------
+
+
+# TTL in seconds per data type — how long fetched data stays fresh.
+FRESHNESS_TTL: dict[str, int] = {
+    "quote": 60,           # 1 minute — real-time quotes
+    "ohlcv": 3600,         # 1 hour — daily bars
+    "news": 1800,          # 30 minutes — news feed
+    "fundamentals": 86400,  # 24 hours — changes infrequently
+}
+
+
+# US market hours: NYSE/NASDAQ open 9:30 AM–4:00 PM Eastern (UTC-5 / UTC-4 DST).
+_ET_OFFSET_STANDARD = timedelta(hours=-5)
+_ET_OFFSET_DST = timedelta(hours=-4)
+_MARKET_OPEN_HOUR, _MARKET_OPEN_MINUTE = 9, 30
+_MARKET_CLOSE_HOUR, _MARKET_CLOSE_MINUTE = 16, 0
+
+
+def _is_dst(dt: datetime) -> bool:
+    """Check if a UTC datetime falls in US Eastern DST (March–November)."""
+    year = dt.year
+    # Second Sunday in March
+    march_second_sunday = 14 - datetime(year, 3, 1).weekday()
+    if march_second_sunday > 14:
+        march_second_sunday -= 7
+    dst_start = datetime(year, 3, march_second_sunday, 7, tzinfo=timezone.utc)
+    # First Sunday in November
+    november_first_sunday = 7 - datetime(year, 11, 1).weekday()
+    if november_first_sunday > 7:
+        november_first_sunday -= 7
+    dst_end = datetime(year, 11, november_first_sunday, 6, tzinfo=timezone.utc)
+    return dst_start <= dt < dst_end
+
+
+def is_market_closed(dt: datetime | None = None) -> bool:
+    """Check if US equity markets are closed at the given UTC datetime.
+
+    Returns True on weekends and outside 9:30 AM – 4:00 PM ET on weekdays.
+    Does not account for holidays.
+    """
+    if dt is None:
+        dt = datetime.now(timezone.utc)
+
+    # Convert UTC to Eastern
+    offset = _ET_OFFSET_DST if _is_dst(dt) else _ET_OFFSET_STANDARD
+    et_time = dt + offset
+
+    # Weekend check (Saturday=5, Sunday=6)
+    if et_time.weekday() >= 5:
+        return True
+
+    # Outside trading hours
+    market_open = et_time.replace(
+        hour=_MARKET_OPEN_HOUR, minute=_MARKET_OPEN_MINUTE, second=0, microsecond=0
+    )
+    market_close = et_time.replace(
+        hour=_MARKET_CLOSE_HOUR, minute=_MARKET_CLOSE_MINUTE, second=0, microsecond=0
+    )
+    return not (market_open <= et_time < market_close)
 
 
 # ---------------------------------------------------------------------------

@@ -176,3 +176,18 @@ P2.75 (broker adapters): MEU-96 → MEU-99
 | MEU-165a | `setup-workspace-core` | 5.H1 | `zorivest_setup_workspace` tool: path confinement, atomic writes, `.scaffold-meta.json`, idempotency, core toolset registration | 🔲 planned |
 | MEU-165b | `setup-workspace-templates` | 5.H2 | AGENTS.md, IDE shims, `.agent/` templates (docs, workflows, roles, rules, skills) | 🔲 planned |
 
+## Phase 9: Scheduling & Pipeline (P0)
+
+| MEU | Slug | Matrix | Description | Status |
+|-----|------|:------:|-------------|:------:|
+| MEU-77 | `scheduling-domain` | 36 | Scheduling domain models (Policy∕Schedule∕Step∕Condition) | ✅ approved |
+| MEU-78 | `calendar-engine` | 37 | CalendarEngine (market-hours-aware scheduling) | ✅ approved |
+| MEU-79 | `condition-engine` | 38 | ConditionEngine (market/data/time conditions) | ✅ approved |
+| MEU-80 | `policy-validator` | 39 | PolicyValidator (8 validation rules) | ✅ approved |
+| MEU-81 | `scheduling-models` | 40 | SQLAlchemy models (9 tables) | ✅ approved |
+| MEU-82 | `scheduling-repos` | 41 | Repository implementations + audit triggers | ✅ approved |
+| MEU-83 | `pipeline-runner` | 42 | PipelineRunner (sequential async executor) | ✅ approved |
+| MEU-84 | `ref-resolver` | 43 | RefResolver + ConditionEvaluator | ✅ approved |
+| MEU-85 | `fetch-step` | 44 | FetchStep + CriteriaResolver + HTTP cache + rate limiter | ✅ approved |
+| MEU-86 | `transform-step` | 45 | TransformStep + Pandera validation gate + quality enforcement | ✅ approved |
+| MEU-87 | `store-render-step` | 46 | StoreReportStep + RenderStep (ReportSpec DSL, SQL sandbox, Jinja2/Plotly/PDF) | ✅ approved |

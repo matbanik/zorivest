@@ -2092,7 +2092,7 @@ class RenderStep(RegisteredStep):
         # Render HTML via Jinja2
         html = await self._render_html(report_data, validated)
 
-        # Render PDF via WeasyPrint (if requested)
+        # Render PDF via Playwright headless Chromium (if requested)
         pdf_path = None
         if validated.output_format in ("pdf", "both"):
             pdf_path = await self._render_pdf(html, report_data)
@@ -2164,25 +2164,25 @@ CHART_RENDERERS = {
 }
 ```
 
-### 9.7d: WeasyPrint PDF Generation
+### 9.7d: Playwright PDF Generation
 
 ```python
 # packages/infrastructure/src/zorivest_infra/rendering/pdf_renderer.py
 
-import weasyprint
+from playwright.sync_api import sync_playwright
 import os
 
 
-async def render_pdf(html: str, output_dir: str, report_id: str, version: int) -> str:
-    """Convert HTML to PDF via WeasyPrint. Returns the absolute path."""
-    os.makedirs(output_dir, exist_ok=True)
-    pdf_path = os.path.join(output_dir, f"{report_id}_v{version}.pdf")
-    try:
-        doc = weasyprint.HTML(string=html)
-        doc.write_pdf(pdf_path)
-        return pdf_path
-    except OSError as exc:
-        raise RuntimeError(f"WeasyPrint PDF generation failed: {exc}") from exc
+def render_pdf(*, html_content: str, output_path: str) -> str:
+    """Convert HTML to PDF via Playwright headless Chromium. Returns the absolute path."""
+    os.makedirs(os.path.dirname(output_path), exist_ok=True)
+    with sync_playwright() as p:
+        browser = p.chromium.launch(headless=True)
+        page = browser.new_page()
+        page.set_content(html_content, wait_until="networkidle")
+        page.pdf(path=output_path, format="A4", print_background=True)
+        browser.close()
+    return output_path
 ```
 
 ---
@@ -2977,7 +2977,7 @@ Update existing `06e-gui-scheduling.md` wireframe actions:
 | `tenacity` | latest | Retry with exponential backoff |
 | `structlog` | latest | Structured async-safe logging |
 | `pandera` | latest | DataFrame validation |
-| `weasyprint` | latest | HTML → PDF rendering |
+| `playwright` | latest | HTML → PDF rendering (headless Chromium) |
 | `plotly` | latest | Chart generation |
 | `kaleido` | v1 | Plotly static image export |
 | `jinja2` | latest | HTML template engine |

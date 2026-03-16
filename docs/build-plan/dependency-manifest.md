@@ -76,7 +76,7 @@ uv add --package zorivest-infra cryptography httpx
 
 # Phase 9: Scheduling & Pipeline Engine
 uv add --package zorivest-core apscheduler aiolimiter tenacity structlog pandera
-uv add --package zorivest-infra weasyprint plotly kaleido jinja2 aiosmtplib
+uv add --package zorivest-infra playwright plotly kaleido jinja2 aiosmtplib
 
 # Phase 10: Service Daemon
 uv add --package zorivest-api psutil               # Process metrics for /service/status
@@ -100,7 +100,7 @@ cd ui && npm install @vscode/sudo-prompt && cd ..   # Windows UAC elevation for 
 | 7 | distribution | `pyinstaller`, `electron-builder`, `pip-audit`, `twine` (check only), npm ≥ 11.5.1 |
 | 8 | `zorivest-infra` (market) | `cryptography`, `httpx` |
 | 9 | `zorivest-core` (scheduling) | `apscheduler`, `aiolimiter`, `tenacity`, `structlog`, `pandera` |
-| 9 | `zorivest-infra` (pipeline) | `weasyprint`, `plotly`, `kaleido`, `jinja2`, `aiosmtplib` |
+| 9 | `zorivest-infra` (pipeline) | `playwright`, `plotly`, `kaleido`, `jinja2`, `aiosmtplib` |
 | 10 | `zorivest-api` (service) | `psutil` |
 | 10 | `ui` (TS, service) | `@vscode/sudo-prompt` |
 | 10 | bundled binary | WinSW (`zorivest-service.exe`) — no package manager install |

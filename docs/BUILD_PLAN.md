@@ -277,9 +277,9 @@ Domain → Infrastructure → Services → REST API → MCP Server → GUI → D
 | MEU-82 | `scheduling-repos` | 41 | [09 §repos](build-plan/09-scheduling.md) | Repository implementations + audit triggers | ✅ |
 | MEU-83 | `pipeline-runner` | 42 | [09 §runner](build-plan/09-scheduling.md) | PipelineRunner (sequential async executor) | ✅ |
 | MEU-84 | `ref-resolver` | 43 | [09 §resolver](build-plan/09-scheduling.md) | RefResolver + ConditionEvaluator | ✅ |
-| MEU-85 | `fetch-step` | 44 | [09 §fetch](build-plan/09-scheduling.md) | FetchStep + HTTP cache | ⬜ |
-| MEU-86 | `transform-step` | 45 | [09 §transform](build-plan/09-scheduling.md) | TransformStep + Pandera validation | ⬜ |
-| MEU-87 | `store-render-step` | 46 | [09 §store-render](build-plan/09-scheduling.md) | StoreReportStep + RenderStep (Jinja2/Plotly/PDF) | ⬜ |
+| MEU-85 | `fetch-step` | 44 | [09 §fetch](build-plan/09-scheduling.md) | FetchStep + HTTP cache | ✅ |
+| MEU-86 | `transform-step` | 45 | [09 §transform](build-plan/09-scheduling.md) | TransformStep + Pandera validation | ✅ |
+| MEU-87 | `store-render-step` | 46 | [09 §store-render](build-plan/09-scheduling.md) | StoreReportStep + RenderStep (Jinja2/Plotly/PDF) | ✅ |
 | MEU-88 | `send-step` | 47 | [09 §send](build-plan/09-scheduling.md) | SendStep + async email delivery | ⬜ |
 | MEU-89 | `scheduling-api-mcp` | 48 | [05g](build-plan/05g-mcp-scheduling.md) | Scheduling REST API (12 endpoints) + MCP tools (6+2) | ⬜ |
 | MEU-90 | `scheduling-guardrails` | 49 | [09 §security](build-plan/09-scheduling.md) | Security guardrails (rate limits, approval, audit) | ⬜ |
@@ -464,7 +464,7 @@ Domain → Infrastructure → Services → REST API → MCP Server → GUI → D
 | P0 — Phase 2/2A | MEU-12 → MEU-21 | 10 | 10 |
 | P0 — Phase 3/4 | MEU-22 → MEU-30 | 9 | 9 |
 | P0 — Phase 5 | MEU-31 → MEU-42 | 12 | 12 |
-| P0 — Phase 6 | MEU-43 → MEU-51 | 9 | 0 |
+| P0 — Phase 6 | MEU-43 → MEU-51 | 9 | 3 |
 | P1 | MEU-52 → MEU-55 | 4 | 2 |
 | P1.5 — Phase 8 | MEU-56 → MEU-65 | 10 | 9 |
 | P2 | MEU-66 → MEU-76 | 11 | 4 |
@@ -474,7 +474,7 @@ Domain → Infrastructure → Services → REST API → MCP Server → GUI → D
 | P3 — Tax | MEU-123 → MEU-156 | 34 | 0 |
 | Phase 7 | MEU-157 | 1 | 0 |
 | Research | MEU-158 → MEU-167 | 10 | 0 |
-| **Total** | | **170** | **60** |
+| **Total** | | **170** | **73** |
 
 ---
 
