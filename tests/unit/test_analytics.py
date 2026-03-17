@@ -6,6 +6,8 @@ from __future__ import annotations
 from datetime import datetime
 from decimal import Decimal
 
+import inspect
+
 import pytest
 
 from zorivest_core.domain.analytics.expectancy import calculate_expectancy
@@ -354,12 +356,22 @@ class TestAnalyticsModuleImports:
         """AC-18: results module has all 8 result types."""
         import zorivest_core.domain.analytics.results as mod
 
-        for name in [
+        expected_names = [
             "ExpectancyResult", "SQNResult", "StrategyResult",
             "DrawdownResult", "ExcursionResult", "QualityResult",
             "PFOFResult", "CostResult",
-        ]:
+        ]
+        for name in expected_names:
             assert hasattr(mod, name), f"Missing: {name}"
+            cls = getattr(mod, name)
+            assert isinstance(cls, type), f"{name} is not a class"
+            # Value: verify each is a dataclass with fields
+            assert hasattr(cls, "__dataclass_fields__"), (
+                f"{name} is not a dataclass"
+            )
+            assert len(cls.__dataclass_fields__) >= 2, (
+                f"{name} has fewer than 2 fields: {list(cls.__dataclass_fields__)}"
+            )
 
     def test_results_module_no_unexpected_exports(self) -> None:
         """AC-18: results module has no unexpected exports."""
@@ -378,9 +390,19 @@ class TestAnalyticsModuleImports:
         import zorivest_core.domain.analytics.expectancy as mod
 
         assert hasattr(mod, "calculate_expectancy")
+        assert callable(mod.calculate_expectancy)
+        # Value: verify function signature accepts trades parameter
+        sig = inspect.signature(mod.calculate_expectancy)
+        param_names = list(sig.parameters.keys())
+        assert "trades" in param_names, f"Expected 'trades' param, got {param_names}"
 
     def test_sqn_module_exports(self) -> None:
         """AC-19: sqn module has calculate_sqn."""
         import zorivest_core.domain.analytics.sqn as mod
 
         assert hasattr(mod, "calculate_sqn")
+        assert callable(mod.calculate_sqn)
+        # Value: verify function signature accepts trades parameter
+        sig = inspect.signature(mod.calculate_sqn)
+        param_names = list(sig.parameters.keys())
+        assert "trades" in param_names, f"Expected 'trades' param, got {param_names}"

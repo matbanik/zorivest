@@ -67,6 +67,8 @@ class TestLogIngestion:
             "message": "App started",
         })
         assert resp.status_code == 204
+        # Value: verify 204 has no body (correct HTTP semantics)
+        assert resp.content == b""
 
     def test_log_entry_schema(self, client: TestClient) -> None:
         """AC-2: LogEntry accepts {level, component, message, data}."""
@@ -77,16 +79,22 @@ class TestLogIngestion:
             "data": {"error_code": 42},
         })
         assert resp.status_code == 204
+        # Value: verify no body on structured log entry
+        assert resp.content == b""
 
     def test_log_default_level(self, client: TestClient) -> None:
         """AC-2: LogEntry defaults to level='info' and component='unknown'."""
         resp = client.post("/api/v1/logs", json={"message": "test"})
         assert resp.status_code == 204
+        # Value: verify no body
+        assert resp.content == b""
 
     def test_log_no_auth_required(self, locked_client: TestClient) -> None:
         """Logs available pre-unlock (no auth required)."""
         resp = locked_client.post("/api/v1/logs", json={"message": "test"})
         assert resp.status_code == 204
+        # Value: verify no body, logs work pre-unlock
+        assert resp.content == b""
 
 
 # ── AC-3: GET /api/v1/mcp-guard/status ───────────────────────────────
@@ -105,6 +113,10 @@ class TestMcpGuardStatus:
         """AC-3: Guard status available pre-unlock."""
         resp = locked_client.get("/api/v1/mcp-guard/status")
         assert resp.status_code == 200
+        # Value: verify guard status shape in response
+        data = resp.json()
+        assert "is_enabled" in data
+        assert "is_locked" in data
 
 
 # ── AC-4: PUT /api/v1/mcp-guard/config ───────────────────────────────
@@ -174,7 +186,11 @@ class TestMcpGuardAuth:
         assert locked_client.put("/api/v1/mcp-guard/config", json={}).status_code == 403
         assert locked_client.post("/api/v1/mcp-guard/lock", json={}).status_code == 403
         assert locked_client.post("/api/v1/mcp-guard/unlock").status_code == 403
-        assert locked_client.post("/api/v1/mcp-guard/check").status_code == 403
+        resp = locked_client.post("/api/v1/mcp-guard/check")
+        assert resp.status_code == 403
+        # Value: verify error detail on last 403
+        data = resp.json()
+        assert "detail" in data
 
 
 # ── AC-9: GET /api/v1/service/status ─────────────────────────────────
@@ -198,6 +214,9 @@ class TestServiceStatus:
         """AC-9: GET /service/status returns 403 without auth."""
         resp = client.get("/api/v1/service/status")
         assert resp.status_code == 403
+        # Value: verify error detail
+        data = resp.json()
+        assert "detail" in data
 
 
 # ── AC-10: POST /api/v1/service/graceful-shutdown ────────────────────
@@ -221,6 +240,9 @@ class TestGracefulShutdown:
         """AC-10: POST /service/graceful-shutdown returns 403 without admin."""
         resp = client.post("/api/v1/service/graceful-shutdown")
         assert resp.status_code == 403
+        # Value: verify error detail
+        data = resp.json()
+        assert "detail" in data
 
 
 # ── AC-12: Router tags ──────────────────────────────────────────────
@@ -258,3 +280,5 @@ class TestSystemIntegration:
             # Log ingest works pre-unlock
             log_resp = client.post("/api/v1/logs", json={"message": "test"})
             assert log_resp.status_code == 204
+            # Value: verify no body on 204
+            assert log_resp.content == b""

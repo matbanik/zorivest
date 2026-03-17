@@ -1,0 +1,286 @@
+category,language,file,line,test_id,rating,reason
+api,python,tests/unit/test_api_accounts.py,92,TestGetAccount.test_get_account_404,🟢,upgraded from 🟡: status-code assertion without response body verification
+api,python,tests/unit/test_api_accounts.py,102,TestUpdateAccount.test_update_account_200,🟢,upgraded from 🟡: status-code assertion without response body verification
+api,python,tests/unit/test_api_accounts.py,112,TestDeleteAccount.test_delete_account_204,🟢,upgraded from 🟡: status-code assertion without response body verification
+api,python,tests/unit/test_api_accounts.py,122,TestRecordBalance.test_record_balance_201,🟢,upgraded from 🟡: status-code assertion without response body verification
+api,python,tests/unit/test_api_analytics.py,62,TestAnalyticsEndpoints.test_endpoint_returns_200,🟢,upgraded from 🟡: status-code assertion without response body verification
+api,python,tests/unit/test_api_analytics.py,75,TestMistakesRoutes.test_track_mistake_201,🟢,upgraded from 🟡: status-code assertion without response body verification
+api,python,tests/unit/test_api_analytics.py,143,TestModeGating.test_analytics_locked_403,🟢,upgraded from 🟡: status-code assertion without response body verification
+api,python,tests/unit/test_api_analytics.py,147,TestModeGating.test_mistakes_locked_403,🟢,upgraded from 🟡: status-code assertion without response body verification
+api,python,tests/unit/test_api_analytics.py,151,TestModeGating.test_fees_locked_403,🟢,upgraded from 🟡: status-code assertion without response body verification
+api,python,tests/unit/test_api_analytics.py,160,TestCalculatorNoAuth.test_calculator_no_unlock_needed,🟢,upgraded from 🟡: status-code assertion without response body verification
+api,python,tests/unit/test_api_analytics.py,176,TestStubShapes.test_expectancy_shape,🟢,"upgraded from 🟡: right target, but weak assertions only"
+api,python,tests/unit/test_api_analytics.py,183,TestStubShapes.test_sqn_shape,🟢,"upgraded from 🟡: right target, but weak assertions only"
+api,python,tests/unit/test_api_analytics.py,194,TestAnalyticsIntegration.test_no_overrides_non_500,🟢,upgraded from 🟡: status-code assertion without response body verification
+api,python,tests/unit/test_api_analytics.py,202,TestAnalyticsIntegration.test_calculator_pure_calculation,🟢,upgraded from 🟡: status-code assertion without response body verification
+api,python,tests/unit/test_api_auth.py,53,TestUnlock.test_unlock_with_invalid_key_returns_401,🟢,upgraded from 🟡: status-code assertion without response body verification
+api,python,tests/unit/test_api_auth.py,62,TestUnlock.test_unlock_with_revoked_key_returns_403,🟢,upgraded from 🟡: status-code assertion without response body verification
+api,python,tests/unit/test_api_auth.py,71,TestUnlock.test_unlock_when_already_unlocked_returns_423,🟢,upgraded from 🟡: status-code assertion without response body verification
+api,python,tests/unit/test_api_auth.py,82,TestLock.test_lock_invalidates_sessions,🟢,upgraded from 🟡: status-code assertion without response body verification
+api,python,tests/unit/test_api_auth.py,133,TestApiKeyManagement.test_revoke_api_key_204,🟢,upgraded from 🟡: status-code assertion without response body verification
+api,python,tests/unit/test_api_auth.py,159,TestConfirmationTokens.test_reject_unknown_action_400,🟢,upgraded from 🟡: status-code assertion without response body verification
+api,python,tests/unit/test_api_foundation.py,36,TestAppFactory.test_create_app_returns_fastapi,🟢,upgraded from 🔴: type or presence checks only without value assertions
+api,python,tests/unit/test_api_foundation.py,52,TestRequestIdMiddleware.test_response_has_request_id_header,🟢,"upgraded from 🟡: right target, but weak assertions only"
+api,python,tests/unit/test_api_foundation.py,107,TestHealthEndpoint.test_health_returns_200,🟢,upgraded from 🟡: status-code assertion without response body verification
+api,python,tests/unit/test_api_foundation.py,123,TestHealthEndpoint.test_health_no_auth_required,🟢,upgraded from 🟡: status-code assertion without response body verification
+api,python,tests/unit/test_api_foundation.py,135,TestVersionEndpoint.test_version_returns_200,🟢,upgraded from 🟡: status-code assertion without response body verification
+api,python,tests/unit/test_api_foundation.py,202,TestModeGating.test_mode_gating_403_when_locked,🟢,upgraded from 🟡: status-code assertion without response body verification
+api,python,tests/unit/test_api_key_encryption.py,105,TestDeriveFernetKey.test_derive_fernet_key_produces_valid_fernet,🟢,upgraded from 🔴: type or presence checks only without value assertions
+api,python,tests/unit/test_api_plans.py,103,TestCreatePlan.test_create_plan_mcp_short_names_201,🟢,upgraded from 🟡: status-code assertion without response body verification
+api,python,tests/unit/test_api_plans.py,125,TestCreatePlan.test_create_plan_duplicate_409,🟢,upgraded from 🟡: status-code assertion without response body verification
+api,python,tests/unit/test_api_plans.py,152,TestGetPlan.test_get_plan_404,🟢,upgraded from 🟡: status-code assertion without response body verification
+api,python,tests/unit/test_api_plans.py,186,TestUpdatePlan.test_update_plan_404,🟢,upgraded from 🟡: status-code assertion without response body verification
+api,python,tests/unit/test_api_plans.py,197,TestDeletePlan.test_delete_plan_204,🟢,upgraded from 🟡: status-code assertion without response body verification
+api,python,tests/unit/test_api_plans.py,205,TestDeletePlan.test_delete_plan_404,🟢,upgraded from 🟡: status-code assertion without response body verification
+api,python,tests/unit/test_api_plans.py,239,TestPatchPlanStatus.test_patch_status_link_trade_not_found_404,🟢,upgraded from 🟡: status-code assertion without response body verification
+api,python,tests/unit/test_api_plans.py,272,TestPlanLinkingViaPUT.test_put_link_missing_trade_404,🟢,upgraded from 🟡: status-code assertion without response body verification
+api,python,tests/unit/test_api_reports.py,92,TestCreateReport.test_create_report_404_trade_missing,🟢,upgraded from 🟡: status-code assertion without response body verification
+api,python,tests/unit/test_api_reports.py,105,TestCreateReport.test_create_report_409_already_exists,🟢,upgraded from 🟡: status-code assertion without response body verification
+api,python,tests/unit/test_api_reports.py,118,TestCreateReport.test_create_report_422_invalid_grade,🟢,upgraded from 🟡: status-code assertion without response body verification
+api,python,tests/unit/test_api_reports.py,145,TestGetReport.test_get_report_404,🟢,upgraded from 🟡: status-code assertion without response body verification
+api,python,tests/unit/test_api_reports.py,166,TestUpdateReport.test_update_report_404,🟢,upgraded from 🟡: status-code assertion without response body verification
+api,python,tests/unit/test_api_reports.py,177,TestDeleteReport.test_delete_report_204,🟢,upgraded from 🟡: status-code assertion without response body verification
+api,python,tests/unit/test_api_reports.py,184,TestDeleteReport.test_delete_report_404,🟢,upgraded from 🟡: status-code assertion without response body verification
+api,python,tests/unit/test_api_settings.py,30,TestGetAllSettings.test_get_all_returns_200,🟢,upgraded from 🟡: status-code assertion without response body verification
+api,python,tests/unit/test_api_settings.py,35,TestGetAllSettings.test_get_all_returns_dict,🟢,upgraded from 🔴: type or presence checks only without value assertions
+api,python,tests/unit/test_api_settings.py,57,TestGetSettingByKey.test_unknown_key_returns_404,🟢,upgraded from 🟡: status-code assertion without response body verification
+api,python,tests/unit/test_api_settings.py,84,TestBulkUpdateSettings.test_unknown_key_returns_422,🟢,upgraded from 🟡: status-code assertion without response body verification
+api,python,tests/unit/test_api_settings.py,127,TestSettingsModeGating.test_settings_403_when_locked,🟢,upgraded from 🟡: status-code assertion without response body verification
+api,python,tests/unit/test_api_system.py,62,TestLogIngestion.test_log_ingest_returns_204,🟢,upgraded from 🟡: status-code assertion without response body verification
+api,python,tests/unit/test_api_system.py,71,TestLogIngestion.test_log_entry_schema,🟢,upgraded from 🟡: status-code assertion without response body verification
+api,python,tests/unit/test_api_system.py,81,TestLogIngestion.test_log_default_level,🟢,upgraded from 🟡: status-code assertion without response body verification
+api,python,tests/unit/test_api_system.py,86,TestLogIngestion.test_log_no_auth_required,🟢,upgraded from 🟡: status-code assertion without response body verification
+api,python,tests/unit/test_api_system.py,104,TestMcpGuardStatus.test_guard_status_pre_unlock,🟢,upgraded from 🟡: status-code assertion without response body verification
+api,python,tests/unit/test_api_system.py,172,TestMcpGuardAuth.test_mutation_routes_require_unlock,🟢,upgraded from 🟡: status-code assertion without response body verification
+api,python,tests/unit/test_api_system.py,197,TestServiceStatus.test_service_status_requires_auth,🟢,upgraded from 🟡: status-code assertion without response body verification
+api,python,tests/unit/test_api_system.py,220,TestGracefulShutdown.test_graceful_shutdown_requires_admin,🟢,upgraded from 🟡: status-code assertion without response body verification
+api,python,tests/unit/test_api_system.py,250,TestSystemIntegration.test_guard_and_logs_pre_unlock,🟢,upgraded from 🟡: status-code assertion without response body verification
+api,python,tests/unit/test_api_tax.py,64,TestTaxEndpoints.test_endpoint_returns_200,🟢,upgraded from 🟡: status-code assertion without response body verification
+api,python,tests/unit/test_api_tax.py,79,TestQuarterlyPayment.test_confirm_false_returns_400,🟢,upgraded from 🟡: status-code assertion without response body verification
+api,python,tests/unit/test_api_tax.py,89,TestQuarterlyPayment.test_confirm_true_returns_200,🟢,upgraded from 🟡: status-code assertion without response body verification
+api,python,tests/unit/test_api_tax.py,104,TestTaxModeGating.test_simulate_locked_403,🟢,upgraded from 🟡: status-code assertion without response body verification
+api,python,tests/unit/test_api_tax.py,112,TestTaxModeGating.test_lots_locked_403,🟢,upgraded from 🟡: status-code assertion without response body verification
+api,python,tests/unit/test_api_tax.py,121,TestStubShapes.test_simulate_shape,🟢,"upgraded from 🟡: right target, but weak assertions only"
+api,python,tests/unit/test_api_tax.py,131,TestStubShapes.test_quarterly_shape,🟢,"upgraded from 🟡: right target, but weak assertions only"
+api,python,tests/unit/test_api_tax.py,137,TestStubShapes.test_harvest_shape,🟢,"upgraded from 🟡: right target, but weak assertions only"
+api,python,tests/unit/test_api_tax.py,147,TestTaxIntegration.test_no_overrides_non_500,🟢,upgraded from 🟡: status-code assertion without response body verification
+api,python,tests/unit/test_api_trades.py,118,TestListTrades.test_list_trades_with_account_filter,🟢,upgraded from 🟡: status-code assertion without response body verification
+api,python,tests/unit/test_api_trades.py,130,TestListTrades.test_list_trades_with_sort,🟢,upgraded from 🟡: status-code assertion without response body verification
+api,python,tests/unit/test_api_trades.py,149,TestGetTrade.test_get_trade_404,🟢,upgraded from 🟡: status-code assertion without response body verification
+api,python,tests/unit/test_api_trades.py,159,TestUpdateTrade.test_update_trade_200,🟢,upgraded from 🟡: status-code assertion without response body verification
+api,python,tests/unit/test_api_trades.py,169,TestDeleteTrade.test_delete_trade_204,🟢,upgraded from 🟡: status-code assertion without response body verification
+api,python,tests/unit/test_api_trades.py,205,TestGlobalImages.test_get_thumbnail,🟢,upgraded from 🟡: status-code assertion without response body verification
+api,python,tests/unit/test_api_trades.py,214,TestGlobalImages.test_get_full_image,🟢,upgraded from 🟡: status-code assertion without response body verification
+api,python,tests/unit/test_api_trades.py,237,TestRoundTrips.test_round_trips_accepts_canonical_filters,🟢,upgraded from 🟡: status-code assertion without response body verification
+api,python,tests/unit/test_api_watchlists.py,38,TestCreateWatchlist.test_create_duplicate_409,🟢,upgraded from 🟡: status-code assertion without response body verification
+api,python,tests/unit/test_api_watchlists.py,71,TestGetWatchlist.test_get_nonexistent_404,🟢,upgraded from 🟡: status-code assertion without response body verification
+api,python,tests/unit/test_api_watchlists.py,87,TestUpdateWatchlist.test_update_nonexistent_404,🟢,upgraded from 🟡: status-code assertion without response body verification
+api,python,tests/unit/test_api_watchlists.py,109,TestDeleteWatchlist.test_delete_nonexistent_404,🟢,upgraded from 🟡: status-code assertion without response body verification
+domain,python,tests/unit/test_calculator.py,137,TestPositionSizeCalculator.test_import_surface,🟢,upgraded from 🔴: type or presence checks only without value assertions
+domain,python,tests/unit/test_commands_dtos.py,370,TestQueries.test_list_accounts,🟢,upgraded from 🔴: type or presence checks only without value assertions
+domain,python,tests/unit/test_commands_dtos.py,552,TestModuleImports.test_commands_module_exists,🟢,upgraded from 🔴: type or presence checks only without value assertions
+domain,python,tests/unit/test_commands_dtos.py,573,TestModuleImports.test_queries_module_exists,🟢,upgraded from 🔴: type or presence checks only without value assertions
+domain,python,tests/unit/test_commands_dtos.py,595,TestModuleImports.test_dtos_module_exists,🟢,upgraded from 🔴: type or presence checks only without value assertions
+domain,python,tests/unit/test_display_mode.py,260,TestModuleImports.test_no_unexpected_imports,🟢,"upgraded from 🟡: right target, but weak assertions only"
+domain,python,tests/unit/test_entities.py,265,TestImportSurface.test_import_surface_entities,🟢,upgraded from 🔴: type or presence checks only without value assertions
+domain,python,tests/unit/test_entities.py,383,TestTradeReportType.test_trade_report_field_accepts_trade_report,🟢,upgraded from 🔴: type or presence checks only without value assertions
+domain,python,tests/unit/test_enums.py,68,TestStrEnumSubclass.test_all_enums_subclass_strenum,🟢,upgraded from 🔴: type or presence checks only without value assertions
+domain,python,tests/unit/test_enums.py,247,TestImportSurface.test_import_surface_only_enum,🟢,upgraded from 🔴: type or presence checks only without value assertions
+domain,python,tests/unit/test_events.py,76,TestTradeCreated.test_trade_created_inherits_base,🟢,upgraded from 🔴: type or presence checks only without value assertions
+domain,python,tests/unit/test_events.py,107,TestBalanceUpdated.test_balance_updated_inherits_base,🟢,upgraded from 🔴: type or presence checks only without value assertions
+domain,python,tests/unit/test_events.py,136,TestImageAttached.test_image_attached_inherits_base,🟢,upgraded from 🔴: type or presence checks only without value assertions
+domain,python,tests/unit/test_events.py,167,TestPlanCreated.test_plan_created_inherits_base,🟢,upgraded from 🔴: type or presence checks only without value assertions
+domain,python,tests/unit/test_events.py,185,TestEventsModuleImports.test_events_module_exports,🟢,upgraded from 🔴: type or presence checks only without value assertions
+domain,python,tests/unit/test_exceptions.py,21,TestExceptionHierarchy.test_zorivest_error_is_exception,🟢,upgraded from 🔴: type or presence checks only without value assertions
+domain,python,tests/unit/test_exceptions.py,24,TestExceptionHierarchy.test_validation_error_inherits_zorivest_error,🟢,upgraded from 🔴: type or presence checks only without value assertions
+domain,python,tests/unit/test_exceptions.py,27,TestExceptionHierarchy.test_not_found_error_inherits_zorivest_error,🟢,upgraded from 🔴: type or presence checks only without value assertions
+domain,python,tests/unit/test_exceptions.py,30,TestExceptionHierarchy.test_business_rule_error_inherits_zorivest_error,🟢,upgraded from 🔴: type or presence checks only without value assertions
+domain,python,tests/unit/test_exceptions.py,33,TestExceptionHierarchy.test_budget_exceeded_error_inherits_zorivest_error,🟢,upgraded from 🔴: type or presence checks only without value assertions
+domain,python,tests/unit/test_exceptions.py,36,TestExceptionHierarchy.test_import_error_inherits_zorivest_error,🟢,upgraded from 🔴: type or presence checks only without value assertions
+domain,python,tests/unit/test_market_data_entities.py,25,TestAuthMethodEnum.test_auth_method_is_strenum,🟢,upgraded from 🔴: type or presence checks only without value assertions
+domain,python,tests/unit/test_market_data_entities.py,178,TestMarketDataPort.test_market_data_port_is_protocol,🟢,upgraded from 🔴: type or presence checks only without value assertions
+domain,python,tests/unit/test_market_data_entities.py,183,TestMarketDataPort.test_market_data_port_has_get_quote,🟢,upgraded from 🔴: type or presence checks only without value assertions
+domain,python,tests/unit/test_market_data_entities.py,191,TestMarketDataPort.test_market_data_port_has_get_news,🟢,upgraded from 🔴: type or presence checks only without value assertions
+domain,python,tests/unit/test_market_data_entities.py,200,TestMarketDataPort.test_market_data_port_has_search_ticker,🟢,upgraded from 🔴: type or presence checks only without value assertions
+domain,python,tests/unit/test_market_data_entities.py,208,TestMarketDataPort.test_market_data_port_has_get_sec_filings,🟢,upgraded from 🔴: type or presence checks only without value assertions
+domain,python,tests/unit/test_models.py,131,TestModelInsert.test_insert_image,🟢,"upgraded from 🟡: right target, but weak assertions only"
+domain,python,tests/unit/test_pipeline_enums.py,23,TestPipelineStatus.test_is_str_enum,🟢,upgraded from 🔴: type or presence checks only without value assertions
+domain,python,tests/unit/test_pipeline_enums.py,60,TestStepErrorMode.test_is_str_enum,🟢,upgraded from 🔴: type or presence checks only without value assertions
+domain,python,tests/unit/test_pipeline_enums.py,92,TestDataType.test_is_str_enum,🟢,upgraded from 🔴: type or presence checks only without value assertions
+domain,python,tests/unit/test_pipeline_models.py,323,TestStepContext.test_logger_is_structlog,🟢,upgraded from 🔴: type or presence checks only without value assertions
+domain,python,tests/unit/test_portfolio_balance.py,194,TestModuleImports.test_no_unexpected_imports,🟢,"upgraded from 🟡: right target, but weak assertions only"
+domain,python,tests/unit/test_ports.py,25,TestTradeRepository.test_trade_repository_is_protocol,🟢,upgraded from 🔴: type or presence checks only without value assertions
+domain,python,tests/unit/test_ports.py,49,TestImageRepository.test_image_repository_is_protocol,🟢,upgraded from 🔴: type or presence checks only without value assertions
+domain,python,tests/unit/test_ports.py,73,TestUnitOfWork.test_unit_of_work_is_protocol,🟢,upgraded from 🔴: type or presence checks only without value assertions
+domain,python,tests/unit/test_ports.py,93,TestUnitOfWork.test_unit_of_work_has_context_manager,🟢,"upgraded from 🟡: right target, but weak assertions only"
+domain,python,tests/unit/test_ports.py,105,TestUnitOfWork.test_unit_of_work_has_repository_attributes,🟢,"upgraded from 🟡: right target, but weak assertions only"
+domain,python,tests/unit/test_ports.py,121,TestBrokerPort.test_broker_port_is_protocol,🟢,upgraded from 🔴: type or presence checks only without value assertions
+domain,python,tests/unit/test_ports.py,151,TestBankImportPort.test_bank_import_port_is_protocol,🟢,upgraded from 🔴: type or presence checks only without value assertions
+domain,python,tests/unit/test_ports.py,175,TestIdentifierResolverPort.test_identifier_resolver_port_is_protocol,🟢,upgraded from 🔴: type or presence checks only without value assertions
+domain,python,tests/unit/test_ports.py,202,TestProtocolConvention.test_all_ports_are_protocols,🟢,upgraded from 🔴: type or presence checks only without value assertions
+domain,python,tests/unit/test_ports.py,213,TestProtocolConvention.test_none_are_runtime_checkable,🟢,"upgraded from 🟡: right target, but weak assertions only"
+domain,python,tests/unit/test_ports.py,232,TestImportSurface.test_import_surface_ports,🟢,upgraded from 🔴: type or presence checks only without value assertions
+domain,python,tests/unit/test_scheduling_models.py,88,TestTableCreation.test_models_inherit_from_base,🟢,upgraded from 🔴: type or presence checks only without value assertions
+domain,python,tests/unit/test_scheduling_models.py,169,TestRelationships.test_run_policy_relationship,🟢,"upgraded from 🟡: right target, but weak assertions only"
+domain,python,tests/unit/test_scheduling_models.py,181,TestRelationships.test_step_run_relationship,🟢,"upgraded from 🟡: right target, but weak assertions only"
+domain,python,tests/unit/test_scheduling_models.py,227,TestPipelineStateModel.test_unique_constraint,🟢,upgraded from 🟡: couples to private or internal state
+domain,python,tests/unit/test_scheduling_models.py,242,TestPipelineStateModel.test_different_keys_allowed,🟢,upgraded from 🔴: trivially weak structure (private patch or no assertions)
+domain,python,tests/unit/test_scheduling_models.py,314,TestReportModels.test_report_version_relationship,🟢,"upgraded from 🟡: right target, but weak assertions only"
+domain,python,tests/unit/test_scheduling_models.py,325,TestReportModels.test_report_delivery_relationship,🟢,"upgraded from 🟡: right target, but weak assertions only"
+domain,python,tests/unit/test_scheduling_models.py,336,TestReportModels.test_dedup_key_unique,🟢,upgraded from 🟡: couples to private or internal state
+domain,python,tests/unit/test_value_objects.py,234,TestImportSurface.test_import_surface_value_objects,🟢,upgraded from 🔴: type or presence checks only without value assertions
+service,python,tests/unit/test_account_review.py,338,TestModuleImports.test_no_unexpected_imports,🟢,"upgraded from 🟡: right target, but weak assertions only"
+service,python,tests/unit/test_analytics.py,353,TestAnalyticsModuleImports.test_results_module_exports,🟢,upgraded from 🔴: type or presence checks only without value assertions
+service,python,tests/unit/test_analytics.py,376,TestAnalyticsModuleImports.test_expectancy_module_exports,🟢,upgraded from 🔴: type or presence checks only without value assertions
+service,python,tests/unit/test_analytics.py,382,TestAnalyticsModuleImports.test_sqn_module_exports,🟢,upgraded from 🔴: type or presence checks only without value assertions
+service,python,tests/unit/test_image_service.py,28,TestAttachImage.test_attach_image_success,🟢,upgraded from 🟡: mock call verified without argument or value checks
+service,python,tests/unit/test_market_data_service.py,299,TestRateLimiting.test_rate_limiter_called_before_http_request,🟢,upgraded from 🔴: trivially weak structure (private patch or no assertions)
+service,python,tests/unit/test_provider_connection_service.py,380,TestConfigureProvider.test_unknown_provider_raises,🟢,upgraded from 🔴: swallows exceptions without exact postcondition checks
+service,python,tests/unit/test_rate_limiter.py,38,TestRateLimiterAC2.test_blocks_when_full,🟢,upgraded from 🔴: trivially weak structure (private patch or no assertions)
+service,python,tests/unit/test_rate_limiter.py,73,TestRateLimiterAC4.test_burst_completes_without_blocking,🟢,upgraded from 🔴: trivially weak structure (private patch or no assertions)
+service,python,tests/unit/test_rate_limiter.py,83,TestRateLimiterAC4.test_n_plus_1_blocks,🟢,upgraded from 🟡: mock call verified without argument or value checks
+service,python,tests/unit/test_ref_resolver.py,200,TestConditionEvaluator.test_returns_true_when_met,🟢,upgraded from 🟡: couples to private or internal state
+service,python,tests/unit/test_ref_resolver.py,206,TestConditionEvaluator.test_missing_field_resolves_to_none,🟢,upgraded from 🟡: couples to private or internal state
+service,python,tests/unit/test_ref_resolver.py,214,TestConditionEvaluator.test_missing_step_resolves_to_none,🟢,upgraded from 🟡: couples to private or internal state
+service,python,tests/unit/test_ref_resolver.py,223,TestConditionEvaluator.test_unknown_operator_raises_valueerror,🟢,upgraded from 🟡: couples to private or internal state
+service,python,tests/unit/test_report_service.py,103,TestReportServiceGetForTrade.test_get_for_trade_returns_report,🟢,upgraded from 🟡: mock call verified without argument or value checks
+service,python,tests/unit/test_report_service.py,170,TestReportServiceDelete.test_delete_removes_report,🟢,upgraded from 🔴: trivially weak structure (private patch or no assertions)
+service,python,tests/unit/test_report_service.py,223,TestPlanServiceCreate.test_create_plan_saves_and_returns,🟢,upgraded from 🟡: mock call verified without argument or value checks
+service,python,tests/unit/test_report_service.py,250,TestPlanServiceGet.test_get_plan_returns_plan,🟢,upgraded from 🟡: mock call verified without argument or value checks
+service,python,tests/unit/test_report_service.py,428,TestPlanServiceDelete.test_delete_plan_success,🟢,upgraded from 🔴: trivially weak structure (private patch or no assertions)
+service,python,tests/unit/test_service_extensions.py,140,TestDeleteTrade.test_delete_trade_success,🟢,upgraded from 🔴: trivially weak structure (private patch or no assertions)
+service,python,tests/unit/test_service_extensions.py,183,TestDeleteAccount.test_delete_account_success,🟢,upgraded from 🔴: trivially weak structure (private patch or no assertions)
+service,python,tests/unit/test_settings_cache.py,51,TestCacheTTL.test_stale_cache_returns_none,🟢,upgraded from 🟡: couples to private or internal state
+service,python,tests/unit/test_settings_cache.py,58,TestCacheTTL.test_fresh_cache_returns_value,🟢,"upgraded from 🟡: right target, but weak assertions only"
+service,python,tests/unit/test_settings_registry.py,53,TestValueTypes.test_all_value_types_valid,🟢,"upgraded from 🟡: right target, but weak assertions only"
+service,python,tests/unit/test_settings_registry.py,59,TestValueTypes.test_every_entry_is_setting_spec,🟢,upgraded from 🔴: type or presence checks only without value assertions
+service,python,tests/unit/test_settings_registry.py,72,TestCategories.test_all_categories_valid,🟢,"upgraded from 🟡: right target, but weak assertions only"
+service,python,tests/unit/test_settings_registry.py,170,TestDynamicKey.test_dynamic_key_in_registry,🟢,"upgraded from 🟡: right target, but weak assertions only"
+service,python,tests/unit/test_settings_resolver.py,49,TestTypeParsing.test_parse_int,🟢,upgraded from 🟡: couples to private or internal state
+service,python,tests/unit/test_settings_resolver.py,52,TestTypeParsing.test_parse_float,🟢,upgraded from 🟡: couples to private or internal state
+service,python,tests/unit/test_settings_resolver.py,55,TestTypeParsing.test_parse_str,🟢,upgraded from 🟡: couples to private or internal state
+service,python,tests/unit/test_settings_resolver.py,58,TestTypeParsing.test_parse_json,🟢,upgraded from 🟡: couples to private or internal state
+service,python,tests/unit/test_settings_resolver.py,62,TestTypeParsing.test_parse_bool_invalid,🟢,upgraded from 🟡: couples to private or internal state
+service,python,tests/unit/test_settings_service.py,153,TestServiceGetAllResolved.test_get_all_from_cache,🟢,"upgraded from 🟡: right target, but weak assertions only"
+service,python,tests/unit/test_settings_validator.py,25,TestTypeValidation.test_invalid_bool,🟢,"upgraded from 🟡: right target, but weak assertions only"
+service,python,tests/unit/test_settings_validator.py,34,TestTypeValidation.test_invalid_int,🟢,"upgraded from 🟡: right target, but weak assertions only"
+service,python,tests/unit/test_settings_validator.py,49,TestFormatValidation.test_allowed_values_reject,🟢,"upgraded from 🟡: right target, but weak assertions only"
+service,python,tests/unit/test_settings_validator.py,54,TestFormatValidation.test_min_value_reject,🟢,"upgraded from 🟡: right target, but weak assertions only"
+service,python,tests/unit/test_settings_validator.py,59,TestFormatValidation.test_max_value_reject,🟢,"upgraded from 🟡: right target, but weak assertions only"
+service,python,tests/unit/test_settings_validator.py,64,TestFormatValidation.test_string_length_reject,🟢,"upgraded from 🟡: right target, but weak assertions only"
+service,python,tests/unit/test_settings_validator.py,73,TestFormatValidation.test_log_level_rejected,🟢,"upgraded from 🟡: right target, but weak assertions only"
+service,python,tests/unit/test_settings_validator.py,84,TestSecurityValidation.test_path_traversal_rejected,🟢,"upgraded from 🟡: right target, but weak assertions only"
+service,python,tests/unit/test_settings_validator.py,89,TestSecurityValidation.test_sql_injection_rejected,🟢,"upgraded from 🟡: right target, but weak assertions only"
+service,python,tests/unit/test_settings_validator.py,94,TestSecurityValidation.test_script_injection_rejected,🟢,"upgraded from 🟡: right target, but weak assertions only"
+service,python,tests/unit/test_settings_validator.py,110,TestDynamicKeyResolution.test_unknown_key_rejected,🟢,"upgraded from 🟡: right target, but weak assertions only"
+service,python,tests/unit/test_settings_validator.py,126,TestBulkValidation.test_bulk_some_invalid,🟢,"upgraded from 🟡: right target, but weak assertions only"
+service,python,tests/unit/test_settings_validator.py,140,TestValidationResult.test_invalid_result,🟢,"upgraded from 🟡: right target, but weak assertions only"
+service,python,tests/unit/test_system_service.py,29,TestSystemServiceCalculate.test_calculate_returns_frozen_dataclass,🟢,upgraded from 🔴: type or presence checks only without value assertions
+service,python,tests/unit/test_watchlist_service.py,32,TestCreate.test_create_sets_timestamps,🟢,"upgraded from 🟡: right target, but weak assertions only"
+infra_pipeline,python,tests/unit/test_backup_manager.py,176,TestCreateBackup.test_backup_is_encrypted_zip,🟢,"upgraded from 🟡: right target, but weak assertions only"
+infra_pipeline,python,tests/unit/test_backup_manager.py,218,TestGFSRotation.test_no_rotation_when_under_limit,🟢,upgraded from 🟡: couples to private or internal state
+infra_pipeline,python,tests/unit/test_backup_manager.py,357,TestBackupSecurity.test_wrong_password_fails_verification,🟢,upgraded from 🟡: couples to private or internal state
+infra_pipeline,python,tests/unit/test_backup_manager.py,383,TestBackupSecurity.test_manifest_hash_integrity,🟢,upgraded from 🟡: couples to private or internal state
+infra_pipeline,python,tests/unit/test_backup_manager.py,422,TestBackupSecurity.test_verify_backup_checks_file_presence,🟢,upgraded from 🟡: couples to private or internal state
+infra_pipeline,python,tests/unit/test_backup_recovery.py,260,TestVerify.test_verify_corrupted_backup,🟢,"upgraded from 🟡: right target, but weak assertions only"
+infra_pipeline,python,tests/unit/test_backup_recovery.py,361,TestLegacy.test_legacy_zip_format,🟢,"upgraded from 🟡: right target, but weak assertions only"
+infra_pipeline,python,tests/unit/test_backup_recovery.py,381,TestLegacy.test_legacy_db_format,🟢,"upgraded from 🟡: right target, but weak assertions only"
+infra_pipeline,python,tests/unit/test_backup_recovery.py,396,TestLegacy.test_legacy_db_gz_format,🟢,"upgraded from 🟡: right target, but weak assertions only"
+infra_pipeline,python,tests/unit/test_config_export.py,97,TestBuildExport.test_export_includes_only_portable_keys,🟢,"upgraded from 🟡: right target, but weak assertions only"
+infra_pipeline,python,tests/unit/test_config_export.py,171,TestValidateImport.test_accepted_keys,🟢,"upgraded from 🟡: right target, but weak assertions only"
+infra_pipeline,python,tests/unit/test_config_export.py,203,TestValidateImport.test_mixed_categories,🟢,"upgraded from 🟡: right target, but weak assertions only"
+infra_pipeline,python,tests/unit/test_config_export.py,247,TestPortableSymmetry.test_is_portable_false_for_sensitive,🟢,upgraded from 🟡: couples to private or internal state
+infra_pipeline,python,tests/unit/test_config_export.py,253,TestPortableSymmetry.test_is_portable_false_for_secret,🟢,upgraded from 🟡: couples to private or internal state
+infra_pipeline,python,tests/unit/test_config_export.py,259,TestPortableSymmetry.test_is_portable_false_for_unknown,🟢,upgraded from 🟡: couples to private or internal state
+infra_pipeline,python,tests/unit/test_csv_import.py,24,TestCSVParserBaseEncoding.test_detect_utf8_encoding,🟢,"upgraded from 🟡: right target, but weak assertions only"
+infra_pipeline,python,tests/unit/test_csv_import.py,31,TestCSVParserBaseEncoding.test_detect_latin1_encoding,🟢,"upgraded from 🟡: right target, but weak assertions only"
+infra_pipeline,python,tests/unit/test_csv_import.py,39,TestCSVParserBaseEncoding.test_strip_bom,🟢,"upgraded from 🟡: right target, but weak assertions only"
+infra_pipeline,python,tests/unit/test_csv_import.py,68,TestThinkorSwimParser.test_parse_file_returns_import_result,🟢,upgraded from 🔴: type or presence checks only without value assertions
+infra_pipeline,python,tests/unit/test_csv_import.py,139,TestNinjaTraderParser.test_parse_file_returns_import_result,🟢,upgraded from 🔴: type or presence checks only without value assertions
+infra_pipeline,python,tests/unit/test_csv_import.py,150,TestNinjaTraderParser.test_strategy_tag_in_raw_data,🟢,"upgraded from 🟡: right target, but weak assertions only"
+infra_pipeline,python,tests/unit/test_csv_import.py,156,TestNinjaTraderParser.test_mfe_mae_in_raw_data,🟢,"upgraded from 🟡: right target, but weak assertions only"
+infra_pipeline,python,tests/unit/test_fetch_step.py,22,test_AC_F1_fetch_step_auto_registers,🟢,"upgraded from 🟡: right target, but weak assertions only"
+infra_pipeline,python,tests/unit/test_fetch_step.py,244,test_AC_F10_http_cache_304_revalidated,🟢,upgraded from 🟡: status-code assertion without response body verification
+infra_pipeline,python,tests/unit/test_fetch_step.py,331,test_AC_F13_uow_pipeline_state_attribute,🟢,upgraded from 🔴: type or presence checks only without value assertions
+infra_pipeline,python,tests/unit/test_ibkr_flexquery.py,25,TestParseFileBasic.test_parse_valid_flexquery_returns_import_result,🟢,upgraded from 🔴: type or presence checks only without value assertions
+infra_pipeline,python,tests/unit/test_ibkr_flexquery.py,124,TestSymbolNormalization.test_fractional_strike_preserved,🟢,upgraded from 🟡: couples to private or internal state
+infra_pipeline,python,tests/unit/test_image_processing.py,156,TestStandardizeToWebp.test_converts_palette_to_rgb,🟢,"upgraded from 🟡: right target, but weak assertions only"
+infra_pipeline,python,tests/unit/test_logging_config.py,82,TestGetLogDirectory.test_returns_path,🟢,upgraded from 🔴: type or presence checks only without value assertions
+infra_pipeline,python,tests/unit/test_logging_config.py,123,TestBootstrap.test_bootstrap_log_written,🟢,"upgraded from 🟡: right target, but weak assertions only"
+infra_pipeline,python,tests/unit/test_logging_config.py,160,TestConfigureFromSettings.test_creates_feature_files,🟢,upgraded from 🟡: couples to private or internal state
+infra_pipeline,python,tests/unit/test_logging_config.py,174,TestConfigureFromSettings.test_feature_routing,🟢,"upgraded from 🟡: right target, but weak assertions only"
+infra_pipeline,python,tests/unit/test_logging_config.py,196,TestConfigureFromSettings.test_catchall_routing,🟢,"upgraded from 🟡: right target, but weak assertions only"
+infra_pipeline,python,tests/unit/test_logging_config.py,211,TestConfigureFromSettings.test_settings_level_respected,🟢,"upgraded from 🟡: right target, but weak assertions only"
+infra_pipeline,python,tests/unit/test_logging_config.py,246,TestUpdateFeatureLevel.test_update_gates_messages,🟢,"upgraded from 🟡: right target, but weak assertions only"
+infra_pipeline,python,tests/unit/test_logging_config.py,292,TestShutdown.test_shutdown_stops_listener,🟢,"upgraded from 🟡: right target, but weak assertions only"
+infra_pipeline,python,tests/unit/test_logging_config.py,320,TestThreadSafety.test_concurrent_logging,🟢,"upgraded from 🟡: right target, but weak assertions only"
+infra_pipeline,python,tests/unit/test_logging_formatter.py,42,TestJsonFormatter.test_output_is_valid_json,🟢,upgraded from 🔴: type or presence checks only without value assertions
+infra_pipeline,python,tests/unit/test_logging_formatter.py,49,TestJsonFormatter.test_output_is_single_line,🟢,"upgraded from 🟡: right target, but weak assertions only"
+infra_pipeline,python,tests/unit/test_logging_formatter.py,74,TestJsonFormatter.test_reserved_attrs_excluded,🟢,"upgraded from 🟡: right target, but weak assertions only"
+infra_pipeline,python,tests/unit/test_logging_formatter.py,83,TestJsonFormatter.test_underscore_prefixed_excluded,🟢,"upgraded from 🟡: right target, but weak assertions only"
+infra_pipeline,python,tests/unit/test_logging_formatter.py,106,TestJsonFormatter.test_no_exception_key_when_no_exception,🟢,"upgraded from 🟡: right target, but weak assertions only"
+infra_pipeline,python,tests/unit/test_logging_formatter.py,113,TestJsonFormatter.test_timestamp_is_utc_iso8601,🟢,"upgraded from 🟡: right target, but weak assertions only"
+infra_pipeline,python,tests/unit/test_market_data_api.py,108,TestGetQuote.test_missing_ticker_returns_422,🟢,upgraded from 🟡: status-code assertion without response body verification
+infra_pipeline,python,tests/unit/test_market_data_api.py,112,TestGetQuote.test_locked_db_returns_403,🟢,upgraded from 🟡: status-code assertion without response body verification
+infra_pipeline,python,tests/unit/test_market_data_api.py,116,TestGetQuote.test_service_error_returns_503,🟢,upgraded from 🟡: status-code assertion without response body verification
+infra_pipeline,python,tests/unit/test_market_data_api.py,137,TestGetNews.test_with_ticker_filter,🟢,upgraded from 🟡: status-code assertion without response body verification
+infra_pipeline,python,tests/unit/test_market_data_api.py,155,TestSearchTicker.test_missing_query_returns_422,🟢,upgraded from 🟡: status-code assertion without response body verification
+infra_pipeline,python,tests/unit/test_market_data_api.py,180,TestListProviders.test_returns_200,🟢,upgraded from 🟡: status-code assertion without response body verification
+infra_pipeline,python,tests/unit/test_market_data_api.py,197,TestConfigureProvider.test_unknown_provider_returns_404,🟢,upgraded from 🟡: status-code assertion without response body verification
+infra_pipeline,python,tests/unit/test_market_provider_settings_repo.py,94,TestMarketProviderSettingsRepoCRUD.test_delete_nonexistent_is_noop,🟢,upgraded from 🔴: trivially weak structure (private patch or no assertions)
+infra_pipeline,python,tests/unit/test_policy_validator.py,106,TestUnknownStepType.test_unknown_type_rejected,🟢,"upgraded from 🟡: right target, but weak assertions only"
+infra_pipeline,python,tests/unit/test_policy_validator.py,113,TestUnknownStepType.test_known_type_accepted,🟢,"upgraded from 🟡: right target, but weak assertions only"
+infra_pipeline,python,tests/unit/test_policy_validator.py,127,TestReferentialIntegrity.test_valid_backward_ref,🟢,"upgraded from 🟡: right target, but weak assertions only"
+infra_pipeline,python,tests/unit/test_policy_validator.py,138,TestReferentialIntegrity.test_forward_ref_rejected,🟢,"upgraded from 🟡: right target, but weak assertions only"
+infra_pipeline,python,tests/unit/test_policy_validator.py,148,TestReferentialIntegrity.test_nested_ref_checked,🟢,"upgraded from 🟡: right target, but weak assertions only"
+infra_pipeline,python,tests/unit/test_policy_validator.py,157,TestReferentialIntegrity.test_malformed_ref_rejected,🟢,"upgraded from 🟡: right target, but weak assertions only"
+infra_pipeline,python,tests/unit/test_policy_validator.py,167,TestReferentialIntegrity.test_ref_in_nested_list,🟢,"upgraded from 🟡: right target, but weak assertions only"
+infra_pipeline,python,tests/unit/test_policy_validator.py,177,TestReferentialIntegrity.test_non_string_ref_rejected,🟢,"upgraded from 🟡: right target, but weak assertions only"
+infra_pipeline,python,tests/unit/test_policy_validator.py,187,TestReferentialIntegrity.test_non_string_ref_in_list_rejected,🟢,"upgraded from 🟡: right target, but weak assertions only"
+infra_pipeline,python,tests/unit/test_policy_validator.py,204,TestCronValidation.test_valid_cron,🟢,"upgraded from 🟡: right target, but weak assertions only"
+infra_pipeline,python,tests/unit/test_policy_validator.py,209,TestCronValidation.test_invalid_cron,🟢,"upgraded from 🟡: right target, but weak assertions only"
+infra_pipeline,python,tests/unit/test_policy_validator.py,214,TestCronValidation.test_six_field_cron,🟢,"upgraded from 🟡: right target, but weak assertions only"
+infra_pipeline,python,tests/unit/test_policy_validator.py,227,TestSQLBlocklist.test_clean_params,🟢,"upgraded from 🟡: right target, but weak assertions only"
+infra_pipeline,python,tests/unit/test_policy_validator.py,234,TestSQLBlocklist.test_blocked_keyword,🟢,"upgraded from 🟡: right target, but weak assertions only"
+infra_pipeline,python,tests/unit/test_policy_validator.py,241,TestSQLBlocklist.test_multiple_blocked,🟢,"upgraded from 🟡: right target, but weak assertions only"
+infra_pipeline,python,tests/unit/test_policy_validator.py,248,TestSQLBlocklist.test_punctuation_bypass_blocked,🟢,"upgraded from 🟡: right target, but weak assertions only"
+infra_pipeline,python,tests/unit/test_policy_validator.py,256,TestSQLBlocklist.test_semicolon_concat_blocked,🟢,"upgraded from 🟡: right target, but weak assertions only"
+infra_pipeline,python,tests/unit/test_policy_validator.py,298,TestSQLBlocklistConstant.test_keyword_present,🟢,"upgraded from 🟡: right target, but weak assertions only"
+infra_pipeline,python,tests/unit/test_policy_validator.py,308,TestRecursiveSQLScan.test_nested_dict,🟢,"upgraded from 🟡: right target, but weak assertions only"
+infra_pipeline,python,tests/unit/test_policy_validator.py,317,TestRecursiveSQLScan.test_nested_list,🟢,"upgraded from 🟡: right target, but weak assertions only"
+infra_pipeline,python,tests/unit/test_policy_validator.py,326,TestRecursiveSQLScan.test_deeply_nested,🟢,"upgraded from 🟡: right target, but weak assertions only"
+infra_pipeline,python,tests/unit/test_provider_registry.py,65,TestProviderRegistryAC1.test_registry_is_dict,🟢,upgraded from 🔴: type or presence checks only without value assertions
+infra_pipeline,python,tests/unit/test_provider_registry.py,68,TestProviderRegistryAC1.test_all_values_are_provider_config,🟢,upgraded from 🔴: type or presence checks only without value assertions
+infra_pipeline,python,tests/unit/test_scheduling_repos.py,148,TestPipelineRunRepository.test_create_and_get,🟢,upgraded from 🟡: couples to private or internal state
+infra_pipeline,python,tests/unit/test_scheduling_repos.py,179,TestPipelineRunRepository.test_list_by_policy,🟢,upgraded from 🟡: couples to private or internal state
+infra_pipeline,python,tests/unit/test_scheduling_repos.py,206,TestPipelineRunRepository.test_list_recent,🟢,upgraded from 🟡: couples to private or internal state
+infra_pipeline,python,tests/unit/test_scheduling_repos.py,322,TestSessionPattern.test_all_repos_accept_session,🟢,upgraded from 🟡: couples to private or internal state
+infra_pipeline,python,tests/unit/test_scheduling_repos.py,333,TestUnitOfWorkExtension.test_uow_has_scheduling_repos,🟢,upgraded from 🔴: type or presence checks only without value assertions
+infra_pipeline,python,tests/unit/test_step_registry.py,58,TestAutoRegistration.test_empty_type_name_skipped,🟢,"upgraded from 🟡: right target, but weak assertions only"
+infra_pipeline,python,tests/unit/test_step_registry.py,162,TestCompensate.test_default_compensate_noop,🟢,upgraded from 🔴: trivially weak structure (private patch or no assertions)
+infra_pipeline,python,tests/unit/test_step_registry.py,204,TestStepBaseProtocol.test_runtime_checkable,🟢,upgraded from 🔴: type or presence checks only without value assertions
+infra_pipeline,python,tests/unit/test_store_render_step.py,22,test_AC_SR1_store_report_step_auto_registers,🟢,"upgraded from 🟡: right target, but weak assertions only"
+infra_pipeline,python,tests/unit/test_store_render_step.py,39,test_AC_SR2_render_step_auto_registers,🟢,"upgraded from 🟡: right target, but weak assertions only"
+infra_pipeline,python,tests/unit/test_transform_step.py,21,test_AC_T1_transform_step_auto_registers,🟢,"upgraded from 🟡: right target, but weak assertions only"
+integration,python,tests/integration/test_backup_integration.py,116,TestFullBackupCycle.test_wrong_passphrase_cannot_read,🟢,upgraded from 🟡: couples to private or internal state
+integration,python,tests/integration/test_database_connection.py,93,TestEncryptionContract.test_sqlcipher_availability_flag,🟢,upgraded from 🔴: type or presence checks only without value assertions
+integration,python,tests/integration/test_database_connection.py,121,TestEncryptionContract.test_fallback_produces_plaintext_warning,🟢,"upgraded from 🟡: right target, but weak assertions only"
+integration,python,tests/integration/test_repositories.py,100,TestTradeRepository.test_exists,🟢,"upgraded from 🟡: right target, but weak assertions only"
+integration,python,tests/integration/test_repositories.py,147,TestTradeRepository.test_exists_by_fingerprint_since,🟢,"upgraded from 🟡: right target, but weak assertions only"
+integration,python,tests/integration/test_repositories.py,316,TestTradeReportRepository.test_get_for_trade_returns_none_when_missing,🟢,upgraded from 🟡: couples to private or internal state
+integration,python,tests/integration/test_repositories.py,361,TestTradeReportRepository.test_delete,🟢,upgraded from 🟡: couples to private or internal state
+integration,python,tests/integration/test_unit_of_work.py,71,TestUnitOfWork.test_context_manager_closes_session,🟢,upgraded from 🟡: couples to private or internal state
+integration,python,tests/integration/test_unit_of_work.py,82,TestUnitOfWork.test_all_repos_available,🟢,upgraded from 🔴: type or presence checks only without value assertions
+mcp,typescript,mcp-server/tests/confirmation.test.ts,54,rejects destructive tool without confirmation_token,🟢,upgraded from 🟡: weak structural or mock-only assertions
+mcp,typescript,mcp-server/tests/confirmation.test.ts,150,%s requires confirmation on static clients,🟢,upgraded from 🟡: weak structural or mock-only assertions
+mcp,typescript,mcp-server/tests/discovery-tools.test.ts,268,calls sendToolListChanged after enabling toolset,🟢,upgraded from 🟡: weak structural or mock-only assertions
+mcp,typescript,mcp-server/tests/gui-tools.test.ts,193,does not call guard (unguarded tool),🟢,upgraded from 🟡: weak structural or mock-only assertions
+mcp,typescript,mcp-server/tests/metrics.test.ts,91,uses ring buffer to bound memory,🟢,"upgraded from 🟡: right target, but weak assertions only"
+ui,typescript,ui/src/main/__tests__/python-manager.test.ts,76,should return a valid port number (>= 1024),🟢,"upgraded from 🟡: right target, but weak assertions only"
+ui,typescript,ui/src/renderer/src/__tests__/app.test.tsx,62,should render without crashing,🟢,upgraded from 🟡: weak structural or mock-only assertions
+ui,typescript,ui/src/renderer/src/__tests__/app.test.tsx,92,should render 5 navigation items in NavRail,🟢,"upgraded from 🟡: right target, but weak assertions only"
+ui,typescript,ui/src/renderer/src/components/__tests__/CommandPalette.test.tsx,73,should call onClose when Escape is pressed,🟢,upgraded from 🟡: weak structural or mock-only assertions
+ui,typescript,ui/src/renderer/src/components/__tests__/CommandPalette.test.tsx,81,should group results by category when query is empty,🟢,"upgraded from 🟡: right target, but weak assertions only"
+ui,typescript,ui/src/renderer/src/components/__tests__/CommandPalette.test.tsx,108,should execute action on Enter and close palette,🟢,upgraded from 🟡: weak structural or mock-only assertions
+ui,typescript,ui/src/renderer/src/registry/__tests__/commandRegistry.test.ts,38,should have ≥13 entries: 5 nav + 3 action + 5 settings,🟢,"upgraded from 🟡: right target, but weak assertions only"
+ui,typescript,ui/src/renderer/src/registry/__tests__/commandRegistry.test.ts,78,navigation entries should have shortcut field,🟢,upgraded from 🟡: weak structural or mock-only assertions

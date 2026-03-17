@@ -305,9 +305,15 @@ class TestRateLimiting:
         )
         svc = _make_service(settings=settings, http_responses=[response])
 
-        asyncio.run(svc.get_quote("AAPL"))
+        result = asyncio.run(svc.get_quote("AAPL"))
 
+        # Value: verify a valid quote was returned
+        assert isinstance(result, MarketQuote)
+        assert result.ticker == "AAPL"
         # Access the rate limiter through the service's internal state
+        rate_limiter_called = False
         for limiter in svc._rate_limiters.values():
             if hasattr(limiter.wait_if_needed, "assert_called"):
                 limiter.wait_if_needed.assert_called()
+                rate_limiter_called = True
+        assert rate_limiter_called, "No rate limiter was called"

@@ -144,6 +144,14 @@ class TestModelInsert:
             session.add(img)
             session.commit()
             assert img.id is not None
+            # Value: verify fields persisted correctly
+            loaded = session.get(ImageModel, img.id)
+            assert loaded is not None
+            assert loaded.owner_type == "trade"
+            assert loaded.owner_id == "E001"
+            assert loaded.mime_type == "image/webp"
+            assert loaded.width == 800
+            assert loaded.height == 600
 
 
 class TestRelationships:

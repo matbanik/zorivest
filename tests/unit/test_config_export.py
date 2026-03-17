@@ -108,6 +108,8 @@ class TestBuildExport:
         exported_keys = set(result["settings"].keys())
         assert "dialog.confirm_delete" in exported_keys
         assert "ui.theme" in exported_keys
+        # Value: verify exactly 2 portable keys exported
+        assert len(exported_keys) == 2
         # Sensitive/non-exportable must NOT appear
         assert "ui.activePage" not in exported_keys
         assert "api.key" not in exported_keys
@@ -177,6 +179,10 @@ class TestValidateImport:
         )
         assert "dialog.confirm_delete" in result.accepted
         assert "ui.theme" in result.accepted
+        # Value: verify exactly 2 accepted and zero rejected/unknown
+        assert len(result.accepted) == 2
+        assert len(result.rejected) == 0
+        assert len(result.unknown) == 0
 
     def test_rejected_keys(
         self, service: ConfigExportService
@@ -214,6 +220,10 @@ class TestValidateImport:
         assert "ui.theme" in result.accepted
         assert "api.key" in result.rejected
         assert "unknown.key" in result.unknown
+        # Value: verify exact counts
+        assert len(result.accepted) == 1
+        assert len(result.rejected) == 1
+        assert len(result.unknown) == 1
 
     def test_round_trip(
         self, service: ConfigExportService
@@ -249,18 +259,28 @@ class TestPortableSymmetry:
     ) -> None:
         """SENSITIVE settings are not portable."""
         assert service._is_portable("ui.activePage") is False
+        # Value: verify the spec exists but is sensitive
+        from zorivest_core.domain.settings import Sensitivity
+        spec = service._registry["ui.activePage"]
+        assert spec.sensitivity == Sensitivity.SENSITIVE
 
     def test_is_portable_false_for_secret(
         self, service: ConfigExportService
     ) -> None:
         """SECRET settings are not portable."""
         assert service._is_portable("api.key") is False
+        # Value: verify the spec exists but is secret
+        from zorivest_core.domain.settings import Sensitivity
+        spec = service._registry["api.key"]
+        assert spec.sensitivity == Sensitivity.SECRET
 
     def test_is_portable_false_for_unknown(
         self, service: ConfigExportService
     ) -> None:
         """Unknown keys are not portable."""
         assert service._is_portable("does.not.exist") is False
+        # Value: verify the key is truly not in registry
+        assert "does.not.exist" not in service._registry
 
 
 # ── AC-21.7: ImportValidation frozen dataclass ───────────────────────────

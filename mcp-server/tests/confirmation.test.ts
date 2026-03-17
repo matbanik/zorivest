@@ -77,6 +77,8 @@ describe("withConfirmation", () => {
                 {} as any,
             );
             expect(mockHandler).toHaveBeenCalledOnce();
+            // Value: verify result content matches handler output
+            expect(result.content[0].text).toBe("success");
         });
 
         it("rejects arbitrary truthy string as token", async () => {
@@ -134,6 +136,8 @@ describe("withConfirmation", () => {
                 {} as any,
             );
             expect(mockHandler).toHaveBeenCalledOnce();
+            // Value: verify the result is a success response
+            expect(result.content[0].text).toBe("success");
         });
     });
 

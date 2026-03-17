@@ -359,3 +359,5 @@ class TestModuleImports:
             assert any(
                 line.startswith(prefix) for prefix in allowed_prefixes
             ), f"Unexpected import: {line}"
+        # Value: verify import count is bounded (module shouldn't grow unchecked)
+        assert len(import_lines) <= 10, f"Too many imports: {len(import_lines)}"

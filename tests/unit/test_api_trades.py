@@ -122,6 +122,9 @@ class TestListTrades:
 
         resp = http.get("/api/v1/trades?account_id=ACC001")
         assert resp.status_code == 200
+        # Value: verify response shape
+        data = resp.json()
+        assert "items" in data
         trade_svc.list_trades.assert_called_once()
         call_kwargs = trade_svc.list_trades.call_args
         assert call_kwargs.kwargs.get("account_id") == "ACC001" or \
@@ -134,6 +137,9 @@ class TestListTrades:
 
         resp = http.get("/api/v1/trades?sort=-time")
         assert resp.status_code == 200
+        # Value: verify response shape
+        data = resp.json()
+        assert "items" in data
 
 
 class TestGetTrade:
@@ -153,6 +159,9 @@ class TestGetTrade:
 
         resp = http.get("/api/v1/trades/E999")
         assert resp.status_code == 404
+        # Value: verify error detail
+        data = resp.json()
+        assert "detail" in data
 
 
 class TestUpdateTrade:
@@ -163,6 +172,9 @@ class TestUpdateTrade:
 
         resp = http.put("/api/v1/trades/E001", json={"commission": 5.0})
         assert resp.status_code == 200
+        # Value: verify updated field in response
+        data = resp.json()
+        assert data["commission"] == 5.0
 
 
 class TestDeleteTrade:
@@ -172,6 +184,8 @@ class TestDeleteTrade:
 
         resp = http.delete("/api/v1/trades/E001")
         assert resp.status_code == 204
+        # Value: verify no body on 204
+        assert resp.content == b""
         trade_svc.delete_trade.assert_called_once_with("E001")
 
 
@@ -210,6 +224,8 @@ class TestGlobalImages:
         resp = http.get("/api/v1/images/42/thumbnail")
         assert resp.status_code == 200
         assert resp.headers.get("content-type") == "image/webp"
+        # Value: verify non-empty thumbnail body
+        assert len(resp.content) > 0
 
     def test_get_full_image(self, client) -> None:
         """AC-10: GET /images/{id}/full returns full image bytes."""
@@ -218,6 +234,9 @@ class TestGlobalImages:
 
         resp = http.get("/api/v1/images/42/full")
         assert resp.status_code == 200
+        # Value: verify non-empty image body
+        assert len(resp.content) > 0
+        assert resp.headers.get("content-type") in ("image/webp", "application/octet-stream")
 
 
 # ── Round-trips ─────────────────────────────────────────────────────────
@@ -243,6 +262,9 @@ class TestRoundTrips:
             "/api/v1/round-trips?account_id=ACC001&status=closed&ticker=AAPL&limit=25&offset=10"
         )
         assert resp.status_code == 200
+        # Value: verify response is valid JSON
+        data = resp.json()
+        assert isinstance(data, list)
         call_kwargs = trade_svc.list_round_trips.call_args
         assert call_kwargs.kwargs.get("status") == "closed"
         assert call_kwargs.kwargs.get("ticker") == "AAPL"

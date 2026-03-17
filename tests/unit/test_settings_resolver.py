@@ -48,20 +48,32 @@ class TestTypeParsing:
 
     def test_parse_int(self) -> None:
         assert SettingsResolver._parse("42", "int") == 42
+        # Value: verify through public resolve() — int type is applied
+        result = SettingsResolver().resolve("logging.rotation_mb", user_value="42", default_value=None)
+        assert result.value == 42
 
     def test_parse_float(self) -> None:
         assert SettingsResolver._parse("3.14", "float") == pytest.approx(3.14)
+        assert isinstance(SettingsResolver._parse("3.14", "float"), float)
 
     def test_parse_str(self) -> None:
         assert SettingsResolver._parse("hello", "str") == "hello"
+        assert isinstance(SettingsResolver._parse("hello", "str"), str)
 
     def test_parse_json(self) -> None:
         result = SettingsResolver._parse('{"a": 1}', "json")
         assert result == {"a": 1}
+        assert isinstance(result, dict)
+        assert result["a"] == 1
 
     def test_parse_bool_invalid(self) -> None:
         with pytest.raises(ValueError, match="Invalid bool value"):
             SettingsResolver._parse("maybe", "bool")
+        # Value: verify the error message includes the invalid value
+        try:
+            SettingsResolver._parse("maybe", "bool")
+        except ValueError as e:
+            assert "maybe" in str(e)
 
 
 class TestExportability:

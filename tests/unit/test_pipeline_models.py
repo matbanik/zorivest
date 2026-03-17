@@ -327,6 +327,10 @@ class TestStepContext:
         assert hasattr(ctx.logger, "bind")
         assert hasattr(ctx.logger, "info")
         assert hasattr(ctx.logger, "error")
+        # Value: verify bind returns a logger-like object (not None)
+        bound = ctx.logger.bind(step="test")
+        assert bound is not None
+        assert hasattr(bound, "info")
 
 
 # ---------------------------------------------------------------------------

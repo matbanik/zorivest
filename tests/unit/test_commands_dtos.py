@@ -370,7 +370,9 @@ class TestQueries:
     def test_list_accounts(self) -> None:
         """AC-13: ListAccounts has no fields."""
         q = ListAccounts()
-        assert isinstance(q, ListAccounts)
+        # Value: verify it's a frozen dataclass with no custom fields
+        with pytest.raises(AttributeError):
+            q.nonexistent = True  # type: ignore[attr-defined]
 
     def test_get_image(self) -> None:
         """AC-14: GetImage has image_id field."""
@@ -553,10 +555,11 @@ class TestModuleImports:
         """AC-20: commands module importable."""
         import zorivest_core.application.commands as mod
 
-        assert hasattr(mod, "CreateTrade")
-        assert hasattr(mod, "AttachImage")
-        assert hasattr(mod, "CreateAccount")
-        assert hasattr(mod, "UpdateBalance")
+        # Value: verify class identity, not just presence
+        assert mod.CreateTrade is CreateTrade
+        assert mod.AttachImage is AttachImage
+        assert mod.CreateAccount is CreateAccount
+        assert mod.UpdateBalance is UpdateBalance
 
     def test_commands_module_no_unexpected_exports(self) -> None:
         """AC-20: commands module has exactly 4 command classes."""
@@ -574,12 +577,13 @@ class TestModuleImports:
         """AC-20: queries module importable."""
         import zorivest_core.application.queries as mod
 
-        assert hasattr(mod, "GetTrade")
-        assert hasattr(mod, "ListTrades")
-        assert hasattr(mod, "GetAccount")
-        assert hasattr(mod, "ListAccounts")
-        assert hasattr(mod, "GetImage")
-        assert hasattr(mod, "ListImages")
+        # Value: verify class identity
+        assert mod.GetTrade is GetTrade
+        assert mod.ListTrades is ListTrades
+        assert mod.GetAccount is GetAccount
+        assert mod.ListAccounts is ListAccounts
+        assert mod.GetImage is GetImage
+        assert mod.ListImages is ListImages
 
     def test_queries_module_no_unexpected_exports(self) -> None:
         """AC-20: queries module has exactly 6 query classes."""
@@ -596,10 +600,11 @@ class TestModuleImports:
         """AC-20: dtos module importable."""
         import zorivest_core.application.dtos as mod
 
-        assert hasattr(mod, "TradeDTO")
-        assert hasattr(mod, "AccountDTO")
-        assert hasattr(mod, "BalanceSnapshotDTO")
-        assert hasattr(mod, "ImageAttachmentDTO")
+        # Value: verify class identity
+        assert mod.TradeDTO is TradeDTO
+        assert mod.AccountDTO is AccountDTO
+        assert mod.BalanceSnapshotDTO is BalanceSnapshotDTO
+        assert mod.ImageAttachmentDTO is ImageAttachmentDTO
 
     def test_dtos_module_no_unexpected_exports(self) -> None:
         """AC-20: dtos module has exactly 4 DTO classes."""

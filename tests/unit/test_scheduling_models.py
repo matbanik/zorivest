@@ -86,7 +86,7 @@ class TestTableCreation:
             assert expected in tables, f"Missing table: {expected}"
 
     def test_models_inherit_from_base(self):
-        for cls in [
+        model_classes = [
             PolicyModel,
             PipelineRunModel,
             PipelineStepModel,
@@ -96,8 +96,13 @@ class TestTableCreation:
             ReportDeliveryModel,
             FetchCacheModel,
             AuditLogModel,
-        ]:
+        ]
+        for cls in model_classes:
             assert issubclass(cls, Base), f"{cls.__name__} must inherit from Base"
+            # Value: verify each model has __tablename__
+            assert hasattr(cls, "__tablename__"), f"{cls.__name__} missing __tablename__"
+            assert isinstance(cls.__tablename__, str)
+        assert len(model_classes) == 9
 
 
 # ── AC-3: PolicyModel columns ─────────────────────────────────────────────
@@ -177,6 +182,10 @@ class TestRelationships:
 
         assert run.policy is policy
         assert run in policy.runs
+        # Value: verify FK and status values persisted correctly
+        assert run.policy_id == policy.id
+        assert run.status == "pending"
+        assert run.trigger_type == "manual"
 
     def test_step_run_relationship(self, session):
         policy = self._create_policy(session)
@@ -196,6 +205,11 @@ class TestRelationships:
 
         assert step.run is run
         assert step in run.steps
+        # Value: verify step fields persisted correctly
+        assert step.step_id == "fetch_data"
+        assert step.step_type == "fetch"
+        assert step.status == "pending"
+        assert step.run_id == run.id
 
     def test_run_fk_constraint(self, session):
         """FK to non-existent policy should fail."""
@@ -238,6 +252,11 @@ class TestPipelineStateModel:
         session.add(s2)
         with pytest.raises(IntegrityError):
             session.commit()
+        # Value: verify the first state was actually saved
+        session.rollback()
+        saved = session.get(PipelineStateModel, s1.id)
+        assert saved is not None
+        assert saved.entity_key == "AAPL"
 
     def test_different_keys_allowed(self, session):
         now = datetime.now(timezone.utc)
@@ -252,6 +271,14 @@ class TestPipelineStateModel:
         )
         session.add_all([s1, s2])
         session.commit()  # Should not raise
+        # Value: verify both states persisted with distinct entity_keys
+        assert s1.entity_key == "AAPL"
+        assert s2.entity_key == "MSFT"
+        assert s1.id != s2.id
+        loaded_s1 = session.get(PipelineStateModel, s1.id)
+        loaded_s2 = session.get(PipelineStateModel, s2.id)
+        assert loaded_s1 is not None
+        assert loaded_s2 is not None
 
 
 # ── AC-7: FetchCacheModel UniqueConstraint ────────────────────────────────
@@ -321,6 +348,10 @@ class TestReportModels:
         session.add(version)
         session.commit()
         assert version in report.versions
+        # Value: verify version fields
+        assert version.report_id == report.id
+        assert version.version == 1
+        assert version.spec_json == '{"old": true}'
 
     def test_report_delivery_relationship(self, session):
         report = self._create_report(session)
@@ -332,6 +363,11 @@ class TestReportModels:
         session.add(delivery)
         session.commit()
         assert delivery in report.deliveries
+        # Value: verify delivery fields
+        assert delivery.report_id == report.id
+        assert delivery.channel == "email"
+        assert delivery.recipient == "user@example.com"
+        assert delivery.status == "pending"
 
     def test_dedup_key_unique(self, session):
         report = self._create_report(session)
@@ -349,6 +385,11 @@ class TestReportModels:
         session.add(d2)
         with pytest.raises(IntegrityError):
             session.commit()
+        # Value: verify the first delivery was actually saved
+        session.rollback()
+        saved = session.get(ReportDeliveryModel, d1.id)
+        assert saved is not None
+        assert saved.dedup_key == dk
 
     def test_cascade_delete(self, session):
         report = self._create_report(session)

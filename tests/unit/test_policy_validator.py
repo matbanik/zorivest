@@ -108,14 +108,17 @@ class TestUnknownStepType:
             {"id": "bad_step", "type": "unknown_type", "params": {}},
         ])
         errors = validate_policy(doc)
-        assert any("Unknown step type" in e.message for e in errors)
+        step_errors = [e for e in errors if "Unknown step type" in e.message]
+        assert len(step_errors) == 1
+        assert "type" in step_errors[0].field
+        assert "unknown_type" in step_errors[0].message
 
     def test_known_type_accepted(self) -> None:
         doc = _build_policy(steps=[
             {"id": "good_step", "type": "fetch", "params": {}},
         ])
         errors = validate_policy(doc)
-        assert not any("Unknown step type" in e.message for e in errors)
+        assert errors == []  # valid policy has zero errors
 
 
 # ---------------------------------------------------------------------------
@@ -132,8 +135,7 @@ class TestReferentialIntegrity:
             }},
         ])
         errors = validate_policy(doc)
-        # No ref errors
-        assert not any("hasn't executed yet" in e.message for e in errors)
+        assert errors == []
 
     def test_forward_ref_rejected(self) -> None:
         doc = _build_policy(steps=[
@@ -143,7 +145,9 @@ class TestReferentialIntegrity:
             {"id": "fetch_data", "type": "fetch", "params": {}},
         ])
         errors = validate_policy(doc)
-        assert any("hasn't executed yet" in e.message for e in errors)
+        ref_errors = [e for e in errors if "hasn't executed yet" in e.message]
+        assert len(ref_errors) == 1
+        assert "fetch_data" in ref_errors[0].message
 
     def test_nested_ref_checked(self) -> None:
         doc = _build_policy(steps=[
@@ -152,7 +156,9 @@ class TestReferentialIntegrity:
             }},
         ])
         errors = validate_policy(doc)
-        assert any("hasn't executed yet" in e.message for e in errors)
+        ref_errors = [e for e in errors if "hasn't executed yet" in e.message]
+        assert len(ref_errors) == 1
+        assert "nonexistent" in ref_errors[0].message
 
     def test_malformed_ref_rejected(self) -> None:
         """Finding 1 regression: refs not starting with ctx. must be rejected."""
@@ -162,7 +168,9 @@ class TestReferentialIntegrity:
             }},
         ])
         errors = validate_policy(doc)
-        assert any("Invalid ref format" in e.message for e in errors)
+        fmt_errors = [e for e in errors if "Invalid ref format" in e.message]
+        assert len(fmt_errors) == 1
+        assert "not-a-ctx-ref" in fmt_errors[0].message
 
     def test_ref_in_nested_list(self) -> None:
         """Finding 2 regression: refs inside list-of-list structures must be checked."""
@@ -172,7 +180,9 @@ class TestReferentialIntegrity:
             }},
         ])
         errors = validate_policy(doc)
-        assert any("hasn't executed yet" in e.message for e in errors)
+        ref_errors = [e for e in errors if "hasn't executed yet" in e.message]
+        assert len(ref_errors) == 1
+        assert "missing" in ref_errors[0].message
 
     def test_non_string_ref_rejected(self) -> None:
         """F6 regression: non-string ref values must produce ValidationError, not crash."""
@@ -182,7 +192,8 @@ class TestReferentialIntegrity:
             }},
         ])
         errors = validate_policy(doc)
-        assert any("ref value must be a string" in e.message for e in errors)
+        ref_errors = [e for e in errors if "ref value must be a string" in e.message]
+        assert len(ref_errors) == 1
 
     def test_non_string_ref_in_list_rejected(self) -> None:
         """F6 regression: non-string ref values in lists must also be caught."""
@@ -192,7 +203,8 @@ class TestReferentialIntegrity:
             }},
         ])
         errors = validate_policy(doc)
-        assert any("ref value must be a string" in e.message for e in errors)
+        ref_errors = [e for e in errors if "ref value must be a string" in e.message]
+        assert len(ref_errors) == 1
 
 
 # ---------------------------------------------------------------------------
@@ -204,18 +216,20 @@ class TestCronValidation:
     def test_valid_cron(self) -> None:
         doc = _build_policy()
         errors = validate_policy(doc)
-        assert not any("cron" in e.field for e in errors)
+        assert errors == []
 
     def test_invalid_cron(self) -> None:
         doc = _build_policy(trigger={"cron_expression": "invalid cron"})
         errors = validate_policy(doc)
-        assert any("cron" in e.field for e in errors)
+        cron_errors = [e for e in errors if "cron" in e.field]
+        assert len(cron_errors) >= 1
+        assert "invalid" in cron_errors[0].message.lower() or "cron" in cron_errors[0].message.lower()
 
     def test_six_field_cron(self) -> None:
         """Standard 5-field cron should work."""
         doc = _build_policy(trigger={"cron_expression": "*/5 * * * *"})
         errors = validate_policy(doc)
-        assert not any("cron" in e.field for e in errors)
+        assert errors == []
 
 
 # ---------------------------------------------------------------------------
@@ -229,21 +243,24 @@ class TestSQLBlocklist:
             {"id": "s1", "type": "fetch", "params": {"query": "SELECT * FROM prices"}},
         ])
         errors = validate_policy(doc)
-        assert not any("Blocked SQL" in e.message for e in errors)
+        assert errors == []
 
     def test_blocked_keyword(self) -> None:
         doc = _build_policy(steps=[
             {"id": "s1", "type": "fetch", "params": {"query": "DROP TABLE users"}},
         ])
         errors = validate_policy(doc)
-        assert any("Blocked SQL" in e.message for e in errors)
+        sql_errors = [e for e in errors if "Blocked SQL" in e.message]
+        assert len(sql_errors) >= 1
+        assert "DROP" in sql_errors[0].message
 
     def test_multiple_blocked(self) -> None:
         doc = _build_policy(steps=[
             {"id": "s1", "type": "fetch", "params": {"q": "DELETE FROM t; INSERT INTO t VALUES(1)"}},
         ])
         errors = validate_policy(doc)
-        assert any("Blocked SQL" in e.message for e in errors)
+        sql_errors = [e for e in errors if "Blocked SQL" in e.message]
+        assert len(sql_errors) >= 1
 
     def test_punctuation_bypass_blocked(self) -> None:
         """F5 regression: punctuation-separated SQL keywords must be caught."""
@@ -251,7 +268,9 @@ class TestSQLBlocklist:
             {"id": "s1", "type": "fetch", "params": {"query": "DROP;TABLE users"}},
         ])
         errors = validate_policy(doc)
-        assert any("Blocked SQL" in e.message for e in errors)
+        sql_errors = [e for e in errors if "Blocked SQL" in e.message]
+        assert len(sql_errors) >= 1
+        assert "DROP" in sql_errors[0].message
 
     def test_semicolon_concat_blocked(self) -> None:
         """F5 regression: DELETE;SELECT must be caught."""
@@ -259,7 +278,9 @@ class TestSQLBlocklist:
             {"id": "s1", "type": "fetch", "params": {"query": "DELETE;SELECT * FROM t"}},
         ])
         errors = validate_policy(doc)
-        assert any("Blocked SQL" in e.message for e in errors)
+        sql_errors = [e for e in errors if "Blocked SQL" in e.message]
+        assert len(sql_errors) >= 1
+        assert "DELETE" in sql_errors[0].message
 
 
 # ---------------------------------------------------------------------------
@@ -297,6 +318,8 @@ class TestSQLBlocklistConstant:
     )
     def test_keyword_present(self, keyword: str) -> None:
         assert keyword in SQL_BLOCKLIST
+        # Value: verify blocklist is an immutable set
+        assert isinstance(SQL_BLOCKLIST, (set, frozenset))
 
 
 # ---------------------------------------------------------------------------
@@ -312,7 +335,9 @@ class TestRecursiveSQLScan:
             }},
         ])
         errors = validate_policy(doc)
-        assert any("Blocked SQL" in e.message for e in errors)
+        sql_errors = [e for e in errors if "Blocked SQL" in e.message]
+        assert len(sql_errors) >= 1
+        assert "DROP" in sql_errors[0].message
 
     def test_nested_list(self) -> None:
         doc = _build_policy(steps=[
@@ -321,7 +346,9 @@ class TestRecursiveSQLScan:
             }},
         ])
         errors = validate_policy(doc)
-        assert any("Blocked SQL" in e.message for e in errors)
+        sql_errors = [e for e in errors if "Blocked SQL" in e.message]
+        assert len(sql_errors) >= 1
+        assert "DELETE" in sql_errors[0].message
 
     def test_deeply_nested(self) -> None:
         doc = _build_policy(steps=[
@@ -330,4 +357,6 @@ class TestRecursiveSQLScan:
             }},
         ])
         errors = validate_policy(doc)
-        assert any("Blocked SQL" in e.message for e in errors)
+        sql_errors = [e for e in errors if "Blocked SQL" in e.message]
+        assert len(sql_errors) >= 1
+        assert "ALTER" in sql_errors[0].message

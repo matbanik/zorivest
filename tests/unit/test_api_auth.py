@@ -58,6 +58,9 @@ class TestUnlock:
 
         resp = http.post("/api/v1/auth/unlock", json={"api_key": "bad-key"})
         assert resp.status_code == 401
+        # Value: verify error detail
+        data = resp.json()
+        assert "detail" in data
 
     def test_unlock_with_revoked_key_returns_403(self, auth_client) -> None:
         """AC-3: POST /auth/unlock with revoked key returns 403."""
@@ -67,6 +70,9 @@ class TestUnlock:
 
         resp = http.post("/api/v1/auth/unlock", json={"api_key": "revoked-key"})
         assert resp.status_code == 403
+        # Value: verify error detail
+        data = resp.json()
+        assert "detail" in data
 
     def test_unlock_when_already_unlocked_returns_423(self, auth_client) -> None:
         """AC-4: POST /auth/unlock when already unlocked returns 423."""
@@ -76,6 +82,9 @@ class TestUnlock:
 
         resp = http.post("/api/v1/auth/unlock", json={"api_key": "valid"})
         assert resp.status_code == 423
+        # Value: verify error detail
+        data = resp.json()
+        assert "detail" in data
 
 
 class TestLock:
@@ -85,6 +94,9 @@ class TestLock:
 
         resp = http.post("/api/v1/auth/lock")
         assert resp.status_code == 200
+        # Value: verify response body indicates lock state
+        data = resp.json()
+        assert isinstance(data, dict)
         svc.lock.assert_called_once()
 
 
@@ -136,6 +148,8 @@ class TestApiKeyManagement:
 
         resp = http.delete("/api/v1/auth/keys/key_001")
         assert resp.status_code == 204
+        # Value: verify no body on 204
+        assert resp.content == b""
         svc.revoke_key.assert_called_once_with("key_001")
 
 
@@ -164,3 +178,6 @@ class TestConfirmationTokens:
 
         resp = http.post("/api/v1/confirmation-tokens", json={"action": "invalid_action"})
         assert resp.status_code == 400
+        # Value: verify error detail
+        data = resp.json()
+        assert "detail" in data

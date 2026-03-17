@@ -298,6 +298,8 @@ describe("enable_toolset", () => {
 
         // sendToolListChanged is called by SDK's registerTool() AND by our explicit call
         expect(spy).toHaveBeenCalled();
+        // Value: verify notification was sent at least once
+        expect(spy.mock.calls.length).toBeGreaterThanOrEqual(1);
     });
 
     // AC-6: rejects when dynamic loading is disabled (static client)

@@ -115,6 +115,8 @@ class TestReportServiceGetForTrade:
         svc = ReportService(uow)
         result = svc.get_for_trade("T001")
         assert result == expected
+        assert result.trade_id == "T001"
+        assert result.setup_quality == 4
         uow.__enter__.assert_called_once()
 
     def test_get_for_trade_returns_none(self) -> None:
@@ -185,6 +187,8 @@ class TestReportServiceDelete:
         uow.trade_reports.delete.assert_called_once_with(42)
         uow.commit.assert_called_once()
         uow.__enter__.assert_called_once()
+        # Value: verify get_for_trade was called with correct trade_id
+        uow.trade_reports.get_for_trade.assert_called_once_with("T001")
 
     def test_delete_raises_if_no_report(self) -> None:
         from zorivest_core.services.report_service import ReportService
@@ -239,6 +243,8 @@ class TestPlanServiceCreate:
 
         assert isinstance(result, TradePlan)
         assert result.ticker == "AAPL"
+        assert result.direction == "BOT"
+        assert result.strategy_name == "Gap & Go"
         uow.trade_plans.save.assert_called_once()
         uow.commit.assert_called_once()
         uow.__enter__.assert_called_once()
@@ -265,6 +271,9 @@ class TestPlanServiceGet:
         svc = ReportService(uow)
         result = svc.get_plan(1)
         assert result == expected
+        assert result.ticker == "SPY"
+        assert result.direction == "SLD"
+        assert result.status == "active"
         uow.__enter__.assert_called_once()
 
     def test_get_plan_returns_none(self) -> None:
@@ -442,6 +451,8 @@ class TestPlanServiceDelete:
         svc.delete_plan(1)
         uow.trade_plans.delete.assert_called_once_with(1)
         uow.commit.assert_called_once()
+        # Value: verify get was called with correct plan_id
+        uow.trade_plans.get.assert_called_once_with(1)
 
     def test_delete_plan_not_found(self) -> None:
         from zorivest_core.services.report_service import ReportService

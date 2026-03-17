@@ -121,6 +121,9 @@ class TestTradeRepository:
 
         trades = repo.list_all()
         assert len(trades) == 2
+        # Value: verify both exec_ids are present
+        exec_ids = {t.exec_id for t in trades}
+        assert exec_ids == {"E001", "E002"}
 
     def test_list_for_account(self, session: Session) -> None:
         """AC-14.3: list_for_account filters by account_id."""
@@ -172,6 +175,10 @@ class TestImageRepository:
         found = repo.get(image_id)
         assert found is not None
         assert found.data == b"\x00" * 100
+        # Value: verify image attributes round-tripped
+        assert found.width == 800
+        assert found.height == 600
+        assert found.file_size == 100
 
     def test_get_for_owner(self, session: Session) -> None:
         """AC-14.6: get_for_owner returns images for owner."""
@@ -182,6 +189,8 @@ class TestImageRepository:
 
         images = repo.get_for_owner("trade", "E001")
         assert len(images) == 2
+        # Value: verify all images belong to correct owner
+        assert all(img.owner_id == "E001" for img in images)
 
     def test_delete(self, session: Session) -> None:
         repo = SqlAlchemyImageRepository(session)
@@ -201,6 +210,8 @@ class TestImageRepository:
         thumb = repo.get_thumbnail(image_id, max_size=50)
         assert len(thumb) > 0
         assert len(thumb) <= 100  # at most full data size
+        # Value: verify thumbnail is a valid bytes object, not empty
+        assert isinstance(thumb, bytes)
 
 
 class TestAccountRepository:

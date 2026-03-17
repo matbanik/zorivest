@@ -54,11 +54,18 @@ class TestCacheTTL:
         # Simulate staleness by setting loaded_at far in the past
         cache._loaded_at = 0.0
         assert cache.get("ui.theme") is None
+        # Value: also verify get_all returns None when stale
+        assert cache.get_all() is None
 
     def test_fresh_cache_returns_value(self) -> None:
         cache = SettingsCache(ttl_seconds=300)
         cache.populate({"ui.theme": _make_resolved()})
-        assert cache.get("ui.theme") is not None
+        result = cache.get("ui.theme")
+        assert result is not None
+        # Value: verify the actual resolved value
+        assert result.value == "dark"
+        assert result.source == "user"
+        assert result.key == "ui.theme"
 
 
 class TestCacheEmpty:

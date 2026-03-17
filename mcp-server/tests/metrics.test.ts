@@ -199,6 +199,9 @@ describe("withMetrics wrapper", () => {
 describe("metricsCollector singleton", () => {
     it("exports a singleton MetricsCollector instance", () => {
         expect(metricsCollector).toBeInstanceOf(MetricsCollector);
+        // Value: verify singleton has expected methods
+        expect(typeof metricsCollector.record).toBe("function");
+        expect(typeof metricsCollector.getSummary).toBe("function");
     });
 });
 

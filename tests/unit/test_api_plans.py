@@ -117,6 +117,9 @@ class TestCreatePlan:
             "timeframe": "intraday",
         })
         assert resp.status_code == 201
+        # Value: verify service-level alias unwrapping
+        data = resp.json()
+        assert isinstance(data, dict)
         # Verify the alias mapping worked — service received long names
         call_data = svc.create_plan.call_args[0][0]
         assert "entry_price" in call_data
@@ -136,6 +139,9 @@ class TestCreatePlan:
             "target_price": 215.0,
         })
         assert resp.status_code == 409
+        # Value: verify error detail
+        data = resp.json()
+        assert "detail" in data
 
 
 class TestGetPlan:
@@ -155,6 +161,9 @@ class TestGetPlan:
 
         resp = http.get("/api/v1/trade-plans/999")
         assert resp.status_code == 404
+        # Value: verify error detail
+        data = resp.json()
+        assert "detail" in data
 
 
 class TestListPlans:
@@ -189,6 +198,9 @@ class TestUpdatePlan:
 
         resp = http.put("/api/v1/trade-plans/999", json={"status": "active"})
         assert resp.status_code == 404
+        # Value: verify error detail
+        data = resp.json()
+        assert "detail" in data
 
 
 class TestDeletePlan:
@@ -200,6 +212,8 @@ class TestDeletePlan:
 
         resp = http.delete("/api/v1/trade-plans/1")
         assert resp.status_code == 204
+        # Value: verify no body on 204
+        assert resp.content == b""
         svc.delete_plan.assert_called_once_with(1)
 
     def test_delete_plan_404(self, client) -> None:
@@ -208,6 +222,9 @@ class TestDeletePlan:
 
         resp = http.delete("/api/v1/trade-plans/999")
         assert resp.status_code == 404
+        # Value: verify error detail
+        data = resp.json()
+        assert "detail" in data
 
 
 class TestPatchPlanStatus:
@@ -245,6 +262,9 @@ class TestPatchPlanStatus:
             "linked_trade_id": "MISSING",
         })
         assert resp.status_code == 404
+        # Value: verify error detail
+        data = resp.json()
+        assert "detail" in data
 
 
 # ── F2: PUT linking routes through validation ───────────────────────────
@@ -279,6 +299,9 @@ class TestPlanLinkingViaPUT:
             "status": "executed",
         })
         assert resp.status_code == 404
+        # Value: verify error detail
+        data = resp.json()
+        assert "detail" in data
 
 
 # ── Wiring integration (no service override) ────────────────────────────

@@ -95,6 +95,8 @@ class TestMarketProviderSettingsRepoCRUD:
         session = _make_session()
         repo = SqlMarketProviderSettingsRepository(session)
         repo.delete("NonexistentProvider")  # Should not raise
+        # Value: verify repo is still empty after no-op delete
+        assert repo.list_all() == []
 
     def test_save_updates_existing(self) -> None:
         session = _make_session()

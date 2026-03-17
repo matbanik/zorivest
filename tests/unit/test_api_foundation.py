@@ -38,6 +38,9 @@ class TestAppFactory:
         from fastapi import FastAPI
         app = create_app()
         assert isinstance(app, FastAPI)
+        # Value: verify app has title and routes
+        assert app.title is not None
+        assert len(app.routes) > 0
 
     def test_app_has_seven_tags(self) -> None:
         """AC-1: App has 7 tags in openapi_tags."""
@@ -55,7 +58,8 @@ class TestRequestIdMiddleware:
         request_id = resp.headers.get("X-Request-ID")
         assert request_id is not None, "Missing X-Request-ID header"
         # Validate it's a UUID
-        uuid.UUID(request_id)  # raises ValueError if invalid
+        parsed = uuid.UUID(request_id)  # raises ValueError if invalid
+        assert parsed.version == 4  # Value: verify UUID version
 
     def test_request_ids_are_unique(self, client: TestClient) -> None:
         """AC-4: Each request gets a unique request ID."""
@@ -108,6 +112,9 @@ class TestHealthEndpoint:
         """AC-7: GET /api/v1/health returns 200."""
         resp = client.get("/api/v1/health")
         assert resp.status_code == 200
+        # Value: verify health has expected fields
+        data = resp.json()
+        assert data["status"] == "ok"
 
     def test_health_response_fields(self, client: TestClient) -> None:
         """AC-7: HealthResponse has status, version, uptime_seconds, database."""
@@ -127,6 +134,9 @@ class TestHealthEndpoint:
         client = TestClient(app)
         resp = client.get("/api/v1/health")
         assert resp.status_code == 200
+        # Value: verify health body is valid
+        data = resp.json()
+        assert data["status"] == "ok"
 
 
 # ── AC-8: Version endpoint ──────────────────────────────────────────────
@@ -136,6 +146,9 @@ class TestVersionEndpoint:
         """AC-8: GET /api/v1/version/ returns 200."""
         resp = client.get("/api/v1/version/")
         assert resp.status_code == 200
+        # Value: verify version response is valid JSON
+        data = resp.json()
+        assert "version" in data
 
     def test_version_response_fields(self, client: TestClient) -> None:
         """AC-8: VersionResponse has version (SemVer) and context."""
@@ -213,6 +226,9 @@ class TestModeGating:
         client = TestClient(app)
         resp = client.get("/api/v1/test-gated")
         assert resp.status_code == 403
+        # Value: verify error detail
+        data = resp.json()
+        assert "detail" in data
 
 
 # ── Integration: app-state wiring ─────────────────────────────────────────────

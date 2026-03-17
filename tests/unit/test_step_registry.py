@@ -137,6 +137,9 @@ class TestListSteps:
         _make_step_class("with_effects", side_effects=True)
         result = list_steps()
         assert result[0]["side_effects"] is True
+        # Value: verify all expected dict keys are present
+        assert "type_name" in result[0]
+        assert result[0]["type_name"] == "with_effects"
 
 
 # ---------------------------------------------------------------------------
@@ -163,8 +166,9 @@ class TestCompensate:
         step = RegisteredStep()
         ctx = StepContext(run_id="r1", policy_id="p1")
         result = StepResult(status=PipelineStatus.SUCCESS)
-        # Should not raise
-        asyncio.run(step.compensate({}, ctx, result))
+        # Should not raise and should return None (no-op)
+        ret = asyncio.run(step.compensate({}, ctx, result))
+        assert ret is None
 
 
 # ---------------------------------------------------------------------------
@@ -205,6 +209,11 @@ class TestStepBaseProtocol:
         """RegisteredStep should satisfy StepBase Protocol."""
         step = RegisteredStep()
         assert isinstance(step, StepBase)
+        # Value: verify protocol has required methods
+        assert hasattr(step, "execute")
+        assert hasattr(step, "compensate")
+        assert callable(step.execute)
+        assert callable(step.compensate)
 
     def test_stepbase_importable_from_pipeline(self) -> None:
         """Finding 3 regression: spec imports StepBase from pipeline module."""

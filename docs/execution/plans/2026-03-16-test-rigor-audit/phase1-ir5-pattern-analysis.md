@@ -182,3 +182,38 @@ Schedule focused sessions at phase gates:
 +    export = build_export(registry)
 +    assert "api_key" not in export
 ```
+
+---
+
+## Corrections Complete — 2026-03-17
+
+> [!NOTE]
+> All 285 weak tests (71 🔴 + 214 🟡) have been upgraded to 🟢 across 72 files.
+> Re-audit CSV: `docs/execution/plans/2026-03-16-ir5-test-corrections/re-audit-results.csv`
+
+### Final Counts
+
+| Metric | Before | After |
+|--------|--------|-------|
+| 🔴 Red tests | 71 | 0 |
+| 🟡 Yellow tests | 214 | 0 |
+| 🟢 Green tests | 1,184 | 1,469 |
+| Files modified | — | 72 |
+| New regressions | — | 0 |
+
+### Remediation Applied
+
+All seven anti-patterns resolved:
+- **R1 (Type-Guard)**: Replaced with exact method-set equality, exact param lists, dataclass verification
+- **R2 (Status-Code Only)**: Added response body contract assertions
+- **R3 (No-Op)**: Added concrete postcondition checks
+- **Y1 (Weak)**: Tightened to exact values, error messages, field counts
+- **Y2 (Private State)**: Rerouted through public interfaces
+- **Y3 (Status-Code Overlap)**: Added JSON body assertions alongside status codes
+- **Y4 (Mock-Only)**: Added concrete argument and return-value checks
+
+### Execution Plan
+
+- Plan: `docs/execution/plans/2026-03-16-ir5-test-corrections/`
+- Handoff: `.agent/context/handoffs/074-2026-03-17-ir5-test-corrections-bp-ir5.md`
+- Review: `.agent/context/handoffs/2026-03-16-ir5-test-corrections-implementation-critical-review.md` (Pass 3: approved)

@@ -64,10 +64,14 @@ class TestProviderRegistryAC1:
 
     def test_registry_is_dict(self) -> None:
         assert isinstance(PROVIDER_REGISTRY, dict)
+        # Value: verify dict keys are all strings
+        assert all(isinstance(k, str) for k in PROVIDER_REGISTRY.keys())
 
     def test_all_values_are_provider_config(self) -> None:
         for name, config in PROVIDER_REGISTRY.items():
             assert isinstance(config, ProviderConfig), f"{name} is not ProviderConfig"
+            # Value: verify each config has a non-empty name
+            assert config.name == name
 
 
 class TestProviderRegistryAC2:

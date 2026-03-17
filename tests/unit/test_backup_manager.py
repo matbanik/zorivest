@@ -178,7 +178,10 @@ class TestCreateBackup:
         assert result.backup_path is not None
         # The file should be readable as a ZIP
         with pyzipper.AESZipFile(str(result.backup_path), "r") as zf:
-            assert "manifest.json" in zf.namelist()
+            namelist = zf.namelist()
+            assert "manifest.json" in namelist
+            # Value: verify at least one db file beyond manifest
+            assert len(namelist) >= 2
 
     def test_no_databases_returns_failure(self, backup_dir: Path) -> None:
         mgr = BackupManager(
@@ -219,6 +222,9 @@ class TestGFSRotation:
         manager.create_backup()
         rotated = manager._rotate_backups()
         assert rotated == []
+        # Value: verify the one backup still exists
+        backups = manager.list_backups()
+        assert len(backups) == 1
 
     def test_gfs_rotation_removes_excess(self, backup_dir: Path) -> None:
         """Create more than GFS_DAILY_KEEP stub backup files; verify excess is removed."""
@@ -379,6 +385,14 @@ class TestBackupSecurity:
             zf.setpassword(wrong_key)
             with pytest.raises(Exception):
                 zf.read("manifest.json")
+        # Value: verify the wrong key is different from the correct key
+        correct_mgr = BackupManager(
+            db_paths={"settings": sample_db},
+            backup_dir=backup_dir,
+            passphrase="correct-passphrase",
+        )
+        correct_key = correct_mgr._derive_key(salt)
+        assert wrong_key != correct_key
 
     def test_manifest_hash_integrity(self, manager: BackupManager) -> None:
         """Each file's SHA-256 in manifest matches actual ZIP contents."""
@@ -398,6 +412,8 @@ class TestBackupSecurity:
                 data = zf.read(fe.path)
                 actual_hash = hashlib.sha256(data).hexdigest()
                 assert actual_hash == fe.sha256, f"Hash mismatch for {fe.path}"
+                # Value: verify size matches too
+                assert len(data) == fe.size_bytes, f"Size mismatch for {fe.path}"
 
     def test_kdf_domain_separation(self, manager: BackupManager) -> None:
         """Derived key includes domain tag 'zorivest-backup-v1'."""
@@ -465,3 +481,5 @@ class TestBackupSecurity:
 
         with pytest.raises(AssertionError, match="Missing file in backup"):
             mgr._verify_backup(tampered_path, tampered_manifest)
+        # Value: verify the tampered manifest has more files than original
+        assert len(tampered_manifest.files) == len(result.manifest.files) + 1

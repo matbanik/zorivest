@@ -279,6 +279,7 @@ class TestImportSurface:
             "typing",
             "zorivest_core",
         }
+        import_count = 0
         for node in ast.walk(tree):
             if isinstance(node, ast.Import):
                 for alias in node.names:
@@ -286,12 +287,16 @@ class TestImportSurface:
                     assert top in allowed_modules, (
                         f"Forbidden import: {alias.name}"
                     )
+                    import_count += 1
             elif isinstance(node, ast.ImportFrom):
                 if node.module is not None:
                     top_module = node.module.split(".")[0]
                     assert top_module in allowed_modules, (
                         f"Forbidden import from: {node.module}"
                     )
+                    import_count += 1
+        # Value: verify at least 2 imports were checked
+        assert import_count >= 2, f"Only {import_count} imports found"
 
 
 # ── Module integrity ────────────────────────────────────────────────────
@@ -386,6 +391,10 @@ class TestTradeReportType:
         report = _make_trade_report()
         trade = _make_trade(report=report)
         assert isinstance(trade.report, TradeReport)
+        # Value: verify the actual report fields are accessible
+        assert trade.report.trade_id == "TEST001"
+        assert trade.report.setup_quality == 4
+        assert trade.report is report
 
     def test_trade_report_field_defaults_to_none(self) -> None:
         trade = _make_trade()

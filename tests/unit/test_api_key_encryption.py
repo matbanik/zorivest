@@ -108,6 +108,9 @@ class TestDeriveFernetKey:
         salt = os.urandom(16)
         fernet = derive_fernet_key("my-master-password", salt)
         assert isinstance(fernet, Fernet)
+        # Value: verify the Fernet key can actually encrypt/decrypt
+        token = fernet.encrypt(b"test")
+        assert fernet.decrypt(token) == b"test"
 
     def test_derive_fernet_key_is_deterministic(self) -> None:
         from zorivest_infra.security.api_key_encryption import (

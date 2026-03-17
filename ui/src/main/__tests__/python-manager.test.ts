@@ -81,6 +81,9 @@ describe('PythonManager', () => {
         it('should return a number', async () => {
             const port = await pm.allocatePort()
             expect(typeof port).toBe('number')
+            // Value: verify port is a finite integer
+            expect(Number.isFinite(port)).toBe(true)
+            expect(port % 1).toBe(0)
         })
     })
 

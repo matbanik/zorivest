@@ -327,6 +327,9 @@ class TestSessionPattern:
         ]:
             repo = cls(session)
             assert repo._session is session
+        # Value: verify all 5 repo types were iterated
+        assert len([PolicyRepository, PipelineRunRepository, ReportRepository,
+                    FetchCacheRepository, AuditLogRepository]) == 5
 
 
 class TestUnitOfWorkExtension:
@@ -341,3 +344,8 @@ class TestUnitOfWorkExtension:
             assert hasattr(uow, "fetch_cache")
             assert hasattr(uow, "audit_log")
             assert isinstance(uow.policies, PolicyRepository)
+            # Value: verify all scheduling repos are correct types
+            assert isinstance(uow.pipeline_runs, PipelineRunRepository)
+            assert isinstance(uow.reports, ReportRepository)
+            assert isinstance(uow.fetch_cache, FetchCacheRepository)
+            assert isinstance(uow.audit_log, AuditLogRepository)

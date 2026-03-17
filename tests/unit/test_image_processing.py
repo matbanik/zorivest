@@ -166,6 +166,8 @@ class TestStandardizeToWebp:
         result = standardize_to_webp(data)
         img = Image.open(io.BytesIO(result))
         assert img.format == "WEBP"
+        # Value: verify dimensions are preserved
+        assert img.size == (100, 100)
 
 
 # ── AC-22.7/22.8: generate_thumbnail ────────────────────────────────────

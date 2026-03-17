@@ -30,9 +30,14 @@ class TestCreate:
         assert wl.description == "High-beta names"
 
     def test_create_sets_timestamps(self, service: WatchlistService) -> None:
+        from datetime import datetime
         wl = service.create("Test")
         assert wl.created_at is not None
         assert wl.updated_at is not None
+        # Value: verify timestamps are datetime instances and ordered
+        assert isinstance(wl.created_at, datetime)
+        assert isinstance(wl.updated_at, datetime)
+        assert wl.created_at <= wl.updated_at
 
     def test_create_default_empty_description(self, service: WatchlistService) -> None:
         wl = service.create("Basic")

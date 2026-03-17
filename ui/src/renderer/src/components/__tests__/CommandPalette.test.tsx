@@ -63,6 +63,8 @@ describe('CommandPalette', () => {
     it('should NOT render when open=false', () => {
         renderPalette({ open: false, onClose: vi.fn() })
         expect(screen.queryByRole('dialog')).not.toBeInTheDocument()
+        // Value: verify no dialog-related elements leak into DOM
+        expect(screen.queryByRole('searchbox')).not.toBeInTheDocument()
     })
 
     it('should have a search input', () => {
@@ -76,6 +78,8 @@ describe('CommandPalette', () => {
         const input = screen.getByRole('searchbox')
         fireEvent.keyDown(input, { key: 'Escape' })
         expect(onClose).toHaveBeenCalled()
+        // Value: verify onClose was called exactly once
+        expect(onClose).toHaveBeenCalledTimes(1)
     })
 
     it('should group results by category when query is empty', () => {
@@ -86,6 +90,8 @@ describe('CommandPalette', () => {
         // 'Settings' appears as both a category header and a nav entry label
         const settingsMatches = screen.getAllByText('Settings')
         expect(settingsMatches.length).toBeGreaterThanOrEqual(2)
+        // Value: verify categories list has correct concrete items
+        expect(screen.getByText('Accounts')).toBeInTheDocument()
     })
 
     it('should filter results when typing', () => {

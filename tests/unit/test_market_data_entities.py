@@ -26,6 +26,10 @@ class TestAuthMethodEnum:
         from zorivest_core.domain.enums import AuthMethod
 
         assert issubclass(AuthMethod, StrEnum)
+        # Value: verify all members are strings with snake_case values
+        for member in AuthMethod:
+            assert isinstance(member.value, str)
+            assert member.value == member.value.lower()
 
     def test_auth_method_has_exactly_4_members(self) -> None:
         from zorivest_core.domain.enums import AuthMethod
@@ -179,6 +183,15 @@ class TestMarketDataPort:
         from zorivest_core.application.ports import MarketDataPort
 
         assert issubclass(MarketDataPort, Protocol)
+        # Value: verify exactly 4 public methods
+        public_methods = {
+            name
+            for name, _ in inspect.getmembers(
+                MarketDataPort, predicate=inspect.isfunction
+            )
+            if not name.startswith("_")
+        }
+        assert public_methods == {"get_quote", "get_news", "search_ticker", "get_sec_filings"}
 
     def test_market_data_port_has_get_quote(self) -> None:
         from zorivest_core.application.ports import MarketDataPort
@@ -186,7 +199,8 @@ class TestMarketDataPort:
         assert hasattr(MarketDataPort, "get_quote")
         sig = inspect.signature(MarketDataPort.get_quote)
         params = list(sig.parameters.keys())
-        assert "ticker" in params
+        # Value: verify exact parameter names
+        assert params == ["self", "ticker"], f"Expected ['self', 'ticker'], got {params}"
 
     def test_market_data_port_has_get_news(self) -> None:
         from zorivest_core.application.ports import MarketDataPort
@@ -196,6 +210,8 @@ class TestMarketDataPort:
         params = list(sig.parameters.keys())
         assert "ticker" in params
         assert "count" in params
+        # Value: verify exact parameter set
+        assert set(params) == {"self", "ticker", "count"}
 
     def test_market_data_port_has_search_ticker(self) -> None:
         from zorivest_core.application.ports import MarketDataPort
@@ -203,7 +219,8 @@ class TestMarketDataPort:
         assert hasattr(MarketDataPort, "search_ticker")
         sig = inspect.signature(MarketDataPort.search_ticker)
         params = list(sig.parameters.keys())
-        assert "query" in params
+        # Value: verify exact parameter names
+        assert params == ["self", "query"], f"Expected ['self', 'query'], got {params}"
 
     def test_market_data_port_has_get_sec_filings(self) -> None:
         from zorivest_core.application.ports import MarketDataPort
@@ -211,7 +228,8 @@ class TestMarketDataPort:
         assert hasattr(MarketDataPort, "get_sec_filings")
         sig = inspect.signature(MarketDataPort.get_sec_filings)
         params = list(sig.parameters.keys())
-        assert "ticker" in params
+        # Value: verify exact parameter names
+        assert params == ["self", "ticker"], f"Expected ['self', 'ticker'], got {params}"
 
     def test_market_data_port_methods_are_async(self) -> None:
         """All 4 methods should be coroutine functions."""

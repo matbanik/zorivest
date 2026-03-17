@@ -39,6 +39,9 @@ class TestCreateWatchlist:
         client.post(BASE + "/", json={"name": "Dups"})
         resp = client.post(BASE + "/", json={"name": "Dups"})
         assert resp.status_code == 409
+        # Value: verify error detail
+        data = resp.json()
+        assert "detail" in data
 
 
 # ── GET /api/v1/watchlists ──────────────────────────────────────────────
@@ -71,6 +74,9 @@ class TestGetWatchlist:
     def test_get_nonexistent_404(self, client: TestClient) -> None:
         resp = client.get(f"{BASE}/999")
         assert resp.status_code == 404
+        # Value: verify error detail
+        data = resp.json()
+        assert "detail" in data
 
 
 # ── PUT /api/v1/watchlists/{id} ─────────────────────────────────────────
@@ -87,6 +93,9 @@ class TestUpdateWatchlist:
     def test_update_nonexistent_404(self, client: TestClient) -> None:
         resp = client.put(f"{BASE}/999", json={"name": "X"})
         assert resp.status_code == 404
+        # Value: verify error detail
+        data = resp.json()
+        assert "detail" in data
 
     def test_update_duplicate_name_409(self, client: TestClient) -> None:
         client.post(BASE + "/", json={"name": "First"})
@@ -109,6 +118,9 @@ class TestDeleteWatchlist:
     def test_delete_nonexistent_404(self, client: TestClient) -> None:
         resp = client.delete(f"{BASE}/999")
         assert resp.status_code == 404
+        # Value: verify error detail
+        data = resp.json()
+        assert "detail" in data
 
 
 # ── POST /api/v1/watchlists/{id}/items ──────────────────────────────────

@@ -42,10 +42,15 @@ class TestRateLimiterAC2:
             rl = RateLimiter(max_per_minute=2)
             await rl.wait_if_needed()
             await rl.wait_if_needed()
+            # Value: verify 2 timestamps recorded
+            assert len(rl.timestamps) == 2
 
             with patch("asyncio.sleep", new_callable=AsyncMock) as mock_sleep:
                 await rl.wait_if_needed()
                 mock_sleep.assert_called_once()
+                # Value: verify sleep time is positive and <= 60
+                sleep_time = mock_sleep.call_args[0][0]
+                assert 0 < sleep_time <= 60
 
         asyncio.run(_run())
 
@@ -77,6 +82,8 @@ class TestRateLimiterAC4:
                 for _ in range(3):
                     await rl.wait_if_needed()
                 mock_sleep.assert_not_called()
+                # Value: verify all 3 timestamps were recorded
+                assert len(rl.timestamps) == 3
 
         asyncio.run(_run())
 
@@ -85,6 +92,8 @@ class TestRateLimiterAC4:
             rl = RateLimiter(max_per_minute=3)
             for _ in range(3):
                 await rl.wait_if_needed()
+            # Value: verify exactly 3 timestamps before blocking
+            assert len(rl.timestamps) == 3
 
             with patch("asyncio.sleep", new_callable=AsyncMock) as mock_sleep:
                 await rl.wait_if_needed()

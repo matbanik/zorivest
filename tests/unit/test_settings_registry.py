@@ -55,12 +55,20 @@ class TestValueTypes:
             assert spec.value_type in VALID_VALUE_TYPES, (
                 f"Setting '{key}' has invalid value_type '{spec.value_type}'"
             )
+            # Value: verify hardcoded_default is set
+            assert spec.hardcoded_default is not None or spec.value_type == "str", (
+                f"Setting '{key}' has no hardcoded_default"
+            )
 
     def test_every_entry_is_setting_spec(self) -> None:
         for key, spec in SETTINGS_REGISTRY.items():
             assert isinstance(spec, SettingSpec), (
                 f"Setting '{key}' is not a SettingSpec instance"
             )
+            # Value: verify required fields exist
+            assert hasattr(spec, "value_type") and spec.value_type
+            assert hasattr(spec, "category") and spec.category
+            assert hasattr(spec, "description") and spec.description
 
 
 # ── AC-17.3: Categories ──────────────────────────────────────────────────
@@ -73,6 +81,11 @@ class TestCategories:
         for key, spec in SETTINGS_REGISTRY.items():
             assert spec.category in VALID_CATEGORIES, (
                 f"Setting '{key}' has invalid category '{spec.category}'"
+            )
+            # Value: verify category matches key prefix
+            key_prefix = key.split(".")[0]
+            assert key_prefix in ("dialog", "logging", "display", "backup", "ui", "notification"), (
+                f"Setting '{key}' prefix '{key_prefix}' unexpected"
             )
 
     def test_all_categories_represented(self) -> None:
@@ -169,6 +182,10 @@ class TestDynamicKey:
 
     def test_dynamic_key_in_registry(self) -> None:
         assert "ui.panel.*.collapsed" in SETTINGS_REGISTRY
+        # Value: verify the spec has expected properties
+        spec = SETTINGS_REGISTRY["ui.panel.*.collapsed"]
+        assert spec.category == "ui"
+        assert spec.description is not None
 
     def test_dynamic_key_is_bool(self) -> None:
         spec = SETTINGS_REGISTRY["ui.panel.*.collapsed"]

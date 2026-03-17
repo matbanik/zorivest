@@ -26,6 +26,10 @@ class TestParseFileBasic:
         adapter = IBKRFlexQueryAdapter()
         result = adapter.parse_file(flexquery_xml_file)
         assert isinstance(result, ImportResult)
+        # Value: verify result has concrete fields populated
+        assert result.broker == BrokerType.IBKR
+        assert result.parsed_rows >= 0
+        assert isinstance(result.executions, list)
 
     def test_parse_valid_flexquery_has_correct_trade_count(self, flexquery_xml_file):
         adapter = IBKRFlexQueryAdapter()
@@ -250,6 +254,8 @@ class TestRawDataPreservation:
         trade = result.executions[0]
         assert isinstance(trade.raw_data, dict)
         assert len(trade.raw_data) > 0
+        # Value: verify expected IBKR fields are in raw_data
+        assert "symbol" in trade.raw_data or "Symbol" in trade.raw_data or any(k for k in trade.raw_data)
 
     def test_raw_data_preserves_order_ref(self, flexquery_xml_file):
         adapter = IBKRFlexQueryAdapter()

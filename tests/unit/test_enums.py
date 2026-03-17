@@ -68,11 +68,19 @@ class TestStrEnumSubclass:
     def test_all_enums_subclass_strenum(self) -> None:
         import zorivest_core.domain.enums as mod
 
+        checked_count = 0
         for name, obj in inspect.getmembers(mod, inspect.isclass):
             if obj is StrEnum:
                 continue
             if issubclass(obj, StrEnum):
                 assert issubclass(obj, StrEnum), f"{name} is not a StrEnum subclass"
+                # Value: verify each member has a string value
+                assert len(obj) > 0, f"{name} has no members"
+                for member in obj:
+                    assert isinstance(member.value, str), f"{name}.{member.name} value is not str"
+                checked_count += 1
+        # Value: verify we checked a meaningful number of enums
+        assert checked_count >= 17, f"Only checked {checked_count} enums"
 
 
 # ── AC-1: Core enum members ─────────────────────────────────────────────
@@ -254,15 +262,20 @@ class TestImportSurface:
             tree = ast.parse(f.read())
 
         allowed_modules = {"__future__", "enum"}
+        import_count = 0
         for node in ast.walk(tree):
             if isinstance(node, ast.Import):
                 for alias in node.names:
                     assert alias.name in allowed_modules, (
                         f"Forbidden import: {alias.name}"
                     )
+                    import_count += 1
             elif isinstance(node, ast.ImportFrom):
                 if node.module is not None:
                     top_module = node.module.split(".")[0]
                     assert top_module in allowed_modules, (
                         f"Forbidden import from: {node.module}"
                     )
+                    import_count += 1
+        # Value: verify at least 1 import was checked
+        assert import_count >= 1, f"Only {import_count} imports found"

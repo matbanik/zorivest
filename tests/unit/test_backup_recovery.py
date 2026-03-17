@@ -271,6 +271,8 @@ class TestVerify:
         result = recovery_manager.verify_backup(valid_backup)
 
         assert result.status in (VerifyStatus.CORRUPTED, VerifyStatus.FAILED)
+        # Value: verify error or warnings are populated for corrupted backup
+        assert result.error is not None or len(result.warnings) > 0
 
     def test_verify_nonexistent_file(
         self,
@@ -372,6 +374,8 @@ class TestLegacy:
         result = recovery_manager.verify_backup(legacy_path)
         # Legacy format should be at least detected and not crash
         assert result.status in (VerifyStatus.VALID, VerifyStatus.FAILED)
+        # Value: verify that the file was actually read (size > 0)
+        assert legacy_path.stat().st_size > 0
         # If failed, should mention legacy format
         if result.status == VerifyStatus.FAILED:
             assert any("legacy" in w.lower() for w in result.warnings) or (
@@ -392,6 +396,9 @@ class TestLegacy:
 
         result = recovery_manager.verify_backup(legacy_path)
         assert result.status in (VerifyStatus.VALID, VerifyStatus.FAILED)
+        # Value: verify file was created and is a valid SQLite copy
+        assert legacy_path.stat().st_size > 0
+        assert legacy_path.suffix == ".db"
 
     def test_legacy_db_gz_format(
         self,
@@ -407,3 +414,6 @@ class TestLegacy:
 
         result = recovery_manager.verify_backup(legacy_path)
         assert result.status in (VerifyStatus.VALID, VerifyStatus.FAILED)
+        # Value: verify file is a valid gzip archive
+        assert legacy_path.stat().st_size > 0
+        assert legacy_path.name.endswith(".db.gz")

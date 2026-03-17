@@ -36,10 +36,10 @@ class TestSystemServiceCalculate:
             target=115.0,
         )
         assert isinstance(result, PositionSizeResult)
-        # Verify it has expected fields
-        assert hasattr(result, "account_risk_1r")
-        assert hasattr(result, "risk_per_share")
-        assert hasattr(result, "share_size")
-        assert hasattr(result, "position_size")
-        assert hasattr(result, "reward_risk_ratio")
-        assert hasattr(result, "potential_profit")
+        # Value: verify concrete computed values
+        assert result.account_risk_1r == 50_000.0 * 0.02  # $1000
+        assert result.risk_per_share == 100.0 - 95.0  # $5
+        assert result.share_size == 200  # $1000 / $5
+        assert result.position_size == 200 * 100.0  # 200 * $100
+        assert result.reward_risk_ratio == (115.0 - 100.0) / (100.0 - 95.0)  # 3.0
+        assert result.potential_profit == 200 * (115.0 - 100.0)  # $3000

@@ -17,6 +17,8 @@ describe('CommandRegistryEntry type contract', () => {
             for (const field of requiredFields) {
                 expect(entry).toHaveProperty(field)
             }
+            // Value: verify id follows naming convention
+            expect(entry.id).toMatch(/^(nav:|action:|settings:)/)
         }
     })
 
@@ -79,6 +81,9 @@ describe('Static registry', () => {
         const navEntries = staticEntries.filter((e) => e.category === 'navigation')
         for (const entry of navEntries) {
             expect(entry.shortcut).toBeDefined()
+            // Value: verify shortcut is a non-empty string
+            expect(typeof entry.shortcut).toBe('string')
+            expect(entry.shortcut!.length).toBeGreaterThan(0)
         }
     })
 

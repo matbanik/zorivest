@@ -246,6 +246,7 @@ class TestImportSurface:
             "decimal",
             "zorivest_core",
         }
+        import_count = 0
         for node in ast.walk(tree):
             if isinstance(node, ast.Import):
                 for alias in node.names:
@@ -253,12 +254,16 @@ class TestImportSurface:
                     assert top in allowed_modules, (
                         f"Forbidden import: {alias.name}"
                     )
+                    import_count += 1
             elif isinstance(node, ast.ImportFrom):
                 if node.module is not None:
                     top_module = node.module.split(".")[0]
                     assert top_module in allowed_modules, (
                         f"Forbidden import from: {node.module}"
                     )
+                    import_count += 1
+        # Value: verify at least 2 imports were checked
+        assert import_count >= 2, f"Only {import_count} imports found"
 
 
 # ── Module integrity ────────────────────────────────────────────────────

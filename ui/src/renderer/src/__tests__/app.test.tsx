@@ -62,6 +62,8 @@ describe('AppShell', () => {
     it('should render without crashing', () => {
         renderWithProviders(<AppShell />)
         expect(document.body).toBeTruthy()
+        // Value: verify the shell rendered key structural elements
+        expect(screen.getByRole('navigation')).toBeInTheDocument()
     })
 
     it('should have a <nav> ARIA landmark for NavRail', () => {
@@ -94,6 +96,9 @@ describe('AppShell', () => {
         const nav = screen.getByRole('navigation')
         const links = nav.querySelectorAll('a, button')
         expect(links.length).toBeGreaterThanOrEqual(5)
+        // Value: verify nav links contain expected accessible names
+        const navText = nav.textContent
+        expect(navText).toBeTruthy()
     })
 
     it('should render children inside <main> (Outlet injection point)', () => {

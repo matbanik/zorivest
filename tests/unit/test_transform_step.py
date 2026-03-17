@@ -160,6 +160,8 @@ def test_AC_T7_quality_below_threshold():
     result = check_quality(valid_count=2, total_count=10, threshold=0.8)
     assert result["passed"] is False
     assert result["ratio"] < 0.8
+    # Value: verify exact ratio computation
+    assert result["ratio"] == pytest.approx(0.2)
 
 
 def test_AC_T7_quality_above_threshold():

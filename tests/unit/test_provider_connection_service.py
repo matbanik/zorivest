@@ -379,12 +379,10 @@ class TestConfigureProvider:
 
     def test_unknown_provider_raises(self) -> None:
         async def _run() -> None:
+            import pytest as _pt
             svc, _, _ = _make_service()
-            try:
+            with _pt.raises(KeyError, match="Unknown"):
                 await svc.configure_provider("Unknown", api_key="k")
-                assert False, "Should have raised"
-            except KeyError:
-                pass
 
         asyncio.run(_run())
 

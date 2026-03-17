@@ -31,12 +31,18 @@ class TestGetAllSettings:
         """AC-1: GET /api/v1/settings returns 200."""
         resp = client.get("/api/v1/settings")
         assert resp.status_code == 200
+        # Value: verify response is a dict
+        data = resp.json()
+        assert isinstance(data, dict)
 
     def test_get_all_returns_dict(self, client: TestClient) -> None:
         """AC-1: Response is a key-value dict per 04d spec."""
         resp = client.get("/api/v1/settings")
         data = resp.json()
         assert isinstance(data, dict)
+        # Value: verify keys are strings when settings exist
+        for key in data:
+            assert isinstance(key, str)
 
 
 # ── AC-2, AC-3: GET /api/v1/settings/{key} ───────────────────────────
@@ -58,6 +64,9 @@ class TestGetSettingByKey:
         """AC-3: GET /{key} returns 404 for unknown keys."""
         resp = client.get("/api/v1/settings/nonexistent.key.xyz")
         assert resp.status_code == 404
+        # Value: verify error detail
+        data = resp.json()
+        assert "detail" in data
 
 
 # ── AC-4, AC-5, AC-6: PUT /api/v1/settings ───────────────────────────
@@ -85,6 +94,9 @@ class TestBulkUpdateSettings:
         """AC-5: PUT with unknown key returns 422."""
         resp = client.put("/api/v1/settings", json={"not.a.real.key": "value"})
         assert resp.status_code == 422
+        # Value: verify error shape
+        data = resp.json()
+        assert "detail" in data
 
     def test_all_or_nothing(self, client: TestClient) -> None:
         """AC-6: If any key fails validation, no keys are persisted."""
@@ -138,6 +150,9 @@ class TestSettingsModeGating:
         ]:
             resp = client.request(method, path, json={"ui.theme": "dark"} if method == "PUT" else None)
             assert resp.status_code == 403, f"{method} {path} should be 403 when locked, got {resp.status_code}"
+            # Value: verify error detail on locked response
+            data = resp.json()
+            assert "detail" in data
 
 
 # ── AC-9: Integration test (Local Canon) ─────────────────────────────

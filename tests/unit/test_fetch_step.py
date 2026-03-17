@@ -153,6 +153,9 @@ def test_AC_F6_fetch_result_cache_status_default():
         content=b"data",
     )
     assert result.cache_status == "miss"
+    # Value: verify content_hash is computed for the data
+    import hashlib
+    assert result.content_hash == hashlib.sha256(b"data").hexdigest()
 
 
 # ---------------------------------------------------------------------------
@@ -349,6 +352,9 @@ def test_AC_F13_uow_pipeline_state_attribute():
         )
 
         assert isinstance(uow.pipeline_state, PipelineStateRepository)
+        # Value: verify PipelineStateRepository has expected methods
+        assert hasattr(uow.pipeline_state, "get")
+        assert hasattr(uow.pipeline_state, "upsert")
 
 
 # ---------------------------------------------------------------------------
@@ -419,6 +425,8 @@ def test_AC_F15_step_registration_via_import():
     assert step_cls is not None
     assert step_cls.type_name == "fetch"
     assert step_cls.side_effects is False
+    # Value: verify it's actually a callable class
+    assert callable(step_cls)
 
 
 # ---------------------------------------------------------------------------

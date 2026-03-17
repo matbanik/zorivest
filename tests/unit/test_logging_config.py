@@ -83,6 +83,8 @@ class TestGetLogDirectory:
         """AC-4: get_log_directory() returns a Path."""
         result = get_log_directory()
         assert isinstance(result, Path)
+        # Value: verify path is absolute
+        assert result.is_absolute()
 
     def test_directory_exists_after_call(self) -> None:
         """get_log_directory() creates the directory."""
@@ -131,6 +133,11 @@ class TestBootstrap:
             logging.getLogger("zorivest.app").info("test bootstrap message")
             content = (tmp_path / "bootstrap.jsonl").read_text()
             assert "test bootstrap message" in content or "Bootstrap logging started" in content
+            # Value: verify the content is valid JSONL
+            lines = [l for l in content.strip().split("\n") if l.strip()]
+            assert len(lines) >= 1
+            parsed = json.loads(lines[-1])
+            assert "message" in parsed
         finally:
             root = logging.getLogger()
             for h in root.handlers[:]:
@@ -165,6 +172,11 @@ class TestConfigureFromSettings:
             time.sleep(0.1)  # QueueListener processes asynchronously
             manager.shutdown()
             assert (tmp_path / "trades.jsonl").exists()
+            # Value: verify the log entry is valid JSONL with message field
+            content = (tmp_path / "trades.jsonl").read_text().strip()
+            if content:
+                parsed = json.loads(content.split("\n")[-1])
+                assert "message" in parsed
         finally:
             root = logging.getLogger()
             for h in root.handlers[:]:
@@ -182,6 +194,9 @@ class TestConfigureFromSettings:
             # Should be in trades.jsonl
             trades_content = (tmp_path / "trades.jsonl").read_text()
             assert "trade only" in trades_content
+            # Value: verify is valid JSONL
+            parsed = json.loads(trades_content.strip().split("\n")[-1])
+            assert parsed["logger"] == "zorivest.trades"
 
             # Should NOT be in marketdata.jsonl or misc.jsonl
             if (tmp_path / "marketdata.jsonl").exists():
@@ -202,6 +217,9 @@ class TestConfigureFromSettings:
             manager.shutdown()
             misc_content = (tmp_path / "misc.jsonl").read_text()
             assert "catchall message" in misc_content
+            # Value: verify it's valid JSONL and logger name is preserved
+            parsed = json.loads(misc_content.strip().split("\n")[-1])
+            assert parsed["logger"] == "some.random.module"
         finally:
             root = logging.getLogger()
             for h in root.handlers[:]:
@@ -223,6 +241,13 @@ class TestConfigureFromSettings:
             trades_content = (tmp_path / "trades.jsonl").read_text()
             assert "should be filtered" not in trades_content
             assert "should appear" in trades_content
+            # Value: verify the WARNING entry has correct level
+            for line in trades_content.strip().split("\n"):
+                if line.strip():
+                    parsed = json.loads(line)
+                    if parsed.get("message") == "should appear":
+                        assert parsed["level"] == "WARNING"
+                        break
         finally:
             root = logging.getLogger()
             for h in root.handlers[:]:
@@ -274,6 +299,9 @@ class TestUpdateFeatureLevel:
             assert "info before update" in trades_content
             assert "info after update" not in trades_content
             assert "warning after update" in trades_content
+            # Value: verify the level change filtered INFO after update
+            assert trades_content.count("info before update") == 1
+            assert trades_content.count("info after update") == 0
         finally:
             root = logging.getLogger()
             for h in root.handlers[:]:
@@ -300,6 +328,8 @@ class TestShutdown:
         try:
             assert manager._listener is not None
             manager.shutdown()
+            # Value: verify listener was set to None after shutdown
+            assert manager._listener is None
             # After shutdown, calling shutdown again should not raise
             manager.shutdown()
         finally:
@@ -345,6 +375,7 @@ class TestThreadSafety:
             manager.shutdown()
 
             # Verify each line is valid JSON
+            total_entries = 0
             for feature in ["trades", "marketdata", "tax"]:
                 log_file = tmp_path / f"{feature}.jsonl"
                 assert log_file.exists(), f"{feature}.jsonl should exist"
@@ -352,6 +383,9 @@ class TestThreadSafety:
                     if line:
                         parsed = json.loads(line)  # Should not raise
                         assert "message" in parsed
+                        total_entries += 1
+            # Value: verify total entries is at least 150 (3 threads × 50)
+            assert total_entries >= 150, f"Expected >= 150 entries, got {total_entries}"
         finally:
             root = logging.getLogger()
             for h in root.handlers[:]:

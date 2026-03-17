@@ -146,6 +146,7 @@ class TestDeleteTrade:
 
         uow.trades.delete.assert_called_once_with("E001")
         uow.commit.assert_called_once()
+        uow.__enter__.assert_called_once()
 
 
 # ── AccountService extensions ───────────────────────────────────────────
@@ -189,6 +190,7 @@ class TestDeleteAccount:
 
         uow.accounts.delete.assert_called_once_with("ACC001")
         uow.commit.assert_called_once()
+        uow.__enter__.assert_called_once()
 
 
 # ── ImageService extensions ─────────────────────────────────────────────

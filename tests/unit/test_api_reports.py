@@ -101,6 +101,9 @@ class TestCreateReport:
         })
 
         assert resp.status_code == 404
+        # Value: verify error detail
+        data = resp.json()
+        assert "detail" in data
 
     def test_create_report_409_already_exists(self, client) -> None:
         http, report_svc = client
@@ -114,6 +117,9 @@ class TestCreateReport:
         })
 
         assert resp.status_code == 409
+        # Value: verify error detail
+        data = resp.json()
+        assert "detail" in data
 
     def test_create_report_422_invalid_grade(self, client) -> None:
         """Reject invalid letter grade values."""
@@ -126,6 +132,9 @@ class TestCreateReport:
         })
 
         assert resp.status_code == 422  # Pydantic validation
+        # Value: verify validation error shape
+        data = resp.json()
+        assert "detail" in data
 
 
 class TestGetReport:
@@ -148,6 +157,9 @@ class TestGetReport:
 
         resp = http.get("/api/v1/trades/T001/report")
         assert resp.status_code == 404
+        # Value: verify error detail
+        data = resp.json()
+        assert "detail" in data
 
 
 class TestUpdateReport:
@@ -169,6 +181,9 @@ class TestUpdateReport:
 
         resp = http.put("/api/v1/trades/T001/report", json={"setup_quality": "A"})
         assert resp.status_code == 404
+        # Value: verify error detail
+        data = resp.json()
+        assert "detail" in data
 
 
 class TestDeleteReport:
@@ -179,6 +194,8 @@ class TestDeleteReport:
 
         resp = http.delete("/api/v1/trades/T001/report")
         assert resp.status_code == 204
+        # Value: verify no body on 204
+        assert resp.content == b""
         report_svc.delete.assert_called_once_with("T001")
 
     def test_delete_report_404(self, client) -> None:
@@ -187,6 +204,9 @@ class TestDeleteReport:
 
         resp = http.delete("/api/v1/trades/T001/report")
         assert resp.status_code == 404
+        # Value: verify error detail
+        data = resp.json()
+        assert "detail" in data
 
 
 # ── Route wiring integration (no service override) ─────────────────────

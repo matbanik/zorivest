@@ -145,15 +145,20 @@ class TestPositionSizeCalculator:
             tree = ast.parse(f.read())
 
         allowed_modules = {"__future__", "math", "dataclasses"}
+        import_count = 0
         for node in ast.walk(tree):
             if isinstance(node, ast.Import):
                 for alias in node.names:
                     assert alias.name in allowed_modules, (
                         f"Forbidden import: {alias.name}"
                     )
+                    import_count += 1
             elif isinstance(node, ast.ImportFrom):
                 if node.module is not None:
                     top_module = node.module.split(".")[0]
                     assert top_module in allowed_modules, (
                         f"Forbidden import from: {node.module}"
                     )
+                    import_count += 1
+        # Value: verify at least 1 import was checked
+        assert import_count >= 1, f"Only {import_count} imports found"

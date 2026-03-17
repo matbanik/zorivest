@@ -201,6 +201,9 @@ class TestConditionEvaluator:
         ctx = _make_context(s1={"done": True})
         result = self.evaluator.evaluate(self._cond("ctx.s1.done", "eq", True), ctx)
         assert result is True
+        # Value: also verify False case returns False
+        result_false = self.evaluator.evaluate(self._cond("ctx.s1.done", "eq", False), ctx)
+        assert result_false is False
 
     # AC-9: Missing field resolves to None
     def test_missing_field_resolves_to_none(self):
@@ -209,6 +212,10 @@ class TestConditionEvaluator:
         assert self.evaluator.evaluate(
             self._cond("ctx.s1.missing_key", "is_null"), ctx
         ) is True
+        # Value: also verify is_not_null returns False for missing field
+        assert self.evaluator.evaluate(
+            self._cond("ctx.s1.missing_key", "is_not_null"), ctx
+        ) is False
 
     # AC-9: Missing step in context → gracefully None via _resolve_field
     def test_missing_step_resolves_to_none(self):
@@ -218,9 +225,13 @@ class TestConditionEvaluator:
         assert self.evaluator.evaluate(
             self._cond("ctx.nonexistent.field", "is_null"), ctx
         ) is True
+        # Value: verify eq comparison with None also works
+        assert self.evaluator.evaluate(
+            self._cond("ctx.nonexistent.field", "eq", None), ctx
+        ) is True
 
     # AC-10: Unknown operator raises ValueError
     def test_unknown_operator_raises_valueerror(self):
         # Can't create SkipCondition with invalid op via enum, test _compare directly
-        with pytest.raises(ValueError):
+        with pytest.raises(ValueError, match="Unknown operator|Unsupported operator|invalid_op"):
             self.evaluator._compare(5, "invalid_op", 3)

@@ -48,6 +48,11 @@ class TestAttachImage:
 
         assert result == 42
         uow.images.save.assert_called_once()
+        # Value: verify the saved image has correct owner info
+        saved_args = uow.images.save.call_args[0]
+        assert saved_args[0] == "trade"  # owner_type.value
+        assert saved_args[1] == "E001"  # owner_id
+        assert saved_args[2].owner_type == ImageOwnerType.TRADE
         uow.commit.assert_called_once()
 
     def test_attach_image_to_nonexistent_trade_raises(self) -> None:

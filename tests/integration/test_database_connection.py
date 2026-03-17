@@ -94,6 +94,8 @@ class TestEncryptionContract:
         """is_sqlcipher_available() reflects actual import state."""
         result = is_sqlcipher_available()
         assert isinstance(result, bool)
+        # Value: verify function is deterministic (calling twice returns same)
+        assert is_sqlcipher_available() == result
 
     @pytest.mark.skipif(
         not is_sqlcipher_available(),
@@ -127,3 +129,8 @@ class TestEncryptionContract:
             conn = create_encrypted_connection(db_path, passphrase="test")
             conn.close()
         assert "NOT encrypted" in caplog.text
+        # Value: verify fallback still creates a usable DB
+        conn2 = create_encrypted_connection(db_path, passphrase="test")
+        conn2.execute("CREATE TABLE verify_fallback (id INTEGER)")
+        conn2.commit()
+        conn2.close()

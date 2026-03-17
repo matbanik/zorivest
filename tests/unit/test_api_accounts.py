@@ -96,6 +96,9 @@ class TestGetAccount:
 
         resp = http.get("/api/v1/accounts/MISSING")
         assert resp.status_code == 404
+        # Value: verify error detail
+        data = resp.json()
+        assert "detail" in data
 
 
 class TestUpdateAccount:
@@ -106,6 +109,9 @@ class TestUpdateAccount:
 
         resp = http.put("/api/v1/accounts/ACC001", json={"name": "Updated"})
         assert resp.status_code == 200
+        # Value: verify updated field in response
+        data = resp.json()
+        assert data["name"] == "Updated"
 
 
 class TestDeleteAccount:
@@ -115,6 +121,8 @@ class TestDeleteAccount:
 
         resp = http.delete("/api/v1/accounts/ACC001")
         assert resp.status_code == 204
+        # Value: verify no body on 204
+        assert resp.content == b""
         svc.delete_account.assert_called_once_with("ACC001")
 
 
@@ -136,3 +144,7 @@ class TestRecordBalance:
             "balance": 50000.00,
         })
         assert resp.status_code == 201
+        # Value: verify response body has balance data
+        data = resp.json()
+        assert isinstance(data, dict)
+        assert "account_id" in data or "balance" in data or "id" in data

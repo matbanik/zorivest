@@ -160,6 +160,9 @@ class TestServiceGetAllResolved:
         service = SettingsService(uow=uow, cache=cache)
         result = service.get_all_resolved()
         assert "ui.theme" in result
+        # Value: verify the resolved setting's fields
+        assert result["ui.theme"].value == "dark"
+        assert result["ui.theme"].source == "user"
 
     def test_get_all_from_db_populates_cache(self) -> None:
         uow = FakeUoW()

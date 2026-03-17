@@ -108,10 +108,16 @@ class TestGetQuote:
     def test_missing_ticker_returns_422(self, client: TestClient) -> None:
         resp = client.get("/api/v1/market-data/quote")
         assert resp.status_code == 422
+        # Value: verify validation error detail
+        data = resp.json()
+        assert "detail" in data
 
     def test_locked_db_returns_403(self, locked_client: TestClient) -> None:
         resp = locked_client.get("/api/v1/market-data/quote?ticker=AAPL")
         assert resp.status_code == 403
+        # Value: verify error detail
+        data = resp.json()
+        assert "detail" in data
 
     def test_service_error_returns_503(
         self, client: TestClient, mock_market_data_service: AsyncMock
@@ -119,6 +125,9 @@ class TestGetQuote:
         mock_market_data_service.get_quote.side_effect = MarketDataError("All providers failed")
         resp = client.get("/api/v1/market-data/quote?ticker=AAPL")
         assert resp.status_code == 503
+        # Value: verify error detail
+        data = resp.json()
+        assert "detail" in data or "error" in data
 
 
 # ── News endpoint ───────────────────────────────────────────────────────
@@ -137,6 +146,9 @@ class TestGetNews:
     def test_with_ticker_filter(self, client: TestClient) -> None:
         resp = client.get("/api/v1/market-data/news?ticker=AAPL&count=10")
         assert resp.status_code == 200
+        # Value: verify response is valid JSON list
+        data = resp.json()
+        assert isinstance(data, list)
 
 
 # ── Search endpoint ─────────────────────────────────────────────────────
@@ -155,6 +167,9 @@ class TestSearchTicker:
     def test_missing_query_returns_422(self, client: TestClient) -> None:
         resp = client.get("/api/v1/market-data/search")
         assert resp.status_code == 422
+        # Value: verify validation error detail
+        data = resp.json()
+        assert "detail" in data
 
 
 # ── SEC filings endpoint ───────────────────────────────────────────────
@@ -180,6 +195,9 @@ class TestListProviders:
     def test_returns_200(self, client: TestClient) -> None:
         resp = client.get("/api/v1/market-data/providers")
         assert resp.status_code == 200
+        # Value: verify response is valid JSON list
+        data = resp.json()
+        assert isinstance(data, list)
 
 
 class TestConfigureProvider:
@@ -203,6 +221,9 @@ class TestConfigureProvider:
             json={"api_key": "test"},
         )
         assert resp.status_code == 404
+        # Value: verify error detail
+        data = resp.json()
+        assert "detail" in data or "error" in data
 
 
 class TestTestProvider:

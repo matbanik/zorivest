@@ -45,12 +45,16 @@ class TestJsonFormatter:
         output = self.formatter.format(record)
         parsed = json.loads(output)
         assert isinstance(parsed, dict)
+        # Value: verify it contains the message we logged
+        assert parsed["message"] == "test message"
 
     def test_output_is_single_line(self) -> None:
         """AC-5 continued: output is a single line (JSONL compatible)."""
         record = _make_record()
         output = self.formatter.format(record)
         assert "\n" not in output
+        # Value: verify length is reasonable (not empty or trivially small)
+        assert len(output) > 50
 
     def test_contains_all_standard_fields(self) -> None:
         """AC-6: Output JSON contains all 8 standard fields."""
@@ -79,6 +83,10 @@ class TestJsonFormatter:
         # Reserved attrs that should NOT appear as top-level keys
         for reserved_key in ("msg", "args", "created", "exc_info", "pathname"):
             assert reserved_key not in parsed
+        # Value: verify that standard fields ARE present
+        assert "timestamp" in parsed
+        assert "level" in parsed
+        assert "logger" in parsed
 
     def test_underscore_prefixed_excluded(self) -> None:
         """AC-8 continued: underscore-prefixed attrs excluded."""
@@ -86,6 +94,8 @@ class TestJsonFormatter:
         output = self.formatter.format(record)
         parsed = json.loads(output)
         assert "_internal" not in parsed
+        # Value: verify message still present (not over-filtered)
+        assert parsed["message"] == "test message"
 
     def test_exception_info_serialized(self) -> None:
         """AC-9: Exception info serialized as exception.{type, message, traceback}."""
@@ -109,6 +119,8 @@ class TestJsonFormatter:
         output = self.formatter.format(record)
         parsed = json.loads(output)
         assert "exception" not in parsed
+        # Value: verify all 8 standard fields are still present
+        assert len(parsed) >= 8
 
     def test_timestamp_is_utc_iso8601(self) -> None:
         """AC-10: Timestamp uses UTC timezone in ISO-8601 format."""
@@ -118,6 +130,8 @@ class TestJsonFormatter:
         timestamp = parsed["timestamp"]
         # ISO-8601 UTC timestamps end with +00:00 or Z
         assert "+00:00" in timestamp or timestamp.endswith("Z")
+        # Value: verify timestamp has valid format (contains T separator)
+        assert "T" in timestamp
 
     def test_level_is_string_name(self) -> None:
         """Level field uses string name (INFO, WARNING, etc.)."""

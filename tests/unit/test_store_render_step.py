@@ -226,6 +226,8 @@ def test_AC_SR11_render_candlestick_keys():
         # Verify the base64 payload is non-trivial (> 100 chars for a real PNG)
         payload = result["png_data_uri"][len("data:image/png;base64,"):]
         assert len(payload) > 100, f"PNG payload too small: {len(payload)} chars"
+    # Value: verify HTML contains valid plotly content markers
+    assert "plotly" in result["html"].lower() or "<div" in result["html"]
 
 
 # ---------------------------------------------------------------------------
@@ -569,6 +571,8 @@ async def test_AC_SR17c_render_step_html_only_no_pdf():
     assert result.status.value == "success"
     assert result.output["html"] is not None
     assert result.output["pdf_path"] is None
+    # Value: verify HTML has valid structure
+    assert "<!DOCTYPE html>" in result.output["html"] or "<html" in result.output["html"]
 
 
 # ---------------------------------------------------------------------------

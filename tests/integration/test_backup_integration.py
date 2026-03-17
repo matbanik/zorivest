@@ -135,3 +135,6 @@ class TestFullBackupCycle:
             zf.setpassword(wrong_key)
             with pytest.raises(Exception):
                 zf.read("manifest.json")
+        # Value: verify the derived keys are actually different
+        correct_key = mgr._derive_key(salt)
+        assert wrong_key != correct_key

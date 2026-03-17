@@ -216,3 +216,5 @@ class TestModuleImports:
             assert any(
                 line.startswith(prefix) for prefix in allowed_prefixes
             ), f"Unexpected import: {line}"
+        # Value: verify at least 2 import lines were checked
+        assert len(import_lines) >= 2, f"Only {len(import_lines)} import lines found"

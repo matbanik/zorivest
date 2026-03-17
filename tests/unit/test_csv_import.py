@@ -27,6 +27,9 @@ class TestCSVParserBaseEncoding:
         parser = ThinkorSwimCSVParser()
         encoding = parser._detect_encoding(f)
         assert encoding.lower().replace("-", "") in ("utf8", "ascii")
+        # Value: verify encoding is a non-empty string
+        assert isinstance(encoding, str)
+        assert len(encoding) > 0
 
     def test_detect_latin1_encoding(self, tmp_path):
         f = tmp_path / "latin1.csv"
@@ -35,6 +38,8 @@ class TestCSVParserBaseEncoding:
         encoding = parser._detect_encoding(f)
         # chardet may detect as ISO-8859-1 or Windows-1252
         assert encoding is not None
+        # Value: verify it's a recognized Latin-family encoding
+        assert any(name in encoding.lower() for name in ("iso-8859", "windows-1252", "latin", "8859"))
 
     def test_strip_bom(self):
         parser = ThinkorSwimCSVParser()
@@ -42,6 +47,9 @@ class TestCSVParserBaseEncoding:
         result = parser._strip_bom(content)
         assert not result.startswith("\ufeff")
         assert result.startswith("col1")
+        # Value: verify content is preserved after BOM removal
+        assert "val1,val2" in result
+        assert len(result) == len(content) - 1
 
 
 # ── ThinkorSwim CSV Parser ──────────────────────────────────────────────
@@ -69,6 +77,10 @@ class TestThinkorSwimParser:
         parser = ThinkorSwimCSVParser()
         result = parser.parse_file(tos_csv_file)
         assert isinstance(result, ImportResult)
+        # Value: verify result has concrete fields
+        assert result.broker == BrokerType.THINKORSWIM
+        assert result.parsed_rows >= 0
+        assert isinstance(result.executions, list)
 
     def test_parse_file_extracts_trades(self, tos_csv_file):
         parser = ThinkorSwimCSVParser()
@@ -140,6 +152,10 @@ class TestNinjaTraderParser:
         parser = NinjaTraderCSVParser()
         result = parser.parse_file(ninjatrader_csv_file)
         assert isinstance(result, ImportResult)
+        # Value: verify result has concrete fields
+        assert result.broker == BrokerType.NINJATRADER
+        assert result.parsed_rows >= 0
+        assert isinstance(result.executions, list)
 
     def test_parse_file_extracts_trades(self, ninjatrader_csv_file):
         parser = NinjaTraderCSVParser()
@@ -151,7 +167,10 @@ class TestNinjaTraderParser:
         parser = NinjaTraderCSVParser()
         result = parser.parse_file(ninjatrader_csv_file)
         trade = result.executions[0]
-        assert "Strategy" in trade.raw_data or "strategy" in trade.raw_data.get("Strategy", "").lower() or trade.raw_data.get("Strategy") is not None
+        assert "Strategy" in trade.raw_data
+        # Value: verify the strategy field has a non-empty value
+        assert trade.raw_data["Strategy"] is not None
+        assert len(str(trade.raw_data["Strategy"])) > 0
 
     def test_mfe_mae_in_raw_data(self, ninjatrader_csv_file):
         parser = NinjaTraderCSVParser()
@@ -159,6 +178,9 @@ class TestNinjaTraderParser:
         trade = result.executions[0]
         assert "MAE" in trade.raw_data
         assert "MFE" in trade.raw_data
+        # Value: verify MAE/MFE are numeric strings or numeric values
+        assert float(str(trade.raw_data["MAE"])) >= 0
+        assert float(str(trade.raw_data["MFE"])) >= 0
 
     def test_long_trade_side(self, ninjatrader_csv_file):
         parser = NinjaTraderCSVParser()

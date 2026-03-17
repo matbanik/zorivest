@@ -66,6 +66,9 @@ class TestAnalyticsEndpoints:
         else:
             resp = client.post(path, json={})
         assert resp.status_code == 200, f"{method} {path} returned {resp.status_code}"
+        # Value: verify response is valid JSON
+        data = resp.json()
+        assert isinstance(data, (dict, list))
 
 
 # ── AC-3: Mistakes routes ───────────────────────────────────────────
@@ -76,6 +79,9 @@ class TestMistakesRoutes:
         """AC-3: POST /mistakes/ returns 201."""
         resp = client.post("/api/v1/mistakes", json={"trade_id": "t1", "category": "fomo"})
         assert resp.status_code == 201
+        # Value: verify response body is valid JSON
+        data = resp.json()
+        assert isinstance(data, dict)
 
     def test_mistake_summary_200(self, client: TestClient) -> None:
         """AC-3: GET /mistakes/summary returns 200."""
@@ -142,15 +148,25 @@ class TestCalculatorDomain:
 class TestModeGating:
     def test_analytics_locked_403(self, locked_client: TestClient) -> None:
         """AC-7: Analytics routes return 403 when locked."""
-        assert locked_client.get("/api/v1/analytics/expectancy").status_code == 403
+        resp = locked_client.get("/api/v1/analytics/expectancy")
+        assert resp.status_code == 403
+        # Value: verify error detail in response body
+        data = resp.json()
+        assert "detail" in data
 
     def test_mistakes_locked_403(self, locked_client: TestClient) -> None:
         """AC-7: Mistakes routes return 403 when locked."""
-        assert locked_client.post("/api/v1/mistakes", json={}).status_code == 403
+        resp = locked_client.post("/api/v1/mistakes", json={})
+        assert resp.status_code == 403
+        data = resp.json()
+        assert "detail" in data
 
     def test_fees_locked_403(self, locked_client: TestClient) -> None:
         """AC-7: Fees routes return 403 when locked."""
-        assert locked_client.get("/api/v1/fees/summary").status_code == 403
+        resp = locked_client.get("/api/v1/fees/summary")
+        assert resp.status_code == 403
+        data = resp.json()
+        assert "detail" in data
 
 
 # ── AC-8: Calculator does NOT require unlock ─────────────────────────
@@ -167,6 +183,10 @@ class TestCalculatorNoAuth:
             "target_price": 110.0,
         })
         assert resp.status_code == 200
+        # Value: verify calculator returned computed fields
+        data = resp.json()
+        assert "shares" in data
+        assert data["shares"] > 0
 
 
 # ── AC-9: Stub services return shaped defaults ──────────────────────
@@ -179,12 +199,19 @@ class TestStubShapes:
         assert "win_rate" in data
         assert "expectancy" in data
         assert "kelly_pct" in data
+        # Value: verify types are numeric
+        assert isinstance(data["win_rate"], (int, float))
+        assert isinstance(data["expectancy"], (int, float))
+        assert isinstance(data["kelly_pct"], (int, float))
 
     def test_sqn_shape(self, client: TestClient) -> None:
         """AC-9: SQN stub returns sqn, grade, trade_count."""
         data = client.get("/api/v1/analytics/sqn").json()
         assert "sqn" in data
         assert "grade" in data
+        # Value: verify types
+        assert isinstance(data["sqn"], (int, float))
+        assert isinstance(data["grade"], str)
 
 
 # ── AC-10: Integration test ─────────────────────────────────────────
@@ -198,6 +225,10 @@ class TestAnalyticsIntegration:
             app.state.db_unlocked = True
             resp = client.get("/api/v1/analytics/expectancy")
             assert resp.status_code == 200
+            # Value: verify valid JSON response
+            data = resp.json()
+            assert isinstance(data, dict)
+            assert "win_rate" in data
 
     def test_calculator_pure_calculation(self) -> None:
         """AC-10: Calculator works without any state setup."""
@@ -211,3 +242,7 @@ class TestAnalyticsIntegration:
                 "target_price": 12.0,
             })
             assert resp.status_code == 200
+            # Value: verify calculator fields in response
+            data = resp.json()
+            assert "shares" in data
+            assert isinstance(data["shares"], int)

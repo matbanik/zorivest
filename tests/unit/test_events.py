@@ -77,8 +77,10 @@ class TestTradeCreated:
         """AC-2: TradeCreated inherits DomainEvent fields."""
         event = TradeCreated(exec_id="T001")
         assert isinstance(event, DomainEvent)
-        assert isinstance(event.event_id, str)
-        assert isinstance(event.occurred_at, datetime)
+        # Value: verify inherited fields have real generated values
+        assert len(event.event_id) == 36  # UUID4 format
+        assert "-" in event.event_id  # UUID separator
+        assert event.occurred_at.year >= 2025
 
     def test_trade_created_is_frozen(self) -> None:
         """AC-6: TradeCreated is frozen."""
@@ -108,6 +110,9 @@ class TestBalanceUpdated:
         """AC-3: BalanceUpdated inherits DomainEvent."""
         event = BalanceUpdated(account_id="ACC-1")
         assert isinstance(event, DomainEvent)
+        assert len(event.event_id) == 36
+        assert event.occurred_at.year >= 2025
+        assert event.account_id == "ACC-1"
 
     def test_balance_updated_is_frozen(self) -> None:
         """AC-6: BalanceUpdated is frozen."""
@@ -137,6 +142,8 @@ class TestImageAttached:
         """AC-4: ImageAttached inherits DomainEvent."""
         event = ImageAttached()
         assert isinstance(event, DomainEvent)
+        assert len(event.event_id) == 36
+        assert event.occurred_at.year >= 2025
 
     def test_image_attached_is_frozen(self) -> None:
         """AC-6: ImageAttached is frozen."""
@@ -168,6 +175,9 @@ class TestPlanCreated:
         """AC-5: PlanCreated inherits DomainEvent."""
         event = PlanCreated(plan_id=1)
         assert isinstance(event, DomainEvent)
+        assert len(event.event_id) == 36
+        assert event.occurred_at.year >= 2025
+        assert event.plan_id == 1
 
     def test_plan_created_is_frozen(self) -> None:
         """AC-6: PlanCreated is frozen."""
@@ -186,11 +196,15 @@ class TestEventsModuleImports:
         """AC-7: events module has all expected classes."""
         import zorivest_core.domain.events as mod
 
-        assert hasattr(mod, "DomainEvent")
-        assert hasattr(mod, "TradeCreated")
-        assert hasattr(mod, "BalanceUpdated")
-        assert hasattr(mod, "ImageAttached")
-        assert hasattr(mod, "PlanCreated")
+        # Value: verify actual class identity, not just presence
+        assert mod.DomainEvent is DomainEvent
+        assert mod.TradeCreated is TradeCreated
+        assert mod.BalanceUpdated is BalanceUpdated
+        assert mod.ImageAttached is ImageAttached
+        assert mod.PlanCreated is PlanCreated
+        # Verify all are dataclass subclasses of DomainEvent
+        for cls in (TradeCreated, BalanceUpdated, ImageAttached, PlanCreated):
+            assert issubclass(cls, DomainEvent)
 
     def test_events_module_no_unexpected_exports(self) -> None:
         """AC-7: events module has no unexpected public classes."""

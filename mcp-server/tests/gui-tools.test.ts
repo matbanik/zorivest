@@ -202,6 +202,13 @@ describe("zorivest_launch_gui", () => {
 
         // Should not have called fetch at all (no guard, no API call)
         expect(fetch).not.toHaveBeenCalled();
+        // Value: verify the tool still returned a valid response
+        const result = await client.callTool({
+            name: "zorivest_launch_gui",
+            arguments: {},
+        });
+        const content = result.content as Array<{ type: string; text: string }>;
+        expect(content[0].type).toBe("text");
     });
 
     // wait_for_close=true: handler awaits process exit

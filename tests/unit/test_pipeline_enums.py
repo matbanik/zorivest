@@ -22,6 +22,11 @@ class TestPipelineStatus:
 
     def test_is_str_enum(self) -> None:
         assert issubclass(PipelineStatus, StrEnum)
+        # Value: verify member count and that all are lowercase strings
+        assert len(PipelineStatus) == 6
+        for member in PipelineStatus:
+            assert isinstance(member.value, str)
+            assert member.value == member.value.lower()
 
     def test_member_count(self) -> None:
         assert len(PipelineStatus) == 6
@@ -59,6 +64,10 @@ class TestStepErrorMode:
 
     def test_is_str_enum(self) -> None:
         assert issubclass(StepErrorMode, StrEnum)
+        assert len(StepErrorMode) == 3
+        for member in StepErrorMode:
+            assert isinstance(member.value, str)
+            assert member.value == member.value.lower()
 
     def test_member_count(self) -> None:
         assert len(StepErrorMode) == 3
@@ -91,6 +100,10 @@ class TestDataType:
 
     def test_is_str_enum(self) -> None:
         assert issubclass(DataType, StrEnum)
+        assert len(DataType) == 4
+        for member in DataType:
+            assert isinstance(member.value, str)
+            assert member.value == member.value.lower()
 
     def test_member_count(self) -> None:
         assert len(DataType) == 4

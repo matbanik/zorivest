@@ -70,6 +70,9 @@ class TestTaxEndpoints:
         else:
             resp = client.post(path, json=body or {})
         assert resp.status_code == 200, f"{method} {path} returned {resp.status_code}"
+        # Value: verify response is valid JSON
+        data = resp.json()
+        assert isinstance(data, (dict, list))
 
 
 # ── AC-3: Quarterly payment requires confirm=true ────────────────────
@@ -85,6 +88,9 @@ class TestQuarterlyPayment:
             "confirm": False,
         })
         assert resp.status_code == 400
+        # Value: verify error detail in response
+        data = resp.json()
+        assert "detail" in data
 
     def test_confirm_true_returns_200(self, client: TestClient) -> None:
         """AC-3: POST /tax/quarterly/payment with confirm=true → 200."""
@@ -95,6 +101,9 @@ class TestQuarterlyPayment:
             "confirm": True,
         })
         assert resp.status_code == 200
+        # Value: verify response body has payment data
+        data = resp.json()
+        assert isinstance(data, dict)
 
 
 # ── AC-4: All tax routes require unlocked DB ─────────────────────────
@@ -108,10 +117,16 @@ class TestTaxModeGating:
             "price": 500.0, "account_id": "DU123",
         })
         assert resp.status_code == 403
+        # Value: verify error detail
+        data = resp.json()
+        assert "detail" in data
 
     def test_lots_locked_403(self, locked_client: TestClient) -> None:
         """AC-4: Tax GET routes return 403 when locked."""
-        assert locked_client.get("/api/v1/tax/lots?account_id=DU123").status_code == 403
+        resp = locked_client.get("/api/v1/tax/lots?account_id=DU123")
+        assert resp.status_code == 403
+        data = resp.json()
+        assert "detail" in data
 
 
 # ── AC-5: Stub service returns shaped responses ──────────────────────
@@ -127,17 +142,25 @@ class TestStubShapes:
         data = resp.json()
         assert "estimated_tax" in data
         assert "lots" in data
+        # Value: verify types
+        assert isinstance(data["estimated_tax"], (int, float))
+        assert isinstance(data["lots"], list)
 
     def test_quarterly_shape(self, client: TestClient) -> None:
         """AC-5: Quarterly returns required/paid/due."""
         data = client.get("/api/v1/tax/quarterly?quarter=Q1&tax_year=2026").json()
         assert "required" in data
         assert "due" in data
+        # Value: verify types
+        assert isinstance(data["required"], (int, float))
+        assert isinstance(data["due"], (int, float))
 
     def test_harvest_shape(self, client: TestClient) -> None:
         """AC-5: Harvest returns opportunities."""
         data = client.get("/api/v1/tax/harvest").json()
         assert "opportunities" in data
+        # Value: verify opportunities is a list
+        assert isinstance(data["opportunities"], list)
 
 
 # ── AC-6: Integration test ───────────────────────────────────────────
@@ -151,6 +174,9 @@ class TestTaxIntegration:
             app.state.db_unlocked = True
             resp = client.get("/api/v1/tax/lots?account_id=DU123")
             assert resp.status_code == 200
+            # Value: verify valid JSON response
+            data = resp.json()
+            assert isinstance(data, dict)
 
     def test_ytd_summary_works(self) -> None:
         """AC-6: YTD summary returns shaped response."""
