@@ -398,6 +398,37 @@ export const useAccountContext = () => useContext(AccountContext);
 
 ---
 
+## E2E Testing — Incremental Activation Waves
+
+> Playwright Electron E2E test scaffolding exists at `ui/tests/e2e/` (see [testing-strategy.md](testing-strategy.md) §E2E Testing). Tests activate incrementally as GUI pages are built — each wave adds tests as its `data-testid` dependencies are satisfied.
+
+### Wave Activation Schedule
+
+| Wave | Gate MEU | Tests Activated | Cumulative | `data-testid` to Add |
+|:----:|----------|-----------------|:----------:|----------------------|
+| 0 | **MEU-46** `gui-mcp-status` | `launch.test.ts` (3), `mcp-tool.test.ts` (2) | **5** | Sidebar: `nav-accounts`, `nav-trades`, `nav-planning`, `nav-scheduling`, `nav-settings` |
+| 1 | **MEU-47** `gui-trades` | `trade-entry.test.ts` (5), `mode-gating.test.ts` (2) | **12** | `trades-page`, `trade-list`, `trade-row`, `add-trade-btn`, `trade-*-input` |
+| 2 | **MEU-71** `gui-accounts` | `persistence.test.ts` (2) | **14** | `accounts-page`, `account-list`, `add-account-btn` |
+| 3 | **MEU-74** `gui-backup-restore` | `backup-restore.test.ts` (2) | **16** | `backup-create-btn`, `backup-restore-btn`, `backup-passphrase-input` |
+| 4 | **MEU-48** `gui-plans` | `position-size.test.ts` (2) | **18** | `calc-account-size`, `calc-risk-percent`, `calc-result-shares` |
+| 5 | **MEU-96/99** import GUI | `import.test.ts` (2) | **20** | `import-file-input`, `import-submit-btn`, `import-result-count` |
+
+> [!NOTE]
+> Wave 0 tests (`launch` + `mcp-tool`) need NO `data-testid` — they only require `npm run build` to produce `build/main/index.js` and a healthy Python backend (automated by `global-setup.ts`).
+
+### `data-testid` Convention
+
+All test IDs are defined in `ui/tests/e2e/test-ids.ts`. Constants use `SCREAMING_SNAKE_CASE`, values use `kebab-case`.
+
+> [!IMPORTANT]
+> When implementing any GUI component, add `data-testid` attributes using the constants from `ui/tests/e2e/test-ids.ts`. The MEU is not complete until its wave's E2E tests pass.
+
+### Exit Criterion
+
+**MEU-170** (`e2e-all-green`): All 20 Playwright E2E tests pass end-to-end after all waves are activated.
+
+---
+
 ## Exit Criteria
 
 - Electron app launches, spawns Python backend

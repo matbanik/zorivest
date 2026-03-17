@@ -1,0 +1,126 @@
+name: CI
+
+on:
+  push:
+    branches: [main, develop]
+  pull_request:
+    branches: [main]
+
+permissions:
+  contents: read
+
+jobs:
+  quality:
+    name: Quality Gate
+    runs-on: ubuntu-latest
+
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Install uv
+        uses: astral-sh/setup-uv@v6
+        with:
+          enable-cache: true
+
+      - name: Set up Python
+        run: uv python install
+
+      - name: Install dependencies
+        run: uv sync --all-packages --group dev
+
+      # ── OpenAPI drift check ──────────────────────────────────────
+      - name: Check OpenAPI spec drift
+        run: uv run python tools/export_openapi.py --check openapi.committed.json
+
+      # ── Linting ──────────────────────────────────────────────────
+      - name: Lint (ruff)
+        run: uv run ruff check packages/ tests/
+
+      # ── Type checking ────────────────────────────────────────────
+      - name: Type check (pyright)
+        run: uv run pyright packages/
+
+      # ── Unit tests ───────────────────────────────────────────────
+      - name: Unit tests
+        run: uv run pytest tests/unit/ -x --tb=short -q
+
+      # ── Integration tests ────────────────────────────────────────
+      - name: Integration tests
+        run: uv run pytest tests/integration/ -x --tb=short -q
+
+      # ── Security tests ───────────────────────────────────────────
+      - name: Security tests
+        run: uv run pytest tests/security/ -x --tb=short -q
+
+      # ── Property-based tests ─────────────────────────────────────
+      - name: Property-based tests (Hypothesis)
+        run: uv run pytest tests/property/ -x --tb=short -q
+
+      # ── Security scanning ────────────────────────────────────────
+      - name: Bandit (Python security)
+        run: uv run bandit -r packages/ -c pyproject.toml -q
+        continue-on-error: true
+
+      - name: pip-audit (Python dependency vulnerabilities)
+        run: uv run pip-audit
+        continue-on-error: true
+
+      - name: Semgrep (SAST)
+        uses: returntocorp/semgrep-action@v1
+        with:
+          config: auto
+        continue-on-error: true
+
+  mcp-tests:
+    name: MCP Server Tests
+    runs-on: ubuntu-latest
+
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Setup Node.js
+        uses: actions/setup-node@v4
+        with:
+          node-version: "22"
+          cache: "npm"
+          cache-dependency-path: mcp-server/package-lock.json
+
+      - name: Install MCP dependencies
+        run: npm ci
+        working-directory: mcp-server
+
+      - name: MCP tests
+        run: npx vitest run
+        working-directory: mcp-server
+
+      - name: npm audit (MCP dependencies)
+        run: npm audit --omit=dev
+        working-directory: mcp-server
+        continue-on-error: true
+
+  ui-tests:
+    name: UI Tests
+    runs-on: ubuntu-latest
+
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Setup Node.js
+        uses: actions/setup-node@v4
+        with:
+          node-version: "22"
+          cache: "npm"
+          cache-dependency-path: ui/package-lock.json
+
+      - name: Install UI dependencies
+        run: npm ci
+        working-directory: ui
+
+      - name: UI tests
+        run: npx vitest run
+        working-directory: ui
+
+      - name: npm audit (UI dependencies)
+        run: npm audit --omit=dev
+        working-directory: ui
+        continue-on-error: true

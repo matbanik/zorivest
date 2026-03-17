@@ -266,7 +266,7 @@ omit = ["*/tests/*", "*/__pycache__/*"]
 
 ### Hypothesis Property-Based Tests (Math Invariants)
 
-> **Dependency**: `hypothesis` (add to `[project.optional-dependencies]` test group)
+> **Dependency**: `hypothesis` ✅ Installed (`hypothesis>=6.130` in `[dependency-groups] dev`)
 
 All pure analytics functions get property-based tests in `tests/unit/test_analytics_properties.py`:
 
@@ -410,11 +410,50 @@ npx vitest run tests/typescript/mcp/discovery-tools.test.ts
 
 ## Drift-Resistant Feature Validation
 
-> **Status:** Planned — tooling installation deferred until source code exists (Tier 3 of the agentic integrity integration).
+> **Status:** Partially implemented — OpenAPI contract CI, repository contract tests, Schemathesis fuzzing, and encryption verification tests are live (Phase 2 of [Test Rigor Audit](../execution/plans/2026-03-16-test-rigor-audit/)). Consumer-driven Pact contracts and mutation testing remain planned.
 
 Beyond standard unit/integration/e2e tests, the following validation layers are required for production-grade drift resistance:
 
-### Contract Tests (Consumer-Driven)
+### OpenAPI Contract CI ✅
+
+| Aspect | Detail |
+|---|---|
+| **Tool** | `tools/export_openapi.py` + `openapi.committed.json` |
+| **What it validates** | FastAPI spec hasn't drifted from committed snapshot |
+| **When to run** | Every CI run (`.github/workflows/ci.yml`) |
+| **Failure policy** | Blocking — spec drift = CI fails |
+| **Command** | `uv run python tools/export_openapi.py --check openapi.committed.json` |
+
+### Repository Contract Tests ✅
+
+| Aspect | Detail |
+|---|---|
+| **File** | `tests/integration/test_repo_contracts.py` (37 tests) |
+| **Repos covered** | Trade (8), Account (6), TradePlan (6), TradeReport (4), MarketProviderSettings (6), Image (7) |
+| **What it validates** | CRUD round-trip, get-missing, list-all, delete, delete-noop, update for every SQLAlchemy repo |
+| **Fixtures** | `tests/integration/conftest.py` — session-scoped engine + per-test savepoint rollback |
+| **Command** | `uv run pytest tests/integration/test_repo_contracts.py -v` |
+
+### Schemathesis API Fuzzing ✅ (Local)
+
+| Aspect | Detail |
+|---|---|
+| **Tool** | `schemathesis>=3.38` + `hypothesis>=6.130` (dev deps) |
+| **Runner** | `tools/fuzz_api.py` (supports `--dry-run`, `--endpoints`, `--max-examples`) |
+| **What it validates** | Property-based fuzzing of all API endpoints against OpenAPI spec |
+| **When to run** | Manual pre-release; CI step deferred to MEU-168 |
+| **Command** | `uv run python tools/fuzz_api.py --url http://localhost:8765` |
+
+### Encryption Verification Tests ✅
+
+| Aspect | Detail |
+|---|---|
+| **File** | `tests/security/test_encryption_integrity.py` (14 tests / 6 classes) |
+| **What it validates** | Binary integrity (plaintext not in raw file), PRAGMA checks, key rotation, WAL mode, backup encryption, envelope encryption (passphrase + API key) |
+| **Requires** | `sqlcipher3-binary` (skips gracefully when unavailable) |
+| **Command** | `uv run pytest tests/security/test_encryption_integrity.py -v` |
+
+### Contract Tests — Consumer-Driven (Planned)
 
 | Aspect | Python Backend → TypeScript MCP/GUI |
 |---|---|
@@ -423,15 +462,34 @@ Beyond standard unit/integration/e2e tests, the following validation layers are 
 | **When to run** | Per-PR (consumer-side), nightly (provider verification) |
 | **Failure policy** | Blocking — contract break = merge blocked |
 
-### Property-Based Tests
+### Property-Based Tests ✅ (Phase 3.1)
 
 | Aspect | Detail |
 |---|---|
 | **Tool** | `Hypothesis` (Python) |
-| **Target modules** | Domain entities, calculator, round-trip service, deduplication |
-| **What it validates** | Invariants hold across diverse auto-generated inputs |
-| **Key invariants** | "P&L sum of parts equals total", "round-trip pairs never drop trades", "dedup is idempotent" |
-| **When to run** | Per-commit (fast) — Hypothesis integrates with pytest |
+| **Files** | `tests/property/test_financial_invariants.py` (14), `test_trade_invariants.py` (3), `test_mode_gating_invariant.py` (3), `test_backup_roundtrip.py` (4) |
+| **Total tests** | 24 |
+| **What it validates** | Financial calc invariants (expectancy, SQN), trade entity roundtrip, MCP Guard mode-gating, backup/restore fidelity |
+| **Key invariants** | "Expectancy always finite", "win_rate ∈ [0,1]", "SQN sign matches mean", "locked guard blocks all", "backup → restore preserves data" |
+| **When to run** | Per-commit — integrates with pytest |
+| **Command** | `uv run pytest tests/property/ -v` |
+
+> [!NOTE]
+> **Encryption invariant** (data never readable without key) is covered by Phase 2.4's `tests/security/test_encryption_integrity.py` and not duplicated here.
+
+### MCP Protocol Tests ✅ (Phase 3.2)
+
+| Aspect | Detail |
+|---|---|
+| **Tool** | Vitest + `InMemoryTransport` (TypeScript) |
+| **Files** | `mcp-server/tests/protocol.test.ts` (7), `adversarial.test.ts` (8), `api-contract.test.ts` (8) |
+| **Total tests** | 23 |
+| **What it validates** | Wire protocol shape, capabilities, tool naming, adversarial input handling (empty/long/unicode/SQLi strings, null args), concurrency safety, OpenAPI alignment |
+| **When to run** | Per-commit |
+| **Command** | `npx vitest run tests/protocol.test.ts tests/adversarial.test.ts tests/api-contract.test.ts` |
+
+> [!NOTE]
+> **Circuit breaker state transition tests** are deferred to **MEU-169** (`guard-auto-trip`). MCP Guard (MEU-38) is implemented with manual lock/unlock + rate limits, but the automatic `CLOSED→OPEN→HALF_OPEN` state machine described in [friction-inventory.md §FR-2.4](friction-inventory.md) and [05-mcp-server.md §5.9](05-mcp-server.md) has not been built yet. Tests will be added when auto-tripping logic is implemented.
 
 ### Mutation Testing
 
@@ -463,4 +521,59 @@ Track eval results per feature in the handoff artifact. Use the following templa
 | (regression) | `test_existing_*` | PASS | PASS | ✅ PASS_TO_PASS |
 ```
 
+### E2E Testing (Playwright Electron)
 
+> Status: **Scaffolded** — 20 tests in 8 files, activated incrementally via 6 waves (see [06-gui.md](06-gui.md) §E2E Waves).
+
+| Aspect | Detail |
+|---|---|
+| **Tool** | Playwright `_electron` with `@axe-core/playwright` |
+| **Location** | `ui/tests/e2e/` |
+| **Config** | `ui/playwright.config.ts` |
+| **Runner** | `cd ui && npx playwright test` |
+| **Workers** | 1 (Electron tests share app state) |
+
+#### Incremental Activation (Waves)
+
+E2E tests activate incrementally as GUI pages are built. Each wave has a gate MEU whose completion enables its tests. See [06-gui.md](06-gui.md) §E2E Waves for the full schedule.
+
+| Wave | Gate MEU | Tests | Cumulative |
+|:----:|----------|:-----:|:----------:|
+| 0 | MEU-46 `gui-mcp-status` | `launch` (3) + `mcp-tool` (2) | **5** |
+| 1 | MEU-47 `gui-trades` | `trade-entry` (5) + `mode-gating` (2) | **12** |
+| 2 | MEU-71 `gui-accounts` | `persistence` (2) | **14** |
+| 3 | MEU-74 `gui-backup-restore` | `backup-restore` (2) | **16** |
+| 4 | MEU-48 `gui-plans` | `position-size` (2) | **18** |
+| 5 | MEU-96/99 import GUI | `import` (2) | **20** |
+
+> [!NOTE]
+> Wave 0 tests need NO `data-testid` — they only require `npm run build` and a healthy Python backend (automated by `global-setup.ts`). Each subsequent wave requires `data-testid` attributes added to the corresponding GUI components.
+
+#### Infrastructure Files
+
+| File | Purpose |
+|---|---|
+| `global-setup.ts` | Spawns Python backend, polls `/api/v1/health` with timeout |
+| `global-teardown.ts` | Cross-platform tree-kill (`taskkill /T /F` on Windows) |
+| `test-ids.ts` | 100+ shared `data-testid` constants (sidebar, trades, settings, calculator, import) |
+| `pages/AppPage.ts` | Page Object Model: Electron lifecycle, sidebar navigation, API helpers, `testId()` locator |
+
+#### Test Inventory
+
+| File | Tests | Coverage |
+|---|:---:|---|
+| `launch.test.ts` | 3 | App launch, backend health, axe-core a11y scan |
+| `trade-entry.test.ts` | 5 | Create trade, verify list + API, a11y, visual regression |
+| `position-size.test.ts` | 2 | Calculator output, a11y |
+| `mode-gating.test.ts` | 2 | Lock disables / unlock enables trade creation |
+| `backup-restore.test.ts` | 2 | Backup + restore data fidelity |
+| `persistence.test.ts` | 2 | Data + window bounds survive restart |
+| `mcp-tool.test.ts` | 2 | MCP guard check + settings API |
+| `import.test.ts` | 2 | CSV import → trades in DB, a11y |
+| **Total** | **20** | |
+
+#### Accessibility & Visual Regression
+
+- **AxeBuilder** (WCAG 2.1 AA) assertions in `launch`, `trade-entry`, `position-size`, `import` tests
+- **`toHaveScreenshot()`** with financial data masking (`balance-amount`, `pnl-value`) in `trade-entry.test.ts`
+- Visual regression baselines auto-generated on first run

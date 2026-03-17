@@ -202,9 +202,9 @@ Domain → Infrastructure → Services → REST API → MCP Server → GUI → D
 | MEU-43 | `gui-shell` | 15 | [06a](build-plan/06a-gui-shell.md) | Electron + React UI shell | ✅ |
 | MEU-44 | `gui-command-registry` | 15c | [06a §commands](build-plan/06a-gui-shell.md) | Command registry (commandRegistry.ts) | ✅ |
 | MEU-45 | `gui-window-state` | 15d | [06a §window](build-plan/06a-gui-shell.md) | Window state persistence (electron-store) | ✅ |
-| MEU-46 | `gui-mcp-status` | 15i | [06f §6f.9](build-plan/06f-gui-settings.md) | MCP Server Status panel | ⬜ |
-| MEU-47 | `gui-trades` | 16 | [06b](build-plan/06b-gui-trades.md) | React pages — Trades | ⬜ |
-| MEU-48 | `gui-plans` | 16 | [06c](build-plan/06c-gui-planning.md) | React pages — Plans | ⬜ |
+| MEU-46 | `gui-mcp-status` | 15i | [06f §6f.9](build-plan/06f-gui-settings.md) | MCP Server Status panel · **E2E Wave 0**: sidebar `data-testid` + `launch`/`mcp-tool` tests (5) | ⬜ |
+| MEU-47 | `gui-trades` | 16 | [06b](build-plan/06b-gui-trades.md) | React pages — Trades · **E2E Wave 1**: `trade-entry`/`mode-gating` tests (+7 = 12) | ⬜ |
+| MEU-48 | `gui-plans` | 16 | [06c](build-plan/06c-gui-planning.md) | React pages — Plans · **E2E Wave 4**: `position-size` tests (+2 = 18) | ⬜ |
 | MEU-49 | `gui-notifications` | 16a | [06a §notify](build-plan/06a-gui-shell.md) | Notification system (toasts) | ⬜ |
 | MEU-50 | `gui-command-palette` | 16b | [06a §Ctrl+K](build-plan/06a-gui-shell.md) | Command palette (Ctrl+K) | ⬜ |
 | MEU-51 | `gui-state-persistence` | 16c | [06a §state](build-plan/06a-gui-shell.md) | UI state persistence | ⬜ |
@@ -254,10 +254,10 @@ Domain → Infrastructure → Services → REST API → MCP Server → GUI → D
 | MEU-68 | `watchlist` | 33 | [03](build-plan/03-service-layer.md) | Watchlist entity + service | ✅ |
 | MEU-69 | `plan-watchlist-mcp` | 34 | [05d](build-plan/05d-mcp-trade-planning.md) | TradePlan + Watchlist MCP tools | ✅ |
 | MEU-70 | `gui-planning` | 35 | [06c](build-plan/06c-gui-planning.md) | Planning GUI (plan cards, watchlists) | ⬜ |
-| MEU-71 | `gui-accounts` | 35a | [06d](build-plan/06d-gui-accounts.md) | Account Management GUI | ⬜ |
+| MEU-71 | `gui-accounts` | 35a | [06d](build-plan/06d-gui-accounts.md) | Account Management GUI · **E2E Wave 2**: `persistence` tests (+2 = 14) | ⬜ |
 | MEU-72 | `gui-scheduling` | 35b | [06e](build-plan/06e-gui-scheduling.md) | Scheduling GUI | ⬜ |
 | MEU-73 | `gui-email-settings` | 35c | [06f §email](build-plan/06f-gui-settings.md) | Email Provider Settings GUI | ⬜ |
-| MEU-74 | `gui-backup-restore` | 35d | [06f §backup](build-plan/06f-gui-settings.md) | Backup & Restore Settings GUI | ⬜ |
+| MEU-74 | `gui-backup-restore` | 35d | [06f §backup](build-plan/06f-gui-settings.md) | Backup & Restore Settings GUI · **E2E Wave 3**: `backup-restore` tests (+2 = 16) | ⬜ |
 | MEU-75 | `gui-config-export` | 35e | [06f §export](build-plan/06f-gui-settings.md) | Config Export/Import GUI | ⬜ |
 | MEU-76 | `gui-reset-defaults` | 35f | [06f §reset](build-plan/06f-gui-settings.md) | Reset to Default on settings pages | ⬜ |
 
@@ -453,6 +453,14 @@ Domain → Infrastructure → Services → REST API → MCP Server → GUI → D
 |-----|------|:-----------:|----------------|-------------|:------:|
 | MEU-167 | `recursive-orchestration` | 9.A | [matrix §9.A](build-plan/build-priority-matrix.md) | Recursive orchestration (Tier 3) | ⬜ |
 
+#### CI / Quality Gate Research Items
+
+| MEU | Slug | Matrix Item | Build Plan Ref | Description | Status |
+|-----|------|:-----------:|----------------|-------------|:------:|
+| MEU-168 | `schemathesis-ci` | CI.A | [testing-strategy](build-plan/testing-strategy.md) §Schemathesis | Schemathesis API fuzzing as CI step (start server + fuzz + report) | ⬜ |
+| MEU-169 | `guard-auto-trip` | 15e.B | [friction-inventory](build-plan/friction-inventory.md) §FR-2.4, [05](build-plan/05-mcp-server.md) §5.9 | Auto-tripping circuit breaker state machine (CLOSED→OPEN→HALF_OPEN) + tests | ⬜ |
+| MEU-170 | `e2e-all-green` | E2E.A | [testing-strategy](build-plan/testing-strategy.md) §E2E, [06-gui](build-plan/06-gui.md) §E2E Waves | All 20 Playwright E2E tests green (final gate after Waves 0–5 complete) | ⬜ |
+
 ---
 
 ### MEU Summary
@@ -473,8 +481,8 @@ Domain → Infrastructure → Services → REST API → MCP Server → GUI → D
 | P2.75 — Expansion | MEU-96 → MEU-122 | 27 | 2 |
 | P3 — Tax | MEU-123 → MEU-156 | 34 | 0 |
 | Phase 7 | MEU-157 | 1 | 0 |
-| Research | MEU-158 → MEU-167 | 10 | 0 |
-| **Total** | | **170** | **73** |
+| Research | MEU-158 → MEU-170 | 13 | 0 |
+| **Total** | | **173** | **73** |
 
 ---
 

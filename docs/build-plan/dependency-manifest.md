@@ -13,7 +13,7 @@ uv init --name zorivest
 
 # Phase 1: Core (zero external deps for domain)
 # Only pytest for testing (Pydantic is NOT used in Phase 1; added in Phase 4 with FastAPI)
-uv add --dev pytest pytest-asyncio pytest-mock factory-boy hypothesis
+uv add --dev pytest pytest-asyncio pytest-mock factory-boy hypothesis schemathesis
 
 # Phase 2: Infrastructure
 uv add --package zorivest-infra sqlalchemy sqlcipher3 argon2-cffi alembic "pillow>=11.1"
@@ -90,7 +90,7 @@ cd ui && npm install @vscode/sudo-prompt && cd ..   # Windows UAC elevation for 
 |-------|---------|-----------------|
 | 0 | tooling | `uv` |
 | 1 | `zorivest-core` | None (pure Python) |
-| 1 (dev) | testing | `pytest`, `pytest-asyncio`, `pytest-mock`, `factory-boy`, `hypothesis` |
+| 1 (dev) | testing | `pytest`, `pytest-asyncio`, `pytest-mock`, `factory-boy`, `hypothesis`, `schemathesis` |
 | 2 | `zorivest-infra` | `sqlalchemy`, `sqlcipher3`, `argon2-cffi`, `alembic`, `pillow>=11.1` |
 | 2A | `zorivest-infra` (backup) | `pyzipper` |
 | 3 | `zorivest-core` (services) | No new deps |

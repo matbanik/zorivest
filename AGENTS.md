@@ -213,8 +213,47 @@ When implementing a Manageable Execution Unit (MEU):
 - Current scaffold: `pyright`, `ruff`, `pytest`
 - When TypeScript packages are scaffolded: `tsc --noEmit`, `eslint`, `vitest`, `npm run build`
 
-**Advisory** (report only): `pytest --cov`, `bandit`, `pip-audit`.
+**Advisory** (report only): `pytest --cov`, `bandit`, `pip-audit`, `semgrep`.
 See `.agent/skills/quality-gate/SKILL.md` for scope selection and skipped-check behavior.
+
+## Testing Requirements
+
+### Testing Decision Framework
+
+When implementing a new feature or bug fix, select test categories by dependency layer:
+
+| Layer | Required Tests | Optional Tests |
+|-------|---------------|----------------|
+| **Domain** (entities, VOs, calculator) | Unit tests (IR-5 compliant) | Hypothesis property-based |
+| **Infrastructure** (repos, UoW, encryption) | Unit + repository contract tests | Encryption verify |
+| **Service** (services, validators) | Unit + integration tests | Property-based invariants |
+| **API** (routes, middleware) | Unit + OpenAPI contract tests | Schemathesis fuzzing |
+| **MCP** (tools, server) | Protocol + adversarial tests | Schema validation |
+| **GUI** (React components) | Vitest unit + E2E wave tests | Axe-core accessibility |
+
+### Test Naming Convention
+
+```
+tests/
+├── unit/          # Isolated tests, mocked dependencies
+├── integration/   # Real database, cross-layer
+├── security/      # Encryption, log redaction audit
+├── property/      # Hypothesis property-based invariants
+├── contract/      # OpenAPI + repository contract
+└── e2e/           # Playwright Electron (in ui/tests/e2e/)
+```
+
+### Coverage Expectations
+
+- **New domain code**: ≥ 90% branch coverage
+- **New service code**: ≥ 80% branch coverage
+- **New API routes**: ≥ 1 contract test per route + unit tests
+- **New GUI pages**: E2E wave tests + axe-core scan (see `docs/build-plan/06-gui.md` §E2E Waves)
+- **Bug fixes**: Add regression test before fixing
+
+### E2E Wave Activation
+
+E2E tests activate incrementally as GUI pages are built. When implementing a GUI MEU, check `ui/tests/e2e/test-ids.ts` for required `data-testid` attributes and ensure the wave's tests pass. See `docs/build-plan/06-gui.md` §E2E Waves.
 
 ## Code Quality
 
