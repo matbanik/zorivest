@@ -134,7 +134,7 @@ class TestBootstrap:
             content = (tmp_path / "bootstrap.jsonl").read_text()
             assert "test bootstrap message" in content or "Bootstrap logging started" in content
             # Value: verify the content is valid JSONL
-            lines = [l for l in content.strip().split("\n") if l.strip()]
+            lines = [line for line in content.strip().split("\n") if line.strip()]
             assert len(lines) >= 1
             parsed = json.loads(lines[-1])
             assert "message" in parsed

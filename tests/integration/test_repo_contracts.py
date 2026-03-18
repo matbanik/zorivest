@@ -16,7 +16,6 @@ parameterized pattern that's easy to extend for new repositories.
 from __future__ import annotations
 
 from datetime import datetime
-from typing import Any
 
 import pytest
 from sqlalchemy.orm import Session

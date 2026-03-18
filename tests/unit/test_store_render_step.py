@@ -7,8 +7,7 @@ Acceptance criteria AC-SR1..AC-SR15 per implementation-plan §9.6, §9.7.
 from __future__ import annotations
 
 import sqlite3
-from datetime import datetime, timezone
-from unittest.mock import MagicMock, patch
+from unittest.mock import MagicMock
 
 import pytest
 from pydantic import ValidationError
@@ -343,7 +342,6 @@ async def test_AC_SR16_store_report_step_execute_snapshot():
     deterministic SHA-256 snapshot hash and returns query_count=0."""
     import hashlib
     import json
-    from unittest.mock import MagicMock
 
     from zorivest_core.domain.pipeline import StepContext
     from zorivest_core.pipeline_steps.store_report_step import StoreReportStep
@@ -388,7 +386,6 @@ async def test_AC_SR16b_store_report_step_executes_sandboxed_sql():
     """When db_connection is injected, _execute_sandboxed_sql() runs real
     SQL queries and returns actual rows in the snapshot."""
     import sqlite3
-    from unittest.mock import MagicMock
 
     from zorivest_core.domain.pipeline import StepContext
     from zorivest_core.pipeline_steps.store_report_step import StoreReportStep
@@ -440,7 +437,6 @@ async def test_AC_SR16c_store_report_persists_via_repository():
     repo.create() and returns the report_id. Verifies spec_json is
     the authored report spec, not the snapshot."""
     import json
-    from unittest.mock import MagicMock
 
     from zorivest_core.domain.pipeline import StepContext
     from zorivest_core.pipeline_steps.store_report_step import StoreReportStep
@@ -630,7 +626,6 @@ def test_AC_CR1_criteria_resolver_per_field_with_static():
 async def test_AC_SR20_execute_sandboxed_sql_raises_without_connection():
     """_execute_sandboxed_sql raises ValueError when data_queries is
     non-empty but db_connection is not injected."""
-    from unittest.mock import MagicMock
 
     from zorivest_core.domain.pipeline import StepContext
     from zorivest_core.pipeline_steps.store_report_step import StoreReportStep

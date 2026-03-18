@@ -21,6 +21,7 @@ from zorivest_infra.database.models import (
     PipelineRunModel,
     PipelineStateModel,
     PolicyModel,
+    ReportDeliveryModel,
     ReportModel,
     ReportVersionModel,
 )
@@ -363,3 +364,42 @@ class AuditLogRepository:
             .limit(limit)
             .all()
         )
+
+
+class DeliveryRepository:
+    """CRUD operations for report deliveries (§9.2f, MEU-88)."""
+
+    def __init__(self, session: Session) -> None:
+        self._session = session
+
+    def get_by_dedup_key(self, key: str) -> ReportDeliveryModel | None:
+        """Look up delivery by dedup key for idempotency check."""
+        return (
+            self._session.query(ReportDeliveryModel)
+            .filter_by(dedup_key=key)
+            .first()
+        )
+
+    def create(
+        self,
+        *,
+        report_id: str,
+        channel: str,
+        recipient: str,
+        status: str,
+        dedup_key: str,
+    ) -> str:
+        """Record a delivery attempt."""
+        delivery_id = str(uuid.uuid4())
+        model = ReportDeliveryModel(
+            id=delivery_id,
+            report_id=report_id,
+            channel=channel,
+            recipient=recipient,
+            status=status,
+            dedup_key=dedup_key,
+            sent_at=datetime.now(timezone.utc) if status == "sent" else None,
+        )
+        self._session.add(model)
+        self._session.flush()
+        return delivery_id

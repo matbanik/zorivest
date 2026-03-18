@@ -89,6 +89,18 @@ jobs:
         run: npm ci
         working-directory: mcp-server
 
+      # Python setup for integration tests (MEU-32: MCP→REST round-trip)
+      - name: Install uv
+        uses: astral-sh/setup-uv@v6
+        with:
+          enable-cache: true
+
+      - name: Set up Python
+        run: uv python install
+
+      - name: Install Python dependencies
+        run: uv sync --all-packages --group dev
+
       - name: MCP tests
         run: npx vitest run
         working-directory: mcp-server

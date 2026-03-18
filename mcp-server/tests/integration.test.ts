@@ -164,7 +164,7 @@ beforeAll(async () => {
             String(apiPort),
         ],
         {
-            cwd: "p:\\zorivest",
+            cwd: process.cwd(),
             stdio: "pipe",
             shell: true,
         },

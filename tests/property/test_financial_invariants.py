@@ -10,10 +10,9 @@ Phase:  3.1 of Test Rigor Audit
 from __future__ import annotations
 
 from datetime import datetime
-from decimal import Decimal, InvalidOperation
+from decimal import Decimal
 
-import pytest
-from hypothesis import given, settings, assume
+from hypothesis import given, settings
 from hypothesis import strategies as st
 
 from zorivest_core.domain.analytics.expectancy import calculate_expectancy

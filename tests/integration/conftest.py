@@ -9,7 +9,7 @@ from __future__ import annotations
 
 import pytest
 from sqlalchemy import create_engine, event
-from sqlalchemy.orm import Session, sessionmaker
+from sqlalchemy.orm import Session
 
 from zorivest_infra.database.models import Base
 

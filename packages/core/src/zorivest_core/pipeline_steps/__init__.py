@@ -12,3 +12,4 @@ from zorivest_core.pipeline_steps import fetch_step  # noqa: F401
 from zorivest_core.pipeline_steps import transform_step  # noqa: F401
 from zorivest_core.pipeline_steps import store_report_step  # noqa: F401
 from zorivest_core.pipeline_steps import render_step  # noqa: F401
+from zorivest_core.pipeline_steps import send_step  # noqa: F401

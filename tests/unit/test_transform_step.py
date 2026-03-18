@@ -182,7 +182,6 @@ def test_AC_T7_quality_above_threshold():
 def test_AC_T8_table_allowlist_rejects_unknown():
     """TABLE_ALLOWLIST rejects writes to unknown tables."""
     from zorivest_infra.repositories.write_dispositions import (
-        TABLE_ALLOWLIST,
         validate_table,
     )
 
@@ -322,7 +321,6 @@ async def test_AC_T14_transform_step_execute_validates_records():
     """TransformStep.execute() processes valid OHLCV records through the
     validation→quality pipeline and reports correct records_written count."""
     import json
-    from unittest.mock import MagicMock
 
     from zorivest_core.domain.pipeline import StepContext
     from zorivest_core.pipeline_steps.transform_step import TransformStep
@@ -395,7 +393,6 @@ async def test_AC_T15_transform_step_write_data_calls_db_writer():
     """When db_writer is injected via context.outputs,
     _write_data() calls writer.write() with correct args."""
     import json
-    from unittest.mock import MagicMock
 
     from zorivest_core.domain.pipeline import StepContext
     from zorivest_core.pipeline_steps.transform_step import TransformStep

@@ -275,7 +275,7 @@ async def test_AC_F10_http_cache_304_revalidated():
 @pytest.mark.asyncio
 async def test_AC_F11_fetch_step_cache_hit():
     """FetchStep returns cached data when use_cache=True and cache is warm."""
-    from zorivest_core.domain.pipeline import StepContext, StepResult
+    from zorivest_core.domain.pipeline import StepContext
     from zorivest_core.pipeline_steps.fetch_step import FetchStep
 
     step = FetchStep()

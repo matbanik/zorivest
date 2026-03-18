@@ -191,3 +191,4 @@ P2.75 (broker adapters): MEU-96 → MEU-99
 | MEU-85 | `fetch-step` | 44 | FetchStep + CriteriaResolver + HTTP cache + rate limiter | ✅ approved |
 | MEU-86 | `transform-step` | 45 | TransformStep + Pandera validation gate + quality enforcement | ✅ approved |
 | MEU-87 | `store-render-step` | 46 | StoreReportStep + RenderStep (ReportSpec DSL, SQL sandbox, Jinja2/Plotly/PDF) | ✅ approved |
+| MEU-88 | `send-step` | 47 | SendStep + async email delivery (aiosmtplib, SHA-256 dedup, DeliveryRepository) | ✅ approved |

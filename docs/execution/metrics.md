@@ -29,6 +29,7 @@
 | 2026-03-15 | MEU-81/82/83/84 | ~200 | ~5 min | 77 | 4 High + 7 Med + 3 Low (resolved, 4 rounds) | 7/7 | 85% | ~180 min | 4-MEU scheduling infra: models, repos, pipeline runner, ref resolver. Codex caught: persistence column mismatch (pipeline_run_id vs run_id), missing live UoW test, plan-contract drift (to_thread), stale evidence/handoff text, post-MEU procrastination. |
 | 2026-03-15 | MEU-85/86/87 | ~250 | ~5 min | 64 | 2 High + 2 Med (resolved, 7 rounds) | 7/7 | 85% | ~300 min | 3-MEU pipeline-steps: fetch, transform, store-report, render. CriteriaResolver per-field rewrite. 7 review rounds — dominant patterns: degraded-behavior codification in tests, pyright narrowing gaps, missing-collaborator false success. |
 | 2026-03-16 | audit | ~80 | N/A | 0 | 8 plan correction rounds (resolved) | 7/7 | 90% | ~120 min | Test rigor audit: IR-5 pattern analysis (285 weak tests → 7 anti-patterns, 5 root causes), corrections plan (6 batches, 53 tasks). 8 plan rounds — dominant: shell-syntax escaping issues. |
+| 2026-03-17 | MEU-88 | ~80 | ~5 min | 23 | 2 High + 2 Med (resolved, 3 rounds) | 7/7 | 90% | ~60 min | SendStep: email/local_file dispatch, SHA-256 dedup, DeliveryRepository. Codex caught unconditional SUCCESS status (F1), missing evidence section (F3), test gaps (F4). F2 (runtime wiring) deferred to MEU-89. |
 
 ## Measurement Definitions
 

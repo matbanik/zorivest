@@ -65,7 +65,7 @@ Domain → Infrastructure → Services → REST API → MCP Server → GUI → D
 | 6 — GUI | ⚪ Not Started | — |
 | 7 — Distribution | ⚪ Not Started | — |
 | 8 — Market Data | 🟡 In Progress | 2026-03-11 |
-| 9 — Scheduling | ⚪ Not Started | — |
+| 9 — Scheduling | 🟡 In Progress | 2026-03-15 |
 | 10 — Service Daemon | ⚪ Not Started | — |
 
 ---
@@ -280,8 +280,8 @@ Domain → Infrastructure → Services → REST API → MCP Server → GUI → D
 | MEU-85 | `fetch-step` | 44 | [09 §fetch](build-plan/09-scheduling.md) | FetchStep + HTTP cache | ✅ |
 | MEU-86 | `transform-step` | 45 | [09 §transform](build-plan/09-scheduling.md) | TransformStep + Pandera validation | ✅ |
 | MEU-87 | `store-render-step` | 46 | [09 §store-render](build-plan/09-scheduling.md) | StoreReportStep + RenderStep (Jinja2/Plotly/PDF) | ✅ |
-| MEU-88 | `send-step` | 47 | [09 §send](build-plan/09-scheduling.md) | SendStep + async email delivery | ⬜ |
-| MEU-89 | `scheduling-api-mcp` | 48 | [05g](build-plan/05g-mcp-scheduling.md) | Scheduling REST API (12 endpoints) + MCP tools (6+2) | ⬜ |
+| MEU-88 | `send-step` | 47 | [09 §send](build-plan/09-scheduling.md) | SendStep + async email delivery | ✅ |
+| MEU-89 | `scheduling-api-mcp` | 48 | [05g](build-plan/05g-mcp-scheduling.md) | Scheduling REST API (12 endpoints) + MCP tools (6+2); wire `delivery_repository` + `smtp_config` into `StepContext.outputs` for SendStep | ⬜ |
 | MEU-90 | `scheduling-guardrails` | 49 | [09 §security](build-plan/09-scheduling.md) | Security guardrails (rate limits, approval, audit) | ⬜ |
 
 ---
@@ -476,13 +476,13 @@ Domain → Infrastructure → Services → REST API → MCP Server → GUI → D
 | P1 | MEU-52 → MEU-55 | 4 | 2 |
 | P1.5 — Phase 8 | MEU-56 → MEU-65 | 10 | 9 |
 | P2 | MEU-66 → MEU-76 | 11 | 4 |
-| P2.5 — Phase 9 | MEU-77 → MEU-90 | 14 | 8 |
+| P2.5 — Phase 9 | MEU-77 → MEU-90 | 14 | 11 |
 | P2.6 — Phase 10 | MEU-91 → MEU-95 | 5 | 0 |
 | P2.75 — Expansion | MEU-96 → MEU-122 | 27 | 2 |
 | P3 — Tax | MEU-123 → MEU-156 | 34 | 0 |
 | Phase 7 | MEU-157 | 1 | 0 |
 | Research | MEU-158 → MEU-170 | 13 | 0 |
-| **Total** | | **173** | **73** |
+| **Total** | | **173** | **76** |
 
 ---
 
