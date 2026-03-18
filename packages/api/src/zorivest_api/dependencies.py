@@ -129,6 +129,22 @@ async def get_watchlist_service(request: Request):  # noqa: ANN201
         raise HTTPException(500, "WatchlistService not configured")
     return svc
 
+
+async def get_scheduling_service(request: Request):  # noqa: ANN201
+    """Resolve SchedulingService from app state (MEU-89)."""
+    svc = getattr(request.app.state, "scheduling_service", None)
+    if svc is None:
+        raise HTTPException(500, "SchedulingService not configured")
+    return svc
+
+
+async def get_scheduler_service(request: Request):  # noqa: ANN201
+    """Resolve SchedulerService from app state (MEU-89)."""
+    svc = getattr(request.app.state, "scheduler_service", None)
+    if svc is None:
+        raise HTTPException(500, "SchedulerService not configured")
+    return svc
+
 # ── Authentication providers ───────────────────────────────────────────
 
 

@@ -2943,7 +2943,7 @@ Update existing `06e-gui-scheduling.md` wireframe actions:
 | Render stage | HTML output, PDF generation, cache key | Integration |
 | Send stage | Email delivery, idempotent dedup, local file | Integration |
 | Security | Rate limits, approval flow, audit log | Integration |
-| REST API | All 12 endpoints | E2E |
+| REST API | All 16 endpoints | E2E |
 | MCP tools | All 6 tools, 2 resources | E2E |
 
 ---

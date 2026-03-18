@@ -120,7 +120,7 @@
 | **45** | `TransformStep` + Pandera validation + write dispositions | ✅ Yes | Field mapping, append/replace/merge, quarantine |
 | **46** | `StoreReportStep` + SQL sandbox + `RenderStep` (Jinja2/Plotly/PDF) | ✅ Yes | Default-deny authorizer, snapshot provenance |
 | **47** | `SendStep` + async email + delivery tracking | ✅ Yes | aiosmtplib, idempotent dedup, local file |
-| **48** | Scheduling REST API (12 endpoints) + MCP tools (6 tools + 2 resources) | ✅ Yes | Policy CRUD, run trigger, scheduler status |
+| **48** | Scheduling REST API (16 endpoints) + MCP tools (6 tools + 2 resources) | ✅ Yes | Policy CRUD, run trigger, scheduler status |
 | **49** | Security guardrails (rate limits, approval flow, audit trail) | ✅ Yes | Human-in-the-loop, hash-based re-approval |
 
 ---

@@ -46,7 +46,7 @@ class TestAppFactory:
         """AC-1: App has 7 tags in openapi_tags."""
         app = create_app()
         tags = app.openapi_tags or []
-        assert len(tags) == 8, f"Expected 8 tags, got {len(tags)}: {[t['name'] for t in tags]}"
+        assert len(tags) == 10, f"Expected 10 tags, got {len(tags)}: {[t['name'] for t in tags]}"
 
 
 # ── AC-4: Request-ID header ─────────────────────────────────────────────

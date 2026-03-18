@@ -52,10 +52,15 @@ class PipelineRunner:
         uow: Any,
         ref_resolver: Any,
         condition_evaluator: Any,
+        *,
+        delivery_repository: Any | None = None,
+        smtp_config: Any | None = None,
     ) -> None:
         self.uow = uow
         self.ref_resolver = ref_resolver
         self.condition_evaluator = condition_evaluator
+        self._delivery_repository = delivery_repository
+        self._smtp_config = smtp_config
 
     async def run(
         self,
@@ -85,9 +90,17 @@ class PipelineRunner:
         content_hash = compute_content_hash(policy)
         run_log = structlog.get_logger().bind(run_id=run_id, policy=policy.name)
 
+        # Build initial outputs with injected service dependencies
+        initial_outputs: dict[str, Any] = {}
+        if self._delivery_repository is not None:
+            initial_outputs["delivery_repository"] = self._delivery_repository
+        if self._smtp_config is not None:
+            initial_outputs["smtp_config"] = self._smtp_config
+
         context = StepContext(
             run_id=run_id,
             policy_id=policy_id or policy.name,
+            outputs=initial_outputs,
             dry_run=dry_run,
             logger=run_log,
         )

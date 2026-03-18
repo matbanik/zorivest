@@ -192,3 +192,6 @@ P2.75 (broker adapters): MEU-96 → MEU-99
 | MEU-86 | `transform-step` | 45 | TransformStep + Pandera validation gate + quality enforcement | ✅ approved |
 | MEU-87 | `store-render-step` | 46 | StoreReportStep + RenderStep (ReportSpec DSL, SQL sandbox, Jinja2/Plotly/PDF) | ✅ approved |
 | MEU-88 | `send-step` | 47 | SendStep + async email delivery (aiosmtplib, SHA-256 dedup, DeliveryRepository) | ✅ approved |
+| MEU-89 | `scheduling-api-mcp` | 48 | Scheduling REST API (16 endpoints) + MCP tools (6+2); scheduler lifecycle | ✅ approved |
+| MEU-90 | `scheduling-guardrails` | 49 | PipelineGuardrails (4 rate-limit/approval checks) + approval-reset on patch | ✅ approved |
+| MEU-90a | `persistence-wiring` | 49.0 | Replace StubUnitOfWork with SqlAlchemyUnitOfWork; wire all 17 real repos into FastAPI lifespan; fix getattr/dict guardrails mismatch; Alembic bootstrap; remove repo-level stubs | ⬜ planned |

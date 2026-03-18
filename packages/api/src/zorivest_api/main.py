@@ -35,6 +35,8 @@ from zorivest_api.routes.market_data import market_data_router
 from zorivest_api.routes.reports import report_router
 from zorivest_api.routes.plans import plan_router
 from zorivest_api.routes.watchlists import watchlist_router
+from zorivest_api.routes.scheduling import scheduling_router
+from zorivest_api.routes.scheduler import scheduler_router
 from zorivest_api.schemas.common import ErrorEnvelope
 from zorivest_api.auth.auth_service import AuthService
 from zorivest_api.stubs import McpGuardService, StubAnalyticsService, StubMarketDataService, StubProviderConnectionService, StubReviewService, StubTaxService, StubUnitOfWork
@@ -44,6 +46,13 @@ from zorivest_core.services.image_service import ImageService
 from zorivest_core.services.settings_service import SettingsService
 from zorivest_core.services.report_service import ReportService
 from zorivest_core.services.watchlist_service import WatchlistService
+from zorivest_core.services.scheduling_service import SchedulingService
+from zorivest_core.services.scheduler_service import SchedulerService
+from zorivest_core.services.pipeline_guardrails import PipelineGuardrails
+from zorivest_core.services.pipeline_runner import PipelineRunner
+from zorivest_core.services.ref_resolver import RefResolver
+from zorivest_core.services.condition_evaluator import ConditionEvaluator
+from zorivest_api.stubs import StubAuditCounter, StubPolicyStore, StubRunStore, StubStepStore
 
 # ── Tag metadata ────────────────────────────────────────────────────────
 
@@ -56,6 +65,8 @@ TAGS_METADATA = [
     {"name": "tax", "description": "Simulate, estimate, wash sales, lots, quarterly, harvest"},
     {"name": "system", "description": "Health, version, logging, MCP guard, service lifecycle"},
     {"name": "market-data", "description": "Quotes, news, search, SEC filings, provider management"},
+    {"name": "scheduling", "description": "Pipeline policies, execution, run history, scheduler status"},
+    {"name": "scheduler", "description": "Power events, scheduler lifecycle"},
 ]
 
 
@@ -84,7 +95,34 @@ async def lifespan(app: FastAPI) -> AsyncGenerator[None, None]:
     app.state.provider_connection_service = StubProviderConnectionService()
     app.state.report_service = ReportService(stub_uow)  # MEU-53
     app.state.watchlist_service = WatchlistService(stub_uow)  # MEU-68
-    yield
+
+    # Scheduling services (MEU-89, MEU-90)
+    stub_audit_counter = StubAuditCounter()
+    stub_policy_store = StubPolicyStore()
+    stub_run_store = StubRunStore()
+    stub_step_store = StubStepStore()
+    guardrails = PipelineGuardrails(stub_audit_counter, stub_policy_store)
+    pipeline_runner = PipelineRunner(stub_uow, RefResolver(), ConditionEvaluator())
+    scheduler_svc = SchedulerService(
+        pipeline_runner=pipeline_runner,
+        policy_repo=stub_policy_store,
+    )
+    app.state.scheduler_service = scheduler_svc
+    app.state.scheduling_service = SchedulingService(
+        policy_store=stub_policy_store,
+        run_store=stub_run_store,
+        step_store=stub_step_store,
+        pipeline_runner=pipeline_runner,
+        scheduler_service=scheduler_svc,
+        guardrails=guardrails,
+        audit_logger=stub_audit_counter,
+    )
+
+    await scheduler_svc.start()
+    try:
+        yield
+    finally:
+        await scheduler_svc.shutdown()
 
 
 # ── App factory ─────────────────────────────────────────────────────────
@@ -176,5 +214,7 @@ def create_app() -> FastAPI:
     app.include_router(report_router)  # MEU-53
     app.include_router(plan_router)    # MEU-66
     app.include_router(watchlist_router)  # MEU-68
+    app.include_router(scheduling_router)  # MEU-89
+    app.include_router(scheduler_router)  # MEU-89
 
     return app

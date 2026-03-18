@@ -250,6 +250,71 @@ class _InMemoryWatchlistRepo(_InMemoryRepo):
         self._store.pop(key, None)
         self._items = [i for i in self._items if getattr(i, "watchlist_id", None) != key]
 
+
+class _InMemoryPipelineRunRepo:
+    """In-memory pipeline_runs repo for StubUnitOfWork (MEU-89).
+
+    Supports create(**kwargs), update_status(run_id, status, **kwargs),
+    and find_zombies() — the three methods used by PipelineRunner.
+    """
+
+    def __init__(self) -> None:
+        self._store: dict[str, dict[str, Any]] = {}
+
+    def create(self, **kwargs: Any) -> dict[str, Any]:
+        run_id = kwargs.get("id", str(len(self._store) + 1))
+        record = {"id": run_id, **kwargs}
+        self._store[run_id] = record
+        return record
+
+    def update_status(self, run_id: str, status: str, **kwargs: Any) -> None:
+        if run_id in self._store:
+            self._store[run_id]["status"] = status
+            self._store[run_id].update(kwargs)
+
+    def find_zombies(self, **kwargs: Any) -> list[dict[str, Any]]:
+        return [r for r in self._store.values() if r.get("status") == "running"]
+
+
+class _StubQuery:
+    """Chainable no-op query stub for PipelineRunner._recover_zombies()."""
+
+    def filter_by(self, **kw: Any) -> _StubQuery:
+        return self
+
+    def order_by(self, *a: Any) -> _StubQuery:
+        return self
+
+    def first(self) -> None:
+        return None
+
+
+class _StubSession:
+    """No-op session stub for PipelineRunner persistence hooks.
+
+    Provides .add(), .flush(), .query() so _persist_step() and
+    _recover_zombies() don't crash when running with StubUnitOfWork.
+    """
+
+    def add(self, *a: Any, **kw: Any) -> None:
+        pass
+
+    def flush(self, *a: Any, **kw: Any) -> None:
+        pass
+
+    def query(self, *a: Any, **kw: Any) -> _StubQuery:
+        return _StubQuery()
+
+    def close(self, *a: Any, **kw: Any) -> None:
+        pass
+
+    def commit(self, *a: Any, **kw: Any) -> None:
+        pass
+
+    def rollback(self, *a: Any, **kw: Any) -> None:
+        pass
+
+
 class StubUnitOfWork:
     """Phase 4 in-memory UoW — satisfies the UnitOfWork protocol.
 
@@ -259,6 +324,7 @@ class StubUnitOfWork:
     """
 
     def __init__(self) -> None:
+        self._session: Any = _StubSession()  # Q1: PipelineRunner raw session access
         self.trades: Any = _InMemoryRepo()
         self.images: Any = _InMemoryRepo()
         self.accounts: Any = _InMemoryRepo()
@@ -269,6 +335,8 @@ class StubUnitOfWork:
         self.trade_reports: Any = _InMemoryTradeReportRepo()  # MEU-52
         self.trade_plans: Any = _InMemoryTradePlanRepo()      # MEU-66
         self.watchlists: Any = _InMemoryWatchlistRepo()       # MEU-68
+        self.pipeline_runs: Any = _InMemoryPipelineRunRepo()  # MEU-89
+        self.pipeline_step_results: Any = _InMemoryRepo()     # MEU-89
 
     def __enter__(self) -> StubUnitOfWork:
         return self
@@ -502,3 +570,88 @@ class StubProviderConnectionService:
 
     async def remove_api_key(self, name: str) -> None:
         pass
+
+
+# ---------------------------------------------------------------------------
+# Scheduling stubs (MEU-89, MEU-90)
+# ---------------------------------------------------------------------------
+
+
+class StubAuditCounter:
+    """Satisfies both AuditCounter (guardrails) and AuditLogger (scheduling) protocols."""
+
+    async def count_actions_since(self, action: str, since: Any) -> int:
+        return 0
+
+    async def log(
+        self, action: str, resource_type: str, resource_id: str,
+        details: dict[str, Any] | None = None,
+    ) -> None:
+        pass
+
+
+class StubPolicyStore:
+    """In-memory policy store satisfying PolicyStore protocol."""
+
+    def __init__(self) -> None:
+        self._store: dict[str, dict[str, Any]] = {}
+        self._auto_id: int = 0
+
+    async def create(self, data: dict[str, Any]) -> dict[str, Any]:
+        self._auto_id += 1
+        pid = data.get("id") or str(self._auto_id)
+        data["id"] = pid
+        self._store[pid] = data
+        return data
+
+    async def get_by_id(self, policy_id: str) -> dict[str, Any] | None:
+        return self._store.get(policy_id)
+
+    async def list_all(self, enabled_only: bool = False) -> list[dict[str, Any]]:
+        items = list(self._store.values())
+        if enabled_only:
+            items = [p for p in items if p.get("enabled", True)]
+        return items
+
+    async def update(self, policy_id: str, data: dict[str, Any]) -> dict[str, Any] | None:
+        if policy_id not in self._store:
+            return None
+        self._store[policy_id].update(data)
+        return self._store[policy_id]
+
+    async def delete(self, policy_id: str) -> None:
+        self._store.pop(policy_id, None)
+
+
+class StubRunStore:
+    """In-memory run store satisfying RunStore protocol."""
+
+    def __init__(self) -> None:
+        self._store: dict[str, dict[str, Any]] = {}
+
+    async def create(self, data: dict[str, Any]) -> dict[str, Any]:
+        rid = data.get("run_id", str(len(self._store) + 1))
+        self._store[rid] = data
+        return data
+
+    async def get_by_id(self, run_id: str) -> dict[str, Any] | None:
+        return self._store.get(run_id)
+
+    async def list_for_policy(self, policy_id: str, limit: int = 20) -> list[dict[str, Any]]:
+        return [r for r in self._store.values() if r.get("policy_id") == policy_id][:limit]
+
+    async def list_recent(self, limit: int = 20) -> list[dict[str, Any]]:
+        return list(self._store.values())[:limit]
+
+    async def update(self, run_id: str, data: dict[str, Any]) -> dict[str, Any] | None:
+        if run_id not in self._store:
+            return None
+        self._store[run_id].update(data)
+        return self._store[run_id]
+
+
+class StubStepStore:
+    """In-memory step store satisfying StepStore protocol."""
+
+    async def list_for_run(self, run_id: str) -> list[dict[str, Any]]:
+        return []

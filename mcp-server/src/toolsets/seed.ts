@@ -26,6 +26,7 @@ import { registerGuiTools } from "../tools/gui-tools.js";
 import { registerAccountTools } from "../tools/accounts-tools.js";
 import { registerDiscoveryTools } from "../tools/discovery-tools.js";
 import { registerMarketDataTools } from "../tools/market-data-tools.js";
+import { registerSchedulingTools, registerSchedulingResources } from "../tools/scheduling-tools.js";
 
 // ── Toolset definitions (canonical: 05-mcp-server.md §5.11 L735-745) ──
 
@@ -254,22 +255,37 @@ const TOOLSET_DEFINITIONS: ToolsetDefinition[] = [
     },
     {
         name: "scheduling",
-        description: "Policy CRUD, pipeline execution, scheduler status",
+        description: "Policy CRUD, pipeline execution, scheduler status, run history",
         tools: [
             {
-                name: "create_schedule",
-                description: "Create a scheduled policy",
+                name: "create_policy",
+                description: "Create a new pipeline policy",
             },
             {
-                name: "list_schedules",
-                description: "List active schedules",
+                name: "list_policies",
+                description: "List all pipeline policies",
             },
             {
                 name: "run_pipeline",
-                description: "Execute a pipeline manually",
+                description: "Trigger a manual pipeline run",
+            },
+            {
+                name: "preview_report",
+                description: "Dry-run a pipeline for preview",
+            },
+            {
+                name: "update_policy_schedule",
+                description: "Update a policy's schedule",
+            },
+            {
+                name: "get_pipeline_history",
+                description: "Get pipeline execution history",
             },
         ],
-        register: () => [],
+        register: (server: McpServer): RegisteredToolHandle[] => {
+            registerSchedulingResources(server);
+            return registerSchedulingTools(server);
+        },
         loaded: false,
         alwaysLoaded: false,
         isDefault: false,
