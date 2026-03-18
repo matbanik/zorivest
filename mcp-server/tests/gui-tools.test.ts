@@ -241,7 +241,7 @@ describe("zorivest_launch_gui", () => {
         // launchAndWait runs exec("path") not exec("start ... path")
         const execCalls = mockExec.mock.calls;
         const launchCall = execCalls.find(
-            (c: unknown[]) => typeof c[0] === "string" && c[0].includes("Zorivest"),
+            (c: unknown[]) => typeof c[0] === "string" && /zorivest/i.test(c[0] as string),
         );
         expect(launchCall).toBeDefined();
     });
