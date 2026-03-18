@@ -93,7 +93,7 @@ describe("zorivest_launch_gui", () => {
     // AC-4 method 1: Packaged app discovery
     it("returns gui_found: true with packaged method when installed app found", async () => {
         mockExistsSync.mockImplementation((p: string) => {
-            if (typeof p === "string" && p.includes("Zorivest")) return true;
+            if (typeof p === "string" && /zorivest/i.test(p)) return true;
             return false;
         });
 
@@ -215,7 +215,7 @@ describe("zorivest_launch_gui", () => {
     it("honors wait_for_close=true by awaiting launchAndWait", async () => {
         // Simulate packaged app found so we actually launch
         mockExistsSync.mockImplementation((p: string) => {
-            if (typeof p === "string" && p.includes("Zorivest")) return true;
+            if (typeof p === "string" && /zorivest/i.test(p)) return true;
             return false;
         });
         // exec for launch-and-wait: call callback immediately (simulates exit)

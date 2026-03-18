@@ -236,6 +236,7 @@ def test_AC_SR11_render_candlestick_keys():
 
 def test_AC_SR12_render_pdf_creates_directory(tmp_path):
     """render_pdf creates output directory if missing and produces a valid PDF."""
+    pytest.importorskip("playwright", reason="Playwright not installed — requires: pip install playwright && playwright install chromium")
     from zorivest_infra.rendering.pdf_renderer import render_pdf
 
     output_dir = tmp_path / "reports" / "nested"

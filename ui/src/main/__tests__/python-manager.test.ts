@@ -130,6 +130,14 @@ describe('PythonManager', () => {
             const fetchMock = vi.fn().mockResolvedValue({ ok: true })
             global.fetch = fetchMock
 
+            // Make mock process fire 'exit' immediately when listener is registered
+            // so stop() doesn't hang waiting for process exit
+            mockChildProcess.on.mockImplementation((event: string, cb: () => void) => {
+                if (event === 'exit') {
+                    setTimeout(() => cb(), 0)
+                }
+            })
+
             pm.generateToken()
             await pm.allocatePort()
             await pm.start()
@@ -139,7 +147,7 @@ describe('PythonManager', () => {
                 expect.stringContaining('/shutdown'),
                 expect.objectContaining({ method: 'POST' }),
             )
-        })
+        }, 10_000)
     })
 
     describe('getters', () => {
