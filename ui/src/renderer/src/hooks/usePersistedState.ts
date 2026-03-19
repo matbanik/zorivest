@@ -17,7 +17,7 @@ export function usePersistedState<T>(key: string, defaultValue: T) {
         queryKey,
         queryFn: async () => {
             try {
-                const result = await apiFetch<{ value: T }>(`/api/settings/${key}`)
+                const result = await apiFetch<{ value: T }>(`/api/v1/settings/${key}`)
                 return result.value
             } catch {
                 return defaultValue
@@ -28,7 +28,7 @@ export function usePersistedState<T>(key: string, defaultValue: T) {
 
     const mutation = useMutation({
         mutationFn: async (value: T) => {
-            await apiFetch(`/api/settings/${key}`, {
+            await apiFetch(`/api/v1/settings/${key}`, {
                 method: 'PUT',
                 body: JSON.stringify({ value }),
             })

@@ -1,4 +1,17 @@
 import { app, BrowserWindow, ipcMain, Menu, shell } from 'electron'
+
+// Runtime guard: detect if running under Node.js instead of Electron
+if (typeof app === 'undefined') {
+    console.error(
+        '\n[FATAL] This script must be run with the Electron binary, not Node.js.\n' +
+        '  Correct:   npx electron ./out/main/index.js\n' +
+        '  Incorrect: node ./out/main/index.js\n' +
+        '\nIf npx electron also fails, ensure the electron npm package is properly\n' +
+        'installed and has a valid binary at node_modules/electron/dist/electron.exe.\n'
+    )
+    process.exit(1)
+}
+
 import { join } from 'path'
 import Store from 'electron-store'
 import { PythonManager } from './python-manager'
@@ -147,6 +160,11 @@ app.whenReady().then(async () => {
     if (isDev) {
         // Dev mode: skip Python backend, show main window after brief splash
         await new Promise((r) => setTimeout(r, 1000))
+        ready = true
+    } else if (process.env.ZORIVEST_BACKEND_URL) {
+        // E2E / external backend: harness owns the backend process.
+        // Skip local spawn to avoid dual-start port conflicts.
+        await new Promise((r) => setTimeout(r, 500))
         ready = true
     } else {
         // Production: start Python backend and wait for health check

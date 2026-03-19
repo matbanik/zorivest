@@ -218,3 +218,8 @@ def create_app() -> FastAPI:
     app.include_router(scheduler_router)  # MEU-89
 
     return app
+
+
+# Module-level app instance for uvicorn CLI: `uvicorn zorivest_api.main:app`
+# Required by ui/tests/e2e/global-setup.ts for E2E test backend bootstrap.
+app = create_app()

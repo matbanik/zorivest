@@ -9,7 +9,7 @@ import { type ElectronApplication, type Page, _electron as electron } from '@pla
 import { resolve } from 'path'
 import { SIDEBAR } from '../test-ids'
 
-const MAIN_ENTRY = resolve(__dirname, '../../../build/main/index.js')
+const MAIN_ENTRY = resolve(__dirname, '../../../out/main/index.js')
 const API_BASE = 'http://localhost:8765/api/v1'
 
 export class AppPage {
@@ -23,11 +23,15 @@ export class AppPage {
             env: {
                 ...process.env,
                 NODE_ENV: 'test',
+                ZORIVEST_BACKEND_URL:
+                    process.env.ZORIVEST_BACKEND_URL || 'http://localhost:8765',
             },
         })
 
-        // Wait for the first BrowserWindow (main window after splash closes)
-        this.page = await this.app.firstWindow()
+        // firstWindow() returns the splash screen (400x300, frameless).
+        // Wait for the main window to open, then use that instead.
+        await this.app.firstWindow() // splash — discard reference
+        this.page = await this.app.waitForEvent('window')
         await this.page.waitForLoadState('domcontentloaded')
     }
 

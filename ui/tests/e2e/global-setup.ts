@@ -88,4 +88,7 @@ export default async function globalSetup(): Promise<void> {
     }
 
     console.log('[e2e] Backend is healthy')
+
+    // Tell Electron main process to skip its own backend spawn
+    process.env.ZORIVEST_BACKEND_URL = BACKEND_URL
 }

@@ -4,6 +4,7 @@ import NavRail from './NavRail'
 import Header from './Header'
 import StatusFooter from './StatusFooter'
 import CommandPalette from '../CommandPalette'
+import { StatusBarProvider } from '../../hooks/useStatusBar'
 
 interface AppShellProps {
     children?: React.ReactNode
@@ -31,20 +32,22 @@ export default function AppShell({ children }: AppShellProps) {
     }, [])
 
     return (
-        <div className="flex h-screen bg-bg text-fg">
-            <SkipLink />
-            <NavRail />
-            <div className="flex flex-col flex-1 min-w-0">
-                <Header onCommandPaletteToggle={() => setPaletteOpen(true)} />
-                <main id="main-content" className="flex-1 overflow-auto p-4">
-                    {children}
-                </main>
-                <StatusFooter />
+        <StatusBarProvider>
+            <div className="flex h-screen bg-bg text-fg">
+                <SkipLink />
+                <NavRail />
+                <div className="flex flex-col flex-1 min-w-0">
+                    <Header onCommandPaletteToggle={() => setPaletteOpen(true)} />
+                    <main id="main-content" className="flex-1 overflow-auto p-4">
+                        {children}
+                    </main>
+                    <StatusFooter />
+                </div>
+                <CommandPalette
+                    open={paletteOpen}
+                    onClose={() => setPaletteOpen(false)}
+                />
             </div>
-            <CommandPalette
-                open={paletteOpen}
-                onClose={() => setPaletteOpen(false)}
-            />
-        </div>
+        </StatusBarProvider>
     )
 }

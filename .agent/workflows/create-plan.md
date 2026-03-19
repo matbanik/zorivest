@@ -162,12 +162,17 @@ After all MEU TDD cycles and handoffs are complete, **continue immediately** wit
 2. Update `.agent/context/meu-registry.md` with new MEU rows
 3. Update `docs/BUILD_PLAN.md` status column for completed MEUs
 4. Run full regression: `uv run pytest tests/ -v`
-5. Create reflection file at `docs/execution/reflections/` (see `execution-session.md` §5)
-6. Update metrics table in `docs/execution/metrics.md`
-7. Save session state to `pomera_notes`
-8. Prepare proposed commit messages
+5. **If any files in `packages/api/` were created or modified**, regenerate the OpenAPI spec to prevent CI drift failures:
+   ```bash
+   uv run python tools/export_openapi.py -o openapi.committed.json
+   ```
+   > This is required because CI runs `--check` mode against the committed spec. Forgetting this step causes the Quality Gate to fail with "OpenAPI spec DRIFT detected!"
+6. Create reflection file at `docs/execution/reflections/` (see `execution-session.md` §5)
+7. Update metrics table in `docs/execution/metrics.md`
+8. Save session state to `pomera_notes`
+9. Prepare proposed commit messages
 
-**Do NOT return control to the user until all 8 items above are done.**
+**Do NOT return control to the user until all 9 items above are done.**
 
 ### 7. Completion Gate
 
@@ -219,6 +224,7 @@ Examples:
 - [ ] MEU gate passed: `uv run python tools/validate_codebase.py --scope meu`
 - [ ] MEU registry updated per MEU
 - [ ] `docs/BUILD_PLAN.md` status updated for completed MEUs
+- [ ] OpenAPI spec regenerated (if `packages/api/` was modified)
 - [ ] Reflection file created
 - [ ] Metrics table updated
 - [ ] Session state saved to pomera_notes

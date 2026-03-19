@@ -6,6 +6,7 @@ import {
     Settings,
     type LucideIcon,
 } from 'lucide-react'
+import { useNavigate, useLocation } from '@tanstack/react-router'
 
 interface NavItem {
     label: string
@@ -21,6 +22,14 @@ const navItems: NavItem[] = [
     { label: 'Settings', path: '/settings', icon: Settings },
 ]
 
+const navTestIds: Record<string, string> = {
+    '/': 'nav-accounts',
+    '/trades': 'nav-trades',
+    '/planning': 'nav-planning',
+    '/scheduling': 'nav-scheduling',
+    '/settings': 'nav-settings',
+}
+
 interface NavRailProps {
     currentPath?: string
     onNavigate?: (path: string) => void
@@ -29,22 +38,37 @@ interface NavRailProps {
 /**
  * Navigation Rail — vertical left sidebar with 5 icon+label items.
  * Matches 06-gui.md §Navigation Rail canonical routes.
+ *
+ * Uses TanStack Router by default. Props override for testing.
  */
-export default function NavRail({ currentPath = '/', onNavigate }: NavRailProps) {
+export default function NavRail({ currentPath, onNavigate }: NavRailProps) {
+    const navigate = useNavigate()
+    const location = useLocation()
+    const activePath = currentPath ?? location.pathname
+
+    const handleNavigate = (path: string) => {
+        if (onNavigate) {
+            onNavigate(path)
+        } else {
+            navigate({ to: path })
+        }
+    }
+
     return (
         <nav aria-label="Main navigation" className="nav-rail">
             <div className="flex flex-col gap-1 p-2">
                 {navItems.map((item) => {
-                    const isActive = currentPath === item.path
+                    const isActive = activePath === item.path
                     const Icon = item.icon
                     return (
                         <a
                             key={item.path}
                             href={`#${item.path}`}
+                            data-testid={navTestIds[item.path]}
                             aria-current={isActive ? 'page' : undefined}
                             onClick={(e) => {
                                 e.preventDefault()
-                                onNavigate?.(item.path)
+                                handleNavigate(item.path)
                             }}
                             className={`flex items-center gap-3 px-3 py-2 rounded-md text-sm transition-colors
                 ${isActive ? 'bg-bg-elevated text-fg' : 'text-fg-muted hover:bg-bg-elevated hover:text-fg'}`}

@@ -11,22 +11,34 @@ The E2E test suite uses Playwright's Electron support (`_electron.launch()`) to 
 
 Tests activate incrementally as GUI pages are built (see Wave Activation below).
 
+## Prerequisites
+
+> [!IMPORTANT]
+> **Build before every E2E run.** Playwright launches the compiled `out/main/index.js`, not source files.
+> Source changes are invisible to E2E tests until you rebuild.
+
+Before running any E2E test:
+
+1. **Build the Electron bundle**: `cd ui && npm run build`
+2. **Python backend**: Handled automatically by `global-setup.ts`
+3. **data-testid attributes**: Must exist in components for the target wave
+
 ## Commands
 
 ```bash
-# Run all E2E tests
-cd ui && npx playwright test
+# Build + run all E2E tests
+cd ui && npm run build && npx playwright test
 
-# Run specific test file
-cd ui && npx playwright test tests/e2e/launch.test.ts
+# Build + run specific test file
+cd ui && npm run build && npx playwright test tests/e2e/launch.test.ts
 
 # Debug mode (opens inspector)
-cd ui && PWDEBUG=1 npx playwright test tests/e2e/launch.test.ts
+cd ui && npm run build && PWDEBUG=1 npx playwright test tests/e2e/launch.test.ts
 
 # Update visual regression baselines
-cd ui && npx playwright test --update-snapshots
+cd ui && npm run build && npx playwright test --update-snapshots
 
-# View HTML report
+# View HTML report (no build needed)
 cd ui && npx playwright show-report
 ```
 
@@ -81,6 +93,28 @@ When implementing a GUI page, import test IDs from `ui/tests/e2e/test-ids.ts`:
 ```
 
 Constants use `SCREAMING_SNAKE_CASE`, values use `kebab-case`.
+
+## Mock-Contract Validation
+
+> [!CAUTION]
+> **Unit test mocks must match the real API response shape.**
+> Hand-writing mocks from memory causes contract drift. The `locked` vs `is_locked` bug passed all 122 unit tests but broke the app at runtime.
+
+When mocking API responses in unit tests:
+
+1. **Check the source of truth**: Read the Python route or Pydantic model (e.g., `packages/api/src/zorivest_api/routes/mcp_guard.py`)
+2. **Or check the OpenAPI spec**: Search `openapi.committed.json` for the endpoint path
+3. **Never guess field names**: Copy exact field names into your TS `interface` and mock
+
+```typescript
+// ❌ BAD: assumed field name from TS convention
+interface GuardStatusResponse { locked: boolean }
+mockApiFetch.mockResolvedValue({ locked: true })
+
+// ✅ GOOD: matches Python McpGuardStatus.is_locked
+interface GuardStatusResponse { is_locked: boolean }
+mockApiFetch.mockResolvedValue({ is_locked: true })
+```
 
 ## Page Object Model
 

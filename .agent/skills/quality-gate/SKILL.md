@@ -88,3 +88,21 @@ When using `--json`, output structure:
 
 - **MEU gate**: Run after each MEU. Use `--scope meu`. Some later-phase checks may fail — that's expected.
 - **Phase gate**: Run only when ALL MEUs in the phase are done. Must pass completely.
+
+### GUI-Phase Gates (Phase 6+)
+
+When working on `ui/` code, the following additional checks apply:
+
+| # | Check | Command | When |
+|---|-------|---------|------|
+| G1 | Electron build | `cd ui && npm run build` | **Every** source change to `ui/src/main/` or `ui/src/preload/` |
+| G2 | E2E smoke (when wave is active) | `cd ui && npm run build && npx playwright test` | After completing a wave gate MEU |
+
+> [!IMPORTANT]
+> **Electron build is mandatory.** Playwright E2E tests launch the compiled `out/main/index.js`, not source files.
+> Source changes to `ui/src/main/` are invisible to E2E until `npm run build` runs.
+> The stale-bundle bug (4 review passes, 2026-03-18) was caused by omitting this step.
+
+### Mock-Contract Validation
+
+When reviewing or writing unit tests that mock API responses, verify TS interfaces match the actual Python API models. See [testing-strategy.md §Mock-Contract Validation Rule](../../docs/build-plan/testing-strategy.md) for details.

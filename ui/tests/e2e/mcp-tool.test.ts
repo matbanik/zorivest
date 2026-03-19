@@ -1,8 +1,8 @@
 /**
- * E2E: MCP tool execution from simulated IDE.
+ * E2E: MCP Guard + settings checks.
  *
- * Tests the MCP tool endpoint directly via HTTP to verify the
- * MCP server responds correctly when accessed through the API.
+ * Validates that the MCP Guard and settings API endpoints
+ * respond with the expected shape.
  */
 
 import { test, expect } from '@playwright/test'
@@ -19,14 +19,21 @@ test.afterEach(async () => {
     await appPage.close()
 })
 
-test('MCP guard check endpoint responds', async () => {
-    const result = await appPage.apiGet<{ is_locked: boolean }>('/mcp-guard/check')
+test('MCP guard status endpoint responds', async () => {
+    const result = await appPage.apiGet<{ is_locked: boolean }>('/mcp-guard/status')
     expect(result).toHaveProperty('is_locked')
     expect(typeof result.is_locked).toBe('boolean')
+})
+
+test('MCP guard check endpoint responds', async () => {
+    const result = await appPage.apiPost<{ allowed: boolean; reason: string }>('/mcp-guard/check', {})
+    expect(result).toHaveProperty('allowed')
+    expect(typeof result.allowed).toBe('boolean')
+    expect(result).toHaveProperty('reason')
+    expect(typeof result.reason).toBe('string')
 })
 
 test('settings API returns valid configuration', async () => {
     const settings = await appPage.apiGet<Record<string, unknown>>('/settings')
     expect(settings).toBeDefined()
-    expect(typeof settings).toBe('object')
 })

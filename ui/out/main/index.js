@@ -118,6 +118,12 @@ function getStoredBounds() {
 function saveWindowBounds(bounds) {
   getStore().set("windowBounds", bounds);
 }
+if (typeof electron.app === "undefined") {
+  console.error(
+    "\n[FATAL] This script must be run with the Electron binary, not Node.js.\n  Correct:   npx electron ./out/main/index.js\n  Incorrect: node ./out/main/index.js\n\nIf npx electron also fails, ensure the electron npm package is properly\ninstalled and has a valid binary at node_modules/electron/dist/electron.exe.\n"
+  );
+  process.exit(1);
+}
 function createAppMenu() {
   const template = [
     { role: "fileMenu" },
@@ -229,6 +235,9 @@ electron.app.whenReady().then(async () => {
   let ready;
   if (isDev) {
     await new Promise((r) => setTimeout(r, 1e3));
+    ready = true;
+  } else if (process.env.ZORIVEST_BACKEND_URL) {
+    await new Promise((r) => setTimeout(r, 500));
     ready = true;
   } else {
     pythonManager.generateToken();

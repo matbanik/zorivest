@@ -47,6 +47,10 @@ All pages follow the **list+detail split layout** pattern (see [Notes Architectu
 │  • Row selection → opens detail panel on right                                       │
 │  • Filter bar: date range, instrument search, account dropdown, action filter        │
 │  • Pagination: 50 rows per page (server-side via ?limit=&offset=)                    │
+│    **Phase 6 scope**: MVP uses client-side pagination (first-page fetch with          │
+│    TanStack Table's getPaginationRowModel). The backend API already supports           │
+│    limit/offset, so upgrading to server-driven cursor pagination requires no           │
+│    API changes — deferred until trade volumes exceed first-page capacity.              │
 │                                                                                      │
 └──────────────────────────────────────────────────────────────────────────────────────┘
 ```

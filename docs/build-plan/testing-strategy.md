@@ -530,7 +530,7 @@ Track eval results per feature in the handoff artifact. Use the following templa
 | **Tool** | Playwright `_electron` with `@axe-core/playwright` |
 | **Location** | `ui/tests/e2e/` |
 | **Config** | `ui/playwright.config.ts` |
-| **Runner** | `cd ui && npx playwright test` |
+| **Runner** | `cd ui && npm run build && npx playwright test` |
 | **Workers** | 1 (Electron tests share app state) |
 
 #### Incremental Activation (Waves)
@@ -546,8 +546,8 @@ E2E tests activate incrementally as GUI pages are built. Each wave has a gate ME
 | 4 | MEU-48 `gui-plans` | `position-size` (2) | **18** |
 | 5 | MEU-96/99 import GUI | `import` (2) | **20** |
 
-> [!NOTE]
-> Wave 0 tests need NO `data-testid` — they only require `npm run build` and a healthy Python backend (automated by `global-setup.ts`). Each subsequent wave requires `data-testid` attributes added to the corresponding GUI components.
+> [!IMPORTANT]
+> **Build before every E2E run.** Wave 0 tests require `npm run build` (alias for `electron-vite build`) and a healthy Python backend (automated by `global-setup.ts`). Playwright launches the compiled `out/main/index.js`, not the source files — source changes are invisible until you rebuild. Each subsequent wave additionally requires `data-testid` attributes added to the corresponding GUI components.
 
 #### Infrastructure Files
 
@@ -577,3 +577,22 @@ E2E tests activate incrementally as GUI pages are built. Each wave has a gate ME
 - **AxeBuilder** (WCAG 2.1 AA) assertions in `launch`, `trade-entry`, `position-size`, `import` tests
 - **`toHaveScreenshot()`** with financial data masking (`balance-amount`, `pnl-value`) in `trade-entry.test.ts`
 - Visual regression baselines auto-generated on first run
+
+### Mock-Contract Validation Rule
+
+> [!CAUTION]
+> **Unit test mocks must match the real API response shape.** Never hand-write mock response objects from memory or TS-convention guesses.
+
+The `locked` vs `is_locked` bug (Pass 2-3 of GUI review, 2026-03-18) demonstrated this failure mode: all 122 unit tests passed, but the app was broken at runtime because TS interfaces used `locked` while the Python `McpGuardStatus` model returned `is_locked`. The mocks matched the wrong TS interface, masking the contract drift.
+
+**When writing unit tests that mock API responses:**
+
+1. **Check the Python model** — read the Pydantic model or route handler (e.g., `packages/api/src/zorivest_api/routes/`)
+2. **Or check the OpenAPI spec** — search `openapi.committed.json` for the endpoint path and response schema
+3. **Mirror exact field names** — copy field names into your TS `interface` and mock data
+
+| Source of truth | Location |
+|---|---|
+| Python Pydantic models | `packages/api/src/zorivest_api/` |
+| OpenAPI committed spec | `openapi.committed.json` |
+| OpenAPI CI check | `uv run python tools/export_openapi.py --check openapi.committed.json` |

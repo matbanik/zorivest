@@ -131,9 +131,19 @@ jobs:
         run: npm ci
         working-directory: ui
 
-      - name: UI tests
+      - name: Type check (tsc)
+        run: npx tsc --noEmit
+        working-directory: ui
+
+      - name: Electron build
+        run: npm run build
+        working-directory: ui
+
+      - name: UI unit tests
         run: npx vitest run
         working-directory: ui
+
+      # E2E tests deferred to MEU-170 (requires xvfb or windows runner)
 
       - name: npm audit (UI dependencies)
         run: npm audit --omit=dev

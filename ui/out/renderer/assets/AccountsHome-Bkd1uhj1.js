@@ -1,4 +1,4 @@
-import { c as compilerRuntimeExports, j as jsxRuntimeExports } from "./index-Ti6IIfHr.js";
+import { c as compilerRuntimeExports, j as jsxRuntimeExports } from "./index-BZpIS9tl.js";
 function AccountsHome() {
   const $ = compilerRuntimeExports.c(1);
   let t0;

@@ -413,8 +413,8 @@ export const useAccountContext = () => useContext(AccountContext);
 | 4 | **MEU-48** `gui-plans` | `position-size.test.ts` (2) | **18** | `calc-account-size`, `calc-risk-percent`, `calc-result-shares` |
 | 5 | **MEU-96/99** import GUI | `import.test.ts` (2) | **20** | `import-file-input`, `import-submit-btn`, `import-result-count` |
 
-> [!NOTE]
-> Wave 0 tests (`launch` + `mcp-tool`) need NO `data-testid` — they only require `npm run build` to produce `build/main/index.js` and a healthy Python backend (automated by `global-setup.ts`).
+> [!IMPORTANT]
+> **Build before every E2E run.** Wave 0 tests require `npm run build` (alias for `electron-vite build`) to produce `out/main/index.js` and a healthy Python backend (automated by `global-setup.ts`). Playwright launches the compiled bundle, not source files — source changes are invisible until you rebuild.
 
 ### `data-testid` Convention
 
@@ -426,6 +426,20 @@ All test IDs are defined in `ui/tests/e2e/test-ids.ts`. Constants use `SCREAMING
 ### Exit Criterion
 
 **MEU-170** (`e2e-all-green`): All 20 Playwright E2E tests pass end-to-end after all waves are activated.
+
+#### Implementation Notes (from MEU-47 cycle, 2026-03-18)
+
+**CI**: `electron-vite build` and `tsc --noEmit` were added to `.github/workflows/ci.yml` (UI Tests job) during MEU-47. E2E tests are commented out pending `xvfb` or `windows-latest` runner setup.
+
+**Lessons learned** (GUI critical review, 4 passes):
+
+1. **Stale bundle gate**: Playwright launches `out/main/index.js`, not source files. Every source change to `ui/src/main/` requires `npm run build` before E2E. This caused a 4-pass review loop where source fixes were invisible to E2E. CI now catches this. See [testing-strategy.md §E2E Testing](testing-strategy.md) and [quality-gate skill](../../.agent/skills/quality-gate/SKILL.md) §GUI-Phase Gates.
+
+2. **Splash window isolation**: `AppPage.launch()` must use `waitForEvent('window')` after `firstWindow()` to get the main window, not the splash. The splash is the first `BrowserWindow` created (400×300, frameless) and closes ~500ms later. See [AppPage.ts](../../ui/tests/e2e/pages/AppPage.ts).
+
+3. **Mock-contract drift**: TS unit test mocks must match Python API response shapes exactly. The `locked` vs `is_locked` mismatch passed 122 unit tests while breaking the app at runtime. See [testing-strategy.md §Mock-Contract Validation Rule](testing-strategy.md).
+
+4. **`xvfb` requirement**: Electron E2E on Linux CI needs `xvfb-run` wrapper or `uses: GabrielBB/xvfb-action@v1`. Alternative: use `windows-latest` runner (matches dev environment).
 
 ---
 

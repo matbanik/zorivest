@@ -43,17 +43,25 @@ test('create a trade via form → appears in trade list', async () => {
     // Wait for the trade to appear in the list
     await appPage.page.waitForTimeout(1_000)
 
-    // Verify trade row contains the symbol
+    // Verify AAPL specifically appears in a trade row (not just count > 0)
     const tradeRows = appPage.testId(TRADES.TRADE_ROW)
     const count = await tradeRows.count()
     expect(count).toBeGreaterThan(0)
+
+    // Find the row containing 'AAPL'
+    const aaplRow = tradeRows.filter({ hasText: 'AAPL' })
+    await expect(aaplRow).toHaveCount(1)
 })
 
 test('created trade persists in API', async () => {
     // Cross-check: query the API directly for trades
-    const trades = await appPage.apiGet<{ data: unknown[] }>('/trades')
-    expect(trades.data).toBeDefined()
-    expect(Array.isArray(trades.data)).toBe(true)
+    const trades = await appPage.apiGet<{ items: Array<{ instrument?: string }>; total: number; limit: number; offset: number }>('/trades')
+    expect(trades.items).toBeDefined()
+    expect(Array.isArray(trades.items)).toBe(true)
+
+    // Verify AAPL specifically exists in the API response
+    const aaplTrade = trades.items.find((t) => t.instrument === 'AAPL')
+    expect(aaplTrade).toBeDefined()
 })
 
 test('trades page has no accessibility violations', async () => {
