@@ -49,6 +49,7 @@ uv run python tools/validate_codebase.py --json
 | 7 | Anti-placeholder scan | `rg TODO\|FIXME\|NotImplementedError` | Unresolved placeholder (lines with `# noqa: placeholder` excluded) |
 | 8 | Anti-deferral scan | `rg pass.*placeholder\|raise NotImplementedError` | Deferred implementation |
 | 9 | GUI-API seam tests | `pytest tests/integration/test_gui_api_seams.py` | Field mismatch, schema gap, response format bug |
+| 10 | OpenAPI spec drift | `uv run python tools/export_openapi.py --check openapi.committed.json` | API route changed without regenerating committed spec |
 
 ### Advisory (non-blocking)
 

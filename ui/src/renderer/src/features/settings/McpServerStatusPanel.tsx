@@ -73,6 +73,15 @@ function StatusDot({ ok }: { ok: boolean }) {
     )
 }
 
+function formatUptime(seconds: number): string {
+    const h = Math.floor(seconds / 3600)
+    const m = Math.floor((seconds % 3600) / 60)
+    const s = Math.floor(seconds % 60)
+    if (h > 0) return `${h}h ${m}m`
+    if (m > 0) return `${m}m ${s}s`
+    return `${s}s`
+}
+
 // ── Component ────────────────────────────────────────────────────────────
 
 /**
@@ -171,10 +180,10 @@ export default function McpServerStatusPanel() {
                     </div>
 
                     <div className="text-fg-muted">Registered tools</div>
-                    <div className="text-fg-muted" title="Requires MCP proxy — see MEU-46a">N/A</div>
+                    <div className="text-fg-muted">{health ? '—' : 'N/A'}</div>
 
                     <div className="text-fg-muted">Uptime</div>
-                    <div className="text-fg-muted" title="Requires MCP proxy — see MEU-46a">N/A</div>
+                    <div className="text-fg-muted">{health?.uptime_seconds != null ? formatUptime(health.uptime_seconds) : 'N/A'}</div>
                 </div>
 
                 <button

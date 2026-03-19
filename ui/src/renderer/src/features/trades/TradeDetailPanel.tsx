@@ -116,8 +116,8 @@ export default function TradeDetailPanel({
                         key={tab.key}
                         onClick={() => setActiveTab(tab.key)}
                         className={`px-4 py-2 text-sm transition-colors ${activeTab === tab.key
-                                ? 'border-b-2 border-accent text-fg font-medium'
-                                : 'text-fg-muted hover:text-fg'
+                            ? 'border-b-2 border-accent text-fg font-medium'
+                            : 'text-fg-muted hover:text-fg'
                             }`}
                     >
                         {tab.label}
@@ -233,17 +233,19 @@ export default function TradeDetailPanel({
                             <button
                                 type="submit"
                                 data-testid="trade-submit-btn"
-                                className="px-4 py-1.5 text-sm rounded-md bg-accent text-accent-fg hover:bg-accent/90"
+                                className="px-4 py-1.5 text-sm rounded-md bg-accent text-accent-fg hover:bg-accent/90 border border-accent"
                             >
                                 Save
                             </button>
-                            <button
-                                type="button"
-                                onClick={() => trade && onDelete?.(trade.exec_id)}
-                                className="px-4 py-1.5 text-sm rounded-md bg-red-900/30 text-red-400 hover:bg-red-900/50"
-                            >
-                                Delete
-                            </button>
+                            {trade.exec_id !== '(new)' && (
+                                <button
+                                    type="button"
+                                    onClick={() => trade && onDelete?.(trade.exec_id)}
+                                    className="px-4 py-1.5 text-sm rounded-md bg-red-900/30 text-red-400 hover:bg-red-900/50 border border-red-900/50"
+                                >
+                                    Delete
+                                </button>
+                            )}
                             <button
                                 type="button"
                                 data-testid="trade-cancel-btn"
@@ -256,9 +258,22 @@ export default function TradeDetailPanel({
                     </form>
                 )}
 
-                {activeTab === 'journal' && <TradeReportForm trade={trade} />}
+                {activeTab === 'journal' && <TradeReportForm trade={trade} onClose={onClose} />}
 
-                {activeTab === 'screenshots' && <ScreenshotPanel tradeId={trade.exec_id} />}
+                {activeTab === 'screenshots' && (
+                    <div>
+                        <ScreenshotPanel tradeId={trade.exec_id} />
+                        <div className="flex gap-2 pt-4">
+                            <button
+                                type="button"
+                                onClick={onClose}
+                                className="px-4 py-1.5 text-sm rounded-md bg-bg text-fg-muted hover:text-fg border border-bg-subtle"
+                            >
+                                Cancel
+                            </button>
+                        </div>
+                    </div>
+                )}
             </div>
         </div>
     )

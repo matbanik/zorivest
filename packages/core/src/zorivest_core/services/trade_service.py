@@ -133,11 +133,13 @@ class TradeService:
         offset: int = 0,
         account_id: str | None = None,
         sort: str = "-time",
+        search: str | None = None,
     ) -> list[Trade]:
-        """List trades with optional filtering and sorting."""
+        """List trades with optional filtering, search, and sorting."""
         with self.uow:
             return self.uow.trades.list_filtered(
                 limit=limit, offset=offset, account_id=account_id, sort=sort,
+                search=search,
             )
 
     def update_trade(self, exec_id: str, **kwargs: object) -> Trade:

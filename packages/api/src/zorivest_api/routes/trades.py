@@ -96,12 +96,14 @@ async def list_trades(
     limit: int = 50,
     offset: int = 0,
     account_id: str | None = None,
+    search: str | None = None,
     sort: str = "-time",
     service=Depends(get_trade_service),
 ):
-    """List trades with optional account filter and sort."""
+    """List trades with optional account filter, search, and sort."""
     trades = service.list_trades(
         limit=limit, offset=offset, account_id=account_id, sort=sort,
+        search=search,
     )
     items = [TradeResponse.model_validate(t) for t in trades]
     return PaginatedResponse(

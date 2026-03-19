@@ -37,6 +37,7 @@ Read these files in order:
 3. `.agent/context/current-focus.md`
 4. `.agent/context/known-issues.md`
 5. `pomera_notes` search (`Zorivest`, `Memory/Session/*`, `Memory/Decisions/*`)
+6. `.agent/docs/emerging-standards.md` — verify applicable standards were followed in the reviewed work. Flag violations as findings.
 
 ---
 

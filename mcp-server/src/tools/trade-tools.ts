@@ -61,6 +61,12 @@ export function registerTradeTools(server: McpServer): RegisteredToolHandle[] {
                     .string()
                     .optional()
                     .describe("Optional trade notes"),
+                confirmation_token: z
+                    .string()
+                    .optional()
+                    .describe(
+                        "Confirmation token from get_confirmation_token (required on static/annotation-unaware clients)",
+                    ),
             },
             annotations: {
                 readOnlyHint: false,
@@ -351,6 +357,54 @@ export function registerTradeTools(server: McpServer): RegisteredToolHandle[] {
 
             return { content };
         },
+    ));
+    // ── delete_trade ─────────────────────────────────────────────────────
+    handles.push(server.registerTool(
+        "delete_trade",
+        {
+            description:
+                "Delete a trade execution record by its execution ID",
+            inputSchema: {
+                exec_id: z
+                    .string()
+                    .describe("Execution ID of the trade to delete"),
+                confirmation_token: z
+                    .string()
+                    .optional()
+                    .describe(
+                        "Confirmation token from get_confirmation_token (required on static/annotation-unaware clients)",
+                    ),
+            },
+            annotations: {
+                readOnlyHint: false,
+                destructiveHint: true,
+                idempotentHint: true,
+                openWorldHint: false,
+            },
+            _meta: {
+                toolset: "trade-analytics",
+                alwaysLoaded: false,
+            },
+        },
+        withMetrics(
+            "delete_trade",
+            withGuard(withConfirmation(
+                "delete_trade",
+                async (params: {
+                    exec_id: string;
+                }, _extra: unknown) => {
+                    const result = await fetchApi(`/trades/${params.exec_id}`, {
+                        method: "DELETE",
+                    });
+
+                    return {
+                        content: [
+                            { type: "text" as const, text: JSON.stringify(result) },
+                        ],
+                    };
+                },
+            )),
+        ),
     ));
     return handles;
 }

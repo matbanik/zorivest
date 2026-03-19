@@ -125,13 +125,14 @@ function TagChipInput({
 interface TradeReportFormProps {
     trade: Trade
     onSave?: (report: TradeReport) => void
+    onClose?: () => void
 }
 
 /**
  * TradeReportForm — Journal tab with star ratings, emotional state,
  * followed-plan select, lessons textarea, and tag chips.
  */
-export default function TradeReportForm({ trade, onSave }: TradeReportFormProps) {
+export default function TradeReportForm({ trade, onSave, onClose }: TradeReportFormProps) {
     const [report, setReport] = useState<TradeReport>({
         setupQuality: 0,
         executionQuality: 0,
@@ -212,15 +213,24 @@ export default function TradeReportForm({ trade, onSave }: TradeReportFormProps)
                 onChange={(tags) => update('tags', tags)}
             />
 
-            {/* Save */}
-            <button
-                type="button"
-                onClick={() => onSave?.(report)}
-                className="px-4 py-1.5 text-sm rounded-md bg-accent text-accent-fg hover:bg-accent/90"
-                data-testid="trade-report-save"
-            >
-                Save Journal
-            </button>
+            {/* Buttons */}
+            <div className="flex gap-2 pt-2">
+                <button
+                    type="button"
+                    onClick={() => onSave?.(report)}
+                    className="px-4 py-1.5 text-sm rounded-md bg-accent text-accent-fg hover:bg-accent/90 border border-accent"
+                    data-testid="trade-report-save"
+                >
+                    Save Journal
+                </button>
+                <button
+                    type="button"
+                    onClick={onClose}
+                    className="px-4 py-1.5 text-sm rounded-md bg-bg text-fg-muted hover:text-fg border border-bg-subtle"
+                >
+                    Cancel
+                </button>
+            </div>
         </div>
     )
 }

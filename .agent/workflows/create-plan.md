@@ -18,6 +18,7 @@ Read these files in order:
 2. `AGENTS.md`
 3. `.agent/context/current-focus.md`
 4. `.agent/context/known-issues.md`
+5. `.agent/docs/emerging-standards.md` — scan for standards applicable to the MEUs being planned. Add matching standards as explicit subtasks in Step 4.
 
 ## Steps
 

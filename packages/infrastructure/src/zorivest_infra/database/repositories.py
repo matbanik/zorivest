@@ -199,15 +199,30 @@ class SqlAlchemyTradeRepository:
         offset: int = 0,
         account_id: str | None = None,
         sort: str = "-time",
+        search: str | None = None,
     ) -> list[Trade]:
-        """List trades with optional account filter and sort.
+        """List trades with optional account filter, search, and sort.
 
         Sort format: field name with optional '-' prefix for descending.
         Supported fields: time (default).
+        Search: case-insensitive match against instrument, exec_id, account_id.
         """
         query = self._session.query(TradeModel)
         if account_id is not None:
             query = query.filter(TradeModel.account_id == account_id)
+
+        if search:
+            pattern = f"%{search}%"
+            from sqlalchemy import or_, func
+            query = query.filter(
+                or_(
+                    func.lower(TradeModel.instrument).like(func.lower(pattern)),
+                    func.lower(TradeModel.exec_id).like(func.lower(pattern)),
+                    func.lower(TradeModel.account_id).like(func.lower(pattern)),
+                    func.lower(TradeModel.notes).like(func.lower(pattern)),
+                    func.strftime('%Y-%m-%d %H:%M', TradeModel.time).like(pattern),
+                )
+            )
 
         # Parse sort direction
         if sort.startswith("-"):

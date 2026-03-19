@@ -87,12 +87,23 @@ class _InMemoryRepo:
         offset: int = 0,
         account_id: Any = None,
         sort: str = "-time",
+        search: str | None = None,
         **kwargs: Any,
     ) -> list:
-        """Return entities with optional account filter and pagination."""
+        """Return entities with optional account/search filter and pagination."""
         items = list(self._store.values())
         if account_id is not None:
             items = [e for e in items if getattr(e, 'account_id', None) == account_id]
+        if search:
+            q = search.lower()
+            items = [
+                e for e in items
+                if q in str(getattr(e, 'instrument', '')).lower()
+                or q in str(getattr(e, 'exec_id', '')).lower()
+                or q in str(getattr(e, 'account_id', '')).lower()
+                or q in str(getattr(e, 'notes', '')).lower()
+                or q in str(getattr(e, 'time', '')).lower()
+            ]
         return items[offset : offset + limit]
 
     def get_for_owner(self, owner_type: Any, owner_id: Any, *args: Any, **kwargs: Any) -> list:

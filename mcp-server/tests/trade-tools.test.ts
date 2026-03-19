@@ -162,8 +162,8 @@ describe("create_trade", () => {
         const [, opts] = vi.mocked(fetch).mock.calls[1];
         const body = JSON.parse(opts?.body as string);
         expect(body.time).toBeDefined();
-        // Should be a valid ISO string
-        expect(() => new Date(body.time)).not.toThrow();
+        // Must be a valid ISO-8601 string (regex catches malformed dates that new Date() silently accepts)
+        expect(body.time).toMatch(/^\d{4}-\d{2}-\d{2}T\d{2}:\d{2}:\d{2}/);
     });
 });
 
@@ -349,5 +349,233 @@ describe("get_screenshot", () => {
         expect(content[1].data).toBe(
             Buffer.from(fakeImageBytes).toString("base64"),
         );
+    });
+});
+
+// ── Confirmation token tests (TDD Red → Green) ────────────────────────
+
+import {
+    setConfirmationMode,
+    createConfirmationToken,
+} from "../src/middleware/confirmation.js";
+
+/**
+ * Guard-aware fetch mock that also serves the /trades POST endpoint.
+ * All guard checks return `allowed: true`, trade endpoint returns 201.
+ */
+function mockGuardAndTradesFetch(tradeResponse: unknown = { exec_id: "CT001" }): void {
+    vi.stubGlobal(
+        "fetch",
+        vi.fn().mockImplementation((url: string) => {
+            if (typeof url === "string" && url.includes("/mcp-guard/")) {
+                return Promise.resolve({
+                    ok: true,
+                    status: 200,
+                    json: () => Promise.resolve({ allowed: true }),
+                    text: () => Promise.resolve(JSON.stringify({ allowed: true })),
+                });
+            }
+            return Promise.resolve({
+                ok: true,
+                status: 201,
+                json: () => Promise.resolve(tradeResponse),
+                text: () => Promise.resolve(JSON.stringify(tradeResponse)),
+            });
+        }),
+    );
+}
+
+/** Minimal valid create_trade arguments (excluding confirmation_token). */
+const BASE_TRADE_ARGS = {
+    exec_id: "CT001",
+    instrument: "AAPL",
+    action: "BOT" as const,
+    quantity: 100,
+    price: 150.0,
+    account_id: "ACC001",
+};
+
+describe("create_trade confirmation_token", () => {
+    beforeEach(() => {
+        vi.restoreAllMocks();
+        // Reset to default pass-through mode between tests
+        setConfirmationMode("dynamic");
+    });
+
+    // AC-1: Schema accepts confirmation_token (proven via static mode)
+    it("accepts confirmation_token in schema and forwards it to middleware", async () => {
+        mockGuardAndTradesFetch();
+        setConfirmationMode("static");
+        const client = await createTestClient();
+        const { token } = createConfirmationToken("create_trade");
+
+        // Static mode requires a valid token. If Zod had stripped
+        // confirmation_token from the parsed args, middleware would see
+        // no token and block the call — so success here proves the
+        // schema preserved the field through to the middleware layer.
+        const result = await client.callTool({
+            name: "create_trade",
+            arguments: {
+                ...BASE_TRADE_ARGS,
+                confirmation_token: token,
+            },
+        });
+
+        const content = result.content as Array<{ type: string; text: string }>;
+        expect(content).toHaveLength(1);
+        expect(content[0].type).toBe("text");
+        const parsed = JSON.parse(content[0].text);
+        expect(parsed.success).toBe(true);
+    });
+
+    // AC-3: confirmation_token NOT forwarded to REST API body
+    it("does not include confirmation_token in the POST /trades body", async () => {
+        mockGuardAndTradesFetch();
+        const client = await createTestClient();
+
+        await client.callTool({
+            name: "create_trade",
+            arguments: {
+                ...BASE_TRADE_ARGS,
+                confirmation_token: "should-not-appear-in-body",
+            },
+        });
+
+        // Find the /trades POST call (not the guard call)
+        const tradeCalls = vi
+            .mocked(fetch)
+            .mock.calls.filter(
+                ([url]) => typeof url === "string" && url.includes("/trades") && !url.includes("/mcp-guard/"),
+            );
+        expect(tradeCalls.length).toBeGreaterThanOrEqual(1);
+
+        const [, opts] = tradeCalls[0];
+        const body = JSON.parse(opts?.body as string);
+        expect(body).not.toHaveProperty("confirmation_token");
+        // Verify real fields ARE present
+        expect(body.exec_id).toBe("CT001");
+        expect(body.instrument).toBe("AAPL");
+    });
+
+    // AC-2: Static-mode confirmation round-trip
+    it("requires valid confirmation_token on static clients and rejects without one", async () => {
+        mockGuardAndTradesFetch();
+        setConfirmationMode("static");
+
+        const client = await createTestClient();
+
+        // Call WITHOUT a token — middleware should block
+        const blocked = await client.callTool({
+            name: "create_trade",
+            arguments: BASE_TRADE_ARGS,
+        });
+
+        const blockedContent = blocked.content as Array<{ type: string; text: string }>;
+        const blockedText = blockedContent[0].text;
+        const blockedPayload = JSON.parse(blockedText);
+        expect(blockedPayload.error).toBe("Confirmation required");
+        expect(blockedPayload.tool).toBe("create_trade");
+
+        // Verify no trade POST happened while blocked
+        const tradePostCalls = vi
+            .mocked(fetch)
+            .mock.calls.filter(
+                ([url, opts]) =>
+                    typeof url === "string" &&
+                    url.includes("/trades") &&
+                    !url.includes("/mcp-guard/") &&
+                    opts?.method === "POST",
+            );
+        expect(tradePostCalls).toHaveLength(0);
+
+        // Now mint a real token and retry
+        const { token } = createConfirmationToken("create_trade");
+
+        const result = await client.callTool({
+            name: "create_trade",
+            arguments: {
+                ...BASE_TRADE_ARGS,
+                confirmation_token: token,
+            },
+        });
+
+        const content = result.content as Array<{ type: string; text: string }>;
+        const parsed = JSON.parse(content[0].text);
+        expect(parsed.success).toBe(true);
+    });
+
+    // AC-4: Dynamic-mode backward compatibility
+    it("passes through without confirmation_token on dynamic clients", async () => {
+        mockGuardAndTradesFetch();
+        setConfirmationMode("dynamic");
+
+        const client = await createTestClient();
+
+        const result = await client.callTool({
+            name: "create_trade",
+            arguments: BASE_TRADE_ARGS,
+        });
+
+        const content = result.content as Array<{ type: string; text: string }>;
+        expect(content).toHaveLength(1);
+        const parsed = JSON.parse(content[0].text);
+        expect(parsed.success).toBe(true);
+    });
+});
+
+// ── delete_trade ───────────────────────────────────────────────────────
+
+describe("delete_trade", () => {
+    beforeEach(() => {
+        vi.restoreAllMocks();
+        setConfirmationMode("dynamic");
+    });
+
+    it("calls DELETE /trades/{exec_id} and returns success envelope", async () => {
+        // Guard returns allowed, DELETE returns 204 (no content → fetchApi wraps as {success:true})
+        vi.stubGlobal(
+            "fetch",
+            vi.fn().mockImplementation((url: string, opts?: RequestInit) => {
+                if (typeof url === "string" && url.includes("/mcp-guard/")) {
+                    return Promise.resolve({
+                        ok: true,
+                        status: 200,
+                        json: () => Promise.resolve({ allowed: true }),
+                        text: () => Promise.resolve(JSON.stringify({ allowed: true })),
+                    });
+                }
+                return Promise.resolve({
+                    ok: true,
+                    status: 204,
+                    json: () => Promise.resolve(null),
+                    text: () => Promise.resolve(""),
+                });
+            }),
+        );
+
+        const client = await createTestClient();
+        const result = await client.callTool({
+            name: "delete_trade",
+            arguments: { exec_id: "DEL-001" },
+        });
+
+        // Find the DELETE call (not the guard call)
+        const deleteCalls = vi
+            .mocked(fetch)
+            .mock.calls.filter(
+                ([url, opts]) =>
+                    typeof url === "string" &&
+                    url.includes("/trades/DEL-001") &&
+                    !url.includes("/mcp-guard/"),
+            );
+        expect(deleteCalls.length).toBe(1);
+        const [delUrl, delOpts] = deleteCalls[0];
+        expect(delUrl).toContain("/trades/DEL-001");
+        expect(delOpts?.method).toBe("DELETE");
+
+        const content = result.content as Array<{ type: string; text: string }>;
+        expect(content).toHaveLength(1);
+        const parsed = JSON.parse(content[0].text);
+        expect(parsed.success).toBe(true);
     });
 });

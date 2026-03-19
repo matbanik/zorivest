@@ -94,6 +94,22 @@
 - **Fix:** Phase 1 via MEU-90b; Phase 2 naturally retires each stub when its real service is implemented.
 - **Roadmap:** Full stub retirement roadmap with MEU assignments in [09a §Stub Retirement Roadmap](../docs/build-plan/09a-persistence-integration.md).
 
+### [MCP-CONFIRM] — `create_trade` inputSchema missing `confirmation_token` field
+- **Severity:** High
+- **Component:** mcp-server
+- **Discovered:** 2026-03-19 (live smoke test)
+- **Status:** Fixed
+- **Details:** The `create_trade` tool's Zod inputSchema in `trade-tools.ts` did not include `confirmation_token`. On static/annotation-unaware clients, the MCP SDK's Zod validation stripped the field before it reached `withConfirmation()` middleware, making trade creation impossible.
+- **Fix:** Added `confirmation_token: z.string().optional()` to the inputSchema. Verified with 4 new TDD tests (AC-1 through AC-4) covering schema acceptance, body exclusion, static-mode round-trip, and dynamic-mode backward compatibility.
+
+### [MCP-DIST-REBUILD] — MCP server runs from compiled `dist/`, not source `src/`
+- **Severity:** High
+- **Component:** mcp-server
+- **Discovered:** 2026-03-19 (live smoke test)
+- **Status:** Active — by design
+- **Details:** The MCP server's `start` script runs `node dist/index.js`. After editing files in `mcp-server/src/`, the changes are invisible to the running MCP process until `dist/` is rebuilt and the IDE is restarted. This caused 2 unnecessary IDE restarts during the 2026-03-19 session when the `confirmation_token` schema fix was applied to source but `dist/` still had old code.
+- **Workaround:** After any `mcp-server/src/` change: `cd mcp-server && npm run build` then restart the IDE to reload the MCP server process.
+
 ## Template
 
 When adding issues, use this format:

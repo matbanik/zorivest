@@ -28,8 +28,9 @@ export default function CommandPalette({ open, onClose }: CommandPaletteProps) {
     const listRef = useRef<HTMLDivElement>(null)
 
     const navigate = useNavigate()
-    const staticEntries = useMemo(() => createStaticEntries((path) => navigate({ to: path })), [navigate])
-    const dynamicEntries = useDynamicEntries()
+    const navCallback = useCallback((path: string) => navigate({ to: path }), [navigate])
+    const staticEntries = useMemo(() => createStaticEntries(navCallback), [navCallback])
+    const dynamicEntries = useDynamicEntries(navCallback)
     const allEntries = useMemo(
         () => [...staticEntries, ...dynamicEntries],
         [staticEntries, dynamicEntries],

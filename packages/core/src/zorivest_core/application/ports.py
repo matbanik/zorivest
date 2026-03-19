@@ -51,8 +51,9 @@ class TradeRepository(Protocol):
         offset: int = 0,
         account_id: str | None = None,
         sort: str = "-time",
+        search: str | None = None,
     ) -> list[Trade]:
-        """List trades with optional account filter and sort."""
+        """List trades with optional account filter, search, and sort."""
         ...
 
     def exists(self, exec_id: str) -> bool: ...

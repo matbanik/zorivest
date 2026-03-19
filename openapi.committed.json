@@ -1685,6 +1685,28 @@
       },
       "UpdateTradeRequest": {
         "properties": {
+          "account_id": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Account Id"
+          },
+          "action": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Action"
+          },
           "commission": {
             "anyOf": [
               {
@@ -1695,6 +1717,17 @@
               }
             ],
             "title": "Commission"
+          },
+          "instrument": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Instrument"
           },
           "notes": {
             "anyOf": [
@@ -1707,6 +1740,28 @@
             ],
             "title": "Notes"
           },
+          "price": {
+            "anyOf": [
+              {
+                "type": "number"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Price"
+          },
+          "quantity": {
+            "anyOf": [
+              {
+                "type": "number"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Quantity"
+          },
           "realized_pnl": {
             "anyOf": [
               {
@@ -1717,6 +1772,18 @@
               }
             ],
             "title": "Realized Pnl"
+          },
+          "time": {
+            "anyOf": [
+              {
+                "format": "date-time",
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Time"
           }
         },
         "title": "UpdateTradeRequest",
@@ -5712,7 +5779,7 @@
     },
     "/api/v1/trades": {
       "get": {
-        "description": "List trades with optional account filter and sort.",
+        "description": "List trades with optional account filter, search, and sort.",
         "operationId": "list_trades_api_v1_trades_get",
         "parameters": [
           {
@@ -5749,6 +5816,22 @@
                 }
               ],
               "title": "Account Id"
+            }
+          },
+          {
+            "in": "query",
+            "name": "search",
+            "required": false,
+            "schema": {
+              "anyOf": [
+                {
+                  "type": "string"
+                },
+                {
+                  "type": "null"
+                }
+              ],
+              "title": "Search"
             }
           },
           {

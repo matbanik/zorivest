@@ -12,6 +12,7 @@ Use this workflow when implementing a Manageable Execution Unit (MEU). Opus is t
 - Read `SOUL.md` for identity
 - Read `.agent/context/meu-registry.md` for MEU scope
 - Read `.agent/context/current-focus.md` for active phase
+- Read `.agent/docs/emerging-standards.md` — verify applicable standards are covered. If the MEU involves MCP tools or GUI components, the matching standards are mandatory subtasks.
 
 ## Steps
 
@@ -50,6 +51,9 @@ Save the failure output — you will include it in the handoff FAIL_TO_PASS tabl
 ### 4. Green Phase — Implement
 
 > ⚠️ **Test Immutability**: Once tests are written in Red phase, do NOT modify test assertions or expected values. If a test expectation is wrong, fix the *implementation*, not the *test*. Only test setup/fixture changes are allowed.
+
+> [!CAUTION]
+> **Scope Expansion Gate.** If the user requests features outside the approved plan scope during execution (e.g., "also add a delete tool" or "add a refresh button"), PAUSE and ask: "This is outside the current plan. Should I (a) update the plan first, (b) treat this as a separate ad-hoc fix, or (c) defer to a follow-up MEU?" Proceeding without updating plan artifacts causes handoff/review misalignment (ref: emerging-standards.md, 2026-03-19 session F14).
 
 Write the minimum code to make all tests pass. Follow the build plan spec exactly — use the same function signatures, class names, and field names.
 

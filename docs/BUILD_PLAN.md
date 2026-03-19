@@ -203,7 +203,7 @@ Domain → Infrastructure → Services → REST API → MCP Server → GUI → D
 | MEU-44 | `gui-command-registry` | 15c | [06a §commands](build-plan/06a-gui-shell.md) | Command registry (commandRegistry.ts) | ✅ |
 | MEU-45 | `gui-window-state` | 15d | [06a §window](build-plan/06a-gui-shell.md) | Window state persistence (electron-store) | ✅ |
 | MEU-46 | `gui-mcp-status` | 15i | [06f §6f.9](build-plan/06f-gui-settings.md) | MCP Server Status panel · **E2E Wave 0**: sidebar `data-testid` + `launch`/`mcp-tool` tests (5) | ✅ |
-| MEU-46a | `mcp-rest-proxy` | 15i.1 | [06f §6f.9 Data Sources](build-plan/06f-gui-settings.md) | REST proxy endpoints for MCP tool data (toolset count, uptime) → completes MEU-46 panel · Depends on: MEU-46 ✅, Phase 4 ✅, Phase 5 ✅ | ⬜ |
+| MEU-46a | `mcp-rest-proxy` | 15i.1 | [06f §6f.9 Data Sources](build-plan/06f-gui-settings.md) | REST proxy endpoints for MCP tool data (toolset count, uptime) → completes MEU-46 panel · **Note:** GUI Settings "Registered tools" field currently shows `—`; this MEU must expose a `GET /api/v1/mcp/info` endpoint returning tool count so the GUI can display the real number · Depends on: MEU-46 ✅, Phase 4 ✅, Phase 5 ✅ | ⬜ |
 | MEU-47 | `gui-trades` | 16 | [06b](build-plan/06b-gui-trades.md) | React pages — Trades · **E2E Wave 1**: `trade-entry`/`mode-gating` tests (+7 = 12) | ✅ |
 | MEU-48 | `gui-plans` | 16 | [06c](build-plan/06c-gui-planning.md) | React pages — Plans · **E2E Wave 4**: `position-size` tests (+2 = 18) | ⬜ |
 | MEU-49 | `gui-notifications` | 16a | [06a §notify](build-plan/06a-gui-shell.md) | Notification system (toasts) | ✅ |

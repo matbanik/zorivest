@@ -296,6 +296,7 @@ At session end, create or update a handoff file:
 
 | Skill | Path | Purpose |
 |-------|------|---------|
+| Backend Startup | `.agent/skills/backend-startup/SKILL.md` | Canonical port (8765), env vars (`ZORIVEST_DEV_UNLOCK`), and start commands for local dev. |
 | Git Workflow | `.agent/skills/git-workflow/SKILL.md` | Agent-safe git operations with SSH commit signing. Prevents interactive prompt hangs. |
 | Codebase Quality Gate | `.agent/skills/quality-gate/SKILL.md` | Validation pipeline: type checks, linting, tests, anti-placeholder scans, evidence checks. Supports phase-level and MEU-scoped runs. |
 | Pre-Handoff Review | `.agent/skills/pre-handoff-review/SKILL.md` | Self-review protocol addressing 10 recurring patterns from critical review analysis. Reduces average review passes from 4-11 to 3-5. |
@@ -314,6 +315,7 @@ At session end, create or update a handoff file:
 - Domain model → `.agent/docs/domain-model.md`
 - Testing strategy → `.agent/docs/testing-strategy.md`
 - Code quality examples → `.agent/docs/code-quality.md`
+- **Emerging standards** → `.agent/docs/emerging-standards.md` — living checklist of MCP/GUI/API standards discovered during development. **Read before planning any MCP or GUI MEU.**
 - Role specs → `.agent/roles/`
 - Handoff template → `.agent/context/handoffs/TEMPLATE.md`
 - Current focus → `.agent/context/current-focus.md`

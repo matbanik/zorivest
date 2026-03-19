@@ -1,4 +1,4 @@
-import { useState, useCallback } from 'react'
+import { useState, useCallback, useEffect, useRef } from 'react'
 import { useQuery, useQueryClient } from '@tanstack/react-query'
 import { apiFetch } from '@/lib/api'
 import { useStatusBar } from '@/hooks/useStatusBar'
@@ -34,19 +34,33 @@ interface GuardStatusResponse {
  */
 export default function TradesLayout() {
     const [selectedTrade, setSelectedTrade] = useState<Trade | null>(null)
+    const [filterQuery, setFilterQuery] = useState('')
+    const [debouncedSearch, setDebouncedSearch] = useState('')
     const queryClient = useQueryClient()
     const { setStatus } = useStatusBar()
 
-    const { data: trades = [] } = useQuery<Trade[]>({
-        queryKey: ['trades'],
+    // Debounce the search input (300ms)
+    const debounceRef = useRef<ReturnType<typeof setTimeout>>(undefined)
+    useEffect(() => {
+        debounceRef.current = setTimeout(() => {
+            setDebouncedSearch(filterQuery.trim())
+        }, 300)
+        return () => clearTimeout(debounceRef.current)
+    }, [filterQuery])
+
+    const { data: trades = [], refetch, isFetching } = useQuery<Trade[]>({
+        queryKey: ['trades', { search: debouncedSearch }],
         queryFn: async () => {
             try {
-                const result = await apiFetch<{ items: Trade[] }>('/api/v1/trades?limit=50&offset=0')
+                const params = new URLSearchParams({ limit: '200', offset: '0' })
+                if (debouncedSearch) params.set('search', debouncedSearch)
+                const result = await apiFetch<{ items: Trade[] }>(`/api/v1/trades?${params}`)
                 return result.items
             } catch {
                 return []
             }
         },
+        refetchInterval: 5_000,
     })
 
     const { data: guardStatus } = useQuery<GuardStatusResponse>({
@@ -55,6 +69,24 @@ export default function TradesLayout() {
     })
 
     const isGuardLocked = guardStatus?.is_locked ?? false
+
+    // Listen for command-palette trade selection
+    useEffect(() => {
+        const handler = (e: Event) => {
+            const { exec_id } = (e as CustomEvent<{ exec_id: string }>).detail
+            const match = trades.find((t) => t.exec_id === exec_id)
+            if (match) {
+                setSelectedTrade(match)
+            }
+        }
+        window.addEventListener('zorivest:select-trade', handler)
+        return () => window.removeEventListener('zorivest:select-trade', handler)
+    }, [trades])
+
+    const handleRefresh = useCallback(() => {
+        setStatus('Refreshing trades...')
+        refetch().then(() => setStatus('Trades refreshed'))
+    }, [refetch, setStatus])
 
     const handleSelectTrade = useCallback((trade: Trade) => {
         setSelectedTrade(trade)
@@ -126,17 +158,40 @@ export default function TradesLayout() {
                 <div className="p-4">
                     <div className="flex items-center justify-between mb-4">
                         <h2 className="text-lg font-semibold text-fg">Trades</h2>
-                        <button
-                            data-testid="add-trade-btn"
-                            onClick={handleNewTrade}
-                            disabled={isGuardLocked}
-                            aria-disabled={isGuardLocked}
-                            title={isGuardLocked ? 'Trade creation disabled — MCP Guard is locked' : 'Create a new trade'}
-                            className="px-4 py-1.5 text-sm font-medium rounded-md border border-bg-subtle bg-bg hover:bg-bg-elevated text-fg transition-colors cursor-pointer disabled:opacity-50 disabled:cursor-not-allowed"
-                        >
-                            + New Trade
-                        </button>
+                        <div className="flex items-center gap-2">
+                            <button
+                                data-testid="refresh-trades-btn"
+                                onClick={handleRefresh}
+                                disabled={isFetching}
+                                title="Refresh trades list"
+                                className="px-3 py-1.5 text-sm font-medium rounded-md border border-bg-subtle bg-bg hover:bg-bg-elevated text-fg transition-colors cursor-pointer disabled:opacity-50 disabled:cursor-not-allowed"
+                            >
+                                {isFetching ? '⟳' : '↻'} Refresh
+                            </button>
+                            <button
+                                data-testid="add-trade-btn"
+                                onClick={handleNewTrade}
+                                disabled={isGuardLocked}
+                                aria-disabled={isGuardLocked}
+                                title={isGuardLocked ? 'Trade creation disabled — MCP Guard is locked' : 'Create a new trade'}
+                                className="px-4 py-1.5 text-sm font-medium rounded-md border border-bg-subtle bg-bg hover:bg-bg-elevated text-fg transition-colors cursor-pointer disabled:opacity-50 disabled:cursor-not-allowed"
+                            >
+                                + New Trade
+                            </button>
+                        </div>
                     </div>
+                </div>
+
+                {/* Search/Filter bar */}
+                <div className="px-4 pb-3">
+                    <input
+                        type="search"
+                        placeholder="Filter by instrument, exec ID, account, or action…"
+                        value={filterQuery}
+                        onChange={(e) => setFilterQuery(e.target.value)}
+                        className="w-full px-3 py-1.5 text-sm rounded-md bg-bg border border-bg-subtle text-fg placeholder:text-fg-muted/50 focus:outline-none focus:border-accent"
+                        data-testid="trades-filter-input"
+                    />
                 </div>
                 <TradesTable
                     data={trades}

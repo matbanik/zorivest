@@ -87,7 +87,7 @@ export const tradeColumns = [
         header: 'Account',
         cell: (info) => {
             const val = info.getValue()
-            return <span title={val}>{val.length > 5 ? `${val.slice(0, 5)}…` : val}</span>
+            return <span title={val}>{val.length > 20 ? `${val.slice(0, 20)}…` : val}</span>
         },
     }),
     col.accessor('commission', {
@@ -138,7 +138,7 @@ export default function TradesTable({
     data,
     selectedId,
     onSelectTrade,
-    pageSize = 50,
+    pageSize = 25,
 }: TradesTableProps) {
     const [sorting, setSorting] = useState<SortingState>([])
 
@@ -205,7 +205,7 @@ export default function TradesTable({
             {/* Pagination */}
             <div className="flex items-center justify-between px-3 py-2 border-t border-bg-subtle text-sm text-fg-muted">
                 <span>
-                    Page {table.getState().pagination.pageIndex + 1} of {table.getPageCount()}
+                    Page {table.getState().pagination.pageIndex + 1} of {table.getPageCount()} ({data.length} trades)
                 </span>
                 <div className="flex gap-2">
                     <button
