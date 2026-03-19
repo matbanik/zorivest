@@ -9,6 +9,7 @@ class PythonManager {
   process = null;
   port = 0;
   token = "";
+  externalUrl = null;
   /** Generate ephemeral Bearer token (64 hex chars = 32 random bytes) */
   generateToken() {
     this.token = crypto.randomBytes(32).toString("hex");
@@ -89,8 +90,12 @@ class PythonManager {
     }
     this.process = null;
   }
+  /** Override base URL for external backend (dev mode / E2E). */
+  setExternalUrl(url) {
+    this.externalUrl = url;
+  }
   get baseUrl() {
-    return `http://127.0.0.1:${this.port}`;
+    return this.externalUrl ?? `http://127.0.0.1:${this.port}`;
   }
   get authToken() {
     return this.token;
@@ -233,11 +238,15 @@ electron.app.whenReady().then(async () => {
   splashWindow = createSplashWindow();
   mainWindow = createMainWindow();
   let ready;
-  if (isDev) {
-    await new Promise((r) => setTimeout(r, 1e3));
-    ready = true;
-  } else if (process.env.ZORIVEST_BACKEND_URL) {
+  if (process.env.ZORIVEST_BACKEND_URL) {
+    pythonManager.setExternalUrl(process.env.ZORIVEST_BACKEND_URL);
     await new Promise((r) => setTimeout(r, 500));
+    ready = true;
+  } else if (isDev) {
+    console.warn(
+      '[startup] Dev mode: no ZORIVEST_BACKEND_URL set. Backend will be unreachable. Use "npm run dev" to start both processes.'
+    );
+    await new Promise((r) => setTimeout(r, 1e3));
     ready = true;
   } else {
     pythonManager.generateToken();

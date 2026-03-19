@@ -297,6 +297,9 @@ Domain → Infrastructure → Services → REST API → MCP Server → GUI → D
 | MEU | Slug | Matrix Item | Build Plan Ref | Description | Status |
 |-----|------|:-----------:|----------------|-------------|:------:|
 | MEU-90a | `persistence-wiring` | 49.0 | [09a §all](build-plan/09a-persistence-integration.md) | Replace StubUnitOfWork with SqlAlchemyUnitOfWork; wire all 17 real repos; fix guardrails getattr/dict mismatch; Alembic bootstrap | ⬜ |
+| MEU-90b | `mode-gating-test-isolation` | 49.1 | [testing-strategy](build-plan/testing-strategy.md) | Fix 8 flaky mode-gating tests: per-test `app.state` reset so lock/unlock doesn't leak across modules | ⬜ |
+| MEU-90c | `sqlcipher-native-deps` | 49.2 | [02 §2.3](build-plan/02-infrastructure.md), [ADR-001](../adrs/ADR-001-optional-sqlcipher-encryption.md) | Resolve sqlcipher3 availability on Windows; clear 15 skipped encryption tests | ⬜ |
+| MEU-90d | `rendering-deps` | 49.3 | [09 §9.7d](build-plan/09-scheduling.md) | Install + validate Playwright + kaleido rendering extras; clear 1 skipped RenderStep test | ⬜ |
 
 ---
 
@@ -486,18 +489,18 @@ Domain → Infrastructure → Services → REST API → MCP Server → GUI → D
 | P0 — Phase 2/2A | MEU-12 → MEU-21 | 10 | 10 |
 | P0 — Phase 3/4 | MEU-22 → MEU-30 | 9 | 9 |
 | P0 — Phase 5 | MEU-31 → MEU-42 | 12 | 12 |
-| P0 — Phase 6 | MEU-43 → MEU-51 | 10 | 3 |
+| P0 — Phase 6 | MEU-43 → MEU-51 | 10 | 6 |
 | P1 | MEU-52 → MEU-55 | 4 | 2 |
 | P1.5 — Phase 8 | MEU-56 → MEU-65 | 10 | 9 |
 | P2 | MEU-66 → MEU-76 | 11 | 4 |
 | P2.5 — Phase 9 | MEU-77 → MEU-90 | 14 | 14 |
-| P2.5a — Integration | MEU-90a | 1 | 0 |
+| P2.5a — Integration | MEU-90a → MEU-90d | 4 | 0 |
 | P2.6 — Phase 10 | MEU-91 → MEU-95 | 5 | 0 |
 | P2.75 — Expansion | MEU-96 → MEU-122 | 27 | 2 |
 | P3 — Tax | MEU-123 → MEU-156 | 34 | 0 |
 | Phase 7 | MEU-157 | 1 | 0 |
 | Research | MEU-158 → MEU-170 | 13 | 0 |
-| **Total** | | **175** | **79** |
+| **Total** | | **178** | **82** |
 
 ---
 

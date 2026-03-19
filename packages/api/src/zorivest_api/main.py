@@ -5,6 +5,7 @@ Source: 04-rest-api.md §App Factory, Lifespan, Middleware
 
 from __future__ import annotations
 
+import os
 import time
 import uuid
 from contextlib import asynccontextmanager
@@ -39,7 +40,7 @@ from zorivest_api.routes.scheduling import scheduling_router
 from zorivest_api.routes.scheduler import scheduler_router
 from zorivest_api.schemas.common import ErrorEnvelope
 from zorivest_api.auth.auth_service import AuthService
-from zorivest_api.stubs import McpGuardService, StubAnalyticsService, StubMarketDataService, StubProviderConnectionService, StubReviewService, StubTaxService, StubUnitOfWork
+from zorivest_api.stubs import McpGuardService, StubAnalyticsService, StubMarketDataService, StubProviderConnectionService, StubReviewService, StubTaxService
 from zorivest_core.services.trade_service import TradeService
 from zorivest_core.services.account_service import AccountService
 from zorivest_core.services.image_service import ImageService
@@ -52,7 +53,15 @@ from zorivest_core.services.pipeline_guardrails import PipelineGuardrails
 from zorivest_core.services.pipeline_runner import PipelineRunner
 from zorivest_core.services.ref_resolver import RefResolver
 from zorivest_core.services.condition_evaluator import ConditionEvaluator
-from zorivest_api.stubs import StubAuditCounter, StubPolicyStore, StubRunStore, StubStepStore
+from zorivest_infra.database.unit_of_work import SqlAlchemyUnitOfWork, create_engine_with_wal
+from zorivest_infra.database.models import Base
+from sqlalchemy import text
+from zorivest_api.scheduling_adapters import (
+    PolicyStoreAdapter,
+    RunStoreAdapter,
+    StepStoreAdapter,
+    AuditCounterAdapter,
+)
 
 # ── Tag metadata ────────────────────────────────────────────────────────
 
@@ -74,48 +83,72 @@ TAGS_METADATA = [
 
 @asynccontextmanager
 async def lifespan(app: FastAPI) -> AsyncGenerator[None, None]:
-    """Application lifespan: initialize state on startup, cleanup on shutdown."""
+    """Application lifespan: initialize state on startup, cleanup on shutdown.
+
+    MEU-90a: Uses real SqlAlchemyUnitOfWork with persistent SQLite storage.
+    UoW is pre-entered once at startup (reentrant depth counting) — each
+    service method re-enters via 'with self.uow:' per call.  Rollback
+    isolation under nested failure is proven by test_nested_failure_does_not_leak.
+    """
     app.state.start_time = time.time()
-    app.state.db_unlocked = False
+    app.state.db_unlocked = bool(os.environ.get("ZORIVEST_DEV_UNLOCK", ""))
     app.state.db = None  # Placeholder for SQLCipherDB; initialized on unlock
 
-    # Phase 4 stub: services use StubUnitOfWork (no real DB).
-    # Replaced by real SqlAlchemyUnitOfWork when Phase 2 is integrated.
-    stub_uow: Any = StubUnitOfWork()
+    # ── Engine & schema ──────────────────────────────────────────────────
+    db_url = os.environ.get("ZORIVEST_DB_URL", "sqlite:///zorivest.db")
+    engine = create_engine_with_wal(db_url)
+    Base.metadata.create_all(engine)
+
+    # ── Schema migrations (no Alembic) ────────────────────────────────
+    # Add missing columns to existing databases created before the column was added.
+    with engine.connect() as conn:
+        try:
+            conn.execute(text("ALTER TABLE trades ADD COLUMN notes TEXT DEFAULT ''"))
+            conn.commit()
+        except Exception:
+            # Column already exists (fresh DB or already migrated) — ignore
+            conn.rollback()
+
+    # ── Unit of Work (reentrant — pre-entered once, services re-enter per call) ──
+    uow: Any = SqlAlchemyUnitOfWork(engine)
+    uow.__enter__()  # Pre-enter: session stays alive until shutdown; services re-enter safely
+
+    # ── Core services ────────────────────────────────────────────────────
     app.state.auth_service = AuthService()
-    app.state.trade_service = TradeService(stub_uow)
-    app.state.account_service = AccountService(stub_uow)
-    app.state.image_service = ImageService(stub_uow)
-    app.state.settings_service = SettingsService(stub_uow)
+    app.state.trade_service = TradeService(uow)
+    app.state.account_service = AccountService(uow)
+    app.state.image_service = ImageService(uow)
+    app.state.settings_service = SettingsService(uow)
     app.state.guard_service = McpGuardService()
     app.state.analytics_service = StubAnalyticsService()
     app.state.review_service = StubReviewService()
     app.state.tax_service = StubTaxService()
     app.state.market_data_service = StubMarketDataService()
     app.state.provider_connection_service = StubProviderConnectionService()
-    app.state.report_service = ReportService(stub_uow)  # MEU-53
-    app.state.watchlist_service = WatchlistService(stub_uow)  # MEU-68
+    app.state.report_service = ReportService(uow)  # MEU-53
+    app.state.watchlist_service = WatchlistService(uow)  # MEU-68
 
-    # Scheduling services (MEU-89, MEU-90)
-    stub_audit_counter = StubAuditCounter()
-    stub_policy_store = StubPolicyStore()
-    stub_run_store = StubRunStore()
-    stub_step_store = StubStepStore()
-    guardrails = PipelineGuardrails(stub_audit_counter, stub_policy_store)
-    pipeline_runner = PipelineRunner(stub_uow, RefResolver(), ConditionEvaluator())
+    # ── Scheduling adapters (bridge async dict protocols → sync ORM repos) ──
+    audit_adapter = AuditCounterAdapter(uow)
+    policy_adapter = PolicyStoreAdapter(uow)
+    run_adapter = RunStoreAdapter(uow)
+    step_adapter = StepStoreAdapter(uow)
+    guardrails = PipelineGuardrails(audit_adapter, policy_adapter)
+    pipeline_runner = PipelineRunner(uow, RefResolver(), ConditionEvaluator())
     scheduler_svc = SchedulerService(
         pipeline_runner=pipeline_runner,
-        policy_repo=stub_policy_store,
+        policy_repo=policy_adapter,
+        db_url=db_url,  # MEU-90a: persistent APScheduler job store
     )
     app.state.scheduler_service = scheduler_svc
     app.state.scheduling_service = SchedulingService(
-        policy_store=stub_policy_store,
-        run_store=stub_run_store,
-        step_store=stub_step_store,
+        policy_store=policy_adapter,
+        run_store=run_adapter,
+        step_store=step_adapter,
         pipeline_runner=pipeline_runner,
         scheduler_service=scheduler_svc,
         guardrails=guardrails,
-        audit_logger=stub_audit_counter,
+        audit_logger=audit_adapter,
     )
 
     await scheduler_svc.start()
@@ -123,6 +156,8 @@ async def lifespan(app: FastAPI) -> AsyncGenerator[None, None]:
         yield
     finally:
         await scheduler_svc.shutdown()
+        uow.__exit__(None, None, None)  # Close session
+        engine.dispose()  # MEU-90a: cleanup engine on shutdown
 
 
 # ── App factory ─────────────────────────────────────────────────────────

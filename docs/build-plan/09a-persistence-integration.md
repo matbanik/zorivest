@@ -65,19 +65,29 @@ The FastAPI lifespan (`main.py`) constructs a `StubUnitOfWork` (in-memory dicts)
 7. **Test fixtures** — Add DB session fixtures for integration tests (per-test transaction rollback)
 8. **WatchlistService persistence** — Currently uses `_InMemoryWatchlistRepo`; real UoW doesn't have a watchlist repo yet — either add one or note as follow-up
 
-### Keep Stubs (Out of Scope)
+### Stub Retirement Roadmap
 
-These stub **entire service interfaces** that haven't been implemented:
+> [!IMPORTANT]
+> These stubs are **not** permanently "out of scope" — each has a designated
+> MEU that owns its retirement. The wiring plan for each stub lives in the
+> build doc referenced below. If no wiring section exists yet, the MEU owner
+> must add one before execution.
 
-| Stub | Why Keep |
-|------|----------|
-| `StubAnalyticsService` | Real analytics service not yet built |
-| `StubReviewService` | Review workflow not yet implemented |
-| `StubTaxService` | Tax engine is Phase 3 (MEU-123+) |
-| `StubMarketDataService` | Aggregator service exists but may need further wiring |
-| `StubProviderConnectionService` | Provider connection service exists but may need wiring |
-| `McpGuardService` | Already real (not a stub) — lives in `stubs.py` by location only |
-| `AuthService` | Already real — no stub replacement needed |
+| Stub | Retirement MEU | Build Doc | Dependencies | Status |
+|------|---------------|-----------|-------------|--------|
+| `StubTaxService` | MEU-148 `tax-api` | [04f §Service Wiring](04f-api-tax.md#service-wiring-meu-148) | MEU-123–126 (core tax engine) | ⬜ Wiring plan added |
+| `StubAnalyticsService` | MEU-118 `expansion-api` | [04e §Service Wiring](04e-api-analytics.md#service-wiring-meu-118) | MEU-104–116 (analytics services) | ⬜ Wiring plan added |
+| `StubReviewService` | MEU-118 `expansion-api` | [04e §Service Wiring](04e-api-analytics.md#service-wiring-meu-118) | MEU-110 (review workflow) | ⬜ Wiring plan added |
+| `StubMarketDataService` | MEU-90b `service-wiring` | [08 §Service Wiring](08-market-data.md#service-wiring-meu-90b) | MEU-60–61 (providers ✅) | ⬜ Wiring plan added |
+| `StubProviderConnectionService` | MEU-90b `service-wiring` | [08 §Service Wiring](08-market-data.md#service-wiring-meu-90b) | MEU-60 (provider mgmt ✅) | ⬜ Wiring plan added |
+| `McpGuardService` | MEU-90b `service-wiring` | [04g](04g-api-system.md) | MEU-38 ✅ | ⬜ Already real — needs move out of `stubs.py` |
+| `AuthService` | — | — | — | ✅ Already real, no action needed |
+
+#### Wiring Complexity by Tier
+
+- **Tier 1 (Light)** — `McpGuardService`: Already functional, just relocate from `stubs.py`
+- **Tier 2 (Medium)** — `StubTaxService`, `StubAnalyticsService`, `StubReviewService`: Need real service implementations first (blocked on domain MEUs)
+- **Tier 3 (Heavy)** — `StubMarketDataService`, `StubProviderConnectionService`: Real services exist but need wide dependency graph: UoW + `EncryptionService` + `HttpClient` + rate limiters + provider registry
 
 ### Stubs to Remove
 

@@ -4,7 +4,7 @@
 """SqlAlchemy Unit of Work implementation.
 
 Source: 02-infrastructure.md §2.2, 09-scheduling.md §9.2j
-Provides transactional boundary with 15 repository attributes.
+Provides transactional boundary with 18 repository attributes.
 """
 
 from __future__ import annotations
@@ -35,6 +35,9 @@ from zorivest_infra.database.scheduling_repositories import (
     PipelineStateRepository,
     PolicyRepository,
     ReportRepository,
+)
+from zorivest_infra.database.watchlist_repository import (
+    SqlAlchemyWatchlistRepository,
 )
 
 
@@ -67,32 +70,37 @@ class SqlAlchemyUnitOfWork:
     pipeline_state: PipelineStateRepository  # MEU-85
     audit_log: AuditLogRepository
     deliveries: DeliveryRepository  # MEU-88
+    watchlists: SqlAlchemyWatchlistRepository  # MEU-90a
 
     def __init__(self, engine: Engine) -> None:
         self._engine = engine
         self._session_factory = sessionmaker(bind=engine)
         self._session: Session | None = None
+        self._depth: int = 0
 
     def __enter__(self) -> SqlAlchemyUnitOfWork:
-        self._session = self._session_factory()
-        self.trades = SqlAlchemyTradeRepository(self._session)
-        self.images = SqlAlchemyImageRepository(self._session)
-        self.accounts = SqlAlchemyAccountRepository(self._session)
-        self.balance_snapshots = SqlAlchemyBalanceSnapshotRepository(self._session)
-        self.round_trips = SqlAlchemyRoundTripRepository(self._session)
-        self.settings = SqlAlchemySettingsRepository(self._session)
-        self.app_defaults = SqlAlchemyAppDefaultsRepository(self._session)
-        self.market_provider_settings = SqlMarketProviderSettingsRepository(self._session)
-        self.trade_reports = SqlAlchemyTradeReportRepository(self._session)  # MEU-52
-        self.trade_plans = SqlAlchemyTradePlanRepository(self._session)      # MEU-66
-        # Scheduling repos (MEU-82)
-        self.policies = PolicyRepository(self._session)
-        self.pipeline_runs = PipelineRunRepository(self._session)
-        self.reports = ReportRepository(self._session)
-        self.fetch_cache = FetchCacheRepository(self._session)
-        self.pipeline_state = PipelineStateRepository(self._session)  # MEU-85
-        self.audit_log = AuditLogRepository(self._session)
-        self.deliveries = DeliveryRepository(self._session)  # MEU-88
+        self._depth += 1
+        if self._session is None:
+            self._session = self._session_factory()
+            self.trades = SqlAlchemyTradeRepository(self._session)
+            self.images = SqlAlchemyImageRepository(self._session)
+            self.accounts = SqlAlchemyAccountRepository(self._session)
+            self.balance_snapshots = SqlAlchemyBalanceSnapshotRepository(self._session)
+            self.round_trips = SqlAlchemyRoundTripRepository(self._session)
+            self.settings = SqlAlchemySettingsRepository(self._session)
+            self.app_defaults = SqlAlchemyAppDefaultsRepository(self._session)
+            self.market_provider_settings = SqlMarketProviderSettingsRepository(self._session)
+            self.trade_reports = SqlAlchemyTradeReportRepository(self._session)  # MEU-52
+            self.trade_plans = SqlAlchemyTradePlanRepository(self._session)      # MEU-66
+            # Scheduling repos (MEU-82)
+            self.policies = PolicyRepository(self._session)
+            self.pipeline_runs = PipelineRunRepository(self._session)
+            self.reports = ReportRepository(self._session)
+            self.fetch_cache = FetchCacheRepository(self._session)
+            self.pipeline_state = PipelineStateRepository(self._session)  # MEU-85
+            self.audit_log = AuditLogRepository(self._session)
+            self.deliveries = DeliveryRepository(self._session)  # MEU-88
+            self.watchlists = SqlAlchemyWatchlistRepository(self._session)  # MEU-90a
         return self
 
     def __exit__(
@@ -101,11 +109,13 @@ class SqlAlchemyUnitOfWork:
         exc_val: BaseException | None,
         exc_tb: Any,
     ) -> None:
+        self._depth -= 1
         if self._session is not None:
             if exc_type is not None:
-                self._session.rollback()
-            self._session.close()
-            self._session = None
+                self._session.rollback()  # Always rollback on exception
+            if self._depth == 0:
+                self._session.close()
+                self._session = None
 
     def commit(self) -> None:
         """Commit the current transaction."""
@@ -116,6 +126,20 @@ class SqlAlchemyUnitOfWork:
         """Rollback the current transaction."""
         if self._session is not None:
             self._session.rollback()
+
+
+def _set_sqlite_pragmas(dbapi_conn: Any, connection_record: Any) -> None:
+    """Set WAL mode and NORMAL sync on SQLite connections.
+
+    Module-level function (not a closure) so the engine remains picklable.
+    APScheduler's SQLAlchemyJobStore pickles job callbacks that transitively
+    reference the engine; closures like ``create_engine.<locals>.connect``
+    are unpicklable.
+    """
+    cursor = dbapi_conn.cursor()
+    cursor.execute("PRAGMA journal_mode=wal")
+    cursor.execute("PRAGMA synchronous=NORMAL")
+    cursor.close()
 
 
 def create_engine_with_wal(url: str, **kwargs: Any) -> Engine:
@@ -130,12 +154,6 @@ def create_engine_with_wal(url: str, **kwargs: Any) -> Engine:
     connect_args.setdefault("check_same_thread", False)
 
     engine = create_engine(url, connect_args=connect_args, **kwargs)
-
-    @event.listens_for(engine, "connect")
-    def set_sqlite_pragmas(dbapi_conn: Any, connection_record: Any) -> None:
-        cursor = dbapi_conn.cursor()
-        cursor.execute("PRAGMA journal_mode=wal")
-        cursor.execute("PRAGMA synchronous=NORMAL")
-        cursor.close()
+    event.listens_for(engine, "connect")(_set_sqlite_pragmas)
 
     return engine

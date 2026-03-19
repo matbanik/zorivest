@@ -85,6 +85,7 @@ class Trade:
     account_id: str
     commission: float = 0.0
     realized_pnl: float = 0.0
+    notes: str = ""
     images: list[ImageAttachment] = field(default_factory=list)
     report: Optional[TradeReport] = None  # MEU-52: typed reference
 

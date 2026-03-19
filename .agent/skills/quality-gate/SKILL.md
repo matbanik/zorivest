@@ -48,6 +48,7 @@ uv run python tools/validate_codebase.py --json
 | 6 | TypeScript unit tests | `vitest` | Failing test |
 | 7 | Anti-placeholder scan | `rg TODO\|FIXME\|NotImplementedError` | Unresolved placeholder (lines with `# noqa: placeholder` excluded) |
 | 8 | Anti-deferral scan | `rg pass.*placeholder\|raise NotImplementedError` | Deferred implementation |
+| 9 | GUI-API seam tests | `pytest tests/integration/test_gui_api_seams.py` | Field mismatch, schema gap, response format bug |
 
 ### Advisory (non-blocking)
 

@@ -52,6 +52,48 @@
 - **Details:** `electron-store` v9+ is `"type": "module"` (ESM-only). electron-vite compiles the main process as CJS, so `import Store from 'electron-store'` resolves to `{ default: [class] }` instead of the class — `new Store()` throws `"Store is not a constructor"`. The app crashes before the window opens.
 - **Workaround:** Pinned to `electron-store@8` (last CJS version). Same API (`new Store()`, `.get()`, `.set()`), zero code changes. Upgrade back to v10 when electron-vite adds native ESM output for the main process.
 
+### [SCHED-WALPICKLE] — APScheduler cannot pickle WAL pragma listeners *(Resolved)*
+- **Severity:** Medium → **Fixed**
+- **Component:** api (scheduling)
+- **Discovered:** 2026-03-19 (MEU-90a persistence wiring)
+- **Status:** Fixed (module-level callback + WAL listener extraction)
+- **Details:** SQLAlchemy 2.x `Engine` is fundamentally unpicklable (internal closures in `create_engine`). APScheduler pickles job callbacks — bound methods like `self._execute_policy` pickle `self`, which transitively holds the engine.
+- **Fix applied:** (a) Extracted `_set_sqlite_pragmas` from closure to module-level in `unit_of_work.py`. (b) Added module-level `_execute_policy_callback` in `scheduler_service.py` with singleton registry. (c) APScheduler job func changed from bound method to `f"{__name__}:_execute_policy_callback"` string reference.
+- **Residual:** Test still xfailed due to `PipelineRunRepository.create()` contract mismatch — separate issue tracked below.
+
+### [SCHED-RUNREPO] — PipelineRunRepository.create() contract mismatch ✅ RESOLVED
+- **Severity:** ~~Medium~~ → Resolved (2026-03-19)
+- **Component:** api (`scheduling_adapters.py`), core (`scheduling_service.py`)
+- **Discovered:** 2026-03-19 (MEU-90a xfail investigation)
+- **Root cause:** Three contract mismatches: (1) `run_id` vs `id` key — service sends `run_id`, repo expects `id`; (2) missing `content_hash` in `trigger_run()` run_data; (3) response dicts returned ORM `id` but route schema expects `run_id`.
+- **Fix:** Added key translation in `RunStoreAdapter.create()`, added `content_hash` to `SchedulingService.trigger_run()`, created `_run_model_to_dict()` to remap `id` → `run_id` in all adapter outputs. xfail removed.
+
+### [STUB-RETIRE] — stubs.py contains legacy stubs that should be retired progressively
+- **Severity:** Low (technical debt, no production impact)
+- **Component:** api (`stubs.py`), tests
+- **Discovered:** 2026-03-19 (MEU-90a stub cleanup pass)
+- **Status:** Partially cleaned (4 dead scheduling stubs deleted); remainder tracked below
+
+#### Phase 1 — Wireable now (proposed MEU-90b `service-wiring`)
+
+| Stub | Real impl MEU | Blocker |
+|------|---------------|---------|
+| `StubUnitOfWork` + 7 `_InMemory*` repos | MEU-90a ✅ | Only `test_watchlist_service.py` uses it — convert to real in-memory SQLAlchemy UoW |
+| `McpGuardService` | MEU-38 ✅ | Lifespan wiring (stateless, no DB) |
+| `StubMarketDataService` | MEU-61 ✅ | Lifespan wiring (needs provider config) |
+| `StubProviderConnectionService` | MEU-60 ✅ | Lifespan wiring |
+
+#### Phase 2 — Blocked on future MEUs (remove per-service)
+
+| Stub | Blocked on | Notes |
+|------|-----------|-------|
+| `StubAnalyticsService` (9 methods) | MEU-104 through MEU-116 (⬜) | Expectancy, SQN, drawdown, execution quality, etc. |
+| `StubReviewService` (3 methods) | MEU-110 `ai-review-persona` (⬜) | AI review + mistake tracking |
+| `StubTaxService` (12 methods) | MEU-123–126 (core engine), retire at MEU-148 `tax-api` | [04f §Service Wiring](../docs/build-plan/04f-api-tax.md) |
+
+- **Fix:** Phase 1 via MEU-90b; Phase 2 naturally retires each stub when its real service is implemented.
+- **Roadmap:** Full stub retirement roadmap with MEU assignments in [09a §Stub Retirement Roadmap](../docs/build-plan/09a-persistence-integration.md).
+
 ## Template
 
 When adding issues, use this format:

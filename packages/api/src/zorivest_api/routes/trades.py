@@ -36,9 +36,15 @@ class CreateTradeRequest(BaseModel):
 
 
 class UpdateTradeRequest(BaseModel):
-    notes: Optional[str] = None
+    instrument: Optional[str] = None
+    action: Optional[str] = None  # "BOT" | "SLD"
+    quantity: Optional[float] = None
+    price: Optional[float] = None
+    account_id: Optional[str] = None
+    time: Optional[datetime] = None
     commission: Optional[float] = None
     realized_pnl: Optional[float] = None
+    notes: Optional[str] = None
 
 
 class TradeResponse(BaseModel):
@@ -51,6 +57,7 @@ class TradeResponse(BaseModel):
     account_id: str
     commission: float
     realized_pnl: float
+    notes: str = ""
 
     model_config = {"from_attributes": True}
 
@@ -74,6 +81,7 @@ async def create_trade(
             account_id=body.account_id,
             commission=body.commission,
             realized_pnl=body.realized_pnl,
+            notes=body.notes or "",
         )
         trade = service.create_trade(cmd)
         return TradeResponse.model_validate(trade)
@@ -124,6 +132,8 @@ async def update_trade(
         return TradeResponse.model_validate(trade)
     except NotFoundError:
         raise HTTPException(404, f"Trade not found: {exec_id}")
+    except ValueError as e:
+        raise HTTPException(422, str(e))
 
 
 @trade_router.delete("/{exec_id}", status_code=204, dependencies=[Depends(require_unlocked_db)])

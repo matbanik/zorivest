@@ -17,7 +17,7 @@ const NEW_TRADE: Trade = {
     realized_pnl: null,
     notes: null,
     image_count: 0,
-    created_at: new Date().toISOString(),
+    time: new Date().toISOString(),
 }
 
 interface GuardStatusResponse {
@@ -61,7 +61,7 @@ export default function TradesLayout() {
     }, [])
 
     const handleNewTrade = useCallback(() => {
-        setSelectedTrade({ ...NEW_TRADE, created_at: new Date().toISOString() })
+        setSelectedTrade({ ...NEW_TRADE, time: new Date().toISOString() })
     }, [])
 
     const handleClose = useCallback(() => {
@@ -102,6 +102,23 @@ export default function TradesLayout() {
         [selectedTrade, queryClient, setStatus],
     )
 
+    const handleDeleteTrade = useCallback(
+        async (execId: string) => {
+            try {
+                setStatus('Deleting trade...')
+                await apiFetch(`/api/v1/trades/${execId}`, {
+                    method: 'DELETE',
+                })
+                setStatus('Trade deleted')
+                await queryClient.invalidateQueries({ queryKey: ['trades'] })
+                setSelectedTrade(null)
+            } catch (err) {
+                setStatus(`Error: ${err instanceof Error ? err.message : 'Failed to delete trade'}`)
+            }
+        },
+        [queryClient, setStatus],
+    )
+
     return (
         <div data-testid="trades-page" className="flex h-full">
             {/* Left: Table */}
@@ -135,6 +152,7 @@ export default function TradesLayout() {
                         key={selectedTrade.exec_id}
                         trade={selectedTrade}
                         onSave={handleSaveTrade}
+                        onDelete={handleDeleteTrade}
                         onClose={handleClose}
                     />
                 </div>

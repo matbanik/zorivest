@@ -26,5 +26,10 @@ Desktop.ini
 *.log
 docs/_todo_considerations.txt
 
+# SQLite databases (runtime + test artifacts)
+*.db
+*.db-shm
+*.db-wal
+
 # Node.js
 node_modules/

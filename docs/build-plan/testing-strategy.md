@@ -591,8 +591,133 @@ The `locked` vs `is_locked` bug (Pass 2-3 of GUI review, 2026-03-18) demonstrate
 2. **Or check the OpenAPI spec** — search `openapi.committed.json` for the endpoint path and response schema
 3. **Mirror exact field names** — copy field names into your TS `interface` and mock data
 
-| Source of truth | Location |
-|---|---|
 | Python Pydantic models | `packages/api/src/zorivest_api/` |
 | OpenAPI committed spec | `openapi.committed.json` |
 | OpenAPI CI check | `uv run python tools/export_openapi.py --check openapi.committed.json` |
+
+### Cross-Layer Contract Enforcement ✅
+
+> Added 2026-03-19 after mock-boundary audit revealed three classes of bugs
+> where all unit tests passed but the app was broken at runtime.
+
+#### Schema-Domain Contract Tests
+
+| Aspect | Detail |
+|---|---|
+| **File** | `tests/unit/test_schema_contracts.py` (10 tests) |
+| **What it validates** | API request schema fields ⊆ domain model fields |
+| **Schemas covered** | Trade (Create/Update/Response), Account (Create/Update/Response), TradeReport (Create/Update/Response) |
+| **KNOWN_EXCEPTIONS** | Documented dict of intentionally mismatched fields (e.g., `UpdateTradeRequest.notes` filtered by service layer) |
+| **Command** | `uv run pytest tests/unit/test_schema_contracts.py -v` |
+
+#### API Round-Trip Integration Tests
+
+| Aspect | Detail |
+|---|---|
+| **File** | `tests/integration/test_api_roundtrip.py` (13 tests) |
+| **What it validates** | Full HTTP → Route → Service → Domain → DB path, no mocks |
+| **Endpoints covered** | Health (shape + dev-unlock), Version, Trade CRUD (incl. `notes` field), Guard |
+| **Key test** | `test_update_with_notes_does_not_crash` — would have caught the `TypeError` crash |
+| **Command** | `uv run pytest tests/integration/test_api_roundtrip.py -v` |
+
+#### Dev-Mode Smoke Test
+
+| Aspect | Detail |
+|---|---|
+| **File** | `ui/scripts/smoke-test.ts` (7 assertions) |
+| **What it validates** | Real HTTP against real API server — agent-runnable, no Electron needed |
+| **Assertions** | health.status, health.database.unlocked, version, trades (not 403), guard |
+| **Command** | `cd ui && npm run test:smoke` |
+
+#### MEU Handoff Checklist
+
+Every future MEU that adds or modifies API endpoints **must** include:
+
+- [ ] Schema contract test: API request fields ⊆ domain model fields
+- [ ] Round-trip test: `TestClient` exercises full API → Service → Domain path
+- [ ] Smoke test: assertions added to `ui/scripts/smoke-test.ts` for new endpoints
+- [ ] Mock audit: verify all test mocks match `openapi.committed.json` field names
+- [ ] **GUI-API seam tests** (if MEU touches GUI ↔ API boundary — see below)
+
+---
+
+### GUI-API Seam Testing ✅
+
+> Added 2026-03-19 after five bugs were found during manual GUI testing
+> that all passed existing automated tests. Root cause: tests validated each
+> layer internally but never tested the **handoff points** between layers.
+
+#### Bug Classes Caught
+
+| # | Bug Class | Example | Root Cause |
+|---|-----------|---------|------------|
+| 1 | Field name mismatch | GUI `created_at` vs API `time` | TS interface ≠ Pydantic response |
+| 2 | Missing update fields | `UpdateTradeRequest` had 3 of 9 fields | Schema too narrow |
+| 3 | Response format crash | `apiFetch(.json())` on 204 No Content | No empty-body test |
+| 4 | Type coercion crash | Numeric → string breaks `.toFixed()` | No type assertion test |
+| 5 | Silent field drop | Service filters valid fields | No per-field update test |
+| 6 | Missing import | `TradeAction` used but not imported | No action-update test |
+
+#### Test File
+
+| Aspect | Detail |
+|---|---|
+| **File** | `tests/integration/test_gui_api_seams.py` (16 tests) |
+| **What it validates** | GUI↔API boundary contracts: field names, schema completeness, response formats, type safety |
+| **Test classes** | `TestUpdateFieldRoundTrips` (9), `TestUpdateSchemaCompleteness` (1), `TestResponseFormats` (4), `TestGuiApiFieldAlignment` (2) |
+| **Command** | `uv run pytest tests/integration/test_gui_api_seams.py -v` |
+
+#### Test Categories
+
+**1. Every-Field Update Round-Trip** — One test per GUI-editable field:
+
+```
+test_update_action_bot_to_sld    test_update_quantity
+test_update_price                test_update_instrument
+test_update_account_id           test_update_commission
+test_update_realized_pnl         test_update_notes
+test_update_multiple_fields_at_once
+```
+
+**Rule:** If the GUI has an input/select for a field, there MUST be a round-trip test.
+
+**2. Schema Completeness** — Verifies `UpdateRequest` covers all non-readonly domain fields:
+
+```python
+editable = trade_fields - READONLY_FIELDS
+missing = editable - update_fields
+assert not missing  # Catches "silently dropped field" bugs
+```
+
+**3. Response Format** — Validates what `apiFetch` receives:
+
+- DELETE returns 204 with `b""` body (no JSON)
+- List returns `{"items": [...]}` with proper types
+- Numeric fields are `int|float`, never strings
+
+**4. GUI↔API Field Alignment** — Cross-layer contract:
+
+```python
+GUI_FIELDS = {"exec_id", "instrument", "action", ...}  # From TS interface
+response_fields = set(TradeResponse.model_fields.keys())
+assert not (GUI_FIELDS - response_fields)  # Catches name mismatches
+```
+
+#### Workflow
+
+Use `/gui-integration-testing` workflow for any MEU that modifies CRUD endpoints consumed by the GUI. See `.agent/workflows/gui-integration-testing.md`.
+
+#### GUI-API Seam Checklist
+
+Copy into MEU handoffs for GUI+API features:
+
+```markdown
+- [ ] TS interface fields ⊆ Pydantic response fields
+- [ ] Update schema covers all non-readonly domain fields
+- [ ] Round-trip test for every updateable field
+- [ ] DELETE returns 204 empty body
+- [ ] List items have correct numeric types (not strings)
+- [ ] DB migration for new columns on existing tables
+- [ ] apiFetch handles response status (200 JSON, 204 empty, 4xx error)
+```
+

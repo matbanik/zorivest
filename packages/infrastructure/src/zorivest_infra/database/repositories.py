@@ -61,6 +61,7 @@ def _trade_to_model(trade: Trade) -> TradeModel:
         account_id=trade.account_id,
         commission=trade.commission,
         realized_pnl=trade.realized_pnl,
+        notes=trade.notes,
     )
 
 
@@ -75,6 +76,7 @@ def _model_to_trade(m: TradeModel) -> Trade:
         account_id=m.account_id,
         commission=float(m.commission or 0),
         realized_pnl=float(m.realized_pnl or 0),
+        notes=m.notes or "",
     )
 
 

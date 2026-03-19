@@ -9,6 +9,7 @@ from __future__ import annotations
 from zorivest_core.application.commands import CreateTrade
 from zorivest_core.application.ports import UnitOfWork
 from zorivest_core.domain.entities import Trade
+from zorivest_core.domain.enums import TradeAction
 from zorivest_core.domain.exceptions import BusinessRuleError, NotFoundError
 from zorivest_core.domain.trades.identity import trade_fingerprint
 
@@ -43,6 +44,7 @@ class TradeService:
                 account_id=command.account_id,
                 commission=command.commission,
                 realized_pnl=command.realized_pnl,
+                notes=command.notes,
             )
 
             # Dedup by fingerprint
@@ -148,8 +150,13 @@ class TradeService:
             trade = self.uow.trades.get(exec_id)
             if trade is None:
                 raise NotFoundError(f"Trade not found: {exec_id}")
-            # Frozen dataclass — create new instance with updated fields
-            updated = Trade(**{**trade.__dict__, **kwargs})
+            # Filter kwargs to only fields that Trade accepts.
+            valid_fields = {f for f in trade.__dataclass_fields__}
+            filtered = {k: v for k, v in kwargs.items() if k in valid_fields}
+            # Convert action string to TradeAction enum if present
+            if "action" in filtered and isinstance(filtered["action"], str):
+                filtered["action"] = TradeAction(filtered["action"])
+            updated = Trade(**{**trade.__dict__, **filtered})
             self.uow.trades.update(updated)
             self.uow.commit()
             return updated

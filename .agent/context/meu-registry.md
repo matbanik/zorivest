@@ -195,3 +195,6 @@ P2.75 (broker adapters): MEU-96 → MEU-99
 | MEU-89 | `scheduling-api-mcp` | 48 | Scheduling REST API (16 endpoints) + MCP tools (6+2); scheduler lifecycle | ✅ approved |
 | MEU-90 | `scheduling-guardrails` | 49 | PipelineGuardrails (4 rate-limit/approval checks) + approval-reset on patch | ✅ approved |
 | MEU-90a | `persistence-wiring` | 49.0 | Replace StubUnitOfWork with SqlAlchemyUnitOfWork; wire all 17 real repos into FastAPI lifespan; fix getattr/dict guardrails mismatch; Alembic bootstrap; remove repo-level stubs | ⬜ planned |
+| MEU-90b | `mode-gating-test-isolation` | 49.1 | Fix 8 flaky mode-gating tests: per-test `app.state` reset so lock/unlock doesn't leak across modules | ⬜ planned |
+| MEU-90c | `sqlcipher-native-deps` | 49.2 | Resolve sqlcipher3 availability on Windows; clear 15 skipped encryption tests | ⬜ planned |
+| MEU-90d | `rendering-deps` | 49.3 | Install + validate Playwright + kaleido rendering extras; clear 1 skipped RenderStep test | ⬜ planned |

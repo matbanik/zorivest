@@ -776,3 +776,59 @@ async def test_all_providers(self) -> list[tuple[str, bool, str]]:
 - 8 FastAPI REST endpoints under `/api/v1/market-data/`
 - 7 TypeScript MCP tools
 - Full test suite (unit + e2e + TypeScript)
+
+---
+
+## Service Wiring (MEU-90b)
+
+> [!IMPORTANT]
+> MEU-90b (`service-wiring`) must retire `StubMarketDataService` and
+> `StubProviderConnectionService` from `stubs.py` and wire the real services
+> into the FastAPI lifespan. This is the heaviest wiring task (Tier 3) — both
+> services share a wide dependency graph.
+
+### Prerequisites
+
+Both services are already implemented (MEU-60 `provider-connection-service`, MEU-61 `market-data-service`).
+What's missing is the lifespan initialization that constructs and injects the full dependency graph.
+
+### Dependency Graph
+
+```
+lifespan()
+├── engine + SqlAlchemyUnitOfWork (✅ exists from MEU-90a)
+├── EncryptionService(fernet_key)         ← needs Fernet key from env/config
+├── HttpClient (httpx.AsyncClient)        ← shared instance, closed on shutdown
+├── rate_limiters: dict[str, RateLimiter] ← one per provider, from PROVIDER_REGISTRY
+├── PROVIDER_REGISTRY                     ← imported from infrastructure
+│
+├── ProviderConnectionService(uow, encryption, http_client, rate_limiters, registry)
+└── MarketDataService(uow, encryption, http_client, rate_limiters, registry, normalizers)
+```
+
+### Wiring Tasks
+
+1. **Initialize shared dependencies** in `lifespan()`:
+   - `EncryptionService` — derive Fernet key from env var or machine key
+   - `httpx.AsyncClient()` — shared HTTP client, `await client.aclose()` on shutdown
+   - Rate limiters — one `RateLimiter(config.default_rate_limit)` per provider
+   - Import `PROVIDER_REGISTRY` from `zorivest_infra.market_data.provider_registry`
+2. **Construct real services**:
+   - `ProviderConnectionService(uow, encryption, http_client, rate_limiters, registry)`
+   - `MarketDataService(uow, encryption, http_client, rate_limiters, registry)`
+3. **Replace stubs** in `main.py`:
+   - `app.state.market_data_service = MarketDataService(...)` (was `StubMarketDataService()`)
+   - `app.state.provider_connection_service = ProviderConnectionService(...)` (was `StubProviderConnectionService()`)
+4. **Remove stubs** from `stubs.py`
+5. **Shutdown cleanup** — add `await http_client.aclose()` to the `finally:` block
+6. **Add integration tests**:
+   - `tests/integration/test_market_data_wiring.py` — verify lifespan constructs services correctly
+   - Update `tests/e2e/test_market_data_api.py` — verify routes work with real services
+
+### Verification
+
+```bash
+uv run pytest tests/ -k "market_data or provider" -v
+uv run pytest tests/ --tb=no -q  # Full regression
+uv run pyright packages/api/src/zorivest_api/main.py
+```

@@ -12,6 +12,13 @@ from __future__ import annotations
 import base64
 from typing import Any, Callable
 
+# Force plotly to use stdlib json instead of orjson.
+# The installed orjson 3.11.7 is a namespace stub (no dumps/loads/OPT_*)
+# which causes plotly's auto-detection to crash at serialization time.
+import plotly.io as pio
+
+pio.json.config.default_engine = "json"
+
 import plotly.graph_objects as go
 
 

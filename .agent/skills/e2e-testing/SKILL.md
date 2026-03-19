@@ -154,3 +154,22 @@ await expect(appPage.page).toHaveScreenshot('trades-page.png', {
 ```
 
 Baselines are auto-generated on first run and stored in `tests/e2e/__screenshots__/`.
+
+## Table Visual Consistency
+
+> [!IMPORTANT]
+> **Tables must be screenshotted at BOTH widths** — with detail panel open (~60%) and closed (100%).
+> Header/cell alignment drift only shows at full width because right-aligned values separate from left-aligned headers in wide cells.
+
+```typescript
+// Screenshot with detail panel open (narrow table)
+await appPage.testId('add-trade-btn').click() // opens panel
+await expect(appPage.testId('trade-list')).toHaveScreenshot('trades-table-narrow.png')
+
+// Screenshot with detail panel closed (full width)
+await appPage.testId('panel-close-btn').click()
+await expect(appPage.testId('trade-list')).toHaveScreenshot('trades-table-wide.png')
+```
+
+**Pattern rule:** All table components must use a shared `getAlignClass()` helper for both `<th>` and `<td>` — see `TradesTable.tsx` for the reference implementation.
+

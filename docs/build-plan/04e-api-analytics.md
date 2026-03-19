@@ -144,6 +144,44 @@ async def calculate_position_size(body: PositionSizeRequest):
     ...
 ```
 
+## Service Wiring (MEU-118)
+
+> [!IMPORTANT]
+> MEU-118 (`expansion-api`) must retire `StubAnalyticsService` and
+> `StubReviewService` from `stubs.py` and wire the real services into the
+> FastAPI lifespan.
+
+### Prerequisites
+
+| Stub | Real Service | Blocked On |
+|------|-------------|-----------|
+| `StubAnalyticsService` (12 methods) | `AnalyticsService` | MEU-104–116 (expectancy, SQN, drawdown, execution quality, PFOF, strategy, cost-of-free, excursion, options detection, fee summary) |
+| `StubReviewService` (3 methods) | `ReviewService` | MEU-110 `ai-review-persona` (AI review, mistake tracking, mistake summary) |
+
+### Wiring Tasks
+
+1. **Create `AnalyticsService`** in `packages/core/src/zorivest_core/services/analytics_service.py`
+   - Constructor: `uow: UnitOfWork`, plus any analytics-specific dependencies (market data for excursion)
+   - Implements: `get_expectancy`, `get_drawdown`, `get_execution_quality`, `get_pfof_report`, `get_strategy_breakdown`, `get_sqn`, `get_cost_of_free`, `enrich_trade`, `detect_strategy`, `fee_summary`
+2. **Create `ReviewService`** in `packages/core/src/zorivest_core/services/review_service.py`
+   - Constructor: `uow: UnitOfWork`, AI provider config
+   - Implements: `ai_review`, `track_mistake`, `mistake_summary`
+3. **Wire into lifespan** (`main.py`)
+   - Replace `StubAnalyticsService()` → `AnalyticsService(uow, ...)`
+   - Replace `StubReviewService()` → `ReviewService(uow, ...)`
+4. **Remove stubs** from `stubs.py`
+5. **Add integration tests**
+   - `tests/integration/test_analytics_service.py`
+   - `tests/integration/test_review_service.py`
+
+### Verification
+
+```bash
+uv run pytest tests/ -k "analytics or review or fees or mistakes" -v
+uv run pytest tests/ --tb=no -q  # Full regression
+uv run pyright packages/api/src/zorivest_api/main.py
+```
+
 ## Consumer Notes
 
 - **MCP tools:** `get_expectancy_metrics`, `simulate_drawdown`, `get_sqn`, `enrich_trade_excursion`, `detect_options_strategy`, `ai_review_trade`, `estimate_pfof_impact`, `get_fee_breakdown`, `score_execution_quality`, `get_cost_of_free` ([05c](05c-mcp-trade-analytics.md))

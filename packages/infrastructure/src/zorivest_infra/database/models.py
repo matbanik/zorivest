@@ -47,6 +47,7 @@ class TradeModel(Base):
     account_id = Column(String, ForeignKey("accounts.account_id"), nullable=False)
     commission = Column(Numeric(15, 6), default=0.0)
     realized_pnl = Column(Numeric(15, 6), default=0.0)
+    notes = Column(Text, nullable=True, default="")
 
     images = relationship(
         "ImageModel",

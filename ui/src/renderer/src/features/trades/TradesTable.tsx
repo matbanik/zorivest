@@ -12,6 +12,11 @@ import { useState, useMemo } from 'react'
 
 // ── Types ────────────────────────────────────────────────────────────────
 
+/** Resolve text-alignment class from column meta. Used by BOTH <th> and <td>
+ *  so header/cell alignment can never drift apart. */
+const getAlignClass = (meta: unknown): string =>
+    (meta as any)?.align === 'right' ? 'text-right' : 'text-left'
+
 export interface Trade {
     exec_id: string
     instrument: string
@@ -23,7 +28,7 @@ export interface Trade {
     realized_pnl: number | null
     notes: string | null
     image_count: number
-    created_at: string
+    time: string
 }
 
 // ── Column Definitions ───────────────────────────────────────────────────
@@ -31,14 +36,16 @@ export interface Trade {
 const col = createColumnHelper<Trade>()
 
 export const tradeColumns = [
-    col.accessor('created_at', {
+    col.accessor('time', {
         header: 'Time',
         cell: (info) => {
             try {
-                return new Date(info.getValue()).toLocaleTimeString([], {
-                    hour: '2-digit',
-                    minute: '2-digit',
-                })
+                const d = new Date(info.getValue())
+                const mm = String(d.getMonth() + 1).padStart(2, '0')
+                const dd = String(d.getDate()).padStart(2, '0')
+                const yyyy = d.getFullYear()
+                const time = d.toLocaleTimeString([], { hour: 'numeric', minute: '2-digit' })
+                return `${mm}/${dd}/${yyyy} ${time}`
             } catch {
                 return '—'
             }
@@ -62,12 +69,18 @@ export const tradeColumns = [
     }),
     col.accessor('quantity', {
         header: 'Qty',
-        cell: (info) => info.getValue().toLocaleString(),
+        cell: (info) => {
+            const val = info.getValue()
+            return val != null ? Number(val).toLocaleString() : '—'
+        },
         meta: { align: 'right' as const },
     }),
     col.accessor('price', {
         header: 'Price',
-        cell: (info) => info.getValue().toFixed(2),
+        cell: (info) => {
+            const val = info.getValue()
+            return val != null ? Number(val).toFixed(2) : '—'
+        },
         meta: { align: 'right' as const },
     }),
     col.accessor('account_id', {
@@ -79,7 +92,10 @@ export const tradeColumns = [
     }),
     col.accessor('commission', {
         header: 'Comm',
-        cell: (info) => info.getValue().toFixed(2),
+        cell: (info) => {
+            const val = info.getValue()
+            return val != null ? Number(val).toFixed(2) : '—'
+        },
         meta: { align: 'right' as const },
     }),
     col.accessor('realized_pnl', {
@@ -150,7 +166,7 @@ export default function TradesTable({
                                 {hg.headers.map((header) => (
                                     <th
                                         key={header.id}
-                                        className="px-3 py-2 text-left text-fg-muted font-medium cursor-pointer select-none"
+                                        className={`px-3 py-2 font-medium cursor-pointer select-none text-fg-muted ${getAlignClass(header.column.columnDef.meta)}`}
                                         onClick={header.column.getToggleSortingHandler()}
                                         style={{ width: header.getSize() }}
                                     >
@@ -175,7 +191,7 @@ export default function TradesTable({
                                 {row.getVisibleCells().map((cell) => (
                                     <td
                                         key={cell.id}
-                                        className={`px-3 py-2 ${(cell.column.columnDef.meta as any)?.align === 'right' ? 'text-right' : ''}`}
+                                        className={`px-3 py-2 ${getAlignClass(cell.column.columnDef.meta)}`}
                                     >
                                         {flexRender(cell.column.columnDef.cell, cell.getContext())}
                                     </td>

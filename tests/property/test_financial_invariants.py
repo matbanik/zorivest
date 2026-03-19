@@ -145,15 +145,20 @@ class TestSQNInvariants:
     @given(pnls=st.lists(nonzero_pnl, min_size=3, max_size=200))
     @settings(max_examples=200)
     def test_sqn_sign_matches_mean_sign(self, pnls: list[float]) -> None:
-        """SQN sign matches mean_r sign when σ > 0."""
+        """SQN sign matches mean_r sign when σ > 0.
+
+        Note: When std_r >> mean_r (e.g., std=99M, mean=22), SQN ≈ 0.0000004
+        which rounds to 0.0 at 6 decimal places.  We accept 0 as consistent
+        with both positive and negative mean in that edge case.
+        """
         trades = [make_trade(p) for p in pnls]
         result = calculate_sqn(trades)
         if result.std_r > 0:
-            # sign(SQN) == sign(mean_r), or both zero
+            # sign(SQN) == sign(mean_r), or zero due to precision rounding
             if result.mean_r > 0:
-                assert result.sqn > 0
+                assert result.sqn >= 0
             elif result.mean_r < 0:
-                assert result.sqn < 0
+                assert result.sqn <= 0
 
     def test_fewer_than_two_trades_returns_zero(self) -> None:
         """< 2 trades → SQN = 0 (Poor)."""

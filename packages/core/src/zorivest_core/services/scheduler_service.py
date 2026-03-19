@@ -17,6 +17,25 @@ import structlog
 
 logger = structlog.get_logger()
 
+# Module-level singleton reference for the APScheduler job callback.
+# APScheduler pickles job functions; bound methods pickle `self`, which
+# transitively holds the SQLAlchemy Engine (unpicklable in SA 2.x).
+# This global lets us use a picklable module-level function instead.
+_scheduler_instance: SchedulerService | None = None
+
+
+async def _execute_policy_callback(policy_id: str) -> None:
+    """Module-level APScheduler job callback (picklable).
+
+    Delegates to the global SchedulerService instance. This function
+    is registered with APScheduler instead of a bound method to avoid
+    pickling the SchedulerService (which holds pipeline_runner → uow → engine).
+    """
+    if _scheduler_instance is None:
+        logger.error("scheduler_callback_no_instance", policy_id=policy_id)
+        return
+    await _scheduler_instance._execute_policy(policy_id)
+
 
 class PipelineRunnerPort(Protocol):
     """Minimal interface for the pipeline runner used by scheduler callbacks."""
@@ -51,11 +70,13 @@ class SchedulerService:
         policy_repo: PolicyRepositoryPort | None = None,
         db_url: str | None = None,
     ) -> None:
+        global _scheduler_instance
         self.pipeline_runner = pipeline_runner
         self.policy_repo = policy_repo
         self._running = False
         self._jobs: dict[str, dict[str, Any]] = {}
         self._scheduler: Any = None
+        _scheduler_instance = self  # Register for module-level callback
 
         # Lazy APScheduler init — only if db_url provided
         if db_url:
@@ -117,8 +138,11 @@ class SchedulerService:
                 minute=parts[0], hour=parts[1], day=parts[2],
                 month=parts[3], day_of_week=parts[4], timezone=timezone,
             )
+            # Use module-level function ref (picklable) instead of bound method.
+            # APScheduler resolves the "module:function" string at call time.
             self._scheduler.add_job(
-                func=self._execute_policy, trigger=trigger,
+                func=f"{__name__}:_execute_policy_callback",
+                trigger=trigger,
                 id=job_id, name=policy_name, args=[policy_id],
                 replace_existing=True, coalesce=coalesce,
                 max_instances=max_instances,

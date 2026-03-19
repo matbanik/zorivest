@@ -14,9 +14,14 @@ from sqlalchemy.orm import Session
 from zorivest_infra.database.models import Base
 
 
-@pytest.fixture(scope="session")
+@pytest.fixture()
 def engine():
-    """Session-scoped in-memory SQLite engine with all tables created once."""
+    """Function-scoped in-memory SQLite engine with all tables created.
+
+    Function-scoped to prevent cross-test data pollution from tests
+    that commit directly through the engine (e.g., scheduling adapters).
+    In-memory SQLite DDL is < 10ms per test, so overhead is negligible.
+    """
     eng = create_engine(
         "sqlite://", echo=False, connect_args={"check_same_thread": False}
     )

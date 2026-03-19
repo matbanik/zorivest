@@ -212,6 +212,47 @@ def test_ytd_summary(client):
     assert response.status_code == 200
 ```
 
+## Service Wiring (MEU-148)
+
+> [!IMPORTANT]
+> MEU-148 (`tax-api`) must retire `StubTaxService` from `stubs.py` and wire the
+> real `TaxService` into the FastAPI lifespan. This is the integration gate for
+> all Phase 3 tax functionality.
+
+### Prerequisites
+
+MEU-148 depends on the core tax engine being implemented first:
+
+- **MEU-123–126** (Phase 3A) — `TaxLot` entity, `TaxProfile`, lot tracking, gains calculator
+- These MEUs produce the real `TaxService` class with domain logic
+
+### Wiring Tasks
+
+1. **Create `TaxService`** in `packages/core/src/zorivest_core/services/tax_service.py`
+   - Constructor takes `uow: UnitOfWork` (for tax lot persistence, trade lookups)
+   - Implements all methods currently stubbed: `simulate_impact`, `estimate`, `find_wash_sales`, `get_lots`, `quarterly_estimate`, `record_payment`, `harvest_scan`, `ytd_summary`
+2. **Wire into lifespan** (`main.py`)
+   - Replace `app.state.tax_service = StubTaxService()` with `app.state.tax_service = TaxService(uow)`
+   - Import from `zorivest_core.services.tax_service`
+3. **Remove `StubTaxService`** from `stubs.py`
+4. **Update `Depends(get_tax_service)`** — Verify the route dependency injection resolves to the real service
+5. **Add integration tests** — Test the full route → service → UoW → DB path:
+   - `tests/integration/test_tax_service.py` — Service-level tests with real UoW
+   - Update `tests/e2e/test_tax_api.py` — Route-level tests with real DB
+
+### Verification
+
+```bash
+# Tax-specific tests
+uv run pytest tests/ -k "tax" -v
+
+# Full regression (no regressions from wiring change)
+uv run pytest tests/ --tb=no -q
+
+# Type checking
+uv run pyright packages/api/src/zorivest_api/main.py
+```
+
 ## Consumer Notes
 
 - **MCP tools:** `simulate_tax_impact`, `estimate_tax`, `find_wash_sales`, `get_tax_lots`, `get_quarterly_estimate`, `record_quarterly_tax_payment`, `harvest_losses`, `get_ytd_tax_summary` ([05h](05h-mcp-tax.md))

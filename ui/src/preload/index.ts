@@ -6,7 +6,7 @@ import { contextBridge, ipcRenderer } from 'electron'
  */
 
 // Internal storage for IPC-fetched values
-let __baseUrl = 'http://127.0.0.1:8000'
+let __baseUrl = 'http://127.0.0.1:8765'
 let __token = ''
 
 contextBridge.exposeInMainWorld('api', {

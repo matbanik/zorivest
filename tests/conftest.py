@@ -1,6 +1,32 @@
 """Shared test configuration and fixtures for Zorivest."""
 
+import os
+
 import pytest
+
+
+# ── DB Isolation ────────────────────────────────────────────────────────
+
+
+@pytest.fixture(autouse=True)
+def _isolate_db_url(tmp_path):
+    """Set ZORIVEST_DB_URL to a per-test temp file so tests never touch the real DB.
+
+    MEU-90a: The lifespan now creates a real SQLAlchemy engine from
+    ZORIVEST_DB_URL.  Without this fixture, ``create_app()`` + ``TestClient``
+    would create ``zorivest.db`` in the project root, polluting the workspace
+    and leaking state across runs.
+
+    Function-scoped (via tmp_path) to prevent cross-test data pollution.
+    """
+    url = f"sqlite:///{tmp_path / 'test.db'}"
+    old = os.environ.get("ZORIVEST_DB_URL")
+    os.environ["ZORIVEST_DB_URL"] = url
+    yield
+    if old is None:
+        os.environ.pop("ZORIVEST_DB_URL", None)
+    else:
+        os.environ["ZORIVEST_DB_URL"] = old
 
 
 # ── Phase 2.75: Broker Import Test Fixtures ──────────────────────────────

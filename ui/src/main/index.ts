@@ -157,14 +157,20 @@ app.whenReady().then(async () => {
 
     let ready: boolean
 
-    if (isDev) {
-        // Dev mode: skip Python backend, show main window after brief splash
-        await new Promise((r) => setTimeout(r, 1000))
-        ready = true
-    } else if (process.env.ZORIVEST_BACKEND_URL) {
-        // E2E / external backend: harness owns the backend process.
-        // Skip local spawn to avoid dual-start port conflicts.
+    if (process.env.ZORIVEST_BACKEND_URL) {
+        // External backend: dev mode (concurrently), E2E, or explicit override.
+        // Override PythonManager so IPC get-backend-url returns the correct URL.
+        pythonManager.setExternalUrl(process.env.ZORIVEST_BACKEND_URL)
         await new Promise((r) => setTimeout(r, 500))
+        ready = true
+    } else if (isDev) {
+        // Dev mode without explicit backend URL — warn but proceed.
+        // Use dev:ui-only script or set ZORIVEST_BACKEND_URL for backend access.
+        console.warn(
+            '[startup] Dev mode: no ZORIVEST_BACKEND_URL set. ' +
+            'Backend will be unreachable. Use "npm run dev" to start both processes.',
+        )
+        await new Promise((r) => setTimeout(r, 1000))
         ready = true
     } else {
         // Production: start Python backend and wait for health check

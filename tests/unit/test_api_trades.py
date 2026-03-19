@@ -176,6 +176,16 @@ class TestUpdateTrade:
         data = resp.json()
         assert data["commission"] == 5.0
 
+    def test_update_trade_invalid_action_422(self, client) -> None:
+        """ValueError from TradeAction() must return 422, not 500."""
+        http, trade_svc, _ = client
+        trade_svc.update_trade.side_effect = ValueError(
+            "'BUY' is not a valid TradeAction"
+        )
+
+        resp = http.put("/api/v1/trades/E001", json={"action": "BUY"})
+        assert resp.status_code == 422
+
 
 class TestDeleteTrade:
     def test_delete_trade_204(self, client) -> None:

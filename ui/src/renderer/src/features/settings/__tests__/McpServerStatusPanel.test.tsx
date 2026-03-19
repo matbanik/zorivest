@@ -47,8 +47,8 @@ function createWrapper() {
 
 function setupDefaultMocks() {
     mockApiFetch.mockImplementation(async (path: string) => {
-        if (path === '/health') return { status: 'ok', database: 'connected' }
-        if (path === '/version') return { version: 'v1.2.3', environment: 'test' }
+        if (path === '/api/v1/health') return { status: 'ok', version: 'v1.2.3', uptime_seconds: 60, database: { unlocked: true } }
+        if (path === '/api/v1/version/') return { version: 'v1.2.3', environment: 'test' }
         if (path.includes('mcp-guard/status')) return { is_locked: false, calls_per_hour: 42 }
         return {}
     })
@@ -83,10 +83,10 @@ describe('McpServerStatusPanel', () => {
         })
     })
 
-    it('should show database status as Connected', async () => {
+    it('should show database status as Unlocked', async () => {
         render(<McpServerStatusPanel />, { wrapper: createWrapper() })
         await waitFor(() => {
-            expect(screen.getByText('Connected')).toBeInTheDocument()
+            expect(screen.getByText('Unlocked')).toBeInTheDocument()
         })
     })
 
@@ -199,8 +199,8 @@ describe('SettingsLayout', () => {
     it('should show Locked when guard is locked', async () => {
         mockApiFetch.mockImplementation(async (path: string) => {
             if (path.includes('mcp-guard/status')) return { is_locked: true }
-            if (path === '/health') return { status: 'ok', database: 'connected' }
-            if (path === '/version') return { version: 'v1.0.0' }
+            if (path === '/api/v1/health') return { status: 'ok', version: 'v1.0.0', uptime_seconds: 0, database: { unlocked: true } }
+            if (path === '/api/v1/version/') return { version: 'v1.0.0' }
             return {}
         })
         render(<SettingsLayout />, { wrapper: createWrapper() })

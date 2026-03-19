@@ -27,6 +27,7 @@ class CreateTrade:
     account_id: str
     commission: float = 0.0
     realized_pnl: float = 0.0
+    notes: str = ""
 
     def __post_init__(self) -> None:
         if not self.exec_id or not self.exec_id.strip():

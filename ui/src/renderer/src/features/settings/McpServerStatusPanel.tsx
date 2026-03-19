@@ -5,9 +5,15 @@ import { useStatusBar } from '@/hooks/useStatusBar'
 
 // ── Types ────────────────────────────────────────────────────────────────
 
+interface DatabaseStatus {
+    unlocked: boolean
+}
+
 interface HealthResponse {
     status: string
-    database?: string
+    version: string
+    uptime_seconds: number
+    database: DatabaseStatus
 }
 
 interface VersionResponse {
@@ -73,9 +79,9 @@ function StatusDot({ ok }: { ok: boolean }) {
  * MCP Server Status Panel — read-only status display with IDE config generation.
  *
  * REST-only data sources:
- *   - Backend status: GET /health
- *   - Version: GET /version
- *   - Database: derived from /health
+ *   - Backend status: GET /api/v1/health
+ *   - Version: GET /api/v1/version/
+ *   - Database: derived from /api/v1/health (database.unlocked)
  *   - Guard state: GET /api/v1/mcp-guard/status
  *
  * Tool count/uptime: N/A (requires MCP proxy — deferred to MEU-46a)
@@ -90,13 +96,13 @@ export default function McpServerStatusPanel() {
     // ── Data fetching ────────────────────────────────────────────────
     const { data: health } = useQuery<HealthResponse>({
         queryKey: ['mcp-health'],
-        queryFn: () => apiFetch('/health'),
+        queryFn: () => apiFetch('/api/v1/health'),
         refetchOnWindowFocus: false,
     })
 
     const { data: version } = useQuery<VersionResponse>({
         queryKey: ['mcp-version'],
-        queryFn: () => apiFetch('/version'),
+        queryFn: () => apiFetch('/api/v1/version/'),
         refetchOnWindowFocus: false,
     })
 
@@ -133,7 +139,8 @@ export default function McpServerStatusPanel() {
 
     // ── Derived state ────────────────────────────────────────────────
     const backendOk = health?.status === 'ok'
-    const dbOk = health?.database === 'connected'
+    const dbReachable = health != null
+    const dbUnlocked = health?.database?.unlocked === true
     const guardLocked = guard?.is_locked ?? false
     const callsPerHour = guard?.calls_per_hour ?? 0
 
@@ -155,8 +162,8 @@ export default function McpServerStatusPanel() {
                     <div><StatusDot ok={!!version} />Version</div>
                     <div className="text-fg-muted">{version?.version ?? '—'}</div>
 
-                    <div><StatusDot ok={dbOk} />Database</div>
-                    <div className="text-fg-muted">{dbOk ? 'Connected' : 'Disconnected'}</div>
+                    <div><StatusDot ok={dbUnlocked} />Database</div>
+                    <div className="text-fg-muted">{!dbReachable ? 'Unreachable' : dbUnlocked ? 'Unlocked' : 'Locked'}</div>
 
                     <div><StatusDot ok={!guardLocked} />Guard</div>
                     <div className="text-fg-muted">

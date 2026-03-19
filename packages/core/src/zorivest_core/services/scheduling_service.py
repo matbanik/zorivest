@@ -282,6 +282,7 @@ class SchedulingService:
             "policy_id": policy_id,
             "status": "running",
             "trigger_type": trigger_type,
+            "content_hash": content_hash,
             "started_at": now,
             "completed_at": None,
             "duration_ms": None,

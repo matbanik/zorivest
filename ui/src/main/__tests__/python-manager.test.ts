@@ -161,4 +161,22 @@ describe('PythonManager', () => {
             expect(pm.authToken).toBe(token)
         })
     })
+
+    describe('setExternalUrl', () => {
+        it('should override baseUrl when set', () => {
+            pm.setExternalUrl('http://127.0.0.1:8765')
+            expect(pm.baseUrl).toBe('http://127.0.0.1:8765')
+        })
+
+        it('should take priority over allocated port', async () => {
+            await pm.allocatePort()
+            pm.setExternalUrl('http://localhost:9999')
+            expect(pm.baseUrl).toBe('http://localhost:9999')
+        })
+
+        it('should return allocated port URL when not set', async () => {
+            await pm.allocatePort()
+            expect(pm.baseUrl).not.toBe('http://127.0.0.1:0')
+        })
+    })
 })

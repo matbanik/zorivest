@@ -346,7 +346,7 @@ class TestPowerEvent:
 class TestLiveWiring:
     """Prove scheduling routes resolve from real app state (no dep overrides)."""
 
-    def test_scheduling_routes_resolve_from_app_state(self) -> None:
+    def test_scheduling_routes_resolve_from_app_state(self, monkeypatch, tmp_path) -> None:
         """R3: Hit scheduler status without dependency overrides.
 
         This verifies that ``create_app()`` lifespan wires real scheduling
@@ -355,6 +355,9 @@ class TestLiveWiring:
         """
         from zorivest_api.main import create_app
         from zorivest_api.dependencies import require_unlocked_db
+
+        db_file = tmp_path / "test_routes.db"
+        monkeypatch.setenv("ZORIVEST_DB_URL", f"sqlite:///{db_file}")
 
         app = create_app()
         app.state.db_unlocked = True
@@ -371,7 +374,7 @@ class TestLiveWiring:
             assert "job_count" in data
 
     @pytest.mark.asyncio()
-    async def test_live_manual_run_route(self) -> None:
+    async def test_live_manual_run_route(self, monkeypatch, tmp_path) -> None:
         """V1: Prove POST /policies/{id}/run works through default app-state.
 
         Creates a policy via the live service, approves it, then POSTs
@@ -381,6 +384,9 @@ class TestLiveWiring:
         from zorivest_api.main import create_app
         from zorivest_api.dependencies import require_unlocked_db
         import zorivest_core.pipeline_steps  # noqa: F401 — step registration
+
+        db_file = tmp_path / "test_live.db"
+        monkeypatch.setenv("ZORIVEST_DB_URL", f"sqlite:///{db_file}")
 
         app = create_app()
         app.state.db_unlocked = True
@@ -405,7 +411,10 @@ class TestLiveWiring:
                     {
                         "id": "noop",
                         "type": "fetch",
-                        "params": {"url": "https://example.com"},
+                        "params": {
+                            "provider": "stub",
+                            "data_type": "ohlcv",
+                        },
                     },
                 ],
             }
@@ -439,7 +448,7 @@ class TestLiveWiring:
 class TestLiveExecution:
     """Prove PipelineRunner is wired (not None) in live app state."""
 
-    def test_runner_wired_and_invocable(self) -> None:
+    def test_runner_wired_and_invocable(self, monkeypatch, tmp_path) -> None:
         """P1: Verify the live app wires a real PipelineRunner.
 
         Proves that:
@@ -452,6 +461,9 @@ class TestLiveExecution:
         """
         from zorivest_api.main import create_app
         from zorivest_core.services.pipeline_runner import PipelineRunner
+
+        db_file = tmp_path / "test_wired.db"
+        monkeypatch.setenv("ZORIVEST_DB_URL", f"sqlite:///{db_file}")
 
         app = create_app()
         app.state.db_unlocked = True
@@ -475,7 +487,7 @@ class TestLiveExecution:
             )
 
     @pytest.mark.asyncio()
-    async def test_runner_executes_policy(self) -> None:
+    async def test_runner_executes_policy(self, monkeypatch, tmp_path) -> None:
         """Q1: Prove runner.run() executes with step persistence (dry_run=False).
 
         Bypasses guardrails (Phase 4 stub limitation) and calls the
@@ -486,6 +498,9 @@ class TestLiveExecution:
         from zorivest_core.services.pipeline_runner import PipelineRunner
         from zorivest_core.domain.pipeline import PolicyDocument
         import zorivest_core.pipeline_steps  # noqa: F401
+
+        db_file = tmp_path / "test_runner.db"
+        monkeypatch.setenv("ZORIVEST_DB_URL", f"sqlite:///{db_file}")
 
         app = create_app()
         app.state.db_unlocked = True

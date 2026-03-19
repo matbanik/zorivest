@@ -18,6 +18,7 @@ export class PythonManager {
     private process: ChildProcess | null = null
     private port: number = 0
     private token: string = ''
+    private externalUrl: string | null = null
 
     /** Generate ephemeral Bearer token (64 hex chars = 32 random bytes) */
     generateToken(): string {
@@ -116,8 +117,13 @@ export class PythonManager {
         this.process = null
     }
 
+    /** Override base URL for external backend (dev mode / E2E). */
+    setExternalUrl(url: string): void {
+        this.externalUrl = url
+    }
+
     get baseUrl(): string {
-        return `http://127.0.0.1:${this.port}`
+        return this.externalUrl ?? `http://127.0.0.1:${this.port}`
     }
 
     get authToken(): string {
