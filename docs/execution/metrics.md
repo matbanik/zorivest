@@ -31,6 +31,7 @@
 | 2026-03-16 | audit | ~80 | N/A | 0 | 8 plan correction rounds (resolved) | 7/7 | 90% | ~120 min | Test rigor audit: IR-5 pattern analysis (285 weak tests → 7 anti-patterns, 5 root causes), corrections plan (6 batches, 53 tasks). 8 plan rounds — dominant: shell-syntax escaping issues. |
 | 2026-03-17 | MEU-88 | ~80 | ~5 min | 23 | 2 High + 2 Med (resolved, 3 rounds) | 7/7 | 90% | ~60 min | SendStep: email/local_file dispatch, SHA-256 dedup, DeliveryRepository. Codex caught unconditional SUCCESS status (F1), missing evidence section (F3), test gaps (F4). F2 (runtime wiring) deferred to MEU-89. |
 | 2026-03-18 | MEU-89/90 | ~200 | ~5 min | 26 | 4 High + 2 Med + 1 Low (resolved, 2 rounds) | 7/7 | 85% | ~180 min | 2-MEU scheduling API+guardrails: 16 REST endpoints, 6 MCP tools + 2 resources, 4 guardrail checks. Codex caught missing app-state wiring (F2), broken execution paths (F3), unregistered MCP resources (F4), weak tests (F5), stale handoff prose (F6). Round 2: scheduler lifecycle, live wiring test, closeout docs. |
+| 2026-03-18 | MEU-46/47/49 | ~300 | ~8 min | 122 (existing) | 1 High (9 rounds, environment limitation) | 7/7 | 90% | ~180 min | 3-MEU GUI notifications+MCP status+trades: useNotifications, McpServerStatusPanel, TradesTable/Detail/Report/Screenshot. 9-pass review cycle — longest in project. Root cause: reviewer env can't launch Electron (Node.js fallback). Fixed: AppPage splash→main window, CI build gate, Electron runtime guard, mock-contract validation rule, E2E doc/skill/workflow build prereq. |
 
 ## Measurement Definitions
 
