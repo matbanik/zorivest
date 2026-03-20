@@ -28,7 +28,7 @@ class TestTradeRepository:
         assert issubclass(TradeRepository, Protocol)
         # Value: verify exact public method contract
         expected_methods = {
-            "delete", "exists", "exists_by_fingerprint_since",
+            "count_filtered", "delete", "exists", "exists_by_fingerprint_since",
             "get", "list_all", "list_filtered", "list_for_account",
             "save", "update",
         }
@@ -47,7 +47,7 @@ class TestTradeRepository:
         from zorivest_core.application.ports import TradeRepository
 
         expected_methods = {
-            "delete", "exists", "exists_by_fingerprint_since",
+            "count_filtered", "delete", "exists", "exists_by_fingerprint_since",
             "get", "list_all", "list_filtered", "list_for_account",
             "save", "update",
         }
