@@ -10,8 +10,6 @@ from __future__ import annotations
 
 import dataclasses
 
-import pytest
-
 from zorivest_api.routes.trades import (
     CreateTradeRequest,
     TradeResponse,
@@ -135,9 +133,7 @@ class TestAccountSchemaContracts:
         api_fields = _schema_fields(AccountResponse)
         domain_fields = _domain_fields(Account)
         extra = api_fields - domain_fields
-        assert extra == set(), (
-            f"AccountResponse has fields not in Account: {extra}"
-        )
+        assert extra == set(), f"AccountResponse has fields not in Account: {extra}"
 
 
 # ── Report Schema Contracts ─────────────────────────────────────────────
@@ -167,6 +163,4 @@ class TestReportSchemaContracts:
         domain_fields = _domain_fields(TradeReport)
         exceptions = KNOWN_EXCEPTIONS.get("ReportResponse", set())
         extra = api_fields - domain_fields - exceptions
-        assert extra == set(), (
-            f"ReportResponse has fields not in TradeReport: {extra}"
-        )
+        assert extra == set(), f"ReportResponse has fields not in TradeReport: {extra}"

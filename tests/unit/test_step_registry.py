@@ -144,7 +144,7 @@ class TestListSteps:
 
 # ---------------------------------------------------------------------------
 # AC-6: Base execute() raises NotImplementedError
-# AC-6b: tagged with # noqa: placeholder
+# AC-6b: raise without message is intentional
 # ---------------------------------------------------------------------------
 
 
@@ -250,4 +250,3 @@ class TestGetAllSteps:
         result = get_all_steps()
         names = {cls.type_name for cls in result}
         assert names == {"c1", "c2"}
-

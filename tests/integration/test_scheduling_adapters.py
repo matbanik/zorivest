@@ -87,9 +87,7 @@ class TestPolicyStoreAdapter:
             )
         )
 
-        updated = run_async(
-            adapter.update(created["id"], {"name": "updated-name"})
-        )
+        updated = run_async(adapter.update(created["id"], {"name": "updated-name"}))
         assert updated is not None
         assert updated["name"] == "updated-name"
 
@@ -212,7 +210,9 @@ class TestRunStoreAdapter:
         )
 
         updated = run_async(
-            adapter.update(created["run_id"], {"status": "completed", "duration_ms": 1500})
+            adapter.update(
+                created["run_id"], {"status": "completed", "duration_ms": 1500}
+            )
         )
         assert updated is not None
         assert updated["status"] == "completed"
@@ -291,8 +291,6 @@ class TestAuditCounterAdapter:
         )
 
         # Verify via direct query
-        from zorivest_infra.database.models import AuditLogModel  # noqa: F811
-
         entries = uow.audit_log.list_recent(limit=10)
         assert len(entries) >= 1
         # Verify field content, not just count
@@ -301,7 +299,9 @@ class TestAuditCounterAdapter:
             and getattr(e, "resource_id", None) == "pol-1"
             for e in entries
         )
-        assert found, "Audit entry with action='policy.create' and resource_id='pol-1' not found"
+        assert found, (
+            "Audit entry with action='policy.create' and resource_id='pol-1' not found"
+        )
 
     def test_create_preserves_caller_id(self, uow):
         """Caller-supplied ID must survive the adapter's key filter."""

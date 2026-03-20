@@ -19,7 +19,7 @@ import plotly.io as pio
 
 pio.json.config.default_engine = "json"
 
-import plotly.graph_objects as go
+import plotly.graph_objects as go  # noqa: E402
 
 
 def render_candlestick(data: dict[str, Any]) -> dict[str, str]:

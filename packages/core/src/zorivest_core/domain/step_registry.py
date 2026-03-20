@@ -85,7 +85,7 @@ class RegisteredStep:
             STEP_REGISTRY[cls.type_name] = cls
 
     async def execute(self, params: dict, context: StepContext) -> StepResult:
-        raise NotImplementedError  # noqa: placeholder
+        raise NotImplementedError
 
     @classmethod
     def params_schema(cls) -> dict:
