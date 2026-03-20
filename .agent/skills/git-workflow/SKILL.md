@@ -43,7 +43,11 @@ pwsh -File .agent/skills/git-workflow/scripts/agent-commit.ps1 -Message "fix: co
 
 # Commit without pushing
 # // turbo
-pwsh -File .agent/skills/git-workflow/scripts/agent-commit.ps1 -Message "wip: save progress" -Push $false
+pwsh -File .agent/skills/git-workflow/scripts/agent-commit.ps1 -Message "wip: save progress" -NoPush
+
+# Skip tests for WIP commits
+# // turbo
+pwsh -File .agent/skills/git-workflow/scripts/agent-commit.ps1 -Message "wip: save progress" -SkipTests -NoPush
 ```
 
 ### What the Script Does (Do NOT Do These Manually)
@@ -51,9 +55,10 @@ pwsh -File .agent/skills/git-workflow/scripts/agent-commit.ps1 -Message "wip: sa
 1. ✅ Validates SSH signing config (fails fast if GPG would hang)
 2. ✅ Checks remote URL format (warns on HTTPS)
 3. ✅ Stages all changes (`git add -A`)
-4. ✅ Commits with `-m` flag (never opens editor)
-5. ✅ Pushes to origin (unless `-Push $false`)
-6. ✅ Verifies with `git log --oneline -1`
+4. ✅ Runs Ruff lint + unit tests (aborts on failure) — skip with `-SkipTests`
+5. ✅ Commits with `-m` flag (never opens editor)
+6. ✅ Pushes to origin (unless `-Push $false`)
+7. ✅ Verifies with `git log --oneline -1`
 
 ## Agent Workflow Checklist
 
