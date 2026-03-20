@@ -90,7 +90,7 @@ class TestListTrades:
 
         assert len(result) == 2
         uow.trades.list_filtered.assert_called_once_with(
-            limit=100, offset=0, account_id=None, sort="-time",
+            limit=100, offset=0, account_id=None, sort="-time", search=None,
         )
 
     def test_list_trades_with_filters(self) -> None:
@@ -103,7 +103,7 @@ class TestListTrades:
 
         assert len(result) == 1
         uow.trades.list_filtered.assert_called_once_with(
-            limit=10, offset=5, account_id="ACC001", sort="time",
+            limit=10, offset=5, account_id="ACC001", sort="time", search=None,
         )
 
 
