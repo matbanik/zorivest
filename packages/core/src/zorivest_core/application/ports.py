@@ -56,6 +56,14 @@ class TradeRepository(Protocol):
         """List trades with optional account filter, search, and sort."""
         ...
 
+    def count_filtered(
+        self,
+        account_id: str | None = None,
+        search: str | None = None,
+    ) -> int:
+        """Return total count of trades matching filters (ignoring limit/offset)."""
+        ...
+
     def exists(self, exec_id: str) -> bool: ...
 
     def exists_by_fingerprint_since(
@@ -241,8 +249,8 @@ class UnitOfWork(Protocol):
     app_defaults: AppDefaultsRepository
     market_provider_settings: MarketProviderSettingsRepository
     trade_reports: TradeReportRepository  # MEU-52
-    trade_plans: TradePlanRepository      # MEU-66
-    watchlists: WatchlistRepository       # MEU-68
+    trade_plans: TradePlanRepository  # MEU-66
+    watchlists: WatchlistRepository  # MEU-68
 
     def __enter__(self) -> UnitOfWork: ...
 
@@ -278,7 +286,9 @@ class BankImportPort(Protocol):
     def detect_format(self, file_path: str) -> str: ...
 
     def parse_statement(
-        self, file_path: str, config: dict | None = None  # type: ignore[type-arg]
+        self,
+        file_path: str,
+        config: dict | None = None,  # type: ignore[type-arg]
     ) -> dict: ...  # type: ignore[type-arg]
 
     def detect_bank(self, headers: list[str]) -> str | None: ...
@@ -321,12 +331,15 @@ class CSVBrokerAdapter(BrokerFileAdapter, Protocol):
 
     def parse_rows(self, rows: list[dict[str, str]]) -> list[RawExecution]: ...
 
+
 class MarketDataPort(Protocol):
     """Abstract interface for market data queries."""
 
     async def get_quote(self, ticker: str) -> MarketQuote: ...
 
-    async def get_news(self, ticker: str | None, count: int) -> list[MarketNewsItem]: ...
+    async def get_news(
+        self, ticker: str | None, count: int
+    ) -> list[MarketNewsItem]: ...
 
     async def search_ticker(self, query: str) -> list[TickerSearchResult]: ...
 

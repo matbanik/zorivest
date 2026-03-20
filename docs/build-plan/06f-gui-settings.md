@@ -741,6 +741,8 @@ export function McpGuardSettingsPage() {
 | Uptime | `zorivest_diagnose` response | On-demand |
 
 > **Phase 6 partial implementation note**: Tool count, active toolset count, and uptime fields require MCP-only tools (`list_available_toolsets`, `zorivest_diagnose`) that have no REST API surface. MEU-46 (`gui-mcp-status`) renders these fields as "N/A" with tooltip. MEU-46a (`mcp-rest-proxy`) adds REST proxy endpoints (`GET /api/v1/mcp/toolsets`, `GET /api/v1/mcp/diagnostics`) and wires the panel to display live data.
+>
+> **Design Decision [PD-46a]**: MEU-46a provides a **static tool catalog** (from build-time manifest) and **API process uptime** only. The "Active toolsets" row shows total registered count (not active/total ratio) and the "Uptime" row shows API uptime (not MCP server uptime), because the MCP server uses stdio transport with no HTTP surface (`[MCP-HTTPBROKEN]`). Runtime `loaded` state and `zorivest_diagnose`-sourced uptime will be added when MCP HTTP transport is available.
 
 ### IDE Config JSON Templates
 

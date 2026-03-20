@@ -38,9 +38,17 @@ from zorivest_api.routes.plans import plan_router
 from zorivest_api.routes.watchlists import watchlist_router
 from zorivest_api.routes.scheduling import scheduling_router
 from zorivest_api.routes.scheduler import scheduler_router
+from zorivest_api.routes.mcp_toolsets import mcp_toolsets_router  # MEU-46a
 from zorivest_api.schemas.common import ErrorEnvelope
 from zorivest_api.auth.auth_service import AuthService
-from zorivest_api.stubs import McpGuardService, StubAnalyticsService, StubMarketDataService, StubProviderConnectionService, StubReviewService, StubTaxService
+from zorivest_api.stubs import (
+    McpGuardService,
+    StubAnalyticsService,
+    StubMarketDataService,
+    StubProviderConnectionService,
+    StubReviewService,
+    StubTaxService,
+)
 from zorivest_core.services.trade_service import TradeService
 from zorivest_core.services.account_service import AccountService
 from zorivest_core.services.image_service import ImageService
@@ -53,7 +61,10 @@ from zorivest_core.services.pipeline_guardrails import PipelineGuardrails
 from zorivest_core.services.pipeline_runner import PipelineRunner
 from zorivest_core.services.ref_resolver import RefResolver
 from zorivest_core.services.condition_evaluator import ConditionEvaluator
-from zorivest_infra.database.unit_of_work import SqlAlchemyUnitOfWork, create_engine_with_wal
+from zorivest_infra.database.unit_of_work import (
+    SqlAlchemyUnitOfWork,
+    create_engine_with_wal,
+)
 from zorivest_infra.database.models import Base
 from sqlalchemy import text
 from zorivest_api.scheduling_adapters import (
@@ -66,20 +77,48 @@ from zorivest_api.scheduling_adapters import (
 # ── Tag metadata ────────────────────────────────────────────────────────
 
 TAGS_METADATA = [
-    {"name": "trades", "description": "Trade lifecycle: CRUD, reports, plans, images, journal"},
-    {"name": "accounts", "description": "Brokers, banking, import, identifiers, positions"},
-    {"name": "auth", "description": "Unlock/lock, API keys, session management, confirmation tokens"},
-    {"name": "settings", "description": "Configuration CRUD, validation, resolved settings"},
-    {"name": "analytics", "description": "Quantitative analysis: expectancy, drawdown, SQN, fees, mistakes"},
-    {"name": "tax", "description": "Simulate, estimate, wash sales, lots, quarterly, harvest"},
-    {"name": "system", "description": "Health, version, logging, MCP guard, service lifecycle"},
-    {"name": "market-data", "description": "Quotes, news, search, SEC filings, provider management"},
-    {"name": "scheduling", "description": "Pipeline policies, execution, run history, scheduler status"},
+    {
+        "name": "trades",
+        "description": "Trade lifecycle: CRUD, reports, plans, images, journal",
+    },
+    {
+        "name": "accounts",
+        "description": "Brokers, banking, import, identifiers, positions",
+    },
+    {
+        "name": "auth",
+        "description": "Unlock/lock, API keys, session management, confirmation tokens",
+    },
+    {
+        "name": "settings",
+        "description": "Configuration CRUD, validation, resolved settings",
+    },
+    {
+        "name": "analytics",
+        "description": "Quantitative analysis: expectancy, drawdown, SQN, fees, mistakes",
+    },
+    {
+        "name": "tax",
+        "description": "Simulate, estimate, wash sales, lots, quarterly, harvest",
+    },
+    {
+        "name": "system",
+        "description": "Health, version, logging, MCP guard, service lifecycle",
+    },
+    {
+        "name": "market-data",
+        "description": "Quotes, news, search, SEC filings, provider management",
+    },
+    {
+        "name": "scheduling",
+        "description": "Pipeline policies, execution, run history, scheduler status",
+    },
     {"name": "scheduler", "description": "Power events, scheduler lifecycle"},
 ]
 
 
 # ── Lifespan ────────────────────────────────────────────────────────────
+
 
 @asynccontextmanager
 async def lifespan(app: FastAPI) -> AsyncGenerator[None, None]:
@@ -161,6 +200,7 @@ async def lifespan(app: FastAPI) -> AsyncGenerator[None, None]:
 
 
 # ── App factory ─────────────────────────────────────────────────────────
+
 
 def create_app() -> FastAPI:
     """Create and configure the FastAPI application."""
@@ -247,10 +287,11 @@ def create_app() -> FastAPI:
     app.include_router(tax_router)
     app.include_router(market_data_router)
     app.include_router(report_router)  # MEU-53
-    app.include_router(plan_router)    # MEU-66
+    app.include_router(plan_router)  # MEU-66
     app.include_router(watchlist_router)  # MEU-68
     app.include_router(scheduling_router)  # MEU-89
     app.include_router(scheduler_router)  # MEU-89
+    app.include_router(mcp_toolsets_router)  # MEU-46a
 
     return app
 

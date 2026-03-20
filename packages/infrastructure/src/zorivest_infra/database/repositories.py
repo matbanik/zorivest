@@ -173,11 +173,7 @@ class SqlAlchemyTradeRepository:
         from zorivest_core.domain.trades.identity import trade_fingerprint
 
         cutoff = datetime.now() - timedelta(days=lookback_days)
-        recent = (
-            self._session.query(TradeModel)
-            .filter(TradeModel.time >= cutoff)
-            .all()
-        )
+        recent = self._session.query(TradeModel).filter(TradeModel.time >= cutoff).all()
         for m in recent:
             trade = _model_to_trade(m)
             if trade_fingerprint(trade) == fingerprint:
@@ -193,6 +189,31 @@ class SqlAlchemyTradeRepository:
         )
         return [_model_to_trade(r) for r in rows]
 
+    def _build_trade_filter_query(
+        self,
+        account_id: str | None = None,
+        search: str | None = None,
+    ):  # type: ignore[no-untyped-def]
+        """Build base query with account/search filters (shared by list + count)."""
+        query = self._session.query(TradeModel)
+        if account_id is not None:
+            query = query.filter(TradeModel.account_id == account_id)
+
+        if search:
+            pattern = f"%{search}%"
+            from sqlalchemy import or_, func
+
+            query = query.filter(
+                or_(
+                    func.lower(TradeModel.instrument).like(func.lower(pattern)),
+                    func.lower(TradeModel.exec_id).like(func.lower(pattern)),
+                    func.lower(TradeModel.account_id).like(func.lower(pattern)),
+                    func.lower(TradeModel.notes).like(func.lower(pattern)),
+                    func.strftime("%Y-%m-%d %H:%M", TradeModel.time).like(pattern),
+                )
+            )
+        return query
+
     def list_filtered(
         self,
         limit: int = 100,
@@ -207,22 +228,7 @@ class SqlAlchemyTradeRepository:
         Supported fields: time (default).
         Search: case-insensitive match against instrument, exec_id, account_id.
         """
-        query = self._session.query(TradeModel)
-        if account_id is not None:
-            query = query.filter(TradeModel.account_id == account_id)
-
-        if search:
-            pattern = f"%{search}%"
-            from sqlalchemy import or_, func
-            query = query.filter(
-                or_(
-                    func.lower(TradeModel.instrument).like(func.lower(pattern)),
-                    func.lower(TradeModel.exec_id).like(func.lower(pattern)),
-                    func.lower(TradeModel.account_id).like(func.lower(pattern)),
-                    func.lower(TradeModel.notes).like(func.lower(pattern)),
-                    func.strftime('%Y-%m-%d %H:%M', TradeModel.time).like(pattern),
-                )
-            )
+        query = self._build_trade_filter_query(account_id=account_id, search=search)
 
         # Parse sort direction
         if sort.startswith("-"):
@@ -234,6 +240,17 @@ class SqlAlchemyTradeRepository:
 
         rows = query.offset(offset).limit(limit).all()
         return [_model_to_trade(r) for r in rows]
+
+    def count_filtered(
+        self,
+        account_id: str | None = None,
+        search: str | None = None,
+    ) -> int:
+        """Return total count of trades matching filters (ignoring limit/offset)."""
+        return self._build_trade_filter_query(
+            account_id=account_id,
+            search=search,
+        ).count()
 
     def update(self, trade: Trade) -> None:
         """Update existing trade via merge (upsert-safe)."""
@@ -273,12 +290,12 @@ class SqlAlchemyImageRepository:
         m = self._session.get(ImageModel, image_id)
         return _model_to_image(m) if m else None
 
-    def get_for_owner(
-        self, owner_type: str, owner_id: str
-    ) -> list[ImageAttachment]:
+    def get_for_owner(self, owner_type: str, owner_id: str) -> list[ImageAttachment]:
         rows = (
             self._session.query(ImageModel)
-            .filter(ImageModel.owner_type == owner_type, ImageModel.owner_id == owner_id)
+            .filter(
+                ImageModel.owner_type == owner_type, ImageModel.owner_id == owner_id
+            )
             .all()
         )
         return [_model_to_image(r) for r in rows]
@@ -319,12 +336,7 @@ class SqlAlchemyAccountRepository:
         self._session.add(_account_to_model(account))
 
     def list_all(self, limit: int = 100, offset: int = 0) -> list[Account]:
-        rows = (
-            self._session.query(AccountModel)
-            .offset(offset)
-            .limit(limit)
-            .all()
-        )
+        rows = self._session.query(AccountModel).offset(offset).limit(limit).all()
         return [_model_to_account(r) for r in rows]
 
     def update(self, account: Account) -> None:
@@ -390,9 +402,7 @@ class SqlAlchemyRoundTripRepository:
             # Future: accept RoundTrip entity directly
             self._session.add(round_trip)
 
-    def list_for_account(
-        self, account_id: str, status: str | None = None
-    ) -> list[Any]:
+    def list_for_account(self, account_id: str, status: str | None = None) -> list[Any]:
         query = self._session.query(RoundTripModel).filter(
             RoundTripModel.account_id == account_id
         )
@@ -426,7 +436,9 @@ class SqlAlchemySettingsRepository:
                 existing.updated_at = dt.now()
             else:
                 self._session.add(
-                    SettingModel(key=k, value=str(v), value_type="str", updated_at=dt.now())
+                    SettingModel(
+                        key=k, value=str(v), value_type="str", updated_at=dt.now()
+                    )
                 )
 
     def delete(self, key: str) -> None:
@@ -670,4 +682,3 @@ class SqlAlchemyTradePlanRepository:
         m = self._session.get(TradePlanModel, plan_id)
         if m:
             self._session.delete(m)
-

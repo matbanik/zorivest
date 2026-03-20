@@ -164,10 +164,14 @@ P2.75 (broker adapters): MEU-96 → MEU-99
 | MEU-43 | `gui-shell` | 15 | Electron + React UI shell (AppShell, NavRail, Header, StatusFooter, splash, Python lifecycle) | ✅ approved |
 | MEU-44 | `gui-command-registry` | 15c | Command registry + CommandPalette (13 static entries, Fuse.js fuzzy search, keyboard nav) | ✅ approved |
 | MEU-45 | `gui-window-state` | 15d | Window state persistence (electron-store, bounds save/restore, first-launch defaults) | ✅ approved |
+| MEU-46a | `mcp-rest-proxy` | 15i.1 | REST proxy endpoints (`GET /mcp/toolsets`, `GET /mcp/diagnostics`) + static manifest + McpServerStatusPanel live wiring | ✅ 2026-03-19 |
+| MEU-50 | `gui-command-palette` | 16b | Command palette (Ctrl+K) | ✅ 2026-03-19 |
+| MEU-51 | `gui-state-persistence` | 16c | UI state persistence: sidebar collapse (Zustand+localStorage `[UI-ESMSTORE]`), route restoration (usePersistedState), theme (usePersistedState) | ✅ 2026-03-19 |
 
 ## Phase-Exit Criteria (Updated)
 
 - Phase 6 (foundation): MEU-43..45 ✅ (shell + commands + window state) → Phase 6 features unblocked
+- Phase 6 (features): MEU-46a, MEU-50, MEU-51 ✅ (MCP proxy, command palette, state persistence)
 
 ## Research-Enhanced: Workspace Setup (Tier 2, after Phase 9 domain)
 

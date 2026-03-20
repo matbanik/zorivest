@@ -14,13 +14,18 @@ from typing import Optional
 from zorivest_core.application.commands import AttachImage, CreateTrade
 from zorivest_core.domain.enums import ImageOwnerType, TradeAction
 from zorivest_core.domain.exceptions import BusinessRuleError, NotFoundError
-from zorivest_api.dependencies import get_trade_service, get_image_service, require_unlocked_db
+from zorivest_api.dependencies import (
+    get_trade_service,
+    get_image_service,
+    require_unlocked_db,
+)
 from zorivest_api.schemas.common import PaginatedResponse
 
 trade_router = APIRouter(prefix="/api/v1/trades", tags=["trades"])
 
 
 # ── Request/Response schemas ────────────────────────────────────────────
+
 
 class CreateTradeRequest(BaseModel):
     exec_id: str
@@ -64,6 +69,7 @@ class TradeResponse(BaseModel):
 
 # ── Trade CRUD routes ───────────────────────────────────────────────────
 
+
 @trade_router.post("", status_code=201, dependencies=[Depends(require_unlocked_db)])
 async def create_trade(
     body: CreateTradeRequest,
@@ -102,12 +108,19 @@ async def list_trades(
 ):
     """List trades with optional account filter, search, and sort."""
     trades = service.list_trades(
-        limit=limit, offset=offset, account_id=account_id, sort=sort,
+        limit=limit,
+        offset=offset,
+        account_id=account_id,
+        sort=sort,
         search=search,
     )
+    total = service.count_trades(account_id=account_id, search=search)
     items = [TradeResponse.model_validate(t) for t in trades]
     return PaginatedResponse(
-        items=items, total=len(items), limit=limit, offset=offset,
+        items=items,
+        total=total,
+        limit=limit,
+        offset=offset,
     )
 
 
@@ -138,13 +151,16 @@ async def update_trade(
         raise HTTPException(422, str(e))
 
 
-@trade_router.delete("/{exec_id}", status_code=204, dependencies=[Depends(require_unlocked_db)])
+@trade_router.delete(
+    "/{exec_id}", status_code=204, dependencies=[Depends(require_unlocked_db)]
+)
 async def delete_trade(exec_id: str, service=Depends(get_trade_service)):
     """Delete a trade."""
     service.delete_trade(exec_id)
 
 
 # ── Trade image routes (nested) ─────────────────────────────────────────
+
 
 @trade_router.get("/{exec_id}/images", dependencies=[Depends(require_unlocked_db)])
 async def list_trade_images(exec_id: str, service=Depends(get_image_service)):
@@ -162,7 +178,9 @@ async def list_trade_images(exec_id: str, service=Depends(get_image_service)):
     ]
 
 
-@trade_router.post("/{exec_id}/images", status_code=201, dependencies=[Depends(require_unlocked_db)])
+@trade_router.post(
+    "/{exec_id}/images", status_code=201, dependencies=[Depends(require_unlocked_db)]
+)
 async def upload_trade_image(
     exec_id: str,
     file: UploadFile = File(...),
@@ -176,15 +194,17 @@ async def upload_trade_image(
     """
     data = await file.read()
     try:
-        image_id = service.attach_image(AttachImage(
-            owner_type=ImageOwnerType.TRADE,
-            owner_id=exec_id,
-            data=data,
-            mime_type=file.content_type or "image/webp",
-            width=0,   # service layer extracts dimensions after WebP conversion
-            height=0,
-            caption=caption,
-        ))
+        image_id = service.attach_image(
+            AttachImage(
+                owner_type=ImageOwnerType.TRADE,
+                owner_id=exec_id,
+                data=data,
+                mime_type=file.content_type or "image/webp",
+                width=0,  # service layer extracts dimensions after WebP conversion
+                height=0,
+                caption=caption,
+            )
+        )
     except NotFoundError:
         raise HTTPException(404, f"Trade not found: {exec_id}")
     except ValueError as e:

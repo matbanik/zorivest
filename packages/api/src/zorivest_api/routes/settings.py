@@ -36,7 +36,12 @@ async def get_all_settings(
     source attribution, use GET /settings/resolved (Phase 2A).
     """
     rows = service.get_all()
-    return {getattr(r, "key", r.get("key") if isinstance(r, dict) else None): getattr(r, "value", r.get("value") if isinstance(r, dict) else None) for r in rows}
+    return {
+        getattr(r, "key", r.get("key") if isinstance(r, dict) else None): getattr(
+            r, "value", r.get("value") if isinstance(r, dict) else None
+        )
+        for r in rows
+    }
 
 
 @settings_router.get("/{key}", dependencies=[Depends(require_unlocked_db)])
@@ -83,5 +88,25 @@ async def update_settings(
     """
     try:
         return service.bulk_upsert(body)
+    except SettingsValidationError as e:
+        raise HTTPException(422, detail={"errors": e.per_key_errors})
+
+
+@settings_router.put("/{key}", dependencies=[Depends(require_unlocked_db)])
+async def update_single_setting(
+    key: str,
+    body: dict[str, Any],
+    service: Any = Depends(get_settings_service),
+) -> dict[str, Any]:
+    """Upsert a single setting by key.
+
+    Body: {"value": <new_value>}
+    Delegates to bulk_upsert({key: value}) for validation consistency.
+
+    Source: MEU-51 prereq (usePersistedState hook contract)
+    """
+    value = body.get("value")
+    try:
+        return service.bulk_upsert({key: value})
     except SettingsValidationError as e:
         raise HTTPException(422, detail={"errors": e.per_key_errors})

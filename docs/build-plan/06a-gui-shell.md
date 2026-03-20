@@ -89,7 +89,10 @@ export function useNotifications() {
 | Theme (light/dark) | `SettingModel` via REST | App launch | P1 |
 | Active page (route) | `SettingModel` via REST | App launch | P1 |
 | Panel collapse states | `SettingModel` via REST | Page render | P2 |
-| Sidebar width | Zustand + `electron-store` | App launch | P2 |
+| Sidebar width | Zustand + localStorage *(electron-store deferred, see note)* | App launch | P2 |
+
+> [!NOTE]
+> **`[UI-ESMSTORE]`**: `electron-store` v9+ is ESM-only, which crashes the electron-vite CJS main process. Pinned to `electron-store@8` (last CJS version). The preload IPC bridge (`window.electronStore`) exists but integration with Zustand's persist middleware is untested. Sidebar width and panel collapse currently use Zustand's default localStorage storage as an interim solution. Will migrate to electron-store bridge when integration is validated.
 
 ### Window State (Electron Main Process)
 
@@ -155,7 +158,7 @@ export function usePersistedState<T extends string>(key: string, defaultValue: T
 
 ### Settings Key Convention
 
-UI state keys that require server persistence follow namespaced dot notation in the `SettingModel` table (see [Phase 2](02-infrastructure.md)). Client-only state (sidebar width, window bounds) uses Zustand + `electron-store` instead.
+UI state keys that require server persistence follow namespaced dot notation in the `SettingModel` table (see [Phase 2](02-infrastructure.md)). Client-only state (sidebar width, window bounds) uses Zustand + localStorage *(electron-store deferred `[UI-ESMSTORE]`)*.
 
 | Key Pattern | Example Value |
 |---|---|
@@ -435,7 +438,7 @@ Show "last updated" timestamps on all data displays.
 Zustand handles fast, client-only UI state that doesn't need server persistence:
 - Sidebar drag width, dialog visibility, column sort order, command palette state
 - Slice pattern: one store per feature module (`useTradesStore`, `useLayoutStore`)
-- `persist` middleware pipes to electron-store for window bounds
+- `persist` middleware pipes to localStorage *(electron-store deferred `[UI-ESMSTORE]`)*
 - `getState()` available outside React (IPC handlers, Electron main → renderer)
 
 **Coexistence**: `usePersistedState` (TanStack Query + REST → SQLCipher) remains for server-persisted settings (theme, active account, panel collapse). Zustand is a **different layer**.
@@ -508,7 +511,7 @@ The visual design system is defined in `docs/research/gui-shell-foundation/style
 - Electron app launches with splash window, spawns Python backend with ephemeral Bearer token
 - Health check polling detects Python readiness, transitions splash → main window
 - Notification toasts display by category with suppression preferences
-- Window position/size restored on app restart (via Zustand + electron-store)
+- Window position/size restored on app restart (via Zustand + localStorage; electron-store deferred `[UI-ESMSTORE]`)
 - Command palette opens on Ctrl+K, fuzzy-searches all registered entries
 - Theme preference persists across sessions (via `usePersistedState`)
 - All registered pages/actions/settings reachable via command palette
@@ -527,6 +530,6 @@ The visual design system is defined in `docs/research/gui-shell-foundation/style
 - Zustand layout store with persist middleware
 - Static command registry: `commandRegistry.ts` (routes aligned with `06-gui.md`)
 - Dynamic entry composition: `useDynamicEntries.ts`
-- Window state persistence via electron-store
+- Window state persistence via localStorage *(electron-store deferred `[UI-ESMSTORE]`)*
 - `globals.css` with Tailwind `@theme` block from style guide
 - Settings key convention for all UI state

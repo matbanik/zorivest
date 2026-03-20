@@ -1,0 +1,130 @@
+{
+  "total_tools": 51,
+  "toolset_count": 9,
+  "toolsets": [
+    {
+      "name": "core",
+      "description": "Settings, emergency stop/unlock, diagnostics, GUI launch, service tools",
+      "tool_count": 4,
+      "always_loaded": true,
+      "tools": [
+        "get_settings",
+        "update_settings",
+        "zorivest_diagnose",
+        "zorivest_launch_gui"
+      ]
+    },
+    {
+      "name": "discovery",
+      "description": "Meta-tools for listing, describing, and enabling additional toolsets",
+      "tool_count": 4,
+      "always_loaded": true,
+      "tools": [
+        "list_available_toolsets",
+        "describe_toolset",
+        "enable_toolset",
+        "get_confirmation_token"
+      ]
+    },
+    {
+      "name": "trade-analytics",
+      "description": "Trade CRUD, screenshots, analytics, reports",
+      "tool_count": 7,
+      "always_loaded": false,
+      "tools": [
+        "create_trade",
+        "list_trades",
+        "attach_screenshot",
+        "get_trade_screenshots",
+        "get_screenshot",
+        "get_analytics_summary",
+        "get_trade_streaks"
+      ]
+    },
+    {
+      "name": "trade-planning",
+      "description": "Position calculator, trade plans, watchlist management (includes create_trade cross-tagged from 05c)",
+      "tool_count": 8,
+      "always_loaded": false,
+      "tools": [
+        "calculate_position_size",
+        "create_trade_plan",
+        "create_trade",
+        "create_watchlist",
+        "list_watchlists",
+        "get_watchlist",
+        "add_to_watchlist",
+        "remove_from_watchlist"
+      ]
+    },
+    {
+      "name": "market-data",
+      "description": "Stock quotes, news, SEC filings, ticker search, provider management",
+      "tool_count": 7,
+      "always_loaded": false,
+      "tools": [
+        "get_stock_quote",
+        "get_market_news",
+        "search_ticker",
+        "get_sec_filings",
+        "list_market_providers",
+        "disconnect_market_provider",
+        "test_market_provider"
+      ]
+    },
+    {
+      "name": "accounts",
+      "description": "Broker sync, identifier resolution, bank/CSV/PDF import, account review",
+      "tool_count": 8,
+      "always_loaded": false,
+      "tools": [
+        "sync_broker",
+        "list_brokers",
+        "resolve_identifiers",
+        "import_bank_statement",
+        "import_broker_csv",
+        "import_broker_pdf",
+        "list_bank_accounts",
+        "get_account_review_checklist"
+      ]
+    },
+    {
+      "name": "scheduling",
+      "description": "Policy CRUD, pipeline execution, scheduler status, run history",
+      "tool_count": 6,
+      "always_loaded": false,
+      "tools": [
+        "create_policy",
+        "list_policies",
+        "run_pipeline",
+        "preview_report",
+        "update_policy_schedule",
+        "get_pipeline_history"
+      ]
+    },
+    {
+      "name": "tax",
+      "description": "Tax estimation, wash sales, lot management, harvesting",
+      "tool_count": 4,
+      "always_loaded": false,
+      "tools": [
+        "estimate_tax",
+        "find_wash_sales",
+        "manage_lots",
+        "harvest_losses"
+      ]
+    },
+    {
+      "name": "behavioral",
+      "description": "Mistake tracking, expectancy, Monte Carlo",
+      "tool_count": 3,
+      "always_loaded": false,
+      "tools": [
+        "track_mistakes",
+        "calculate_expectancy",
+        "monte_carlo_sim"
+      ]
+    }
+  ],
+  "generated_at": "2026-03-20T04:09:06.857Z"
+}

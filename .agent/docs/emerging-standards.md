@@ -158,3 +158,82 @@ Living reference of implementation standards discovered during development sessi
 - **Origin:** 2026-03-19 — `CAST(time AS TEXT)` produced unusable format in SQLite; searching "2026" returned nothing.
 - **Bad example:** `cast(TradeModel.time, String).like(pattern)` — format is implementation-dependent
 - **Good example:** `func.strftime('%Y-%m-%d %H:%M', TradeModel.time).like(pattern)`
+
+---
+
+## Pagination Standards
+
+### P1 — Paginated Responses Must Return Real DB Count
+- **Severity:** 🔴 Critical
+- **Applies to:** API, MCP
+- **Rule:** Every paginated list endpoint must return the real database count (matching the same filters) in the `total` field, not `len(items)` from the current page.
+- **Origin:** 2026-03-19 — `list_trades` returned `total: 100` (page size) instead of real DB count. MCP agents had no way to discover how many trades exist without fetching all of them.
+- **Bad example:** `total=len(items)` — always equals page size; agents can't detect more pages
+- **Good example:** `total=service.count_trades(account_id=account_id, search=search)` — real count from DB
+
+**Implementation template** (6 layers, bottom-up):
+
+**Layer 1 — Repository Port** (`ports.py`):
+```python
+def count_filtered(
+    self,
+    account_id: str | None = None,
+    search: str | None = None,
+) -> int:
+    """Return total count matching filters (ignoring limit/offset)."""
+    ...
+```
+
+**Layer 2 — SQLAlchemy Repository** (`repositories.py`):
+```python
+def _build_filter_query(self, account_id=None, search=None):
+    """Shared filter builder (used by both list + count)."""
+    query = self._session.query(Model)
+    if account_id:
+        query = query.filter(Model.account_id == account_id)
+    # ... same filter logic as list_filtered ...
+    return query
+
+def list_filtered(self, limit, offset, account_id, sort, search):
+    query = self._build_filter_query(account_id, search)
+    # add sort + offset + limit
+    return query.offset(offset).limit(limit).all()
+
+def count_filtered(self, account_id, search):
+    return self._build_filter_query(account_id, search).count()
+```
+
+**Layer 3 — In-Memory Stub** (`stubs.py`):
+```python
+def count_filtered(self, account_id=None, search=None, **kw):
+    items = list(self._store.values())
+    # apply same filters as list_filtered (no slice)
+    return len(items)
+```
+
+**Layer 4 — Service** (`*_service.py`):
+```python
+def count_items(self, account_id=None, search=None) -> int:
+    with self.uow:
+        return self.uow.repo.count_filtered(account_id=account_id, search=search)
+```
+
+**Layer 5 — API Route** (`routes/*.py`):
+```python
+items = service.list_items(limit=limit, offset=offset, ...)
+total = service.count_items(account_id=account_id, search=search)
+return PaginatedResponse(items=items, total=total, limit=limit, offset=offset)
+```
+
+**Layer 6 — MCP Tool Description** (`*-tools.ts`):
+```typescript
+description: "List items with pagination. Returns {items, total, limit, offset} "
+    + "where `total` is the real database count matching filters (not page size). "
+    + "Use limit=1&offset=0 to efficiently discover total count before fetching all.",
+```
+
+**Key principles:**
+- Extract shared filter logic into `_build_filter_query()` to avoid duplication between list + count
+- Count query uses same filters as list but no `LIMIT`/`OFFSET`/`ORDER BY`
+- MCP description must explicitly tell agents that `total` is real, and suggest `limit=1` for count-only discovery
+- For datasets < 100K rows, inline COUNT is negligible cost; at scale, consider caching or approximate counts

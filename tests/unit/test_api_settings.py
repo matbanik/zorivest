@@ -100,10 +100,13 @@ class TestBulkUpdateSettings:
 
     def test_all_or_nothing(self, client: TestClient) -> None:
         """AC-6: If any key fails validation, no keys are persisted."""
-        resp = client.put("/api/v1/settings", json={
-            "ui.theme": "light",                # valid (different from default 'dark')
-            "logging.rotation_mb": "-5",        # invalid (below min)
-        })
+        resp = client.put(
+            "/api/v1/settings",
+            json={
+                "ui.theme": "light",  # valid (different from default 'dark')
+                "logging.rotation_mb": "-5",  # invalid (below min)
+            },
+        )
         assert resp.status_code == 422
         # Valid key should NOT have been persisted — falls back to hardcoded default
         get_resp = client.get("/api/v1/settings/ui.theme")
@@ -129,6 +132,7 @@ class TestSettingsTag:
     def test_settings_tag_on_router(self) -> None:
         """AC-7: Settings router uses tag 'settings'."""
         from zorivest_api.routes.settings import settings_router
+
         assert any(tag == "settings" for tag in (settings_router.tags or []))
 
 
@@ -148,8 +152,12 @@ class TestSettingsModeGating:
             ("GET", "/api/v1/settings/ui.theme"),
             ("PUT", "/api/v1/settings"),
         ]:
-            resp = client.request(method, path, json={"ui.theme": "dark"} if method == "PUT" else None)
-            assert resp.status_code == 403, f"{method} {path} should be 403 when locked, got {resp.status_code}"
+            resp = client.request(
+                method, path, json={"ui.theme": "dark"} if method == "PUT" else None
+            )
+            assert resp.status_code == 403, (
+                f"{method} {path} should be 403 when locked, got {resp.status_code}"
+            )
             # Value: verify error detail on locked response
             data = resp.json()
             assert "detail" in data
@@ -204,3 +212,35 @@ class TestSettingsRoundtrip:
             assert isinstance(data, dict)
             assert "ui.theme" in data
             assert data["ui.theme"] == "dark"
+
+
+# ── T2.5: PUT /api/v1/settings/{key} (single-key write) ─────────────
+
+
+class TestSettingsPutSingleKey:
+    def test_settings_put_single_key(self, client: TestClient) -> None:
+        """T2.5: PUT /settings/{key} writes and reads back correctly."""
+        resp = client.put(
+            "/api/v1/settings/ui.theme",
+            json={"value": "light"},
+        )
+        assert resp.status_code == 200
+        data = resp.json()
+        assert data["status"] == "updated"
+        assert data["count"] == 1
+
+        # Verify read-back
+        get_resp = client.get("/api/v1/settings/ui.theme")
+        assert get_resp.status_code == 200
+        assert get_resp.json()["value"] == "light"
+
+    def test_settings_put_single_key_validates(self, client: TestClient) -> None:
+        """T2.5: PUT /settings/{key} returns 422 on invalid value."""
+        resp = client.put(
+            "/api/v1/settings/logging.rotation_mb",
+            json={"value": "-5"},
+        )
+        assert resp.status_code == 422
+        data = resp.json()
+        assert "detail" in data
+        assert "errors" in data["detail"]

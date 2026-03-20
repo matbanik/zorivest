@@ -54,9 +54,42 @@
   --radius: 0.375rem;
 }
 
+/* ── Light Theme Overrides ──
+ * Dark theme is the default (defined in @theme above).
+ * When useTheme removes the `dark` class, these light values take effect.
+ */
+:root:not(.dark) {
+  --color-bg: #f5f6fa;
+  --color-bg-elevated: #ffffff;
+  --color-bg-subtle: #d1d5db;
+  --color-fg: #1e293b;
+  --color-fg-muted: #475569;
+
+  /* Accents — slightly deeper for light backgrounds */
+  --color-accent-cyan: #0891b2;
+  --color-accent-green: #16a34a;
+  --color-accent-purple: #7c3aed;
+  --color-accent-pink: #db2777;
+  --color-accent-orange: #ea580c;
+  --color-accent-red: #dc2626;
+  --color-accent-yellow: #ca8a04;
+
+  /* Trading semantic — adjusted for readability on light */
+  --color-pnl-profit: #16a34a;
+  --color-pnl-loss: #dc2626;
+  --color-pnl-neutral: #64748b;
+  --color-status-pending: #ea580c;
+  --color-status-filled: #16a34a;
+  --color-status-canceled: #64748b;
+  --color-status-rejected: #dc2626;
+}
+
 /* ── Reduced Motion ── */
 @media (prefers-reduced-motion: reduce) {
-  *, *::before, *::after {
+
+  *,
+  *::before,
+  *::after {
     animation-duration: 0.01ms !important;
     animation-iteration-count: 1 !important;
     transition-duration: 0.01ms !important;
@@ -92,14 +125,23 @@
   color: var(--color-fg);
   border-radius: var(--radius-sm);
 }
+
 .skip-link:focus {
   top: 8px;
 }
 
 /* ── Global compact spacing for data-dense UI ── */
-.btn { @apply px-3 py-1.5 text-sm; }
-.input { @apply h-8 px-2 text-sm; }
-.card { @apply p-3; }
+.btn {
+  @apply px-3 py-1.5 text-sm;
+}
+
+.input {
+  @apply h-8 px-2 text-sm;
+}
+
+.card {
+  @apply p-3;
+}
 
 /* ── Nav Rail ── */
 .nav-rail {
@@ -107,4 +149,12 @@
   min-width: 200px;
   border-right: 1px solid var(--color-bg-elevated);
   background: var(--color-bg);
+  display: flex;
+  flex-direction: column;
+  transition: width 150ms ease, min-width 150ms ease;
+}
+
+.nav-rail--collapsed {
+  width: 56px;
+  min-width: 56px;
 }

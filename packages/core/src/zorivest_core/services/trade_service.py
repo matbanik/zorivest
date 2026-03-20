@@ -138,7 +138,22 @@ class TradeService:
         """List trades with optional filtering, search, and sorting."""
         with self.uow:
             return self.uow.trades.list_filtered(
-                limit=limit, offset=offset, account_id=account_id, sort=sort,
+                limit=limit,
+                offset=offset,
+                account_id=account_id,
+                sort=sort,
+                search=search,
+            )
+
+    def count_trades(
+        self,
+        account_id: str | None = None,
+        search: str | None = None,
+    ) -> int:
+        """Return total count of trades matching filters (ignoring pagination)."""
+        with self.uow:
+            return self.uow.trades.count_filtered(
+                account_id=account_id,
                 search=search,
             )
 
@@ -168,4 +183,3 @@ class TradeService:
         with self.uow:
             self.uow.trades.delete(exec_id)
             self.uow.commit()
-

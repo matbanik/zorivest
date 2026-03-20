@@ -3738,6 +3738,54 @@
         ]
       }
     },
+    "/api/v1/mcp/diagnostics": {
+      "get": {
+        "description": "Return API diagnostics.\n\nPer [PD-46a]: provides API process uptime (not MCP server uptime).",
+        "operationId": "get_mcp_diagnostics_api_v1_mcp_diagnostics_get",
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "additionalProperties": true,
+                  "title": "Response Get Mcp Diagnostics Api V1 Mcp Diagnostics Get",
+                  "type": "object"
+                }
+              }
+            },
+            "description": "Successful Response"
+          }
+        },
+        "summary": "Get Mcp Diagnostics",
+        "tags": [
+          "system"
+        ]
+      }
+    },
+    "/api/v1/mcp/toolsets": {
+      "get": {
+        "description": "Return MCP toolset catalog from static manifest.\n\nPer [PD-46a]: provides static catalog only (tool names, counts).\nRuntime `loaded` state deferred until [MCP-HTTPBROKEN] resolved.",
+        "operationId": "get_mcp_toolsets_api_v1_mcp_toolsets_get",
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "additionalProperties": true,
+                  "title": "Response Get Mcp Toolsets Api V1 Mcp Toolsets Get",
+                  "type": "object"
+                }
+              }
+            },
+            "description": "Successful Response"
+          }
+        },
+        "summary": "Get Mcp Toolsets",
+        "tags": [
+          "system"
+        ]
+      }
+    },
     "/api/v1/mistakes": {
       "post": {
         "description": "Tag a trade with a mistake category and estimated cost.",
@@ -4807,6 +4855,61 @@
           }
         },
         "summary": "Get Setting",
+        "tags": [
+          "settings"
+        ]
+      },
+      "put": {
+        "description": "Upsert a single setting by key.\n\nBody: {\"value\": <new_value>}\nDelegates to bulk_upsert({key: value}) for validation consistency.\n\nSource: MEU-51 prereq (usePersistedState hook contract)",
+        "operationId": "update_single_setting_api_v1_settings__key__put",
+        "parameters": [
+          {
+            "in": "path",
+            "name": "key",
+            "required": true,
+            "schema": {
+              "title": "Key",
+              "type": "string"
+            }
+          }
+        ],
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "additionalProperties": true,
+                "title": "Body",
+                "type": "object"
+              }
+            }
+          },
+          "required": true
+        },
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "additionalProperties": true,
+                  "title": "Response Update Single Setting Api V1 Settings  Key  Put",
+                  "type": "object"
+                }
+              }
+            },
+            "description": "Successful Response"
+          },
+          "422": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HTTPValidationError"
+                }
+              }
+            },
+            "description": "Validation Error"
+          }
+        },
+        "summary": "Update Single Setting",
         "tags": [
           "settings"
         ]

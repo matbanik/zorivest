@@ -13,7 +13,7 @@ export function usePersistedState<T>(key: string, defaultValue: T) {
     const queryClient = useQueryClient()
     const queryKey = ['settings', key]
 
-    const { data, isLoading } = useQuery({
+    const { data, isFetching } = useQuery({
         queryKey,
         queryFn: async () => {
             try {
@@ -49,5 +49,5 @@ export function usePersistedState<T>(key: string, defaultValue: T) {
 
     const setValue = (value: T) => mutation.mutate(value)
 
-    return [data ?? defaultValue, setValue, isLoading] as const
+    return [data ?? defaultValue, setValue, isFetching] as const
 }

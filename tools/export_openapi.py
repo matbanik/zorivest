@@ -26,7 +26,8 @@ def get_openapi_spec() -> dict:
 def main() -> None:
     parser = argparse.ArgumentParser(description="Export FastAPI OpenAPI spec")
     parser.add_argument(
-        "-o", "--output",
+        "-o",
+        "--output",
         type=Path,
         help="Write spec to file (default: stdout)",
     )
@@ -48,17 +49,20 @@ def main() -> None:
 
         committed_json = args.check.read_text(encoding="utf-8")
         if live_json == committed_json:
-            print("✅ OpenAPI spec matches committed snapshot.")
+            print("[OK] OpenAPI spec matches committed snapshot.")
             sys.exit(0)
         else:
-            print("❌ OpenAPI spec DRIFT detected!", file=sys.stderr)
+            print("[FAIL] OpenAPI spec DRIFT detected!", file=sys.stderr)
             print(f"   Committed: {args.check}", file=sys.stderr)
-            print("   Run: uv run python tools/export_openapi.py -o openapi.committed.json", file=sys.stderr)
+            print(
+                "   Run: uv run python tools/export_openapi.py -o openapi.committed.json",
+                file=sys.stderr,
+            )
             sys.exit(1)
 
     if args.output:
         args.output.write_text(live_json, encoding="utf-8")
-        print(f"✅ OpenAPI spec written to {args.output}")
+        print(f"[OK] OpenAPI spec written to {args.output}")
     else:
         print(live_json, end="")
 

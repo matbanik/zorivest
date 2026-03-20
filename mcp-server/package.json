@@ -5,7 +5,8 @@
     "type": "module",
     "main": "dist/index.js",
     "scripts": {
-        "build": "tsc",
+        "prebuild": "tsx scripts/generate-tools-manifest.ts",
+        "build": "npm run prebuild && tsc",
         "dev": "tsx src/index.ts",
         "start": "node dist/index.js",
         "test": "vitest run",

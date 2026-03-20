@@ -1,10 +1,13 @@
 import React, { useEffect, useState } from 'react'
+import { useNavigate, useLocation } from '@tanstack/react-router'
 import SkipLink from '../SkipLink'
 import NavRail from './NavRail'
 import Header from './Header'
 import StatusFooter from './StatusFooter'
 import CommandPalette from '../CommandPalette'
 import { StatusBarProvider } from '../../hooks/useStatusBar'
+import { useRouteRestoration } from '../../hooks/useRouteRestoration'
+import { useTheme } from '../../hooks/useTheme'
 
 interface AppShellProps {
     children?: React.ReactNode
@@ -15,9 +18,19 @@ interface AppShellProps {
  *
  * Structure: SkipLink + NavRail (nav) + Header (banner) + main content + StatusFooter + CommandPalette
  * Per 06-gui.md §App Shell Architecture.
+ *
+ * MEU-51: Persistence wiring — route restoration + theme persistence.
  */
 export default function AppShell({ children }: AppShellProps) {
     const [paletteOpen, setPaletteOpen] = useState(false)
+    const navigate = useNavigate()
+    const location = useLocation()
+
+    // MEU-51: Persist and restore active page
+    useRouteRestoration(location.pathname, (path) => navigate({ to: path }))
+
+    // MEU-51: Persist theme preference
+    useTheme()
 
     // Global Ctrl+K shortcut
     useEffect(() => {

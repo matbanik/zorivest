@@ -32,7 +32,9 @@ class _InMemoryRepo:
     def exists(self, key: Any, *args: Any, **kwargs: Any) -> bool:
         return key in self._store
 
-    def exists_by_fingerprint_since(self, fingerprint: Any, *args: Any, **kwargs: Any) -> bool:
+    def exists_by_fingerprint_since(
+        self, fingerprint: Any, *args: Any, **kwargs: Any
+    ) -> bool:
         """Check for duplicate by fingerprint within lookback window.
 
         Computes the fingerprint for each stored trade on-the-fly
@@ -54,13 +56,19 @@ class _InMemoryRepo:
         if len(args) >= 2:
             # Pattern: save(owner_type, owner_id, entity) for images
             entity = args[-1]
-            if hasattr(entity, 'id') and entity.id == 0:
+            if hasattr(entity, "id") and entity.id == 0:
                 # Assign auto-id to image attachments
-                object.__setattr__(entity, 'id', self._auto_id) if hasattr(type(entity), '__dataclass_fields__') else setattr(entity, 'id', self._auto_id)
+                object.__setattr__(entity, "id", self._auto_id) if hasattr(
+                    type(entity), "__dataclass_fields__"
+                ) else setattr(entity, "id", self._auto_id)
             self._store[self._auto_id] = entity
         elif len(args) == 1:
             entity = args[0]
-            key = getattr(entity, 'exec_id', None) or getattr(entity, 'account_id', None) or getattr(entity, 'id', self._auto_id)
+            key = (
+                getattr(entity, "exec_id", None)
+                or getattr(entity, "account_id", None)
+                or getattr(entity, "id", self._auto_id)
+            )
             self._store[key] = entity
         return self._auto_id
 
@@ -68,7 +76,11 @@ class _InMemoryRepo:
         self._store.pop(key, None)
 
     def update(self, entity: Any, *args: Any, **kwargs: Any) -> None:
-        key = getattr(entity, 'exec_id', None) or getattr(entity, 'account_id', None) or getattr(entity, 'id', None)
+        key = (
+            getattr(entity, "exec_id", None)
+            or getattr(entity, "account_id", None)
+            or getattr(entity, "id", None)
+        )
         if key is not None:
             self._store[key] = entity
 
@@ -77,8 +89,9 @@ class _InMemoryRepo:
     def list_for_account(self, account_id: Any, *args: Any, **kwargs: Any) -> list:
         """Return entities matching account_id."""
         return [
-            e for e in self._store.values()
-            if getattr(e, 'account_id', None) == account_id
+            e
+            for e in self._store.values()
+            if getattr(e, "account_id", None) == account_id
         ]
 
     def list_filtered(
@@ -93,36 +106,63 @@ class _InMemoryRepo:
         """Return entities with optional account/search filter and pagination."""
         items = list(self._store.values())
         if account_id is not None:
-            items = [e for e in items if getattr(e, 'account_id', None) == account_id]
+            items = [e for e in items if getattr(e, "account_id", None) == account_id]
         if search:
             q = search.lower()
             items = [
-                e for e in items
-                if q in str(getattr(e, 'instrument', '')).lower()
-                or q in str(getattr(e, 'exec_id', '')).lower()
-                or q in str(getattr(e, 'account_id', '')).lower()
-                or q in str(getattr(e, 'notes', '')).lower()
-                or q in str(getattr(e, 'time', '')).lower()
+                e
+                for e in items
+                if q in str(getattr(e, "instrument", "")).lower()
+                or q in str(getattr(e, "exec_id", "")).lower()
+                or q in str(getattr(e, "account_id", "")).lower()
+                or q in str(getattr(e, "notes", "")).lower()
+                or q in str(getattr(e, "time", "")).lower()
             ]
         return items[offset : offset + limit]
 
-    def get_for_owner(self, owner_type: Any, owner_id: Any, *args: Any, **kwargs: Any) -> list:
+    def count_filtered(
+        self,
+        account_id: Any = None,
+        search: str | None = None,
+        **kwargs: Any,
+    ) -> int:
+        """Return total count of entities matching filters (no pagination)."""
+        items = list(self._store.values())
+        if account_id is not None:
+            items = [e for e in items if getattr(e, "account_id", None) == account_id]
+        if search:
+            q = search.lower()
+            items = [
+                e
+                for e in items
+                if q in str(getattr(e, "instrument", "")).lower()
+                or q in str(getattr(e, "exec_id", "")).lower()
+                or q in str(getattr(e, "account_id", "")).lower()
+                or q in str(getattr(e, "notes", "")).lower()
+                or q in str(getattr(e, "time", "")).lower()
+            ]
+        return len(items)
+
+    def get_for_owner(
+        self, owner_type: Any, owner_id: Any, *args: Any, **kwargs: Any
+    ) -> list:
         """Return entities matching owner_type + owner_id."""
         return [
-            e for e in self._store.values()
-            if getattr(e, 'owner_type', None) is not None
+            e
+            for e in self._store.values()
+            if getattr(e, "owner_type", None) is not None
             and (
-                getattr(e, 'owner_type', None) == owner_type
-                or getattr(getattr(e, 'owner_type', None), 'value', None) == owner_type
+                getattr(e, "owner_type", None) == owner_type
+                or getattr(getattr(e, "owner_type", None), "value", None) == owner_type
             )
-            and str(getattr(e, 'owner_id', None)) == str(owner_id)
+            and str(getattr(e, "owner_id", None)) == str(owner_id)
         ]
 
     def get_full_data(self, key: Any, *args: Any, **kwargs: Any) -> Any:
         """Return raw bytes data for an entity (e.g., image data)."""
         entity = self._store.get(key)
         if entity is not None:
-            return getattr(entity, 'data', None)
+            return getattr(entity, "data", None)
         return None
 
     def get_all(self, *args: Any, **kwargs: Any) -> list:
@@ -139,7 +179,9 @@ class _InMemoryRepo:
             value_type: str
 
         for key, value in settings.items():
-            self._store[key] = _Setting(key=key, value=str(value), value_type=type(value).__name__)
+            self._store[key] = _Setting(
+                key=key, value=str(value), value_type=type(value).__name__
+            )
 
     def list_all(self, *args: Any, **kwargs: Any) -> list:
         return list(self._store.values())
@@ -148,15 +190,17 @@ class _InMemoryRepo:
         """Return thumbnail data (stub: returns full image data)."""
         entity = self._store.get(key)
         if entity is not None:
-            return getattr(entity, 'data', None)
+            return getattr(entity, "data", None)
         return None
 
     # ── Catch-all ───────────────────────────────────────────────────────
 
     def __getattr__(self, name: str) -> Any:
         """Catch-all: any unimplemented repo method returns a no-op callable."""
+
         def _noop(*args: Any, **kwargs: Any) -> None:
             return None
+
         return _noop
 
 
@@ -236,22 +280,28 @@ class _InMemoryWatchlistRepo(_InMemoryRepo):
                 setattr(item, "id", self._item_auto_id)
         self._items.append(item)
 
-    def remove_item(self, watchlist_id: int, ticker: str, *args: Any, **kwargs: Any) -> None:
+    def remove_item(
+        self, watchlist_id: int, ticker: str, *args: Any, **kwargs: Any
+    ) -> None:
         """Remove an item from a watchlist by ticker."""
         self._items = [
-            i for i in self._items
-            if not (getattr(i, "watchlist_id", None) == watchlist_id
-                    and getattr(i, "ticker", "").upper() == ticker.upper())
+            i
+            for i in self._items
+            if not (
+                getattr(i, "watchlist_id", None) == watchlist_id
+                and getattr(i, "ticker", "").upper() == ticker.upper()
+            )
         ]
 
     def get_items(self, watchlist_id: int, *args: Any, **kwargs: Any) -> list:
         """Get all items in a watchlist."""
         return [
-            i for i in self._items
-            if getattr(i, "watchlist_id", None) == watchlist_id
+            i for i in self._items if getattr(i, "watchlist_id", None) == watchlist_id
         ]
 
-    def list_all(self, limit: int = 100, offset: int = 0, *args: Any, **kwargs: Any) -> list:
+    def list_all(
+        self, limit: int = 100, offset: int = 0, *args: Any, **kwargs: Any
+    ) -> list:
         """Return watchlists with pagination."""
         items = list(self._store.values())
         return items[offset : offset + limit]
@@ -259,7 +309,9 @@ class _InMemoryWatchlistRepo(_InMemoryRepo):
     def delete(self, key: Any, *args: Any, **kwargs: Any) -> None:
         """Delete watchlist and cascade-delete its items."""
         self._store.pop(key, None)
-        self._items = [i for i in self._items if getattr(i, "watchlist_id", None) != key]
+        self._items = [
+            i for i in self._items if getattr(i, "watchlist_id", None) != key
+        ]
 
 
 class _InMemoryPipelineRunRepo:
@@ -344,10 +396,10 @@ class StubUnitOfWork:
         self.settings: Any = _InMemoryRepo()
         self.app_defaults: Any = _InMemoryRepo()
         self.trade_reports: Any = _InMemoryTradeReportRepo()  # MEU-52
-        self.trade_plans: Any = _InMemoryTradePlanRepo()      # MEU-66
-        self.watchlists: Any = _InMemoryWatchlistRepo()       # MEU-68
+        self.trade_plans: Any = _InMemoryTradePlanRepo()  # MEU-66
+        self.watchlists: Any = _InMemoryWatchlistRepo()  # MEU-68
         self.pipeline_runs: Any = _InMemoryPipelineRunRepo()  # MEU-89
-        self.pipeline_step_results: Any = _InMemoryRepo()     # MEU-89
+        self.pipeline_step_results: Any = _InMemoryRepo()  # MEU-89
 
     def __enter__(self) -> StubUnitOfWork:
         return self
@@ -381,6 +433,7 @@ class McpGuardService:
     def _state_dict(self) -> dict[str, Any]:
         """Build state dict for route responses."""
         import time as _time
+
         now = _time.time()
         calls_1min = sum(1 for t in self._recent_calls if now - t < 60)
         calls_1hr = sum(1 for t in self._recent_calls if now - t < 3600)
@@ -409,6 +462,7 @@ class McpGuardService:
 
     def lock(self, reason: str = "manual") -> dict[str, Any]:
         from datetime import datetime, timezone
+
         self._is_locked = True
         self._locked_at = datetime.now(timezone.utc).isoformat()
         self._lock_reason = reason
@@ -422,6 +476,7 @@ class McpGuardService:
 
     def check(self) -> dict[str, Any]:
         import time as _time
+
         if not self._is_enabled:
             return {"allowed": True, "reason": "guard_disabled"}
         if self._is_locked:
@@ -447,17 +502,35 @@ class StubAnalyticsService:
     No __getattr__ — explicit methods only.
     """
 
-    def get_expectancy(self, account_id: Any = None, period: str = "all") -> dict[str, Any]:
-        return {"win_rate": 0.0, "avg_win": 0.0, "avg_loss": 0.0, "expectancy": 0.0, "kelly_pct": 0.0}
+    def get_expectancy(
+        self, account_id: Any = None, period: str = "all"
+    ) -> dict[str, Any]:
+        return {
+            "win_rate": 0.0,
+            "avg_win": 0.0,
+            "avg_loss": 0.0,
+            "expectancy": 0.0,
+            "kelly_pct": 0.0,
+        }
 
-    def get_drawdown(self, account_id: Any = None, simulations: int = 10000) -> dict[str, Any]:
-        return {"max_drawdown_pct": 0.0, "simulations": simulations, "probability_table": []}
+    def get_drawdown(
+        self, account_id: Any = None, simulations: int = 10000
+    ) -> dict[str, Any]:
+        return {
+            "max_drawdown_pct": 0.0,
+            "simulations": simulations,
+            "probability_table": [],
+        }
 
     def get_execution_quality(self, trade_id: Any = None) -> dict[str, Any]:
         return {"score": 0.0, "nbbo_available": False}
 
     def get_pfof_report(self, account_id: str, period: str = "ytd") -> dict[str, Any]:
-        return {"estimate_label": "ESTIMATE", "total_pfof_impact": 0.0, "trades_analyzed": 0}
+        return {
+            "estimate_label": "ESTIMATE",
+            "total_pfof_impact": 0.0,
+            "trades_analyzed": 0,
+        }
 
     def get_strategy_breakdown(self, account_id: Any = None) -> dict[str, Any]:
         return {"strategies": []}
@@ -465,7 +538,9 @@ class StubAnalyticsService:
     def get_sqn(self, account_id: Any = None, period: str = "all") -> dict[str, Any]:
         return {"sqn": 0.0, "grade": "N/A", "trade_count": 0}
 
-    def get_cost_of_free(self, account_id: Any = None, period: str = "ytd") -> dict[str, Any]:
+    def get_cost_of_free(
+        self, account_id: Any = None, period: str = "ytd"
+    ) -> dict[str, Any]:
         return {"total_hidden_cost": 0.0, "breakdown": []}
 
     def enrich_trade(self, trade_exec_id: str) -> dict[str, Any]:
@@ -474,7 +549,9 @@ class StubAnalyticsService:
     def detect_strategy(self, leg_exec_ids: list[str]) -> dict[str, Any]:
         return {"strategy_type": "unknown", "legs": leg_exec_ids}
 
-    def fee_summary(self, account_id: Any = None, period: str = "ytd") -> dict[str, Any]:
+    def fee_summary(
+        self, account_id: Any = None, period: str = "ytd"
+    ) -> dict[str, Any]:
         return {"total_fees": 0.0, "by_type": [], "pnl_pct": 0.0}
 
 
@@ -491,7 +568,9 @@ class StubReviewService:
     def track_mistake(self, body: dict[str, Any]) -> dict[str, Any]:
         return {"mistake_id": "stub", "status": "tracked"}
 
-    def mistake_summary(self, account_id: Any = None, period: str = "ytd") -> dict[str, Any]:
+    def mistake_summary(
+        self, account_id: Any = None, period: str = "ytd"
+    ) -> dict[str, Any]:
         return {"total_cost": 0.0, "by_category": [], "trend": []}
 
 
@@ -503,7 +582,11 @@ class StubTaxService:
     """
 
     def simulate_impact(self, body: Any) -> dict[str, Any]:
-        return {"estimated_tax": 0.0, "lots": [], "st_lt_split": {"short_term": 0.0, "long_term": 0.0}}
+        return {
+            "estimated_tax": 0.0,
+            "lots": [],
+            "st_lt_split": {"short_term": 0.0, "long_term": 0.0},
+        }
 
     def estimate(self, body: Any) -> dict[str, Any]:
         return {"federal_estimate": 0.0, "state_estimate": 0.0, "bracket_breakdown": []}
@@ -511,32 +594,64 @@ class StubTaxService:
     def find_wash_sales(self, body: Any) -> dict[str, Any]:
         return {"chains": [], "disallowed_total": 0.0, "affected_tickers": []}
 
-    def get_lots(self, account_id: str, ticker: Any = None, status: str = "all", sort_by: str = "acquired_date") -> dict[str, Any]:
+    def get_lots(
+        self,
+        account_id: str,
+        ticker: Any = None,
+        status: str = "all",
+        sort_by: str = "acquired_date",
+    ) -> dict[str, Any]:
         return {"lots": [], "total_count": 0}
 
-    def quarterly_estimate(self, quarter: str, tax_year: int, method: str = "annualized") -> dict[str, Any]:
-        return {"required": 0.0, "paid": 0.0, "due": 0.0, "penalty": 0.0, "due_date": ""}
+    def quarterly_estimate(
+        self, quarter: str, tax_year: int, method: str = "annualized"
+    ) -> dict[str, Any]:
+        return {
+            "required": 0.0,
+            "paid": 0.0,
+            "due": 0.0,
+            "penalty": 0.0,
+            "due_date": "",
+        }
 
     def record_payment(self, body: Any) -> dict[str, Any]:
-        return {"status": "recorded", "quarter": getattr(body, "quarter", ""), "amount": getattr(body, "payment_amount", 0.0)}
+        return {
+            "status": "recorded",
+            "quarter": getattr(body, "quarter", ""),
+            "amount": getattr(body, "payment_amount", 0.0),
+        }
 
-    def harvest_scan(self, account_id: Any = None, min_loss: float = 0.0, exclude_wash: bool = False) -> dict[str, Any]:
+    def harvest_scan(
+        self, account_id: Any = None, min_loss: float = 0.0, exclude_wash: bool = False
+    ) -> dict[str, Any]:
         return {"opportunities": [], "total_harvestable": 0.0}
 
     def ytd_summary(self, tax_year: int, account_id: Any = None) -> dict[str, Any]:
-        return {"short_term": 0.0, "long_term": 0.0, "wash_adjustments": 0.0, "estimated_tax": 0.0}
+        return {
+            "short_term": 0.0,
+            "long_term": 0.0,
+            "wash_adjustments": 0.0,
+            "estimated_tax": 0.0,
+        }
 
     def close_lot(self, lot_id: str) -> dict[str, Any]:
         return {"lot_id": lot_id, "status": "closed", "realized_gain_loss": 0.0}
 
     def reassign_basis(self, lot_id: str, body: dict[str, Any]) -> dict[str, Any]:
-        return {"lot_id": lot_id, "method": body.get("method", "fifo"), "status": "reassigned"}
+        return {
+            "lot_id": lot_id,
+            "method": body.get("method", "fifo"),
+            "status": "reassigned",
+        }
 
     def scan_wash_sales(self, account_id: Any = None) -> dict[str, Any]:
         return {"active_chains": [], "trapped_amount": 0.0, "alerts": []}
 
     def run_audit(self, account_id: Any = None, tax_year: Any = None) -> dict[str, Any]:
-        return {"findings": [], "severity_summary": {"error": 0, "warning": 0, "info": 0}}
+        return {
+            "findings": [],
+            "severity_summary": {"error": 0, "warning": 0, "info": 0},
+        }
 
 
 class StubMarketDataService:
@@ -581,5 +696,3 @@ class StubProviderConnectionService:
 
     async def remove_api_key(self, name: str) -> None:
         pass
-
-

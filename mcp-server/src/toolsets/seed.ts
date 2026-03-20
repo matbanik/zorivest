@@ -30,7 +30,7 @@ import { registerSchedulingTools, registerSchedulingResources } from "../tools/s
 
 // ── Toolset definitions (canonical: 05-mcp-server.md §5.11 L735-745) ──
 
-const TOOLSET_DEFINITIONS: ToolsetDefinition[] = [
+export const TOOLSET_DEFINITIONS: ToolsetDefinition[] = [
     // ── Always-loaded ──────────────────────────────────────────────────
     {
         name: "core",

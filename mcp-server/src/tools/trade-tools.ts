@@ -131,7 +131,7 @@ export function registerTradeTools(server: McpServer): RegisteredToolHandle[] {
         "list_trades",
         {
             description:
-                "List trades with optional filtering and pagination",
+                "List trades with optional filtering and pagination. Returns {items, total, limit, offset} where `total` is the real database count matching filters (not just the page size). Use limit=1&offset=0 to efficiently discover total count before fetching all items.",
             inputSchema: {
                 limit: z
                     .number()

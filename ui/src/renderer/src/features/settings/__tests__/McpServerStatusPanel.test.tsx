@@ -50,6 +50,10 @@ function setupDefaultMocks() {
         if (path === '/api/v1/health') return { status: 'ok', version: 'v1.2.3', uptime_seconds: 60, database: { unlocked: true } }
         if (path === '/api/v1/version/') return { version: 'v1.2.3', environment: 'test' }
         if (path.includes('mcp-guard/status')) return { is_locked: false, calls_per_hour: 42 }
+        if (path === '/api/v1/mcp/toolsets') return { total_tools: 51, toolset_count: 9, toolsets: [{ name: 'core', tool_count: 4, always_loaded: true }] }
+        if (path === '/api/v1/mcp/diagnostics') return { api_uptime_seconds: 120.5, api_version: '0.1.0' }
+        // Default for settings paths (useTheme, useRouteRestoration, etc.)
+        if (path.startsWith('/api/v1/settings/')) return { value: 'dark' }
         return {}
     })
 }
@@ -97,11 +101,13 @@ describe('McpServerStatusPanel', () => {
         })
     })
 
-    it('should show N/A for tool count and uptime', async () => {
+    it('should show live tool count and uptime from MCP endpoints', async () => {
         render(<McpServerStatusPanel />, { wrapper: createWrapper() })
         await waitFor(() => {
-            const naElements = screen.getAllByText('N/A')
-            expect(naElements.length).toBeGreaterThanOrEqual(2)
+            // MEU-46a: tool count from /mcp/toolsets
+            expect(screen.getByTestId('mcp-tool-count')).toHaveTextContent('51 (9 toolsets)')
+            // MEU-46a: uptime from /mcp/diagnostics
+            expect(screen.getByTestId('mcp-uptime')).toHaveTextContent('2m 0s')
         })
     })
 
@@ -201,6 +207,7 @@ describe('SettingsLayout', () => {
             if (path.includes('mcp-guard/status')) return { is_locked: true }
             if (path === '/api/v1/health') return { status: 'ok', version: 'v1.0.0', uptime_seconds: 0, database: { unlocked: true } }
             if (path === '/api/v1/version/') return { version: 'v1.0.0' }
+            if (path.startsWith('/api/v1/settings/')) return { value: 'dark' }
             return {}
         })
         render(<SettingsLayout />, { wrapper: createWrapper() })

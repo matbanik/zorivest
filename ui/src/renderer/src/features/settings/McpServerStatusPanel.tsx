@@ -26,6 +26,21 @@ interface GuardStatusResponse {
     calls_per_hour?: number
 }
 
+interface McpToolsetsResponse {
+    total_tools: number
+    toolset_count: number
+    toolsets: Array<{
+        name: string
+        tool_count: number
+        always_loaded: boolean
+    }>
+}
+
+interface McpDiagnosticsResponse {
+    api_uptime_seconds: number
+    api_version: string
+}
+
 type IdeTarget = 'cursor' | 'claude-desktop' | 'windsurf'
 
 // ── IDE Config Templates ─────────────────────────────────────────────────
@@ -121,6 +136,21 @@ export default function McpServerStatusPanel() {
         refetchOnWindowFocus: false,
     })
 
+    // MEU-46a: MCP toolset catalog + diagnostics
+    const { data: toolsets } = useQuery<McpToolsetsResponse>({
+        queryKey: ['mcp-toolsets'],
+        queryFn: () => apiFetch('/api/v1/mcp/toolsets'),
+        refetchOnWindowFocus: false,
+        refetchInterval: 30_000, // G5: auto-refresh for externally mutated data
+    })
+
+    const { data: diagnostics } = useQuery<McpDiagnosticsResponse>({
+        queryKey: ['mcp-diagnostics'],
+        queryFn: () => apiFetch('/api/v1/mcp/diagnostics'),
+        refetchOnWindowFocus: false,
+        refetchInterval: 30_000, // G5: auto-refresh
+    })
+
     const handleRefresh = useCallback(async () => {
         setRefreshing(true)
         setStatus('Refreshing MCP status...')
@@ -129,6 +159,8 @@ export default function McpServerStatusPanel() {
                 queryClient.invalidateQueries({ queryKey: ['mcp-health'] }),
                 queryClient.invalidateQueries({ queryKey: ['mcp-version'] }),
                 queryClient.invalidateQueries({ queryKey: ['mcp-guard-status'] }),
+                queryClient.invalidateQueries({ queryKey: ['mcp-toolsets'] }),
+                queryClient.invalidateQueries({ queryKey: ['mcp-diagnostics'] }),
             ])
             setStatus('Status refreshed', 3000)
         } catch {
@@ -180,10 +212,16 @@ export default function McpServerStatusPanel() {
                     </div>
 
                     <div className="text-fg-muted">Registered tools</div>
-                    <div className="text-fg-muted">{health ? '—' : 'N/A'}</div>
+                    <div className="text-fg-muted" data-testid="mcp-tool-count">
+                        {toolsets ? `${toolsets.total_tools} (${toolsets.toolset_count} toolsets)` : '—'}
+                    </div>
 
                     <div className="text-fg-muted">Uptime</div>
-                    <div className="text-fg-muted">{health?.uptime_seconds != null ? formatUptime(health.uptime_seconds) : 'N/A'}</div>
+                    <div className="text-fg-muted" data-testid="mcp-uptime">
+                        {diagnostics?.api_uptime_seconds != null
+                            ? formatUptime(diagnostics.api_uptime_seconds)
+                            : (health?.uptime_seconds != null ? formatUptime(health.uptime_seconds) : 'N/A')}
+                    </div>
                 </div>
 
                 <button

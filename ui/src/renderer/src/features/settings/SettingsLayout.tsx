@@ -2,6 +2,7 @@ import { useCallback } from 'react'
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query'
 import { apiFetch } from '@/lib/api'
 import { useStatusBar } from '@/hooks/useStatusBar'
+import { useTheme } from '@/hooks/useTheme'
 import McpServerStatusPanel from './McpServerStatusPanel'
 
 interface GuardStatusResponse {
@@ -20,6 +21,7 @@ interface GuardStatusResponse {
 export default function SettingsLayout() {
     const queryClient = useQueryClient()
     const { setStatus } = useStatusBar()
+    const [theme, setTheme] = useTheme()
 
     const { data: guardStatus } = useQuery<GuardStatusResponse>({
         queryKey: ['mcp-guard-status'],
@@ -53,6 +55,36 @@ export default function SettingsLayout() {
         <div data-testid="settings-page" className="space-y-8 max-w-3xl">
             <div>
                 <h2 className="text-lg font-semibold text-fg mb-6">Settings</h2>
+            </div>
+
+            {/* Theme Toggle */}
+            <div className="bg-bg-elevated rounded-lg border border-bg-subtle p-4">
+                <h3 className="text-base font-semibold text-fg mb-3">Appearance</h3>
+                <div className="flex items-center gap-4">
+                    <span className="text-sm text-fg-muted">Theme</span>
+                    <div className="flex gap-2">
+                        <button
+                            data-testid="theme-dark-btn"
+                            onClick={() => setTheme('dark')}
+                            className={`px-4 py-1.5 text-sm font-medium rounded-md border transition-colors cursor-pointer ${theme === 'dark'
+                                    ? 'bg-accent-purple text-fg border-accent-purple'
+                                    : 'bg-bg border-bg-subtle text-fg-muted hover:bg-bg-elevated hover:text-fg'
+                                }`}
+                        >
+                            🌙 Dark
+                        </button>
+                        <button
+                            data-testid="theme-light-btn"
+                            onClick={() => setTheme('light')}
+                            className={`px-4 py-1.5 text-sm font-medium rounded-md border transition-colors cursor-pointer ${theme === 'light'
+                                    ? 'bg-accent-purple text-fg border-accent-purple'
+                                    : 'bg-bg border-bg-subtle text-fg-muted hover:bg-bg-elevated hover:text-fg'
+                                }`}
+                        >
+                            ☀️ Light
+                        </button>
+                    </div>
+                </div>
             </div>
 
             {/* MCP Guard Controls */}
