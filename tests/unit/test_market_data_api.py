@@ -89,6 +89,8 @@ def locked_client() -> TestClient:
     """Create a TestClient WITHOUT unlocked DB override."""
     app = create_app()
     with TestClient(app, raise_server_exceptions=False) as c:
+        # Explicitly lock — lifespan may auto-unlock via ZORIVEST_DEV_UNLOCK env var
+        app.state.db_unlocked = False
         yield c
 
 
