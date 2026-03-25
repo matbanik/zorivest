@@ -131,10 +131,12 @@ class BalanceSource(StrEnum):  # §26
 class AuthMethod(StrEnum):
     """How the API key is passed to the market data provider."""
 
+    NONE = "none"                   # No authentication required (free providers)
     QUERY_PARAM = "query_param"
     BEARER_HEADER = "bearer_header"
     CUSTOM_HEADER = "custom_header"
     RAW_HEADER = "raw_header"
+
 
 
 # ── MEU-52: Trade report enums ──────────────────────────────────────────

@@ -3,20 +3,32 @@
 
 Tests AC-2 (CRUD), AC-3 (item management), AC-4 (duplicate name),
 AC-5 (duplicate ticker), AC-9 (cascade delete).
+
+MEU-90a: Migrated fixture from StubUnitOfWork to real in-memory SQLite UoW.
 """
 
 from __future__ import annotations
 
 import pytest
 
-from zorivest_api.stubs import StubUnitOfWork
+from zorivest_infra.database.models import Base
+from zorivest_infra.database.unit_of_work import SqlAlchemyUnitOfWork, create_engine_with_wal
 from zorivest_core.services.watchlist_service import WatchlistService
 
 
 @pytest.fixture()
-def service() -> WatchlistService:
-    """Create a WatchlistService with in-memory stub UoW."""
-    return WatchlistService(StubUnitOfWork())  # type: ignore[arg-type]
+def engine():
+    """In-memory SQLite engine with schema pre-created."""
+    eng = create_engine_with_wal("sqlite:///:memory:")
+    Base.metadata.create_all(eng)
+    return eng
+
+
+@pytest.fixture()
+def service(engine) -> WatchlistService:
+    """WatchlistService backed by the shared in-memory SQLite engine."""
+    uow = SqlAlchemyUnitOfWork(engine)
+    return WatchlistService(uow)
 
 
 # ── AC-2: CRUD ──────────────────────────────────────────────────────────
@@ -189,7 +201,9 @@ class TestDuplicateTicker:
 class TestCascadeDelete:
     """AC-9: Deleting a watchlist removes all its items."""
 
-    def test_delete_watchlist_cascades_items(self, service: WatchlistService) -> None:
+    def test_delete_watchlist_cascades_items(
+        self, service: WatchlistService, engine: Any
+    ) -> None:
         # Create two watchlists with items
         wl_a = service.create("WatchlistA")
         service.add_ticker(wl_a.id, "AAPL")
@@ -206,6 +220,15 @@ class TestCascadeDelete:
         assert items_b[0].ticker == "SPY"
 
         # Directly verify no orphaned items remain for deleted watchlist A
-        repo = service.uow.watchlists  # type: ignore[union-attr]
-        orphans = [i for i in repo._items if i.watchlist_id == wl_a.id]  # type: ignore[attr-defined]
-        assert orphans == [], f"Orphaned items found: {orphans}"
+        # Verify cascade: querying items for the deleted watchlist should raise
+        with pytest.raises(ValueError, match="not found"):
+            service.get_items(wl_a.id)
+
+        # Prove the ORM cascade actually removed item rows from the DB
+        from sqlalchemy import text
+        with engine.connect() as conn:
+            count = conn.execute(
+                text("SELECT COUNT(*) FROM watchlist_items WHERE watchlist_id = :wid"),
+                {"wid": wl_a.id},
+            ).scalar()
+        assert count == 0, f"Expected 0 orphaned items after cascade delete, found {count}"

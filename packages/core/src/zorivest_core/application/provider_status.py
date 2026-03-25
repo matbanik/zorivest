@@ -22,3 +22,5 @@ class ProviderStatus(BaseModel):
     rate_limit: int
     timeout: int
     last_test_status: str | None = None
+    signup_url: str | None = None
+

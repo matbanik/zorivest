@@ -317,3 +317,146 @@ class TestRateLimiting:
                 limiter.wait_if_needed.assert_called()
                 rate_limiter_called = True
         assert rate_limiter_called, "No rate limiter was called"
+
+
+# ── search_ticker tests (MEU-91) ────────────────────────────────────────────
+
+
+class TestSearchTickerYahooFallback:
+    """Tests for MEU-91: Yahoo Finance zero-config fallback in search_ticker."""
+
+    def test_yahoo_finance_search_returns_results(self) -> None:
+        """AC-10: search_ticker tries Yahoo Finance first and returns results."""
+        from zorivest_core.application.market_dtos import TickerSearchResult
+
+        yahoo_response = FakeHttpResponse(
+            200,
+            {
+                "quotes": [
+                    {
+                        "symbol": "AAPL",
+                        "shortname": "Apple Inc.",
+                        "exchange": "NMS",
+                        "quoteType": "EQUITY",
+                    },
+                    {
+                        "symbol": "AAPL.BA",
+                        "shortname": "Apple Inc.",
+                        "exchange": "BUE",
+                        "quoteType": "EQUITY",
+                    },
+                ]
+            },
+        )
+        svc = _make_service(settings=[], http_responses=[yahoo_response])
+
+        results = asyncio.run(svc.search_ticker("AAPL"))
+
+        assert len(results) == 2
+        assert all(isinstance(r, TickerSearchResult) for r in results)
+        assert results[0].symbol == "AAPL"
+        assert results[0].name == "Apple Inc."
+        assert results[0].provider == "Yahoo Finance"
+
+    def test_yahoo_finance_filters_non_equity_types(self) -> None:
+        """Non-equity quote types (FUTURE, CURRENCY, etc.) are excluded."""
+        from zorivest_core.application.market_dtos import TickerSearchResult
+
+        yahoo_response = FakeHttpResponse(
+            200,
+            {
+                "quotes": [
+                    {"symbol": "AAPL", "shortname": "Apple Inc.", "quoteType": "EQUITY"},
+                    {"symbol": "AAPL=F", "shortname": "AAPL Futures", "quoteType": "FUTURE"},
+                    {"symbol": "USD/JPY", "shortname": "USD/JPY", "quoteType": "CURRENCY"},
+                    {"symbol": "BTC-USD", "shortname": "Bitcoin", "quoteType": "CRYPTOCURRENCY"},
+                ]
+            },
+        )
+        svc = _make_service(settings=[], http_responses=[yahoo_response])
+
+        results = asyncio.run(svc.search_ticker("AAPL"))
+
+        assert len(results) == 1
+        assert results[0].symbol == "AAPL"
+        assert all(isinstance(r, TickerSearchResult) for r in results)
+
+    def test_returns_empty_list_when_yahoo_empty_and_no_providers(self) -> None:
+        """Returns [] when Yahoo has no results and no API-key providers configured."""
+        yahoo_response = FakeHttpResponse(200, {"quotes": []})
+        svc = _make_service(settings=[], http_responses=[yahoo_response])
+
+        results = asyncio.run(svc.search_ticker("XYZ"))
+
+        assert results == []
+
+    def test_falls_back_to_providers_when_yahoo_connection_fails(self) -> None:
+        """When Yahoo Finance fails (connection error), falls back to API-key providers."""
+        from zorivest_core.application.market_dtos import TickerSearchResult
+        from zorivest_core.domain.enums import AuthMethod
+        from zorivest_core.domain.market_data import ProviderConfig
+        from zorivest_infra.market_data.normalizers import normalize_fmp_search
+
+        fmp_response = FakeHttpResponse(
+            200,
+            [
+                {
+                    "symbol": "AAPL",
+                    "name": "Apple Inc.",
+                    "currency": "USD",
+                    "stockExchange": "NASDAQ",
+                    "exchangeShortName": "NASDAQ",
+                }
+            ],
+        )
+
+        call_count = 0
+
+        async def side_effect(*args: Any, **kwargs: Any) -> FakeHttpResponse:
+            nonlocal call_count
+            call_count += 1
+            if call_count == 1:
+                raise ConnectionError("Yahoo unreachable")
+            return fmp_response
+
+        fake_settings_repo = MagicMock()
+        fake_settings_repo.list_all.return_value = [_make_setting("Financial Modeling Prep")]
+        fake_uow = MagicMock()
+        fake_uow.__enter__ = MagicMock(return_value=fake_uow)
+        fake_uow.__exit__ = MagicMock(return_value=False)
+        fake_uow.market_provider_settings = fake_settings_repo
+        fake_encryption = MagicMock()
+        fake_encryption.decrypt.side_effect = lambda x: x.replace("ENC:", "")
+        fake_http = AsyncMock()
+        fake_http.get.side_effect = side_effect
+        fake_limiter = AsyncMock()
+        fake_limiter.wait_if_needed = AsyncMock()
+
+        fmp_config = ProviderConfig(
+            name="Financial Modeling Prep",
+            base_url="https://financialmodelingprep.com/api/v3",
+            auth_method=AuthMethod.QUERY_PARAM,
+            auth_param_name="apikey",
+            headers_template={},
+            test_endpoint="/search?query=AAPL&limit=1&apikey={api_key}",
+            default_rate_limit=250,
+            signup_url="https://financialmodelingprep.com",
+        )
+
+        svc = MarketDataService(
+            uow=fake_uow,
+            encryption=fake_encryption,
+            http_client=fake_http,
+            rate_limiters={"Financial Modeling Prep": fake_limiter},
+            provider_registry={"Financial Modeling Prep": fmp_config},
+            quote_normalizers={},
+            news_normalizers={},
+            search_normalizers={"Financial Modeling Prep": normalize_fmp_search},
+        )
+
+        results = asyncio.run(svc.search_ticker("AAPL"))
+
+        assert len(results) == 1
+        assert results[0].symbol == "AAPL"
+        assert results[0].provider == "Financial Modeling Prep"
+        assert isinstance(results[0], TickerSearchResult)

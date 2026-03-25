@@ -34,7 +34,7 @@ class TestAuthMethodEnum:
     def test_auth_method_has_exactly_4_members(self) -> None:
         from zorivest_core.domain.enums import AuthMethod
 
-        assert len(AuthMethod) == 4
+        assert len(AuthMethod) == 5
 
     def test_auth_method_query_param(self) -> None:
         from zorivest_core.domain.enums import AuthMethod

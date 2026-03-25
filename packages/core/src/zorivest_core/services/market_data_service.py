@@ -10,7 +10,7 @@ Same pattern as ProviderConnectionService (MEU-60).
 from __future__ import annotations
 
 import logging
-from typing import Any, Callable, Protocol
+from typing import Any, Callable, Mapping, Protocol
 
 from zorivest_core.application.market_dtos import (
     MarketNewsItem,
@@ -75,7 +75,7 @@ class MarketDataService:
         uow: Any,
         encryption: EncryptionService,
         http_client: HttpClient,
-        rate_limiters: dict[str, RateLimiterProtocol],
+        rate_limiters: Mapping[str, RateLimiterProtocol],
         provider_registry: dict[str, ProviderConfig],
         quote_normalizers: dict[str, Callable[..., MarketQuote]] | None = None,
         news_normalizers: dict[str, Callable[..., list[MarketNewsItem]]] | None = None,
@@ -153,13 +153,22 @@ class MarketDataService:
     async def search_ticker(self, query: str) -> list[TickerSearchResult]:
         """Search for tickers across providers.
 
+        MEU-91: Always tries Yahoo Finance first (zero-config, no API key).
+        Falls back to configured providers (FMP, Alpha Vantage) if Yahoo fails.
         Implements MarketDataPort.search_ticker.
         """
+        # Yahoo Finance is always tried first — no API key, no provider settings needed
+        try:
+            yahoo_results = await self._yahoo_search(query)
+            if yahoo_results:
+                return yahoo_results
+        except Exception as exc:
+            logger.debug("Yahoo Finance search failed, falling back to providers: %s", exc)
+
+        # Fall through to configured API-key providers
         providers = self._get_enabled_providers(self._search_normalizers)
         if not providers:
-            raise MarketDataError(
-                "No search provider available — configure FMP or Alpha Vantage"
-            )
+            return []  # No API-key providers configured and Yahoo returned empty
 
         last_error = ""
         for name, setting in providers:
@@ -174,6 +183,33 @@ class MarketDataService:
                 continue
 
         raise MarketDataError(f"All providers failed for search '{query}'. Last error: {last_error}")
+
+    async def _yahoo_search(self, query: str) -> list[TickerSearchResult]:
+        """Search Yahoo Finance (no API key required) — MEU-91 zero-config fallback.
+
+        URL: https://query1.finance.yahoo.com/v1/finance/search?q={query}&quotesCount=6&newsCount=0
+        Filters out non-equity quote types (FUTURE, CURRENCY, CRYPTOCURRENCY, INDEX).
+        """
+        _EXCLUDED_TYPES = {"FUTURE", "CURRENCY", "CRYPTOCURRENCY", "INDEX", "MUTUALFUND"}
+        url = (
+            f"https://query1.finance.yahoo.com/v1/finance/search"
+            f"?q={query}&quotesCount=6&newsCount=0&enableFuzzyQuery=false"
+        )
+        response = await self._http.get(url, headers={"User-Agent": "Mozilla/5.0"}, timeout=10)
+        if response.status_code != 200:
+            raise MarketDataError(f"Yahoo Finance search returned {response.status_code}")
+        quotes = response.json().get("quotes", [])
+        return [
+            TickerSearchResult(
+                symbol=q["symbol"],
+                name=q.get("shortname") or q.get("longname") or q["symbol"],
+                exchange=q.get("exchange"),
+                currency=None,
+                provider="Yahoo Finance",
+            )
+            for q in quotes
+            if q.get("quoteType") not in _EXCLUDED_TYPES
+        ]
 
     async def get_sec_filings(self, ticker: str) -> list[SecFiling]:
         """Get SEC filings for a company (SEC API only).

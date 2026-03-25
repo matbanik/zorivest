@@ -1,7 +1,8 @@
-"""Market data provider registry — MEU-59.
+"""Market data provider registry — MEU-59 + MEU-65.
 
-Static registry of all 12 market data API provider configurations.
-Source: docs/build-plan/08-market-data.md §8.2c.
+Static registry of 14 market data API provider configurations:
+- 12 API-key providers (MEU-59 spec, docs/build-plan/08-market-data.md §8.2c)
+- 2 free providers added by MEU-65: Yahoo Finance, TradingView
 """
 
 from __future__ import annotations
@@ -144,6 +145,47 @@ PROVIDER_REGISTRY: dict[str, ProviderConfig] = {
         default_rate_limit=120,
         signup_url="https://developer.tradier.com/",
         response_validator_key="profile",
+    ),
+    # ── Free providers — no API key required ──────────────────────────────
+    "Yahoo Finance": ProviderConfig(
+        name="Yahoo Finance",
+        # Use the search API (v1/finance/search) instead of chart API (v8/finance/chart).
+        # The chart endpoint is aggressively rate-limited (HTTP 429) from server-side
+        # clients even with browser-like UA headers. The search endpoint is
+        # significantly more permissive for connectivity probes.
+        base_url="https://query1.finance.yahoo.com/v1/finance",
+        auth_method=AuthMethod.NONE,
+        auth_param_name="",
+        headers_template={
+            "User-Agent": "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36",
+            "Accept": "*/*",
+            "Referer": "https://finance.yahoo.com/",
+        },
+        test_endpoint="/search?q=AAPL&quotesCount=1&newsCount=0",
+        default_rate_limit=100,  # ~2000 req/hr; conservative limit
+        signup_url="https://pypi.org/project/yfinance/",
+        response_validator_key="quotes",
+    ),
+    "TradingView": ProviderConfig(
+        name="TradingView",
+        # scanner.tradingview.com is the endpoint used by all major Python
+        # TradingView libraries (tradingview-screener, tvscreener, tv-scraper).
+        # POST to /america/scan with an empty-ish payload returns 200 + JSON
+        # with 'totalCount' and 'data' fields. No auth required.
+        # symbol-search.tradingview.com is Cloudflare-blocked (403) for scripts.
+        # data.tradingview.com/pingpong/ returns 301 redirect.
+        base_url="https://scanner.tradingview.com",
+        auth_method=AuthMethod.NONE,
+        auth_param_name="",
+        headers_template={
+            "User-Agent": "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36",
+            "Accept": "application/json",
+            "Content-Type": "application/json",
+        },
+        test_endpoint="/america/scan",
+        default_rate_limit=60,
+        signup_url="https://www.tradingview.com/",
+        response_validator_key="totalCount",
     ),
 }
 

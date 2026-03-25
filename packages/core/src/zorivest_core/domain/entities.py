@@ -136,6 +136,8 @@ class TradePlan:
     linked_trade_id: Optional[str] = None   # FK → Trade, nullable
     images: list[ImageAttachment] = field(default_factory=list)
     account_id: Optional[str] = None        # FK → Account, nullable
+    executed_at: Optional[datetime] = None   # T5: when status → executed
+    cancelled_at: Optional[datetime] = None  # T5: when status → cancelled
 
     @staticmethod
     def compute_risk_reward(

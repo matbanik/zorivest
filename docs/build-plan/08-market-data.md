@@ -8,7 +8,7 @@
 
 ## Goal
 
-Build a unified market data aggregation layer connecting to **12 REST API providers** (9 original + 3 expansion: OpenFIGI, Alpaca, Tradier), enabling agentic queries (via MCP), GUI widgets, and scheduled reporting pipelines. All providers use API key authentication with keys encrypted at rest via Fernet.
+Build a unified market data aggregation layer connecting to **14 REST API providers** (9 original + 3 expansion: OpenFIGI, Alpaca, Tradier + 2 free added by MEU-65: Yahoo Finance, TradingView), enabling agentic queries (via MCP), GUI widgets, and scheduled reporting pipelines. API-key providers use API key authentication with keys encrypted at rest via Fernet.
 
 ---
 
@@ -752,7 +752,7 @@ async def test_all_providers(self) -> list[tuple[str, bool, str]]:
 
 ## Exit Criteria
 
-1. All 12 providers registered in provider registry with correct auth config
+1. All 14 providers registered in provider registry with correct config (12 API-key + 2 free: Yahoo Finance, TradingView added by MEU-65)
 2. Encrypt/decrypt round-trip tests pass for API keys
 3. Connection testing returns correct status for each HTTP scenario (200, 401, 429, timeout)
 4. Response normalizers convert fixture data correctly for all supported providers
@@ -771,7 +771,7 @@ async def test_all_providers(self) -> list[tuple[str, bool, str]]:
 - `ProviderConnectionService` with test/configure/list operations
 - `MarketDataService` with quote/news/search/SEC query operations
 - Rate limiter (async token-bucket)
-- Response normalizers for all 12 providers
+- Response normalizers for all 12 API-key providers
 - Log redaction filter
 - 8 FastAPI REST endpoints under `/api/v1/market-data/`
 - 7 TypeScript MCP tools
@@ -779,10 +779,10 @@ async def test_all_providers(self) -> list[tuple[str, bool, str]]:
 
 ---
 
-## Service Wiring (MEU-90b)
+## Service Wiring
 
 > [!IMPORTANT]
-> MEU-90b (`service-wiring`) must retire `StubMarketDataService` and
+> The service-wiring MEU must retire `StubMarketDataService` and
 > `StubProviderConnectionService` from `stubs.py` and wire the real services
 > into the FastAPI lifespan. This is the heaviest wiring task (Tier 3) — both
 > services share a wide dependency graph.
