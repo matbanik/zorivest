@@ -54,9 +54,12 @@ function setupDefaultMocks() {
         if (path === '/api/v1/mcp/diagnostics') return { api_uptime_seconds: 120.5, api_version: '0.1.0' }
         // Default for settings paths (useTheme, useRouteRestoration, etc.)
         if (path.startsWith('/api/v1/settings/')) return { value: 'dark' }
+        // MEU-65: market data providers (return empty list so SettingsLayout renders without crash)
+        if (path.includes('market-data/providers')) return []
         return {}
     })
 }
+
 
 // ─── McpServerStatusPanel Tests ──────────────────────────────────────────────
 
@@ -208,6 +211,7 @@ describe('SettingsLayout', () => {
             if (path === '/api/v1/health') return { status: 'ok', version: 'v1.0.0', uptime_seconds: 0, database: { unlocked: true } }
             if (path === '/api/v1/version/') return { version: 'v1.0.0' }
             if (path.startsWith('/api/v1/settings/')) return { value: 'dark' }
+            if (path.includes('market-data/providers')) return []
             return {}
         })
         render(<SettingsLayout />, { wrapper: createWrapper() })

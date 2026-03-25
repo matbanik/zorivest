@@ -1,4 +1,5 @@
 import { useCallback } from 'react'
+import { useNavigate } from '@tanstack/react-router'
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query'
 import { apiFetch } from '@/lib/api'
 import { useStatusBar } from '@/hooks/useStatusBar'
@@ -49,12 +50,34 @@ export default function SettingsLayout() {
         lockMutation.mutate()
     }, [lockMutation])
 
+    const navigate = useNavigate()
     const isLocked = guardStatus?.is_locked ?? false
 
     return (
         <div data-testid="settings-page" className="space-y-8 max-w-3xl">
             <div>
                 <h2 className="text-lg font-semibold text-fg mb-6">Settings</h2>
+            </div>
+
+            {/* Data Sources */}
+            <div className="bg-bg-elevated rounded-lg border border-bg-subtle overflow-hidden">
+                <div className="px-4 py-3 border-b border-bg-subtle">
+                    <h3 className="text-sm font-semibold text-fg-muted uppercase tracking-wide">Data Sources</h3>
+                </div>
+                <button
+                    data-testid="settings-market-data-link"
+                    onClick={() => navigate({ to: '/settings/market' })}
+                    className="w-full flex items-center justify-between px-4 py-3 hover:bg-bg-subtle transition-colors cursor-pointer group"
+                >
+                    <div className="flex items-center gap-3">
+                        <span className="text-lg">🌐</span>
+                        <div className="text-left">
+                            <div className="text-sm font-medium text-fg">Market Data Providers</div>
+                            <div className="text-xs text-fg-muted">Configure API keys for 12 market data sources</div>
+                        </div>
+                    </div>
+                    <span className="text-fg-muted group-hover:text-fg transition-colors">›</span>
+                </button>
             </div>
 
             {/* Theme Toggle */}
@@ -67,8 +90,8 @@ export default function SettingsLayout() {
                             data-testid="theme-dark-btn"
                             onClick={() => setTheme('dark')}
                             className={`px-4 py-1.5 text-sm font-medium rounded-md border transition-colors cursor-pointer ${theme === 'dark'
-                                    ? 'bg-accent-purple text-fg border-accent-purple'
-                                    : 'bg-bg border-bg-subtle text-fg-muted hover:bg-bg-elevated hover:text-fg'
+                                ? 'bg-accent-purple text-fg border-accent-purple'
+                                : 'bg-bg border-bg-subtle text-fg-muted hover:bg-bg-elevated hover:text-fg'
                                 }`}
                         >
                             🌙 Dark
@@ -77,8 +100,8 @@ export default function SettingsLayout() {
                             data-testid="theme-light-btn"
                             onClick={() => setTheme('light')}
                             className={`px-4 py-1.5 text-sm font-medium rounded-md border transition-colors cursor-pointer ${theme === 'light'
-                                    ? 'bg-accent-purple text-fg border-accent-purple'
-                                    : 'bg-bg border-bg-subtle text-fg-muted hover:bg-bg-elevated hover:text-fg'
+                                ? 'bg-accent-purple text-fg border-accent-purple'
+                                : 'bg-bg border-bg-subtle text-fg-muted hover:bg-bg-elevated hover:text-fg'
                                 }`}
                         >
                             ☀️ Light
@@ -110,6 +133,9 @@ export default function SettingsLayout() {
 
             {/* MCP Server Status Panel */}
             <McpServerStatusPanel />
+
+
         </div>
     )
 }
+

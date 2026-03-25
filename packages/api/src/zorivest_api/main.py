@@ -41,11 +41,9 @@ from zorivest_api.routes.scheduler import scheduler_router
 from zorivest_api.routes.mcp_toolsets import mcp_toolsets_router  # MEU-46a
 from zorivest_api.schemas.common import ErrorEnvelope
 from zorivest_api.auth.auth_service import AuthService
+from zorivest_api.services.mcp_guard import McpGuardService
 from zorivest_api.stubs import (
-    McpGuardService,
     StubAnalyticsService,
-    StubMarketDataService,
-    StubProviderConnectionService,
     StubReviewService,
     StubTaxService,
 )
@@ -54,6 +52,7 @@ from zorivest_core.services.account_service import AccountService
 from zorivest_core.services.image_service import ImageService
 from zorivest_core.services.settings_service import SettingsService
 from zorivest_core.services.report_service import ReportService
+from zorivest_core.services.provider_connection_service import ProviderConnectionService
 from zorivest_core.services.watchlist_service import WatchlistService
 from zorivest_core.services.scheduling_service import SchedulingService
 from zorivest_core.services.scheduler_service import SchedulerService
@@ -66,6 +65,15 @@ from zorivest_infra.database.unit_of_work import (
     create_engine_with_wal,
 )
 from zorivest_infra.database.models import Base
+from zorivest_infra.market_data.provider_registry import PROVIDER_REGISTRY
+from zorivest_infra.market_data.rate_limiter import RateLimiter
+from zorivest_infra.market_data.service_factory import FernetEncryptionAdapter, HttpxClient
+from zorivest_infra.market_data.normalizers import (
+    QUOTE_NORMALIZERS,
+    NEWS_NORMALIZERS,
+    SEARCH_NORMALIZERS,
+)
+from zorivest_core.services.market_data_service import MarketDataService  # MEU-91
 from sqlalchemy import text
 from zorivest_api.scheduling_adapters import (
     PolicyStoreAdapter,
@@ -140,13 +148,19 @@ async def lifespan(app: FastAPI) -> AsyncGenerator[None, None]:
 
     # ── Schema migrations (no Alembic) ────────────────────────────────
     # Add missing columns to existing databases created before the column was added.
+    _inline_migrations = [
+        "ALTER TABLE trades ADD COLUMN notes TEXT DEFAULT ''",
+        "ALTER TABLE trade_plans ADD COLUMN executed_at TEXT",   # T5: status timestamps
+        "ALTER TABLE trade_plans ADD COLUMN cancelled_at TEXT",  # T5: status timestamps
+    ]
     with engine.connect() as conn:
-        try:
-            conn.execute(text("ALTER TABLE trades ADD COLUMN notes TEXT DEFAULT ''"))
-            conn.commit()
-        except Exception:
-            # Column already exists (fresh DB or already migrated) — ignore
-            conn.rollback()
+        for _stmt in _inline_migrations:
+            try:
+                conn.execute(text(_stmt))
+                conn.commit()
+            except Exception:
+                # Column already exists (fresh DB or already migrated) — ignore
+                conn.rollback()
 
     # ── Unit of Work (reentrant — pre-entered once, services re-enter per call) ──
     uow: Any = SqlAlchemyUnitOfWork(engine)
@@ -162,8 +176,32 @@ async def lifespan(app: FastAPI) -> AsyncGenerator[None, None]:
     app.state.analytics_service = StubAnalyticsService()
     app.state.review_service = StubReviewService()
     app.state.tax_service = StubTaxService()
-    app.state.market_data_service = StubMarketDataService()
-    app.state.provider_connection_service = StubProviderConnectionService()
+    # MEU-91: shared HTTP client, encryption, rate limiters for all market data services
+    _http_client = HttpxClient()
+    _encryption = FernetEncryptionAdapter()
+    _rate_limiters = {
+        name: RateLimiter(cfg.default_rate_limit)
+        for name, cfg in PROVIDER_REGISTRY.items()
+    }
+    # MEU-91: real MarketDataService — wires real provider fallback chain with Yahoo Finance fallback
+    app.state.market_data_service = MarketDataService(
+        uow=uow,
+        encryption=_encryption,
+        http_client=_http_client,
+        rate_limiters=_rate_limiters,
+        provider_registry=PROVIDER_REGISTRY,
+        quote_normalizers=QUOTE_NORMALIZERS,
+        news_normalizers=NEWS_NORMALIZERS,
+        search_normalizers=SEARCH_NORMALIZERS,
+    )
+    # MEU-65: real ProviderConnectionService — shares same http/encryption/rate_limiters
+    app.state.provider_connection_service = ProviderConnectionService(
+        uow=uow,
+        encryption=_encryption,
+        http_client=_http_client,
+        rate_limiters=_rate_limiters,
+        provider_registry=PROVIDER_REGISTRY,
+    )
     app.state.report_service = ReportService(uow)  # MEU-53
     app.state.watchlist_service = WatchlistService(uow)  # MEU-68
 
@@ -195,6 +233,7 @@ async def lifespan(app: FastAPI) -> AsyncGenerator[None, None]:
         yield
     finally:
         await scheduler_svc.shutdown()
+        await _http_client.aclose()  # MEU-65: close httpx session
         uow.__exit__(None, None, None)  # Close session
         engine.dispose()  # MEU-90a: cleanup engine on shutdown
 

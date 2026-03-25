@@ -78,16 +78,16 @@ The FastAPI lifespan (`main.py`) constructs a `StubUnitOfWork` (in-memory dicts)
 | `StubTaxService` | MEU-148 `tax-api` | [04f §Service Wiring](04f-api-tax.md#service-wiring-meu-148) | MEU-123–126 (core tax engine) | ⬜ Wiring plan added |
 | `StubAnalyticsService` | MEU-118 `expansion-api` | [04e §Service Wiring](04e-api-analytics.md#service-wiring-meu-118) | MEU-104–116 (analytics services) | ⬜ Wiring plan added |
 | `StubReviewService` | MEU-118 `expansion-api` | [04e §Service Wiring](04e-api-analytics.md#service-wiring-meu-118) | MEU-110 (review workflow) | ⬜ Wiring plan added |
-| `StubMarketDataService` | MEU-90b `service-wiring` | [08 §Service Wiring](08-market-data.md#service-wiring-meu-90b) | MEU-60–61 (providers ✅) | ⬜ Wiring plan added |
-| `StubProviderConnectionService` | MEU-90b `service-wiring` | [08 §Service Wiring](08-market-data.md#service-wiring-meu-90b) | MEU-60 (provider mgmt ✅) | ⬜ Wiring plan added |
-| `McpGuardService` | MEU-90b `service-wiring` | [04g](04g-api-system.md) | MEU-38 ✅ | ⬜ Already real — needs move out of `stubs.py` |
+| `StubMarketDataService` | Service-wiring MEU (post-MEU-61) | [08 §Service Wiring](08-market-data.md#service-wiring) | MEU-60–61 (providers ✅); Tier 3: needs EncryptionService + HttpClient + rate limiters | ⬜ Blocked on provider integration |
+| `StubProviderConnectionService` | Service-wiring MEU (post-MEU-60) | [08 §Service Wiring](08-market-data.md#service-wiring) | MEU-60 (provider mgmt ✅); Tier 3: needs wide dependency graph | ⬜ Blocked on provider integration |
+| `McpGuardService` | MEU-90a `persistence-wiring` | [04g](04g-api-system.md) | MEU-38 ✅ | ⬜ Already real — needs move out of `stubs.py` |
 | `AuthService` | — | — | — | ✅ Already real, no action needed |
 
 #### Wiring Complexity by Tier
 
 - **Tier 1 (Light)** — `McpGuardService`: Already functional, just relocate from `stubs.py`
 - **Tier 2 (Medium)** — `StubTaxService`, `StubAnalyticsService`, `StubReviewService`: Need real service implementations first (blocked on domain MEUs)
-- **Tier 3 (Heavy)** — `StubMarketDataService`, `StubProviderConnectionService`: Real services exist but need wide dependency graph: UoW + `EncryptionService` + `HttpClient` + rate limiters + provider registry
+- **Tier 3 (Heavy)** — `StubMarketDataService`, `StubProviderConnectionService`: Real services exist but need wide dependency graph: UoW + `EncryptionService` + `HttpClient` + rate limiters + provider registry. **Retirement deferred to a dedicated service-wiring MEU post provider integration (MEU-60/61).**
 
 ### Stubs to Remove
 
@@ -114,7 +114,7 @@ The FastAPI lifespan (`main.py`) constructs a `StubUnitOfWork` (in-memory dicts)
    - Keep `_InMemoryWatchlistRepo` temporarily
 2. **StubStepStore mapping** — Does `StubStepStore` map to `PipelineStateRepository` or a separate repo?
 3. **SQLCipher vs SQLite** — Tests should use plain SQLite; production uses SQLCipher. How to switch? Config flag? Separate engine factory?
-4. **Market data services** — `StubMarketDataService` and `StubProviderConnectionService` — are the real services (MEU-60, MEU-61) ready to wire in, or do they need additional integration work?
+4. **Market data services** — ~~Open~~. Resolved: Real services (MEU-60, MEU-61) exist but are Tier 3 (Heavy) — require `EncryptionService` + `HttpClient` + rate limiters. Retirement deferred to a dedicated service-wiring MEU post provider integration. MEU-90a scope: Tier 1 only (`McpGuardService` relocation + stub/repo removal).
 
 ## 9A.5 Files to Modify
 

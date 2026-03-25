@@ -78,13 +78,20 @@ export const IMPORT = {
 // ── Calculator ──────────────────────────────────────────────────────────
 
 export const CALCULATOR = {
-    ROOT: 'calculator-page',
+    ROOT: 'calculator-modal',          // <div data-testid="calculator-modal">
     ACCOUNT_SIZE: 'calc-account-size',
     RISK_PERCENT: 'calc-risk-percent',
     ENTRY_PRICE: 'calc-entry-price',
     STOP_PRICE: 'calc-stop-price',
-    RESULT_SHARES: 'calc-result-shares',
-    RESULT_DOLLAR_RISK: 'calc-result-dollar-risk',
+    TARGET_PRICE: 'calc-target-price',
+    RESULT_SHARES: 'calc-shares-output',      // actual testid in component
+    RESULT_DOLLAR_RISK: 'calc-dollar-risk-output',  // actual testid in component
+    RESULT_RR: 'calc-rr-output',
+    RESULT_POSITION_VALUE: 'calc-position-value-output',
+    OVERSIZE_WARNING: 'calc-oversize-warning',
+    COPY_SHARES_BTN: 'calc-copy-shares-btn',
+    RESET_BTN: 'calc-reset-btn',
+    CLOSE_BTN: 'close-calculator',
 } as const
 
 // ── Common ──────────────────────────────────────────────────────────────
@@ -105,3 +112,23 @@ export const FINANCIAL = {
     PNL_VALUE: 'pnl-value',
     ACCOUNT_EQUITY: 'account-equity',
 } as const
+
+// ── Market Data Providers (MEU-65) ───────────────────────────────────────────
+
+export const MARKET_DATA_PROVIDERS = {
+    ROOT: 'market-data-providers',
+    PROVIDER_LIST: 'provider-list',
+    PROVIDER_ITEM: 'provider-item',
+    PROVIDER_DETAIL: 'provider-detail',
+    PROVIDER_SAVE_BTN: 'provider-save-btn',
+    PROVIDER_TEST_BTN: 'provider-test-btn',
+    PROVIDER_TEST_ALL_BTN: 'provider-test-all-btn',
+    PROVIDER_REMOVE_KEY_BTN: 'provider-remove-key-btn',
+    PROVIDER_API_KEY_INPUT: 'provider-api-key-input',
+    PROVIDER_API_SECRET_INPUT: 'provider-api-secret-input',
+    PROVIDER_RATE_LIMIT_INPUT: 'provider-rate-limit-input',
+    PROVIDER_TIMEOUT_INPUT: 'provider-timeout-input',
+    PROVIDER_ENABLE_TOGGLE: 'provider-enable-toggle',
+    PROVIDER_GET_API_KEY_BTN: 'provider-get-api-key-btn',
+} as const
+

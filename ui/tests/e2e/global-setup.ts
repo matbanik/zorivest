@@ -61,6 +61,12 @@ export default async function globalSetup(): Promise<void> {
         ],
         {
             cwd: process.env.ZORIVEST_ROOT || process.cwd().replace(/[\\/]ui$/, ''),
+            env: {
+                ...process.env,
+                // Unlock the DB guard so E2E tests can access guarded endpoints
+                // (MCP Guard lock/unlock is independent of this env var)
+                ZORIVEST_DEV_UNLOCK: '1',
+            },
             stdio: ['ignore', 'pipe', 'pipe'],
             shell: true,
         },

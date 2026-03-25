@@ -133,6 +133,8 @@ class TradePlanModel(Base):
     account_id = Column(String, ForeignKey("accounts.account_id"), nullable=True)
     created_at = Column(DateTime, nullable=False)
     updated_at = Column(DateTime, nullable=True)
+    executed_at = Column(DateTime, nullable=True)  # T5: timestamp when → executed
+    cancelled_at = Column(DateTime, nullable=True)  # T5: timestamp when → cancelled
 
 
 class WatchlistModel(Base):
