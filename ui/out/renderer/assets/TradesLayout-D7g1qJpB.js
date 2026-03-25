@@ -1,4 +1,4 @@
-import { r as reactExports, j as jsxRuntimeExports, R as React, c as compilerRuntimeExports, u as useQueryClient, a as useStatusBar, b as useQuery, d as apiFetch } from "./index-BZpIS9tl.js";
+import { r as reactExports, c as compilerRuntimeExports, j as jsxRuntimeExports, R as React, u as useQueryClient, a as useStatusBar, b as useQuery, d as apiFetch } from "./index-BOpkIIp5.js";
 function createColumnHelper() {
   return {
     accessor: (accessor, column) => {
@@ -2796,15 +2796,83 @@ function useReactTable(options) {
   }));
   return tableRef.current;
 }
+const BADGE_STYLES = {
+  broker: {
+    bg: "bg-blue-500/20",
+    text: "text-blue-400",
+    label: "Broker"
+  },
+  bank: {
+    bg: "bg-green-500/20",
+    text: "text-green-400",
+    label: "Bank"
+  },
+  revolving: {
+    bg: "bg-orange-500/20",
+    text: "text-orange-400",
+    label: "Revolving"
+  },
+  installment: {
+    bg: "bg-purple-500/20",
+    text: "text-purple-400",
+    label: "Installment"
+  },
+  ira: {
+    bg: "bg-yellow-500/20",
+    text: "text-yellow-400",
+    label: "IRA"
+  },
+  "401k": {
+    bg: "bg-teal-500/20",
+    text: "text-teal-400",
+    label: "401k"
+  }
+};
+function AccountTypeBadge(t0) {
+  const $ = compilerRuntimeExports.c(5);
+  const {
+    accountType
+  } = t0;
+  let t1;
+  if ($[0] !== accountType) {
+    t1 = BADGE_STYLES[accountType.toLowerCase()] ?? {
+      bg: "bg-gray-500/20",
+      text: "text-gray-400",
+      label: accountType
+    };
+    $[0] = accountType;
+    $[1] = t1;
+  } else {
+    t1 = $[1];
+  }
+  const style = t1;
+  const t2 = `inline-flex items-center px-1.5 py-0.5 rounded text-xs font-medium ${style.bg} ${style.text}`;
+  let t3;
+  if ($[2] !== style.label || $[3] !== t2) {
+    t3 = /* @__PURE__ */ jsxRuntimeExports.jsx("span", { "data-testid": "account-type-badge", className: t2, children: style.label });
+    $[2] = style.label;
+    $[3] = t2;
+    $[4] = t3;
+  } else {
+    t3 = $[4];
+  }
+  return t3;
+}
+const getAlignClass = (meta) => meta?.align === "right" ? "text-right" : "text-left";
 const col = createColumnHelper();
-const tradeColumns = [col.accessor("created_at", {
+const tradeColumns = [col.accessor("time", {
   header: "Time",
   cell: (info) => {
     try {
-      return new Date(info.getValue()).toLocaleTimeString([], {
-        hour: "2-digit",
+      const d = new Date(info.getValue());
+      const mm = String(d.getMonth() + 1).padStart(2, "0");
+      const dd = String(d.getDate()).padStart(2, "0");
+      const yyyy = d.getFullYear();
+      const time = d.toLocaleTimeString([], {
+        hour: "numeric",
         minute: "2-digit"
       });
+      return `${mm}/${dd}/${yyyy} ${time}`;
     } catch {
       return "—";
     }
@@ -2821,13 +2889,19 @@ const tradeColumns = [col.accessor("created_at", {
   }
 }), col.accessor("quantity", {
   header: "Qty",
-  cell: (info) => info.getValue().toLocaleString(),
+  cell: (info) => {
+    const val = info.getValue();
+    return val != null ? Number(val).toLocaleString() : "—";
+  },
   meta: {
     align: "right"
   }
 }), col.accessor("price", {
   header: "Price",
-  cell: (info) => info.getValue().toFixed(2),
+  cell: (info) => {
+    const val = info.getValue();
+    return val != null ? Number(val).toFixed(2) : "—";
+  },
   meta: {
     align: "right"
   }
@@ -2835,11 +2909,18 @@ const tradeColumns = [col.accessor("created_at", {
   header: "Account",
   cell: (info) => {
     const val = info.getValue();
-    return /* @__PURE__ */ jsxRuntimeExports.jsx("span", { title: val, children: val.length > 5 ? `${val.slice(0, 5)}…` : val });
+    const accountType = info.row.original.account_type;
+    return /* @__PURE__ */ jsxRuntimeExports.jsxs("span", { className: "inline-flex items-center gap-1.5", title: val, children: [
+      accountType && /* @__PURE__ */ jsxRuntimeExports.jsx(AccountTypeBadge, { accountType }),
+      val.length > 15 ? `${val.slice(0, 15)}…` : val
+    ] });
   }
 }), col.accessor("commission", {
   header: "Comm",
-  cell: (info) => info.getValue().toFixed(2),
+  cell: (info) => {
+    const val = info.getValue();
+    return val != null ? Number(val).toFixed(2) : "—";
+  },
   meta: {
     align: "right"
   }
@@ -2866,7 +2947,7 @@ function TradesTable({
   data,
   selectedId,
   onSelectTrade,
-  pageSize = 50
+  pageSize = 25
 }) {
   const [sorting, setSorting] = reactExports.useState([]);
   const table = useReactTable({
@@ -2887,7 +2968,7 @@ function TradesTable({
   });
   return /* @__PURE__ */ jsxRuntimeExports.jsxs("div", { "data-testid": "trade-list", className: "flex flex-col h-full", children: [
     /* @__PURE__ */ jsxRuntimeExports.jsx("div", { className: "flex-1 overflow-auto", children: /* @__PURE__ */ jsxRuntimeExports.jsxs("table", { className: "w-full text-sm", children: [
-      /* @__PURE__ */ jsxRuntimeExports.jsx("thead", { className: "sticky top-0 bg-bg border-b border-bg-subtle", children: table.getHeaderGroups().map((hg) => /* @__PURE__ */ jsxRuntimeExports.jsx("tr", { children: hg.headers.map((header) => /* @__PURE__ */ jsxRuntimeExports.jsxs("th", { className: "px-3 py-2 text-left text-fg-muted font-medium cursor-pointer select-none", onClick: header.column.getToggleSortingHandler(), style: {
+      /* @__PURE__ */ jsxRuntimeExports.jsx("thead", { className: "sticky top-0 bg-bg border-b border-bg-subtle", children: table.getHeaderGroups().map((hg) => /* @__PURE__ */ jsxRuntimeExports.jsx("tr", { children: hg.headers.map((header) => /* @__PURE__ */ jsxRuntimeExports.jsxs("th", { className: `px-3 py-2 font-medium cursor-pointer select-none text-fg-muted ${getAlignClass(header.column.columnDef.meta)}`, onClick: header.column.getToggleSortingHandler(), style: {
         width: header.getSize()
       }, children: [
         flexRender(header.column.columnDef.header, header.getContext()),
@@ -2897,14 +2978,17 @@ function TradesTable({
         }[header.column.getIsSorted()] ?? ""
       ] }, header.id)) }, hg.id)) }),
       /* @__PURE__ */ jsxRuntimeExports.jsx("tbody", { children: table.getRowModel().rows.map((row) => /* @__PURE__ */ jsxRuntimeExports.jsx("tr", { "data-testid": "trade-row", onClick: () => onSelectTrade?.(row.original), className: `cursor-pointer border-b border-bg-subtle transition-colors
-                                    ${row.original.exec_id === selectedId ? "bg-accent/10 text-fg" : "hover:bg-bg-elevated text-fg"}`, children: row.getVisibleCells().map((cell) => /* @__PURE__ */ jsxRuntimeExports.jsx("td", { className: `px-3 py-2 ${cell.column.columnDef.meta?.align === "right" ? "text-right" : ""}`, children: flexRender(cell.column.columnDef.cell, cell.getContext()) }, cell.id)) }, row.id)) })
+                                    ${row.original.exec_id === selectedId ? "bg-accent/10 text-fg" : "hover:bg-bg-elevated text-fg"}`, children: row.getVisibleCells().map((cell) => /* @__PURE__ */ jsxRuntimeExports.jsx("td", { className: `px-3 py-2 ${getAlignClass(cell.column.columnDef.meta)}`, children: flexRender(cell.column.columnDef.cell, cell.getContext()) }, cell.id)) }, row.id)) })
     ] }) }),
     /* @__PURE__ */ jsxRuntimeExports.jsxs("div", { className: "flex items-center justify-between px-3 py-2 border-t border-bg-subtle text-sm text-fg-muted", children: [
       /* @__PURE__ */ jsxRuntimeExports.jsxs("span", { children: [
         "Page ",
         table.getState().pagination.pageIndex + 1,
         " of ",
-        table.getPageCount()
+        table.getPageCount(),
+        " (",
+        data.length,
+        " trades)"
       ] }),
       /* @__PURE__ */ jsxRuntimeExports.jsxs("div", { className: "flex gap-2", children: [
         /* @__PURE__ */ jsxRuntimeExports.jsx("button", { onClick: () => table.previousPage(), disabled: !table.getCanPreviousPage(), className: "px-2 py-1 rounded bg-bg-elevated disabled:opacity-30", children: "Prev" }),
@@ -8313,8 +8397,28 @@ function ScreenshotPanel(t0) {
   return t12;
 }
 const EMOTIONAL_STATES = ["Calm", "Confident", "Anxious", "FOMO", "Frustrated", "Euphoric", "Revenge", "Indifferent"];
+const GRADE_TO_STAR = {
+  A: 5,
+  B: 4,
+  C: 3,
+  D: 2,
+  F: 1
+};
+const STAR_TO_GRADE = {
+  5: "A",
+  4: "B",
+  3: "C",
+  2: "D",
+  1: "F"
+};
+function gradeToStar(grade) {
+  return GRADE_TO_STAR[grade] ?? 3;
+}
+function starToGrade(star) {
+  return STAR_TO_GRADE[star] ?? "C";
+}
 function StarRating(t0) {
-  const $ = compilerRuntimeExports.c(9);
+  const $ = compilerRuntimeExports.c(15);
   const {
     value,
     onChange,
@@ -8329,37 +8433,62 @@ function StarRating(t0) {
     t1 = $[1];
   }
   let t2;
-  if ($[2] === /* @__PURE__ */ Symbol.for("react.memo_cache_sentinel")) {
-    t2 = [1, 2, 3, 4, 5];
-    $[2] = t2;
+  if ($[2] !== label) {
+    let t32;
+    if ($[4] === /* @__PURE__ */ Symbol.for("react.memo_cache_sentinel")) {
+      t32 = /\s+/g;
+      $[4] = t32;
+    } else {
+      t32 = $[4];
+    }
+    t2 = label.toLowerCase().replace(t32, "-");
+    $[2] = label;
+    $[3] = t2;
   } else {
-    t2 = $[2];
+    t2 = $[3];
   }
-  let t3;
-  if ($[3] !== onChange || $[4] !== value) {
-    t3 = /* @__PURE__ */ jsxRuntimeExports.jsx("div", { className: "flex gap-1", children: t2.map((star) => /* @__PURE__ */ jsxRuntimeExports.jsx("button", { type: "button", onClick: () => onChange(star), className: `text-lg transition-colors ${star <= value ? "text-yellow-400" : "text-fg-muted/30"}`, "aria-label": `${star} star${star > 1 ? "s" : ""}`, children: "★" }, star)) });
-    $[3] = onChange;
-    $[4] = value;
-    $[5] = t3;
-  } else {
-    t3 = $[5];
-  }
+  const t3 = `star-rating-${t2}`;
   let t4;
-  if ($[6] !== t1 || $[7] !== t3) {
-    t4 = /* @__PURE__ */ jsxRuntimeExports.jsxs("div", { children: [
-      t1,
-      t3
-    ] });
-    $[6] = t1;
-    $[7] = t3;
-    $[8] = t4;
+  if ($[5] === /* @__PURE__ */ Symbol.for("react.memo_cache_sentinel")) {
+    t4 = [1, 2, 3, 4, 5];
+    $[5] = t4;
   } else {
-    t4 = $[8];
+    t4 = $[5];
   }
-  return t4;
+  let t5;
+  if ($[6] !== onChange || $[7] !== value) {
+    t5 = t4.map((n2) => /* @__PURE__ */ jsxRuntimeExports.jsx("button", { type: "button", onClick: () => onChange(n2), className: `text-lg cursor-pointer ${n2 <= value ? "text-yellow-400" : "text-fg-muted/30"}`, "aria-label": `${n2} star${n2 > 1 ? "s" : ""}`, children: "★" }, n2));
+    $[6] = onChange;
+    $[7] = value;
+    $[8] = t5;
+  } else {
+    t5 = $[8];
+  }
+  let t6;
+  if ($[9] !== t3 || $[10] !== t5) {
+    t6 = /* @__PURE__ */ jsxRuntimeExports.jsx("div", { className: "flex gap-1", "data-testid": t3, children: t5 });
+    $[9] = t3;
+    $[10] = t5;
+    $[11] = t6;
+  } else {
+    t6 = $[11];
+  }
+  let t7;
+  if ($[12] !== t1 || $[13] !== t6) {
+    t7 = /* @__PURE__ */ jsxRuntimeExports.jsxs("div", { children: [
+      t1,
+      t6
+    ] });
+    $[12] = t1;
+    $[13] = t6;
+    $[14] = t7;
+  } else {
+    t7 = $[14];
+  }
+  return t7;
 }
 function TagChipInput(t0) {
-  const $ = compilerRuntimeExports.c(24);
+  const $ = compilerRuntimeExports.c(29);
   const {
     tags,
     onChange
@@ -8368,9 +8497,9 @@ function TagChipInput(t0) {
   let t1;
   if ($[0] !== input || $[1] !== onChange || $[2] !== tags) {
     t1 = () => {
-      const tag = input.trim();
-      if (tag && !tags.includes(tag)) {
-        onChange([...tags, tag]);
+      const trimmed = input.trim();
+      if (trimmed && !tags.includes(trimmed)) {
+        onChange([...tags, trimmed]);
       }
       setInput("");
     };
@@ -8384,8 +8513,8 @@ function TagChipInput(t0) {
   const addTag = t1;
   let t2;
   if ($[4] !== onChange || $[5] !== tags) {
-    t2 = (tag_0) => {
-      onChange(tags.filter((t10) => t10 !== tag_0));
+    t2 = (tag) => {
+      onChange(tags.filter((t11) => t11 !== tag));
     };
     $[4] = onChange;
     $[5] = tags;
@@ -8405,10 +8534,10 @@ function TagChipInput(t0) {
   if ($[8] !== removeTag || $[9] !== tags) {
     let t52;
     if ($[11] !== removeTag) {
-      t52 = (tag_1) => /* @__PURE__ */ jsxRuntimeExports.jsxs("span", { className: "inline-flex items-center gap-1 px-2 py-0.5 rounded-full text-xs bg-accent/20 text-accent", children: [
-        tag_1,
-        /* @__PURE__ */ jsxRuntimeExports.jsx("button", { type: "button", onClick: () => removeTag(tag_1), className: "hover:text-fg", children: "×" })
-      ] }, tag_1);
+      t52 = (tag_0) => /* @__PURE__ */ jsxRuntimeExports.jsxs("span", { className: "inline-flex items-center gap-1 px-2 py-0.5 rounded-full text-xs bg-bg-elevated text-fg", children: [
+        tag_0,
+        /* @__PURE__ */ jsxRuntimeExports.jsx("button", { type: "button", onClick: () => removeTag(tag_0), className: "text-fg-muted hover:text-fg cursor-pointer", children: "×" })
+      ] }, tag_0);
       $[11] = removeTag;
       $[12] = t52;
     } else {
@@ -8423,271 +8552,202 @@ function TagChipInput(t0) {
   }
   let t5;
   if ($[13] !== t4) {
-    t5 = /* @__PURE__ */ jsxRuntimeExports.jsx("div", { className: "flex flex-wrap gap-1 mb-2", children: t4 });
+    t5 = /* @__PURE__ */ jsxRuntimeExports.jsx("div", { className: "flex flex-wrap gap-1 mb-2", "data-testid": "trade-tags", children: t4 });
     $[13] = t4;
     $[14] = t5;
   } else {
     t5 = $[14];
   }
   let t6;
-  if ($[15] === /* @__PURE__ */ Symbol.for("react.memo_cache_sentinel")) {
-    t6 = (e) => setInput(e.target.value);
-    $[15] = t6;
+  if ($[15] !== onChange || $[16] !== tags) {
+    t6 = (e) => {
+      const val = e.target.value;
+      if (val.includes(",")) {
+        const parts = val.split(",").map(_temp).filter(Boolean);
+        const newTags = parts.filter((p) => !tags.includes(p));
+        if (newTags.length) {
+          onChange([...tags, ...newTags]);
+        }
+        setInput("");
+      } else {
+        setInput(val);
+      }
+    };
+    $[15] = onChange;
+    $[16] = tags;
+    $[17] = t6;
   } else {
-    t6 = $[15];
+    t6 = $[17];
   }
   let t7;
-  if ($[16] !== addTag) {
+  let t8;
+  if ($[18] !== addTag) {
     t7 = (e_0) => {
       if (e_0.key === "Enter") {
         e_0.preventDefault();
         addTag();
       }
     };
-    $[16] = addTag;
-    $[17] = t7;
-  } else {
-    t7 = $[17];
-  }
-  let t8;
-  if ($[18] !== input || $[19] !== t7) {
-    t8 = /* @__PURE__ */ jsxRuntimeExports.jsx("input", { value: input, onChange: t6, onKeyDown: t7, placeholder: "Add tag…", className: "w-full px-3 py-1.5 text-sm rounded-md bg-bg border border-bg-subtle text-fg", "data-testid": "trade-tag-input" });
-    $[18] = input;
+    t8 = () => addTag();
+    $[18] = addTag;
     $[19] = t7;
     $[20] = t8;
   } else {
+    t7 = $[19];
     t8 = $[20];
   }
   let t9;
-  if ($[21] !== t5 || $[22] !== t8) {
-    t9 = /* @__PURE__ */ jsxRuntimeExports.jsxs("div", { children: [
-      t3,
-      t5,
-      t8
-    ] });
-    $[21] = t5;
-    $[22] = t8;
-    $[23] = t9;
+  if ($[21] !== input || $[22] !== t6 || $[23] !== t7 || $[24] !== t8) {
+    t9 = /* @__PURE__ */ jsxRuntimeExports.jsx("input", { value: input, onChange: t6, onKeyDown: t7, onBlur: t8, placeholder: "Add tag (Enter or comma)...", className: "w-full px-3 py-1.5 text-sm rounded-md bg-bg border border-bg-subtle text-fg", "data-testid": "trade-tag-input" });
+    $[21] = input;
+    $[22] = t6;
+    $[23] = t7;
+    $[24] = t8;
+    $[25] = t9;
   } else {
-    t9 = $[23];
-  }
-  return t9;
-}
-function TradeReportForm(t0) {
-  const $ = compilerRuntimeExports.c(38);
-  const {
-    onSave
-  } = t0;
-  let t1;
-  if ($[0] === /* @__PURE__ */ Symbol.for("react.memo_cache_sentinel")) {
-    t1 = {
-      setupQuality: 0,
-      executionQuality: 0,
-      followedPlan: "yes",
-      emotionalState: "Calm",
-      lessons: "",
-      tags: []
-    };
-    $[0] = t1;
-  } else {
-    t1 = $[0];
-  }
-  const [report, setReport] = reactExports.useState(t1);
-  let t2;
-  if ($[1] === /* @__PURE__ */ Symbol.for("react.memo_cache_sentinel")) {
-    t2 = (key, value) => {
-      setReport((prev) => ({
-        ...prev,
-        [key]: value
-      }));
-    };
-    $[1] = t2;
-  } else {
-    t2 = $[1];
-  }
-  const update = t2;
-  let t3;
-  if ($[2] === /* @__PURE__ */ Symbol.for("react.memo_cache_sentinel")) {
-    t3 = (n2) => update("setupQuality", n2);
-    $[2] = t3;
-  } else {
-    t3 = $[2];
-  }
-  let t4;
-  if ($[3] !== report.setupQuality) {
-    t4 = /* @__PURE__ */ jsxRuntimeExports.jsx(StarRating, { label: "Setup Quality", value: report.setupQuality, onChange: t3 });
-    $[3] = report.setupQuality;
-    $[4] = t4;
-  } else {
-    t4 = $[4];
-  }
-  let t5;
-  if ($[5] === /* @__PURE__ */ Symbol.for("react.memo_cache_sentinel")) {
-    t5 = (n_0) => update("executionQuality", n_0);
-    $[5] = t5;
-  } else {
-    t5 = $[5];
-  }
-  let t6;
-  if ($[6] !== report.executionQuality) {
-    t6 = /* @__PURE__ */ jsxRuntimeExports.jsx(StarRating, { label: "Execution Quality", value: report.executionQuality, onChange: t5 });
-    $[6] = report.executionQuality;
-    $[7] = t6;
-  } else {
-    t6 = $[7];
-  }
-  let t7;
-  if ($[8] === /* @__PURE__ */ Symbol.for("react.memo_cache_sentinel")) {
-    t7 = /* @__PURE__ */ jsxRuntimeExports.jsx("label", { className: "block text-xs text-fg-muted mb-1", children: "Followed Plan" });
-    $[8] = t7;
-  } else {
-    t7 = $[8];
-  }
-  let t8;
-  if ($[9] === /* @__PURE__ */ Symbol.for("react.memo_cache_sentinel")) {
-    t8 = (e) => update("followedPlan", e.target.value);
-    $[9] = t8;
-  } else {
-    t8 = $[9];
+    t9 = $[25];
   }
   let t10;
-  let t11;
-  let t9;
-  if ($[10] === /* @__PURE__ */ Symbol.for("react.memo_cache_sentinel")) {
-    t9 = /* @__PURE__ */ jsxRuntimeExports.jsx("option", { value: "yes", children: "Yes" });
-    t10 = /* @__PURE__ */ jsxRuntimeExports.jsx("option", { value: "no", children: "No" });
-    t11 = /* @__PURE__ */ jsxRuntimeExports.jsx("option", { value: "partial", children: "Partial" });
-    $[10] = t10;
-    $[11] = t11;
-    $[12] = t9;
-  } else {
-    t10 = $[10];
-    t11 = $[11];
-    t9 = $[12];
-  }
-  let t12;
-  if ($[13] !== report.followedPlan) {
-    t12 = /* @__PURE__ */ jsxRuntimeExports.jsxs("div", { children: [
-      t7,
-      /* @__PURE__ */ jsxRuntimeExports.jsxs("select", { value: report.followedPlan, onChange: t8, className: "w-full px-3 py-1.5 text-sm rounded-md bg-bg border border-bg-subtle text-fg", "data-testid": "trade-followed-plan", children: [
-        t9,
-        t10,
-        t11
-      ] })
+  if ($[26] !== t5 || $[27] !== t9) {
+    t10 = /* @__PURE__ */ jsxRuntimeExports.jsxs("div", { children: [
+      t3,
+      t5,
+      t9
     ] });
-    $[13] = report.followedPlan;
-    $[14] = t12;
+    $[26] = t5;
+    $[27] = t9;
+    $[28] = t10;
   } else {
-    t12 = $[14];
+    t10 = $[28];
   }
-  let t13;
-  if ($[15] === /* @__PURE__ */ Symbol.for("react.memo_cache_sentinel")) {
-    t13 = /* @__PURE__ */ jsxRuntimeExports.jsx("label", { className: "block text-xs text-fg-muted mb-1", children: "Emotional State" });
-    $[15] = t13;
-  } else {
-    t13 = $[15];
-  }
-  const t14 = report.emotionalState;
-  let t15;
-  if ($[16] === /* @__PURE__ */ Symbol.for("react.memo_cache_sentinel")) {
-    t15 = (e_0) => update("emotionalState", e_0.target.value);
-    $[16] = t15;
-  } else {
-    t15 = $[16];
-  }
-  let t16;
-  if ($[17] === /* @__PURE__ */ Symbol.for("react.memo_cache_sentinel")) {
-    t16 = EMOTIONAL_STATES.map(_temp$1);
-    $[17] = t16;
-  } else {
-    t16 = $[17];
-  }
-  let t17;
-  if ($[18] !== report.emotionalState) {
-    t17 = /* @__PURE__ */ jsxRuntimeExports.jsxs("div", { children: [
-      t13,
-      /* @__PURE__ */ jsxRuntimeExports.jsx("select", { value: t14, onChange: t15, className: "w-full px-3 py-1.5 text-sm rounded-md bg-bg border border-bg-subtle text-fg", "data-testid": "trade-emotional-state", children: t16 })
-    ] });
-    $[18] = report.emotionalState;
-    $[19] = t17;
-  } else {
-    t17 = $[19];
-  }
-  let t18;
-  if ($[20] === /* @__PURE__ */ Symbol.for("react.memo_cache_sentinel")) {
-    t18 = /* @__PURE__ */ jsxRuntimeExports.jsx("label", { className: "block text-xs text-fg-muted mb-1", children: "Lessons Learned" });
-    $[20] = t18;
-  } else {
-    t18 = $[20];
-  }
-  let t19;
-  if ($[21] === /* @__PURE__ */ Symbol.for("react.memo_cache_sentinel")) {
-    t19 = (e_1) => update("lessons", e_1.target.value);
-    $[21] = t19;
-  } else {
-    t19 = $[21];
-  }
-  let t20;
-  if ($[22] !== report.lessons) {
-    t20 = /* @__PURE__ */ jsxRuntimeExports.jsxs("div", { children: [
-      t18,
-      /* @__PURE__ */ jsxRuntimeExports.jsx("textarea", { value: report.lessons, onChange: t19, rows: 4, placeholder: "What did you learn from this trade?", className: "w-full px-3 py-1.5 text-sm rounded-md bg-bg border border-bg-subtle text-fg resize-y", "data-testid": "trade-lessons" })
-    ] });
-    $[22] = report.lessons;
-    $[23] = t20;
-  } else {
-    t20 = $[23];
-  }
-  let t21;
-  if ($[24] === /* @__PURE__ */ Symbol.for("react.memo_cache_sentinel")) {
-    t21 = (tags) => update("tags", tags);
-    $[24] = t21;
-  } else {
-    t21 = $[24];
-  }
-  let t22;
-  if ($[25] !== report.tags) {
-    t22 = /* @__PURE__ */ jsxRuntimeExports.jsx(TagChipInput, { tags: report.tags, onChange: t21 });
-    $[25] = report.tags;
-    $[26] = t22;
-  } else {
-    t22 = $[26];
-  }
-  let t23;
-  if ($[27] !== onSave || $[28] !== report) {
-    t23 = /* @__PURE__ */ jsxRuntimeExports.jsx("button", { type: "button", onClick: () => onSave?.(report), className: "px-4 py-1.5 text-sm rounded-md bg-accent text-accent-fg hover:bg-accent/90", "data-testid": "trade-report-save", children: "Save Journal" });
-    $[27] = onSave;
-    $[28] = report;
-    $[29] = t23;
-  } else {
-    t23 = $[29];
-  }
-  let t24;
-  if ($[30] !== t12 || $[31] !== t17 || $[32] !== t20 || $[33] !== t22 || $[34] !== t23 || $[35] !== t4 || $[36] !== t6) {
-    t24 = /* @__PURE__ */ jsxRuntimeExports.jsxs("div", { className: "space-y-4", "data-testid": "trade-report-form", children: [
-      t4,
-      t6,
-      t12,
-      t17,
-      t20,
-      t22,
-      t23
-    ] });
-    $[30] = t12;
-    $[31] = t17;
-    $[32] = t20;
-    $[33] = t22;
-    $[34] = t23;
-    $[35] = t4;
-    $[36] = t6;
-    $[37] = t24;
-  } else {
-    t24 = $[37];
-  }
-  return t24;
+  return t10;
 }
-function _temp$1(state) {
-  return /* @__PURE__ */ jsxRuntimeExports.jsx("option", { value: state, children: state }, state);
+function _temp(s2) {
+  return s2.trim();
+}
+const EMPTY_REPORT = {
+  setupQuality: 0,
+  executionQuality: 0,
+  followedPlan: true,
+  emotionalState: "Calm",
+  lessons: "",
+  tags: []
+};
+function TradeReportForm({
+  trade,
+  onSave,
+  onClose
+}) {
+  const queryClient = useQueryClient();
+  const {
+    setStatus
+  } = useStatusBar();
+  const isNewTrade = trade.exec_id === "(new)";
+  const {
+    data: existingReport,
+    isLoading
+  } = useQuery({
+    queryKey: ["trade-report", trade.exec_id],
+    queryFn: async () => {
+      if (isNewTrade) return null;
+      try {
+        return await apiFetch(`/api/v1/trades/${trade.exec_id}/report`);
+      } catch {
+        return null;
+      }
+    },
+    enabled: !isNewTrade
+  });
+  const [report, setReport] = reactExports.useState(EMPTY_REPORT);
+  const [isExisting, setIsExisting] = reactExports.useState(false);
+  reactExports.useEffect(() => {
+    if (existingReport) {
+      setReport({
+        setupQuality: gradeToStar(existingReport.setup_quality),
+        executionQuality: gradeToStar(existingReport.execution_quality),
+        followedPlan: existingReport.followed_plan,
+        emotionalState: existingReport.emotional_state,
+        lessons: existingReport.lessons_learned,
+        tags: existingReport.tags
+      });
+      setIsExisting(true);
+    } else {
+      setReport(EMPTY_REPORT);
+      setIsExisting(false);
+    }
+  }, [existingReport]);
+  const update = (key, value) => {
+    setReport((prev) => ({
+      ...prev,
+      [key]: value
+    }));
+  };
+  const handleSave = reactExports.useCallback(async () => {
+    if (isNewTrade) return;
+    const payload = {
+      setup_quality: starToGrade(report.setupQuality),
+      execution_quality: starToGrade(report.executionQuality),
+      followed_plan: report.followedPlan,
+      emotional_state: report.emotionalState,
+      lessons_learned: report.lessons,
+      tags: report.tags
+    };
+    try {
+      if (isExisting) {
+        setStatus("Updating journal...");
+        await apiFetch(`/api/v1/trades/${trade.exec_id}/report`, {
+          method: "PUT",
+          headers: {
+            "Content-Type": "application/json"
+          },
+          body: JSON.stringify(payload)
+        });
+      } else {
+        setStatus("Saving journal...");
+        await apiFetch(`/api/v1/trades/${trade.exec_id}/report`, {
+          method: "POST",
+          headers: {
+            "Content-Type": "application/json"
+          },
+          body: JSON.stringify(payload)
+        });
+      }
+      setStatus("Journal saved");
+      await queryClient.invalidateQueries({
+        queryKey: ["trade-report", trade.exec_id]
+      });
+      onSave?.(report);
+    } catch (err) {
+      setStatus(`Error: ${err instanceof Error ? err.message : "Failed to save journal"}`);
+    }
+  }, [report, isExisting, isNewTrade, trade.exec_id, queryClient, setStatus, onSave]);
+  if (isLoading) {
+    return /* @__PURE__ */ jsxRuntimeExports.jsx("div", { className: "p-4 text-sm text-fg-muted", "data-testid": "trade-report-loading", children: "Loading journal..." });
+  }
+  return /* @__PURE__ */ jsxRuntimeExports.jsxs("div", { className: "space-y-4", "data-testid": "trade-report-form", children: [
+    /* @__PURE__ */ jsxRuntimeExports.jsx(StarRating, { label: "Setup Quality", value: report.setupQuality, onChange: (n2) => update("setupQuality", n2) }),
+    /* @__PURE__ */ jsxRuntimeExports.jsx(StarRating, { label: "Execution Quality", value: report.executionQuality, onChange: (n_0) => update("executionQuality", n_0) }),
+    /* @__PURE__ */ jsxRuntimeExports.jsxs("div", { children: [
+      /* @__PURE__ */ jsxRuntimeExports.jsx("label", { className: "block text-xs text-fg-muted mb-1", children: "Followed Plan" }),
+      /* @__PURE__ */ jsxRuntimeExports.jsxs("div", { className: "flex gap-2", "data-testid": "trade-followed-plan", children: [
+        /* @__PURE__ */ jsxRuntimeExports.jsx("button", { type: "button", onClick: () => update("followedPlan", true), className: `px-3 py-1 text-sm rounded-md border cursor-pointer ${report.followedPlan ? "bg-green-500/20 text-green-400 border-green-500/40" : "bg-bg text-fg-muted border-bg-subtle"}`, children: "Yes" }),
+        /* @__PURE__ */ jsxRuntimeExports.jsx("button", { type: "button", onClick: () => update("followedPlan", false), className: `px-3 py-1 text-sm rounded-md border cursor-pointer ${!report.followedPlan ? "bg-red-500/20 text-red-400 border-red-500/40" : "bg-bg text-fg-muted border-bg-subtle"}`, children: "No" })
+      ] })
+    ] }),
+    /* @__PURE__ */ jsxRuntimeExports.jsxs("div", { children: [
+      /* @__PURE__ */ jsxRuntimeExports.jsx("label", { className: "block text-xs text-fg-muted mb-1", children: "Emotional State" }),
+      /* @__PURE__ */ jsxRuntimeExports.jsx("select", { value: report.emotionalState, onChange: (e) => update("emotionalState", e.target.value), className: "w-full px-3 py-1.5 text-sm rounded-md bg-bg border border-bg-subtle text-fg", "data-testid": "trade-emotional-state", children: EMOTIONAL_STATES.map((state) => /* @__PURE__ */ jsxRuntimeExports.jsx("option", { value: state, children: state }, state)) })
+    ] }),
+    /* @__PURE__ */ jsxRuntimeExports.jsxs("div", { children: [
+      /* @__PURE__ */ jsxRuntimeExports.jsx("label", { className: "block text-xs text-fg-muted mb-1", children: "Lessons Learned" }),
+      /* @__PURE__ */ jsxRuntimeExports.jsx("textarea", { value: report.lessons, onChange: (e_0) => update("lessons", e_0.target.value), rows: 4, placeholder: "What did you learn from this trade?", className: "w-full px-3 py-1.5 text-sm rounded-md bg-bg border border-bg-subtle text-fg resize-y", "data-testid": "trade-lessons" })
+    ] }),
+    /* @__PURE__ */ jsxRuntimeExports.jsx(TagChipInput, { tags: report.tags, onChange: (tags) => update("tags", tags) }),
+    /* @__PURE__ */ jsxRuntimeExports.jsxs("div", { className: "flex gap-2 pt-2", children: [
+      /* @__PURE__ */ jsxRuntimeExports.jsx("button", { type: "button", onClick: handleSave, disabled: isNewTrade, className: "px-4 py-1.5 text-sm rounded-md bg-accent text-accent-fg hover:bg-accent/90 border border-accent disabled:opacity-50", "data-testid": "trade-report-save", children: "Save Journal" }),
+      /* @__PURE__ */ jsxRuntimeExports.jsx("button", { type: "button", onClick: onClose, className: "px-4 py-1.5 text-sm rounded-md bg-bg text-fg-muted hover:text-fg border border-bg-subtle", children: "Cancel" })
+    ] })
+  ] });
 }
 const tradeSchema = objectType({
   instrument: stringType().min(1, "Instrument is required"),
@@ -8700,7 +8760,7 @@ const tradeSchema = objectType({
   notes: stringType().nullable().default(null)
 });
 function TradeDetailPanel(t0) {
-  const $ = compilerRuntimeExports.c(39);
+  const $ = compilerRuntimeExports.c(41);
   const {
     trade,
     onSave,
@@ -8881,8 +8941,8 @@ function TradeDetailPanel(t0) {
         /* @__PURE__ */ jsxRuntimeExports.jsx("textarea", { ...register("notes"), rows: 3, className: "w-full px-3 py-1.5 text-sm rounded-md bg-bg border border-bg-subtle text-fg resize-y" })
       ] }),
       /* @__PURE__ */ jsxRuntimeExports.jsxs("div", { className: "flex gap-2 pt-2", children: [
-        /* @__PURE__ */ jsxRuntimeExports.jsx("button", { type: "submit", "data-testid": "trade-submit-btn", className: "px-4 py-1.5 text-sm rounded-md bg-accent text-accent-fg hover:bg-accent/90", children: "Save" }),
-        /* @__PURE__ */ jsxRuntimeExports.jsx("button", { type: "button", onClick: () => trade && onDelete?.(trade.exec_id), className: "px-4 py-1.5 text-sm rounded-md bg-red-900/30 text-red-400 hover:bg-red-900/50", children: "Delete" }),
+        /* @__PURE__ */ jsxRuntimeExports.jsx("button", { type: "submit", "data-testid": "trade-submit-btn", className: "px-4 py-1.5 text-sm rounded-md bg-accent text-accent-fg hover:bg-accent/90 border border-accent", children: "Save" }),
+        trade.exec_id !== "(new)" && /* @__PURE__ */ jsxRuntimeExports.jsx("button", { type: "button", onClick: () => trade && onDelete?.(trade.exec_id), className: "px-4 py-1.5 text-sm rounded-md bg-red-900/30 text-red-400 hover:bg-red-900/50 border border-red-900/50", children: "Delete" }),
         /* @__PURE__ */ jsxRuntimeExports.jsx("button", { type: "button", "data-testid": "trade-cancel-btn", onClick: onClose, className: "px-4 py-1.5 text-sm rounded-md bg-bg text-fg-muted hover:text-fg border border-bg-subtle", children: "Cancel" })
       ] })
     ] });
@@ -8899,50 +8959,55 @@ function TradeDetailPanel(t0) {
     t10 = $[24];
   }
   let t11;
-  if ($[25] !== activeTab || $[26] !== trade) {
-    t11 = activeTab === "journal" && /* @__PURE__ */ jsxRuntimeExports.jsx(TradeReportForm, { trade });
+  if ($[25] !== activeTab || $[26] !== onClose || $[27] !== trade) {
+    t11 = activeTab === "journal" && /* @__PURE__ */ jsxRuntimeExports.jsx(TradeReportForm, { trade, onClose });
     $[25] = activeTab;
-    $[26] = trade;
-    $[27] = t11;
+    $[26] = onClose;
+    $[27] = trade;
+    $[28] = t11;
   } else {
-    t11 = $[27];
+    t11 = $[28];
   }
   let t12;
-  if ($[28] !== activeTab || $[29] !== trade.exec_id) {
-    t12 = activeTab === "screenshots" && /* @__PURE__ */ jsxRuntimeExports.jsx(ScreenshotPanel, { tradeId: trade.exec_id });
-    $[28] = activeTab;
-    $[29] = trade.exec_id;
-    $[30] = t12;
+  if ($[29] !== activeTab || $[30] !== onClose || $[31] !== trade.exec_id) {
+    t12 = activeTab === "screenshots" && /* @__PURE__ */ jsxRuntimeExports.jsxs("div", { children: [
+      /* @__PURE__ */ jsxRuntimeExports.jsx(ScreenshotPanel, { tradeId: trade.exec_id }),
+      /* @__PURE__ */ jsxRuntimeExports.jsx("div", { className: "flex gap-2 pt-4", children: /* @__PURE__ */ jsxRuntimeExports.jsx("button", { type: "button", onClick: onClose, className: "px-4 py-1.5 text-sm rounded-md bg-bg text-fg-muted hover:text-fg border border-bg-subtle", children: "Cancel" }) })
+    ] });
+    $[29] = activeTab;
+    $[30] = onClose;
+    $[31] = trade.exec_id;
+    $[32] = t12;
   } else {
-    t12 = $[30];
+    t12 = $[32];
   }
   let t13;
-  if ($[31] !== t10 || $[32] !== t11 || $[33] !== t12) {
+  if ($[33] !== t10 || $[34] !== t11 || $[35] !== t12) {
     t13 = /* @__PURE__ */ jsxRuntimeExports.jsxs("div", { className: "flex-1 overflow-auto p-4", children: [
       t10,
       t11,
       t12
     ] });
-    $[31] = t10;
-    $[32] = t11;
-    $[33] = t12;
-    $[34] = t13;
+    $[33] = t10;
+    $[34] = t11;
+    $[35] = t12;
+    $[36] = t13;
   } else {
-    t13 = $[34];
+    t13 = $[36];
   }
   let t14;
-  if ($[35] !== t13 || $[36] !== t8 || $[37] !== t9) {
+  if ($[37] !== t13 || $[38] !== t8 || $[39] !== t9) {
     t14 = /* @__PURE__ */ jsxRuntimeExports.jsxs("div", { className: "flex flex-col h-full bg-bg-elevated border-l border-bg-subtle", children: [
       t8,
       t9,
       t13
     ] });
-    $[35] = t13;
-    $[36] = t8;
-    $[37] = t9;
-    $[38] = t14;
+    $[37] = t13;
+    $[38] = t8;
+    $[39] = t9;
+    $[40] = t14;
   } else {
-    t14 = $[38];
+    t14 = $[40];
   }
   return t14;
 }
@@ -8957,208 +9022,171 @@ const NEW_TRADE = {
   realized_pnl: null,
   notes: null,
   image_count: 0,
-  created_at: (/* @__PURE__ */ new Date()).toISOString()
+  time: (/* @__PURE__ */ new Date()).toISOString()
 };
 function TradesLayout() {
-  const $ = compilerRuntimeExports.c(28);
   const [selectedTrade, setSelectedTrade] = reactExports.useState(null);
+  const [filterQuery, setFilterQuery] = reactExports.useState("");
+  const [debouncedSearch, setDebouncedSearch] = reactExports.useState("");
+  const [accountFilter, setAccountFilter] = reactExports.useState("");
   const queryClient = useQueryClient();
   const {
     setStatus
   } = useStatusBar();
-  let t0;
-  if ($[0] === /* @__PURE__ */ Symbol.for("react.memo_cache_sentinel")) {
-    t0 = {
-      queryKey: ["trades"],
-      queryFn: _temp
-    };
-    $[0] = t0;
-  } else {
-    t0 = $[0];
-  }
+  const debounceRef = reactExports.useRef(void 0);
+  reactExports.useEffect(() => {
+    debounceRef.current = setTimeout(() => {
+      setDebouncedSearch(filterQuery.trim());
+    }, 300);
+    return () => clearTimeout(debounceRef.current);
+  }, [filterQuery]);
   const {
-    data: t1
-  } = useQuery(t0);
-  let t2;
-  if ($[1] !== t1) {
-    t2 = t1 === void 0 ? [] : t1;
-    $[1] = t1;
-    $[2] = t2;
-  } else {
-    t2 = $[2];
-  }
-  const trades = t2;
-  let t3;
-  if ($[3] === /* @__PURE__ */ Symbol.for("react.memo_cache_sentinel")) {
-    t3 = {
-      queryKey: ["mcp-guard-status"],
-      queryFn: _temp2
-    };
-    $[3] = t3;
-  } else {
-    t3 = $[3];
-  }
+    data: trades = [],
+    refetch,
+    isFetching
+  } = useQuery({
+    queryKey: ["trades", {
+      search: debouncedSearch,
+      account_id: accountFilter
+    }],
+    queryFn: async () => {
+      try {
+        const params = new URLSearchParams({
+          limit: "200",
+          offset: "0"
+        });
+        if (debouncedSearch) params.set("search", debouncedSearch);
+        if (accountFilter) params.set("account_id", accountFilter);
+        const result = await apiFetch(`/api/v1/trades?${params}`);
+        return result.items;
+      } catch {
+        return [];
+      }
+    },
+    refetchInterval: 5e3
+  });
+  const seenAccountsRef = reactExports.useRef(/* @__PURE__ */ new Map());
+  const uniqueAccounts = reactExports.useMemo(() => {
+    for (const t2 of trades) {
+      if (!seenAccountsRef.current.has(t2.account_id)) {
+        seenAccountsRef.current.set(t2.account_id, t2.account_type ?? "");
+      }
+    }
+    return Array.from(seenAccountsRef.current.entries()).map(([id, type]) => ({
+      account_id: id,
+      account_type: type
+    }));
+  }, [trades]);
   const {
     data: guardStatus
-  } = useQuery(t3);
+  } = useQuery({
+    queryKey: ["mcp-guard-status"],
+    queryFn: () => apiFetch("/api/v1/mcp-guard/status")
+  });
   const isGuardLocked = guardStatus?.is_locked ?? false;
-  let t4;
-  if ($[4] === /* @__PURE__ */ Symbol.for("react.memo_cache_sentinel")) {
-    t4 = (trade) => {
-      setSelectedTrade(trade);
-    };
-    $[4] = t4;
-  } else {
-    t4 = $[4];
-  }
-  const handleSelectTrade = t4;
-  let t5;
-  if ($[5] === /* @__PURE__ */ Symbol.for("react.memo_cache_sentinel")) {
-    t5 = () => {
-      setSelectedTrade({
-        ...NEW_TRADE,
-        created_at: (/* @__PURE__ */ new Date()).toISOString()
-      });
-    };
-    $[5] = t5;
-  } else {
-    t5 = $[5];
-  }
-  const handleNewTrade = t5;
-  let t6;
-  if ($[6] === /* @__PURE__ */ Symbol.for("react.memo_cache_sentinel")) {
-    t6 = () => {
-      setSelectedTrade(null);
-    };
-    $[6] = t6;
-  } else {
-    t6 = $[6];
-  }
-  const handleClose = t6;
-  let t7;
-  if ($[7] !== queryClient || $[8] !== selectedTrade || $[9] !== setStatus) {
-    t7 = async (data) => {
-      const isCreate = selectedTrade?.exec_id === "(new)";
-      try {
-        if (isCreate) {
-          setStatus("Creating trade...");
-          await apiFetch("/api/v1/trades", {
-            method: "POST",
-            headers: {
-              "Content-Type": "application/json"
-            },
-            body: JSON.stringify({
-              exec_id: `${Date.now()}`,
-              time: (/* @__PURE__ */ new Date()).toISOString(),
-              ...data
-            })
-          });
-          setStatus("Trade created");
-        } else {
-          setStatus("Saving trade...");
-          await apiFetch(`/api/v1/trades/${selectedTrade.exec_id}`, {
-            method: "PUT",
-            headers: {
-              "Content-Type": "application/json"
-            },
-            body: JSON.stringify(data)
-          });
-          setStatus("Trade saved");
-        }
-        await queryClient.invalidateQueries({
-          queryKey: ["trades"]
-        });
-        setSelectedTrade(null);
-      } catch (t82) {
-        const err = t82;
-        setStatus(`Error: ${err instanceof Error ? err.message : "Failed to save trade"}`);
+  reactExports.useEffect(() => {
+    const handler = (e) => {
+      const {
+        exec_id
+      } = e.detail;
+      const match = trades.find((t_0) => t_0.exec_id === exec_id);
+      if (match) {
+        setSelectedTrade(match);
       }
     };
-    $[7] = queryClient;
-    $[8] = selectedTrade;
-    $[9] = setStatus;
-    $[10] = t7;
-  } else {
-    t7 = $[10];
-  }
-  const handleSaveTrade = t7;
-  const t8 = `flex-1 min-w-0 transition-all ${selectedTrade ? "w-[60%]" : "w-full"}`;
-  let t9;
-  if ($[11] === /* @__PURE__ */ Symbol.for("react.memo_cache_sentinel")) {
-    t9 = /* @__PURE__ */ jsxRuntimeExports.jsx("h2", { className: "text-lg font-semibold text-fg", children: "Trades" });
-    $[11] = t9;
-  } else {
-    t9 = $[11];
-  }
-  const t10 = isGuardLocked ? "Trade creation disabled — MCP Guard is locked" : "Create a new trade";
-  let t11;
-  if ($[12] !== isGuardLocked || $[13] !== t10) {
-    t11 = /* @__PURE__ */ jsxRuntimeExports.jsx("div", { className: "p-4", children: /* @__PURE__ */ jsxRuntimeExports.jsxs("div", { className: "flex items-center justify-between mb-4", children: [
-      t9,
-      /* @__PURE__ */ jsxRuntimeExports.jsx("button", { "data-testid": "add-trade-btn", onClick: handleNewTrade, disabled: isGuardLocked, "aria-disabled": isGuardLocked, title: t10, className: "px-4 py-1.5 text-sm font-medium rounded-md border border-bg-subtle bg-bg hover:bg-bg-elevated text-fg transition-colors cursor-pointer disabled:opacity-50 disabled:cursor-not-allowed", children: "+ New Trade" })
-    ] }) });
-    $[12] = isGuardLocked;
-    $[13] = t10;
-    $[14] = t11;
-  } else {
-    t11 = $[14];
-  }
-  const t12 = selectedTrade?.exec_id;
-  let t13;
-  if ($[15] !== t12 || $[16] !== trades) {
-    t13 = /* @__PURE__ */ jsxRuntimeExports.jsx(TradesTable, { data: trades, selectedId: t12, onSelectTrade: handleSelectTrade });
-    $[15] = t12;
-    $[16] = trades;
-    $[17] = t13;
-  } else {
-    t13 = $[17];
-  }
-  let t14;
-  if ($[18] !== t11 || $[19] !== t13 || $[20] !== t8) {
-    t14 = /* @__PURE__ */ jsxRuntimeExports.jsxs("div", { className: t8, children: [
-      t11,
-      t13
-    ] });
-    $[18] = t11;
-    $[19] = t13;
-    $[20] = t8;
-    $[21] = t14;
-  } else {
-    t14 = $[21];
-  }
-  let t15;
-  if ($[22] !== handleSaveTrade || $[23] !== selectedTrade) {
-    t15 = selectedTrade && /* @__PURE__ */ jsxRuntimeExports.jsx("div", { className: "w-[40%] min-w-[320px] max-w-[500px]", children: /* @__PURE__ */ jsxRuntimeExports.jsx(TradeDetailPanel, { trade: selectedTrade, onSave: handleSaveTrade, onClose: handleClose }, selectedTrade.exec_id) });
-    $[22] = handleSaveTrade;
-    $[23] = selectedTrade;
-    $[24] = t15;
-  } else {
-    t15 = $[24];
-  }
-  let t16;
-  if ($[25] !== t14 || $[26] !== t15) {
-    t16 = /* @__PURE__ */ jsxRuntimeExports.jsxs("div", { "data-testid": "trades-page", className: "flex h-full", children: [
-      t14,
-      t15
-    ] });
-    $[25] = t14;
-    $[26] = t15;
-    $[27] = t16;
-  } else {
-    t16 = $[27];
-  }
-  return t16;
-}
-function _temp2() {
-  return apiFetch("/api/v1/mcp-guard/status");
-}
-async function _temp() {
-  try {
-    const result = await apiFetch("/api/v1/trades?limit=50&offset=0");
-    return result.items;
-  } catch {
-    return [];
-  }
+    window.addEventListener("zorivest:select-trade", handler);
+    return () => window.removeEventListener("zorivest:select-trade", handler);
+  }, [trades]);
+  const handleRefresh = reactExports.useCallback(() => {
+    setStatus("Refreshing trades...");
+    refetch().then(() => setStatus("Trades refreshed"));
+  }, [refetch, setStatus]);
+  const handleSelectTrade = reactExports.useCallback((trade) => {
+    setSelectedTrade(trade);
+  }, []);
+  const handleNewTrade = reactExports.useCallback(() => {
+    setSelectedTrade({
+      ...NEW_TRADE,
+      time: (/* @__PURE__ */ new Date()).toISOString()
+    });
+  }, []);
+  const handleClose = reactExports.useCallback(() => {
+    setSelectedTrade(null);
+  }, []);
+  const handleSaveTrade = reactExports.useCallback(async (data) => {
+    const isCreate = selectedTrade?.exec_id === "(new)";
+    try {
+      if (isCreate) {
+        setStatus("Creating trade...");
+        await apiFetch("/api/v1/trades", {
+          method: "POST",
+          headers: {
+            "Content-Type": "application/json"
+          },
+          body: JSON.stringify({
+            exec_id: `${Date.now()}`,
+            time: (/* @__PURE__ */ new Date()).toISOString(),
+            ...data
+          })
+        });
+        setStatus("Trade created");
+      } else {
+        setStatus("Saving trade...");
+        await apiFetch(`/api/v1/trades/${selectedTrade.exec_id}`, {
+          method: "PUT",
+          headers: {
+            "Content-Type": "application/json"
+          },
+          body: JSON.stringify(data)
+        });
+        setStatus("Trade saved");
+      }
+      await queryClient.invalidateQueries({
+        queryKey: ["trades"]
+      });
+      setSelectedTrade(null);
+    } catch (err) {
+      setStatus(`Error: ${err instanceof Error ? err.message : "Failed to save trade"}`);
+    }
+  }, [selectedTrade, queryClient, setStatus]);
+  const handleDeleteTrade = reactExports.useCallback(async (execId) => {
+    try {
+      setStatus("Deleting trade...");
+      await apiFetch(`/api/v1/trades/${execId}`, {
+        method: "DELETE"
+      });
+      setStatus("Trade deleted");
+      await queryClient.invalidateQueries({
+        queryKey: ["trades"]
+      });
+      setSelectedTrade(null);
+    } catch (err_0) {
+      setStatus(`Error: ${err_0 instanceof Error ? err_0.message : "Failed to delete trade"}`);
+    }
+  }, [queryClient, setStatus]);
+  return /* @__PURE__ */ jsxRuntimeExports.jsxs("div", { "data-testid": "trades-page", className: "flex h-full", children: [
+    /* @__PURE__ */ jsxRuntimeExports.jsxs("div", { className: `flex-1 min-w-0 transition-all ${selectedTrade ? "w-[60%]" : "w-full"}`, children: [
+      /* @__PURE__ */ jsxRuntimeExports.jsx("div", { className: "p-4", children: /* @__PURE__ */ jsxRuntimeExports.jsxs("div", { className: "flex items-center justify-between mb-4", children: [
+        /* @__PURE__ */ jsxRuntimeExports.jsx("h2", { className: "text-lg font-semibold text-fg", children: "Trades" }),
+        /* @__PURE__ */ jsxRuntimeExports.jsxs("div", { className: "flex items-center gap-2", children: [
+          /* @__PURE__ */ jsxRuntimeExports.jsxs("button", { "data-testid": "refresh-trades-btn", onClick: handleRefresh, disabled: isFetching, title: "Refresh trades list", className: "px-3 py-1.5 text-sm font-medium rounded-md border border-bg-subtle bg-bg hover:bg-bg-elevated text-fg transition-colors cursor-pointer disabled:opacity-50 disabled:cursor-not-allowed", children: [
+            isFetching ? "⟳" : "↻",
+            " Refresh"
+          ] }),
+          /* @__PURE__ */ jsxRuntimeExports.jsx("button", { "data-testid": "add-trade-btn", onClick: handleNewTrade, disabled: isGuardLocked, "aria-disabled": isGuardLocked, title: isGuardLocked ? "Trade creation disabled — MCP Guard is locked" : "Create a new trade", className: "px-4 py-1.5 text-sm font-medium rounded-md border border-bg-subtle bg-bg hover:bg-bg-elevated text-fg transition-colors cursor-pointer disabled:opacity-50 disabled:cursor-not-allowed", children: "+ New Trade" })
+        ] })
+      ] }) }),
+      /* @__PURE__ */ jsxRuntimeExports.jsxs("div", { className: "px-4 pb-3 flex gap-2", children: [
+        /* @__PURE__ */ jsxRuntimeExports.jsx("input", { type: "search", placeholder: "Filter by instrument, exec ID, account, or action…", value: filterQuery, onChange: (e_0) => setFilterQuery(e_0.target.value), className: "flex-1 px-3 py-1.5 text-sm rounded-md bg-bg border border-bg-subtle text-fg placeholder:text-fg-muted/50 focus:outline-none focus:border-accent", "data-testid": "trades-filter-input" }),
+        /* @__PURE__ */ jsxRuntimeExports.jsxs("select", { "data-testid": "account-filter-dropdown", value: accountFilter, onChange: (e_1) => setAccountFilter(e_1.target.value), className: "px-3 py-1.5 text-sm rounded-md bg-bg border border-bg-subtle text-fg focus:outline-none focus:border-accent", children: [
+          /* @__PURE__ */ jsxRuntimeExports.jsx("option", { value: "", children: "All Accounts" }),
+          uniqueAccounts.map((acc) => /* @__PURE__ */ jsxRuntimeExports.jsx("option", { value: acc.account_id, children: acc.account_id }, acc.account_id))
+        ] })
+      ] }),
+      /* @__PURE__ */ jsxRuntimeExports.jsx(TradesTable, { data: trades, selectedId: selectedTrade?.exec_id, onSelectTrade: handleSelectTrade })
+    ] }),
+    selectedTrade && /* @__PURE__ */ jsxRuntimeExports.jsx("div", { className: "w-[40%] min-w-[320px] max-w-[500px]", children: /* @__PURE__ */ jsxRuntimeExports.jsx(TradeDetailPanel, { trade: selectedTrade, onSave: handleSaveTrade, onDelete: handleDeleteTrade, onClose: handleClose }, selectedTrade.exec_id) })
+  ] });
 }
 export {
   TradesLayout as default

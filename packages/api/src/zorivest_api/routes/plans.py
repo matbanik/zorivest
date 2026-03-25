@@ -91,7 +91,7 @@ class PlanResponse(BaseModel):
     account_id: Optional[str] = None
     created_at: str
     updated_at: str
-    executed_at: Optional[str] = None   # T5: when status → executed
+    executed_at: Optional[str] = None  # T5: when status → executed
     cancelled_at: Optional[str] = None  # T5: when status → cancelled
 
     model_config = {"from_attributes": True}
@@ -101,7 +101,8 @@ class PlanResponse(BaseModel):
 
 
 @plan_router.post(
-    "", status_code=201,
+    "",
+    status_code=201,
     dependencies=[Depends(require_unlocked_db)],
 )
 async def create_plan(
@@ -213,7 +214,8 @@ async def patch_plan_status(
 
 
 @plan_router.delete(
-    "/{plan_id}", status_code=204,
+    "/{plan_id}",
+    status_code=204,
     dependencies=[Depends(require_unlocked_db)],
 )
 async def delete_plan(
@@ -233,24 +235,28 @@ async def delete_plan(
 def _to_response(plan: object) -> dict:
     """Convert TradePlan entity to response dict."""
     return {
-        "id": plan.id,                                   # type: ignore[attr-defined]
-        "ticker": plan.ticker,                           # type: ignore[attr-defined]
-        "direction": str(plan.direction),                # type: ignore[attr-defined]
-        "conviction": str(plan.conviction),              # type: ignore[attr-defined]
-        "strategy_name": plan.strategy_name,             # type: ignore[attr-defined]
+        "id": plan.id,  # type: ignore[attr-defined]
+        "ticker": plan.ticker,  # type: ignore[attr-defined]
+        "direction": str(plan.direction),  # type: ignore[attr-defined]
+        "conviction": str(plan.conviction),  # type: ignore[attr-defined]
+        "strategy_name": plan.strategy_name,  # type: ignore[attr-defined]
         "strategy_description": plan.strategy_description,  # type: ignore[attr-defined]
-        "entry_price": plan.entry_price,                 # type: ignore[attr-defined]
-        "stop_loss": plan.stop_loss,                     # type: ignore[attr-defined]
-        "target_price": plan.target_price,               # type: ignore[attr-defined]
-        "entry_conditions": plan.entry_conditions,       # type: ignore[attr-defined]
-        "exit_conditions": plan.exit_conditions,         # type: ignore[attr-defined]
-        "timeframe": plan.timeframe,                     # type: ignore[attr-defined]
-        "risk_reward_ratio": plan.risk_reward_ratio,     # type: ignore[attr-defined]
-        "status": str(plan.status),                      # type: ignore[attr-defined]
-        "linked_trade_id": plan.linked_trade_id,         # type: ignore[attr-defined]
-        "account_id": plan.account_id,                   # type: ignore[attr-defined]
+        "entry_price": plan.entry_price,  # type: ignore[attr-defined]
+        "stop_loss": plan.stop_loss,  # type: ignore[attr-defined]
+        "target_price": plan.target_price,  # type: ignore[attr-defined]
+        "entry_conditions": plan.entry_conditions,  # type: ignore[attr-defined]
+        "exit_conditions": plan.exit_conditions,  # type: ignore[attr-defined]
+        "timeframe": plan.timeframe,  # type: ignore[attr-defined]
+        "risk_reward_ratio": plan.risk_reward_ratio,  # type: ignore[attr-defined]
+        "status": str(plan.status),  # type: ignore[attr-defined]
+        "linked_trade_id": plan.linked_trade_id,  # type: ignore[attr-defined]
+        "account_id": plan.account_id,  # type: ignore[attr-defined]
         "created_at": plan.created_at.isoformat() if plan.created_at else "",  # type: ignore[attr-defined]
         "updated_at": plan.updated_at.isoformat() if plan.updated_at else "",  # type: ignore[attr-defined]
-        "executed_at": plan.executed_at.isoformat() if getattr(plan, 'executed_at', None) else None,  # type: ignore[attr-defined]
-        "cancelled_at": plan.cancelled_at.isoformat() if getattr(plan, 'cancelled_at', None) else None,  # type: ignore[attr-defined]
+        "executed_at": plan.executed_at.isoformat()
+        if getattr(plan, "executed_at", None)
+        else None,  # type: ignore[attr-defined]
+        "cancelled_at": plan.cancelled_at.isoformat()
+        if getattr(plan, "cancelled_at", None)
+        else None,  # type: ignore[attr-defined]
     }

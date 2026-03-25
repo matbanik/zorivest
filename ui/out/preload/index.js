@@ -31,3 +31,9 @@ electron.contextBridge.exposeInMainWorld("startupMetrics", {
     electron.ipcRenderer.invoke("log-renderer-ready", Date.now());
   }
 });
+electron.contextBridge.exposeInMainWorld("electron", {
+  /** Open a URL in the system default browser. Only http/https URLs are allowed. */
+  openExternal(url) {
+    electron.ipcRenderer.invoke("open-external", url);
+  }
+});

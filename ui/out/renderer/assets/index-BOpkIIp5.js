@@ -423,8 +423,8 @@ function requireReact_production() {
   react_production.useDeferredValue = function(value, initialValue) {
     return ReactSharedInternals.H.useDeferredValue(value, initialValue);
   };
-  react_production.useEffect = function(create, deps) {
-    return ReactSharedInternals.H.useEffect(create, deps);
+  react_production.useEffect = function(create2, deps) {
+    return ReactSharedInternals.H.useEffect(create2, deps);
   };
   react_production.useEffectEvent = function(callback) {
     return ReactSharedInternals.H.useEffectEvent(callback);
@@ -432,17 +432,17 @@ function requireReact_production() {
   react_production.useId = function() {
     return ReactSharedInternals.H.useId();
   };
-  react_production.useImperativeHandle = function(ref, create, deps) {
-    return ReactSharedInternals.H.useImperativeHandle(ref, create, deps);
+  react_production.useImperativeHandle = function(ref, create2, deps) {
+    return ReactSharedInternals.H.useImperativeHandle(ref, create2, deps);
   };
-  react_production.useInsertionEffect = function(create, deps) {
-    return ReactSharedInternals.H.useInsertionEffect(create, deps);
+  react_production.useInsertionEffect = function(create2, deps) {
+    return ReactSharedInternals.H.useInsertionEffect(create2, deps);
   };
-  react_production.useLayoutEffect = function(create, deps) {
-    return ReactSharedInternals.H.useLayoutEffect(create, deps);
+  react_production.useLayoutEffect = function(create2, deps) {
+    return ReactSharedInternals.H.useLayoutEffect(create2, deps);
   };
-  react_production.useMemo = function(create, deps) {
-    return ReactSharedInternals.H.useMemo(create, deps);
+  react_production.useMemo = function(create2, deps) {
+    return ReactSharedInternals.H.useMemo(create2, deps);
   };
   react_production.useOptimistic = function(passthrough, reducer) {
     return ReactSharedInternals.H.useOptimistic(passthrough, reducer);
@@ -4554,43 +4554,43 @@ function requireReactDomClient_production() {
     currentStateHook.memoizedState = action;
     return [stateHook, dispatch, false];
   }
-  function pushSimpleEffect(tag, inst, create, deps) {
-    tag = { tag, create, deps, inst, next: null };
+  function pushSimpleEffect(tag, inst, create2, deps) {
+    tag = { tag, create: create2, deps, inst, next: null };
     inst = currentlyRenderingFiber.updateQueue;
     null === inst && (inst = createFunctionComponentUpdateQueue(), currentlyRenderingFiber.updateQueue = inst);
-    create = inst.lastEffect;
-    null === create ? inst.lastEffect = tag.next = tag : (deps = create.next, create.next = tag, tag.next = deps, inst.lastEffect = tag);
+    create2 = inst.lastEffect;
+    null === create2 ? inst.lastEffect = tag.next = tag : (deps = create2.next, create2.next = tag, tag.next = deps, inst.lastEffect = tag);
     return tag;
   }
   function updateRef() {
     return updateWorkInProgressHook().memoizedState;
   }
-  function mountEffectImpl(fiberFlags, hookFlags, create, deps) {
+  function mountEffectImpl(fiberFlags, hookFlags, create2, deps) {
     var hook = mountWorkInProgressHook();
     currentlyRenderingFiber.flags |= fiberFlags;
     hook.memoizedState = pushSimpleEffect(
       1 | hookFlags,
       { destroy: void 0 },
-      create,
+      create2,
       void 0 === deps ? null : deps
     );
   }
-  function updateEffectImpl(fiberFlags, hookFlags, create, deps) {
+  function updateEffectImpl(fiberFlags, hookFlags, create2, deps) {
     var hook = updateWorkInProgressHook();
     deps = void 0 === deps ? null : deps;
     var inst = hook.memoizedState.inst;
-    null !== currentHook && null !== deps && areHookInputsEqual(deps, currentHook.memoizedState.deps) ? hook.memoizedState = pushSimpleEffect(hookFlags, inst, create, deps) : (currentlyRenderingFiber.flags |= fiberFlags, hook.memoizedState = pushSimpleEffect(
+    null !== currentHook && null !== deps && areHookInputsEqual(deps, currentHook.memoizedState.deps) ? hook.memoizedState = pushSimpleEffect(hookFlags, inst, create2, deps) : (currentlyRenderingFiber.flags |= fiberFlags, hook.memoizedState = pushSimpleEffect(
       1 | hookFlags,
       inst,
-      create,
+      create2,
       deps
     ));
   }
-  function mountEffect(create, deps) {
-    mountEffectImpl(8390656, 8, create, deps);
+  function mountEffect(create2, deps) {
+    mountEffectImpl(8390656, 8, create2, deps);
   }
-  function updateEffect(create, deps) {
-    updateEffectImpl(2048, 8, create, deps);
+  function updateEffect(create2, deps) {
+    updateEffectImpl(2048, 8, create2, deps);
   }
   function useEffectEventImpl(payload) {
     currentlyRenderingFiber.flags |= 4;
@@ -4610,28 +4610,28 @@ function requireReactDomClient_production() {
       return ref.impl.apply(void 0, arguments);
     };
   }
-  function updateInsertionEffect(create, deps) {
-    return updateEffectImpl(4, 2, create, deps);
+  function updateInsertionEffect(create2, deps) {
+    return updateEffectImpl(4, 2, create2, deps);
   }
-  function updateLayoutEffect(create, deps) {
-    return updateEffectImpl(4, 4, create, deps);
+  function updateLayoutEffect(create2, deps) {
+    return updateEffectImpl(4, 4, create2, deps);
   }
-  function imperativeHandleEffect(create, ref) {
+  function imperativeHandleEffect(create2, ref) {
     if ("function" === typeof ref) {
-      create = create();
-      var refCleanup = ref(create);
+      create2 = create2();
+      var refCleanup = ref(create2);
       return function() {
         "function" === typeof refCleanup ? refCleanup() : ref(null);
       };
     }
     if (null !== ref && void 0 !== ref)
-      return create = create(), ref.current = create, function() {
+      return create2 = create2(), ref.current = create2, function() {
         ref.current = null;
       };
   }
-  function updateImperativeHandle(ref, create, deps) {
+  function updateImperativeHandle(ref, create2, deps) {
     deps = null !== deps && void 0 !== deps ? deps.concat([ref]) : null;
-    updateEffectImpl(4, 4, imperativeHandleEffect.bind(null, create, ref), deps);
+    updateEffectImpl(4, 4, imperativeHandleEffect.bind(null, create2, ref), deps);
   }
   function mountDebugValue() {
   }
@@ -4930,20 +4930,20 @@ function requireReactDomClient_production() {
     },
     useContext: readContext,
     useEffect: mountEffect,
-    useImperativeHandle: function(ref, create, deps) {
+    useImperativeHandle: function(ref, create2, deps) {
       deps = null !== deps && void 0 !== deps ? deps.concat([ref]) : null;
       mountEffectImpl(
         4194308,
         4,
-        imperativeHandleEffect.bind(null, create, ref),
+        imperativeHandleEffect.bind(null, create2, ref),
         deps
       );
     },
-    useLayoutEffect: function(create, deps) {
-      return mountEffectImpl(4194308, 4, create, deps);
+    useLayoutEffect: function(create2, deps) {
+      return mountEffectImpl(4194308, 4, create2, deps);
     },
-    useInsertionEffect: function(create, deps) {
-      mountEffectImpl(4, 2, create, deps);
+    useInsertionEffect: function(create2, deps) {
+      mountEffectImpl(4, 2, create2, deps);
     },
     useMemo: function(nextCreate, deps) {
       var hook = mountWorkInProgressHook();
@@ -6969,8 +6969,8 @@ function requireReactDomClient_production() {
         do {
           if ((updateQueue.tag & flags) === flags) {
             lastEffect = void 0;
-            var create = updateQueue.create, inst = updateQueue.inst;
-            lastEffect = create();
+            var create2 = updateQueue.create, inst = updateQueue.inst;
+            lastEffect = create2();
             inst.destroy = lastEffect;
           }
           updateQueue = updateQueue.next;
@@ -14477,6 +14477,137 @@ var MutationCache = class extends Subscribable {
 function scopeFor(mutation) {
   return mutation.options.scope?.id;
 }
+var MutationObserver = class extends Subscribable {
+  #client;
+  #currentResult = void 0;
+  #currentMutation;
+  #mutateOptions;
+  constructor(client2, options) {
+    super();
+    this.#client = client2;
+    this.setOptions(options);
+    this.bindMethods();
+    this.#updateResult();
+  }
+  bindMethods() {
+    this.mutate = this.mutate.bind(this);
+    this.reset = this.reset.bind(this);
+  }
+  setOptions(options) {
+    const prevOptions = this.options;
+    this.options = this.#client.defaultMutationOptions(options);
+    if (!shallowEqualObjects(this.options, prevOptions)) {
+      this.#client.getMutationCache().notify({
+        type: "observerOptionsUpdated",
+        mutation: this.#currentMutation,
+        observer: this
+      });
+    }
+    if (prevOptions?.mutationKey && this.options.mutationKey && hashKey(prevOptions.mutationKey) !== hashKey(this.options.mutationKey)) {
+      this.reset();
+    } else if (this.#currentMutation?.state.status === "pending") {
+      this.#currentMutation.setOptions(this.options);
+    }
+  }
+  onUnsubscribe() {
+    if (!this.hasListeners()) {
+      this.#currentMutation?.removeObserver(this);
+    }
+  }
+  onMutationUpdate(action) {
+    this.#updateResult();
+    this.#notify(action);
+  }
+  getCurrentResult() {
+    return this.#currentResult;
+  }
+  reset() {
+    this.#currentMutation?.removeObserver(this);
+    this.#currentMutation = void 0;
+    this.#updateResult();
+    this.#notify();
+  }
+  mutate(variables, options) {
+    this.#mutateOptions = options;
+    this.#currentMutation?.removeObserver(this);
+    this.#currentMutation = this.#client.getMutationCache().build(this.#client, this.options);
+    this.#currentMutation.addObserver(this);
+    return this.#currentMutation.execute(variables);
+  }
+  #updateResult() {
+    const state = this.#currentMutation?.state ?? getDefaultState();
+    this.#currentResult = {
+      ...state,
+      isPending: state.status === "pending",
+      isSuccess: state.status === "success",
+      isError: state.status === "error",
+      isIdle: state.status === "idle",
+      mutate: this.mutate,
+      reset: this.reset
+    };
+  }
+  #notify(action) {
+    notifyManager.batch(() => {
+      if (this.#mutateOptions && this.hasListeners()) {
+        const variables = this.#currentResult.variables;
+        const onMutateResult = this.#currentResult.context;
+        const context = {
+          client: this.#client,
+          meta: this.options.meta,
+          mutationKey: this.options.mutationKey
+        };
+        if (action?.type === "success") {
+          try {
+            this.#mutateOptions.onSuccess?.(
+              action.data,
+              variables,
+              onMutateResult,
+              context
+            );
+          } catch (e) {
+            void Promise.reject(e);
+          }
+          try {
+            this.#mutateOptions.onSettled?.(
+              action.data,
+              null,
+              variables,
+              onMutateResult,
+              context
+            );
+          } catch (e) {
+            void Promise.reject(e);
+          }
+        } else if (action?.type === "error") {
+          try {
+            this.#mutateOptions.onError?.(
+              action.error,
+              variables,
+              onMutateResult,
+              context
+            );
+          } catch (e) {
+            void Promise.reject(e);
+          }
+          try {
+            this.#mutateOptions.onSettled?.(
+              void 0,
+              action.error,
+              variables,
+              onMutateResult,
+              context
+            );
+          } catch (e) {
+            void Promise.reject(e);
+          }
+        }
+      }
+      this.listeners.forEach((listener) => {
+        listener(this.#currentResult);
+      });
+    });
+  }
+};
 var QueryCache = class extends Subscribable {
   constructor(config = {}) {
     super();
@@ -15001,6 +15132,36 @@ function useBaseQuery(options, Observer, queryClient2) {
 }
 function useQuery(options, queryClient2) {
   return useBaseQuery(options, QueryObserver);
+}
+function useMutation(options, queryClient2) {
+  const client2 = useQueryClient();
+  const [observer] = reactExports.useState(
+    () => new MutationObserver(
+      client2,
+      options
+    )
+  );
+  reactExports.useEffect(() => {
+    observer.setOptions(options);
+  }, [observer, options]);
+  const result = reactExports.useSyncExternalStore(
+    reactExports.useCallback(
+      (onStoreChange) => observer.subscribe(notifyManager.batchCalls(onStoreChange)),
+      [observer]
+    ),
+    () => observer.getCurrentResult(),
+    () => observer.getCurrentResult()
+  );
+  const mutate = reactExports.useCallback(
+    (variables, mutateOptions) => {
+      observer.mutate(variables, mutateOptions).catch(noop);
+    },
+    [observer]
+  );
+  if (result.error && shouldThrowError(observer.options.throwOnError, [result.error])) {
+    throw result.error;
+  }
+  return { ...result, mutate, mutateAsync: result.mutate };
 }
 var ReactiveFlags = /* @__PURE__ */ ((ReactiveFlags2) => {
   ReactiveFlags2[ReactiveFlags2["None"] = 0] = "None";
@@ -15560,7 +15721,7 @@ class ReadonlyStore {
     return this.atom.subscribe(toObserver(observerOrFn));
   }
 }
-function createStore(valueOrFn) {
+function createStore$1(valueOrFn) {
   if (typeof valueOrFn === "function") {
     return new ReadonlyStore(valueOrFn);
   }
@@ -18439,7 +18600,7 @@ class RouterCore {
       }
       if (!this.__store && this.latestLocation) {
         {
-          this.__store = createStore(getInitialRouterState(this.latestLocation));
+          this.__store = createStore$1(getInitialRouterState(this.latestLocation));
           setupScrollRestoration(this);
         }
       }
@@ -20165,7 +20326,7 @@ var withSelectorExports = requireWithSelector();
 function defaultCompare(a, b) {
   return a === b;
 }
-function useStore(atom, selector, compare = defaultCompare) {
+function useStore$1(atom, selector, compare = defaultCompare) {
   const subscribe2 = reactExports.useCallback(
     (handleStoreChange) => {
       if (!atom) {
@@ -20204,7 +20365,7 @@ function useRouterState(opts) {
     // eslint-disable-next-line react-hooks/rules-of-hooks
     reactExports.useRef(void 0)
   );
-  return useStore(router2.__store, (state) => {
+  return useStore$1(router2.__store, (state) => {
     if (opts?.select) {
       if (opts.structuralSharing ?? router2.options.defaultStructuralSharing) {
         const newSlice = replaceEqualDeep(
@@ -21455,6 +21616,16 @@ const Monitor = createLucideIcon("Monitor", [
   ["line", { x1: "8", x2: "16", y1: "21", y2: "21", key: "1svkeh" }],
   ["line", { x1: "12", x2: "12", y1: "17", y2: "21", key: "vw1qmm" }]
 ]);
+const PanelLeftClose = createLucideIcon("PanelLeftClose", [
+  ["rect", { width: "18", height: "18", x: "3", y: "3", rx: "2", key: "afitv7" }],
+  ["path", { d: "M9 3v18", key: "fh3hqa" }],
+  ["path", { d: "m16 15-3-3 3-3", key: "14y99z" }]
+]);
+const PanelLeftOpen = createLucideIcon("PanelLeftOpen", [
+  ["rect", { width: "18", height: "18", x: "3", y: "3", rx: "2", key: "afitv7" }],
+  ["path", { d: "M9 3v18", key: "fh3hqa" }],
+  ["path", { d: "m14 9 3 3-3 3", key: "8010ee" }]
+]);
 const Settings = createLucideIcon("Settings", [
   [
     "path",
@@ -21470,6 +21641,266 @@ const Upload = createLucideIcon("Upload", [
   ["polyline", { points: "17 8 12 3 7 8", key: "t8dd8p" }],
   ["line", { x1: "12", x2: "12", y1: "3", y2: "15", key: "widbto" }]
 ]);
+const createStoreImpl = (createState) => {
+  let state;
+  const listeners = /* @__PURE__ */ new Set();
+  const setState = (partial, replace) => {
+    const nextState = typeof partial === "function" ? partial(state) : partial;
+    if (!Object.is(nextState, state)) {
+      const previousState = state;
+      state = (replace != null ? replace : typeof nextState !== "object" || nextState === null) ? nextState : Object.assign({}, state, nextState);
+      listeners.forEach((listener) => listener(state, previousState));
+    }
+  };
+  const getState = () => state;
+  const getInitialState = () => initialState;
+  const subscribe2 = (listener) => {
+    listeners.add(listener);
+    return () => listeners.delete(listener);
+  };
+  const api = { setState, getState, getInitialState, subscribe: subscribe2 };
+  const initialState = state = createState(setState, getState, api);
+  return api;
+};
+const createStore = ((createState) => createState ? createStoreImpl(createState) : createStoreImpl);
+const identity = (arg) => arg;
+function useStore(api, selector = identity) {
+  const slice = React.useSyncExternalStore(
+    api.subscribe,
+    React.useCallback(() => selector(api.getState()), [api, selector]),
+    React.useCallback(() => selector(api.getInitialState()), [api, selector])
+  );
+  React.useDebugValue(slice);
+  return slice;
+}
+const createImpl = (createState) => {
+  const api = createStore(createState);
+  const useBoundStore = (selector) => useStore(api, selector);
+  Object.assign(useBoundStore, api);
+  return useBoundStore;
+};
+const create = ((createState) => createImpl);
+function createJSONStorage(getStorage, options) {
+  let storage;
+  try {
+    storage = getStorage();
+  } catch (e) {
+    return;
+  }
+  const persistStorage = {
+    getItem: (name) => {
+      var _a;
+      const parse2 = (str2) => {
+        if (str2 === null) {
+          return null;
+        }
+        return JSON.parse(str2, void 0);
+      };
+      const str = (_a = storage.getItem(name)) != null ? _a : null;
+      if (str instanceof Promise) {
+        return str.then(parse2);
+      }
+      return parse2(str);
+    },
+    setItem: (name, newValue) => storage.setItem(name, JSON.stringify(newValue, void 0)),
+    removeItem: (name) => storage.removeItem(name)
+  };
+  return persistStorage;
+}
+const toThenable = (fn) => (input) => {
+  try {
+    const result = fn(input);
+    if (result instanceof Promise) {
+      return result;
+    }
+    return {
+      then(onFulfilled) {
+        return toThenable(onFulfilled)(result);
+      },
+      catch(_onRejected) {
+        return this;
+      }
+    };
+  } catch (e) {
+    return {
+      then(_onFulfilled) {
+        return this;
+      },
+      catch(onRejected) {
+        return toThenable(onRejected)(e);
+      }
+    };
+  }
+};
+const persistImpl = (config, baseOptions) => (set, get2, api) => {
+  let options = {
+    storage: createJSONStorage(() => window.localStorage),
+    partialize: (state) => state,
+    version: 0,
+    merge: (persistedState, currentState) => ({
+      ...currentState,
+      ...persistedState
+    }),
+    ...baseOptions
+  };
+  let hasHydrated = false;
+  let hydrationVersion = 0;
+  const hydrationListeners = /* @__PURE__ */ new Set();
+  const finishHydrationListeners = /* @__PURE__ */ new Set();
+  let storage = options.storage;
+  if (!storage) {
+    return config(
+      (...args) => {
+        console.warn(
+          `[zustand persist middleware] Unable to update item '${options.name}', the given storage is currently unavailable.`
+        );
+        set(...args);
+      },
+      get2,
+      api
+    );
+  }
+  const setItem = () => {
+    const state = options.partialize({ ...get2() });
+    return storage.setItem(options.name, {
+      state,
+      version: options.version
+    });
+  };
+  const savedSetState = api.setState;
+  api.setState = (state, replace) => {
+    savedSetState(state, replace);
+    return setItem();
+  };
+  const configResult = config(
+    (...args) => {
+      set(...args);
+      return setItem();
+    },
+    get2,
+    api
+  );
+  api.getInitialState = () => configResult;
+  let stateFromStorage;
+  const hydrate = () => {
+    var _a, _b;
+    if (!storage) return;
+    const currentVersion = ++hydrationVersion;
+    hasHydrated = false;
+    hydrationListeners.forEach((cb) => {
+      var _a2;
+      return cb((_a2 = get2()) != null ? _a2 : configResult);
+    });
+    const postRehydrationCallback = ((_b = options.onRehydrateStorage) == null ? void 0 : _b.call(options, (_a = get2()) != null ? _a : configResult)) || void 0;
+    return toThenable(storage.getItem.bind(storage))(options.name).then((deserializedStorageValue) => {
+      if (deserializedStorageValue) {
+        if (typeof deserializedStorageValue.version === "number" && deserializedStorageValue.version !== options.version) {
+          if (options.migrate) {
+            const migration = options.migrate(
+              deserializedStorageValue.state,
+              deserializedStorageValue.version
+            );
+            if (migration instanceof Promise) {
+              return migration.then((result) => [true, result]);
+            }
+            return [true, migration];
+          }
+          console.error(
+            `State loaded from storage couldn't be migrated since no migrate function was provided`
+          );
+        } else {
+          return [false, deserializedStorageValue.state];
+        }
+      }
+      return [false, void 0];
+    }).then((migrationResult) => {
+      var _a2;
+      if (currentVersion !== hydrationVersion) {
+        return;
+      }
+      const [migrated, migratedState] = migrationResult;
+      stateFromStorage = options.merge(
+        migratedState,
+        (_a2 = get2()) != null ? _a2 : configResult
+      );
+      set(stateFromStorage, true);
+      if (migrated) {
+        return setItem();
+      }
+    }).then(() => {
+      if (currentVersion !== hydrationVersion) {
+        return;
+      }
+      postRehydrationCallback == null ? void 0 : postRehydrationCallback(stateFromStorage, void 0);
+      stateFromStorage = get2();
+      hasHydrated = true;
+      finishHydrationListeners.forEach((cb) => cb(stateFromStorage));
+    }).catch((e) => {
+      if (currentVersion !== hydrationVersion) {
+        return;
+      }
+      postRehydrationCallback == null ? void 0 : postRehydrationCallback(void 0, e);
+    });
+  };
+  api.persist = {
+    setOptions: (newOptions) => {
+      options = {
+        ...options,
+        ...newOptions
+      };
+      if (newOptions.storage) {
+        storage = newOptions.storage;
+      }
+    },
+    clearStorage: () => {
+      storage == null ? void 0 : storage.removeItem(options.name);
+    },
+    getOptions: () => options,
+    rehydrate: () => hydrate(),
+    hasHydrated: () => hasHydrated,
+    onHydrate: (cb) => {
+      hydrationListeners.add(cb);
+      return () => {
+        hydrationListeners.delete(cb);
+      };
+    },
+    onFinishHydration: (cb) => {
+      finishHydrationListeners.add(cb);
+      return () => {
+        finishHydrationListeners.delete(cb);
+      };
+    }
+  };
+  if (!options.skipHydration) {
+    hydrate();
+  }
+  return stateFromStorage || configResult;
+};
+const persist = persistImpl;
+const useLayoutStore = create()(persist((set) => ({
+  sidebarWidth: 240,
+  isRailCollapsed: false,
+  commandPaletteOpen: false,
+  setSidebarWidth: (width) => set({
+    sidebarWidth: width
+  }),
+  toggleRail: () => set((s) => ({
+    isRailCollapsed: !s.isRailCollapsed
+  })),
+  toggleCommandPalette: () => set((s) => ({
+    commandPaletteOpen: !s.commandPaletteOpen
+  })),
+  setCommandPaletteOpen: (open) => set({
+    commandPaletteOpen: open
+  })
+}), {
+  name: "zorivest-layout",
+  partialize: (state) => ({
+    sidebarWidth: state.sidebarWidth,
+    isRailCollapsed: state.isRailCollapsed
+    // commandPaletteOpen intentionally excluded — ephemeral
+  })
+}));
 const navItems = [{
   label: "Accounts",
   path: "/",
@@ -21499,7 +21930,7 @@ const navTestIds = {
   "/settings": "nav-settings"
 };
 function NavRail(t0) {
-  const $ = compilerRuntimeExports.c(8);
+  const $ = compilerRuntimeExports.c(20);
   const {
     currentPath,
     onNavigate
@@ -21507,6 +21938,8 @@ function NavRail(t0) {
   const navigate = useNavigate();
   const location = useLocation();
   const activePath = currentPath ?? location.pathname;
+  const isCollapsed = useLayoutStore(_temp$2);
+  const toggleRail = useLayoutStore(_temp2$2);
   let t1;
   if ($[0] !== navigate || $[1] !== onNavigate) {
     t1 = (path) => {
@@ -21525,35 +21958,81 @@ function NavRail(t0) {
     t1 = $[2];
   }
   const handleNavigate = t1;
-  let t2;
-  if ($[3] !== activePath || $[4] !== handleNavigate) {
-    t2 = navItems.map((item) => {
+  const t2 = `nav-rail ${isCollapsed ? "nav-rail--collapsed" : ""}`;
+  let t3;
+  if ($[3] !== activePath || $[4] !== handleNavigate || $[5] !== isCollapsed) {
+    t3 = navItems.map((item) => {
       const isActive = activePath === item.path;
       const Icon2 = item.icon;
-      return /* @__PURE__ */ jsxRuntimeExports.jsxs("a", { href: `#${item.path}`, "data-testid": navTestIds[item.path], "aria-current": isActive ? "page" : void 0, onClick: (e) => {
+      return /* @__PURE__ */ jsxRuntimeExports.jsxs("a", { href: `#${item.path}`, "data-testid": navTestIds[item.path], "aria-current": isActive ? "page" : void 0, title: isCollapsed ? item.label : void 0, onClick: (e) => {
         e.preventDefault();
         handleNavigate(item.path);
       }, className: `flex items-center gap-3 px-3 py-2 rounded-md text-sm transition-colors
-                ${isActive ? "bg-bg-elevated text-fg" : "text-fg-muted hover:bg-bg-elevated hover:text-fg"}`, children: [
+                ${isActive ? "bg-bg-elevated text-fg" : "text-fg-muted hover:bg-bg-elevated hover:text-fg"}
+                ${isCollapsed ? "justify-center" : ""}`, children: [
         /* @__PURE__ */ jsxRuntimeExports.jsx(Icon2, { size: 18, "aria-hidden": "true" }),
-        /* @__PURE__ */ jsxRuntimeExports.jsx("span", { children: item.label })
+        !isCollapsed && /* @__PURE__ */ jsxRuntimeExports.jsx("span", { children: item.label })
       ] }, item.path);
     });
     $[3] = activePath;
     $[4] = handleNavigate;
-    $[5] = t2;
+    $[5] = isCollapsed;
+    $[6] = t3;
   } else {
-    t2 = $[5];
+    t3 = $[6];
   }
-  let t3;
-  if ($[6] !== t2) {
-    t3 = /* @__PURE__ */ jsxRuntimeExports.jsx("nav", { "aria-label": "Main navigation", className: "nav-rail", children: /* @__PURE__ */ jsxRuntimeExports.jsx("div", { className: "flex flex-col gap-1 p-2", children: t2 }) });
-    $[6] = t2;
+  let t4;
+  if ($[7] !== t3) {
+    t4 = /* @__PURE__ */ jsxRuntimeExports.jsx("div", { className: "flex flex-col gap-1 p-2 flex-1", children: t3 });
     $[7] = t3;
+    $[8] = t4;
   } else {
-    t3 = $[7];
+    t4 = $[8];
   }
-  return t3;
+  const t5 = isCollapsed ? "Expand sidebar" : "Collapse sidebar";
+  const t6 = isCollapsed ? "Expand sidebar" : "Collapse sidebar";
+  let t7;
+  if ($[9] !== isCollapsed) {
+    t7 = isCollapsed ? /* @__PURE__ */ jsxRuntimeExports.jsx(PanelLeftOpen, { size: 18, "aria-hidden": "true" }) : /* @__PURE__ */ jsxRuntimeExports.jsxs(jsxRuntimeExports.Fragment, { children: [
+      /* @__PURE__ */ jsxRuntimeExports.jsx(PanelLeftClose, { size: 18, "aria-hidden": "true" }),
+      /* @__PURE__ */ jsxRuntimeExports.jsx("span", { className: "ml-3", children: "Collapse" })
+    ] });
+    $[9] = isCollapsed;
+    $[10] = t7;
+  } else {
+    t7 = $[10];
+  }
+  let t8;
+  if ($[11] !== t5 || $[12] !== t6 || $[13] !== t7 || $[14] !== toggleRail) {
+    t8 = /* @__PURE__ */ jsxRuntimeExports.jsx("div", { className: "p-2 border-t border-bg-elevated", children: /* @__PURE__ */ jsxRuntimeExports.jsx("button", { "data-testid": "nav-collapse-toggle", onClick: toggleRail, title: t5, "aria-label": t6, className: "flex items-center justify-center w-full px-3 py-2 rounded-md text-sm text-fg-muted hover:bg-bg-elevated hover:text-fg transition-colors cursor-pointer", children: t7 }) });
+    $[11] = t5;
+    $[12] = t6;
+    $[13] = t7;
+    $[14] = toggleRail;
+    $[15] = t8;
+  } else {
+    t8 = $[15];
+  }
+  let t9;
+  if ($[16] !== t2 || $[17] !== t4 || $[18] !== t8) {
+    t9 = /* @__PURE__ */ jsxRuntimeExports.jsxs("nav", { "aria-label": "Main navigation", className: t2, children: [
+      t4,
+      t8
+    ] });
+    $[16] = t2;
+    $[17] = t4;
+    $[18] = t8;
+    $[19] = t9;
+  } else {
+    t9 = $[19];
+  }
+  return t9;
+}
+function _temp2$2(s_0) {
+  return s_0.toggleRail;
+}
+function _temp$2(s) {
+  return s.isRailCollapsed;
 }
 function Header(t0) {
   const $ = compilerRuntimeExports.c(3);
@@ -23023,7 +23502,7 @@ function createStaticEntries(navigate) {
       keywords: ["size", "risk", "shares"],
       icon: Calculator,
       action: () => {
-        console.info("[command] Position Calculator — not yet implemented");
+        window.dispatchEvent(new CustomEvent("zorivest:open-calculator"));
       },
       shortcut: "Ctrl+Shift+C"
     },
@@ -23090,8 +23569,8 @@ function createStaticEntries(navigate) {
     }
   ];
 }
-function useDynamicEntries() {
-  const $ = compilerRuntimeExports.c(7);
+function useDynamicEntries(_navigate) {
+  const $ = compilerRuntimeExports.c(5);
   const queryClient2 = useQueryClient();
   let t0;
   if ($[0] === /* @__PURE__ */ Symbol.for("react.memo_cache_sentinel")) {
@@ -23102,34 +23581,19 @@ function useDynamicEntries() {
   }
   const [entries, setEntries] = reactExports.useState(t0);
   let t1;
-  if ($[1] !== queryClient2) {
+  if ($[1] === /* @__PURE__ */ Symbol.for("react.memo_cache_sentinel")) {
     t1 = () => {
       const result = [];
-      const tradesData = queryClient2.getQueryData(["trades"]);
-      if (tradesData) {
-        for (const trade of tradesData.slice(0, 10)) {
-          result.push({
-            id: `search:trade:${trade.id}`,
-            label: `Go to Trade #${trade.id} (${trade.symbol})`,
-            category: "search",
-            keywords: [trade.symbol, String(trade.id), "trade"],
-            action: () => {
-              console.info(`[command] Navigate to trade ${trade.id} — detail route not yet implemented`);
-            }
-          });
-        }
-      }
       setEntries(result);
     };
-    $[1] = queryClient2;
-    $[2] = t1;
+    $[1] = t1;
   } else {
-    t1 = $[2];
+    t1 = $[1];
   }
   const buildEntries = t1;
   let t2;
   let t3;
-  if ($[3] !== buildEntries || $[4] !== queryClient2) {
+  if ($[2] !== queryClient2) {
     t2 = () => {
       buildEntries();
       const unsubscribe = queryClient2.getQueryCache().subscribe(() => {
@@ -23138,13 +23602,12 @@ function useDynamicEntries() {
       return unsubscribe;
     };
     t3 = [queryClient2, buildEntries];
-    $[3] = buildEntries;
-    $[4] = queryClient2;
-    $[5] = t2;
-    $[6] = t3;
+    $[2] = queryClient2;
+    $[3] = t2;
+    $[4] = t3;
   } else {
-    t2 = $[5];
-    t3 = $[6];
+    t2 = $[3];
+    t3 = $[4];
   }
   reactExports.useEffect(t2, t3);
   return entries;
@@ -23164,9 +23627,10 @@ function CommandPalette({
   const inputRef = reactExports.useRef(null);
   const listRef = reactExports.useRef(null);
   const navigate = useNavigate();
-  const staticEntries = reactExports.useMemo(() => createStaticEntries((path) => navigate({
+  const navCallback = reactExports.useCallback((path) => navigate({
     to: path
-  })), [navigate]);
+  }), [navigate]);
+  const staticEntries = reactExports.useMemo(() => createStaticEntries(navCallback), [navCallback]);
   const dynamicEntries = useDynamicEntries();
   const allEntries = reactExports.useMemo(() => [...staticEntries, ...dynamicEntries], [staticEntries, dynamicEntries]);
   const fuse = reactExports.useMemo(() => new Fuse(allEntries, {
@@ -23273,16 +23737,996 @@ function CommandPalette({
     ] })
   ] });
 }
+const getApiBase = () => typeof window !== "undefined" && window.api ? window.api.baseUrl : "http://127.0.0.1:8765";
+const getToken = () => typeof window !== "undefined" && window.api ? window.api.token : "";
+async function apiFetch(path, init) {
+  const res = await fetch(`${getApiBase()}${path}`, {
+    ...init,
+    headers: {
+      "Content-Type": "application/json",
+      Authorization: `Bearer ${getToken()}`,
+      ...init?.headers
+    }
+  });
+  if (!res.ok) throw new Error(`API ${res.status}: ${await res.text()}`);
+  if (res.status === 204) return void 0;
+  return res.json();
+}
+function TickerAutocomplete({
+  value,
+  onChange,
+  onSelect,
+  placeholder = "Search ticker...",
+  "data-testid": testId = "ticker-autocomplete",
+  className = "",
+  disabled = false
+}) {
+  const [results, setResults] = reactExports.useState([]);
+  const [isOpen, setIsOpen] = reactExports.useState(false);
+  const [isLoading, setIsLoading] = reactExports.useState(false);
+  const [highlightIndex, setHighlightIndex] = reactExports.useState(-1);
+  const debounceRef = reactExports.useRef(null);
+  const containerRef = reactExports.useRef(null);
+  const handleInputChange = reactExports.useCallback((newValue) => {
+    onChange(newValue);
+    setHighlightIndex(-1);
+    if (debounceRef.current) clearTimeout(debounceRef.current);
+    if (newValue.trim().length < 1) {
+      setResults([]);
+      setIsOpen(false);
+      return;
+    }
+    debounceRef.current = setTimeout(async () => {
+      try {
+        setIsLoading(true);
+        const data = await apiFetch(`/api/v1/market-data/search?query=${encodeURIComponent(newValue.trim())}`);
+        setResults(data ?? []);
+        setIsOpen((data ?? []).length > 0);
+      } catch {
+        setResults([]);
+        setIsOpen(false);
+      } finally {
+        setIsLoading(false);
+      }
+    }, 300);
+  }, [onChange]);
+  const handleSelect = reactExports.useCallback((result) => {
+    onChange(result.symbol);
+    onSelect?.(result);
+    setIsOpen(false);
+    setResults([]);
+  }, [onChange, onSelect]);
+  const handleKeyDown = reactExports.useCallback((e) => {
+    if (!isOpen || results.length === 0) return;
+    if (e.key === "ArrowDown") {
+      e.preventDefault();
+      setHighlightIndex((prev) => Math.min(prev + 1, results.length - 1));
+    } else if (e.key === "ArrowUp") {
+      e.preventDefault();
+      setHighlightIndex((prev_0) => Math.max(prev_0 - 1, 0));
+    } else if (e.key === "Enter" && highlightIndex >= 0) {
+      e.preventDefault();
+      handleSelect(results[highlightIndex]);
+    } else if (e.key === "Escape") {
+      setIsOpen(false);
+    }
+  }, [isOpen, results, highlightIndex, handleSelect]);
+  reactExports.useEffect(() => {
+    const handler = (e_0) => {
+      if (containerRef.current && !containerRef.current.contains(e_0.target)) {
+        setIsOpen(false);
+      }
+    };
+    document.addEventListener("mousedown", handler);
+    return () => document.removeEventListener("mousedown", handler);
+  }, []);
+  reactExports.useEffect(() => {
+    return () => {
+      if (debounceRef.current) clearTimeout(debounceRef.current);
+    };
+  }, []);
+  return /* @__PURE__ */ jsxRuntimeExports.jsxs("div", { ref: containerRef, className: "relative", "data-testid": testId, children: [
+    /* @__PURE__ */ jsxRuntimeExports.jsx("input", { type: "text", value, onChange: (e_1) => handleInputChange(e_1.target.value), onKeyDown: handleKeyDown, onFocus: () => results.length > 0 && setIsOpen(true), placeholder, disabled, "data-testid": `${testId}-input`, className: `w-full px-3 py-1.5 text-sm rounded-md bg-bg border border-bg-subtle text-fg ${className}` }),
+    isLoading && /* @__PURE__ */ jsxRuntimeExports.jsx("span", { className: "absolute right-2 top-1/2 -translate-y-1/2 text-xs text-fg-muted", "data-testid": `${testId}-loading`, children: "⏳" }),
+    isOpen && results.length > 0 && /* @__PURE__ */ jsxRuntimeExports.jsx("ul", { className: "absolute z-50 w-full mt-1 max-h-48 overflow-y-auto rounded-md border border-bg-subtle bg-bg-elevated shadow-lg", "data-testid": `${testId}-dropdown`, role: "listbox", children: results.map((result_0, idx) => /* @__PURE__ */ jsxRuntimeExports.jsxs("li", { role: "option", "aria-selected": idx === highlightIndex, "data-testid": `${testId}-option-${result_0.symbol}`, className: `px-3 py-2 text-sm cursor-pointer transition-colors ${idx === highlightIndex ? "bg-accent/20 text-fg" : "text-fg hover:bg-bg-subtle"}`, onMouseDown: () => handleSelect(result_0), onMouseEnter: () => setHighlightIndex(idx), children: [
+      /* @__PURE__ */ jsxRuntimeExports.jsxs("div", { className: "flex items-center justify-between", children: [
+        /* @__PURE__ */ jsxRuntimeExports.jsx("span", { className: "font-medium", children: result_0.symbol }),
+        result_0.exchange && /* @__PURE__ */ jsxRuntimeExports.jsx("span", { className: "text-xs text-fg-muted", children: result_0.exchange })
+      ] }),
+      /* @__PURE__ */ jsxRuntimeExports.jsx("div", { className: "text-xs text-fg-muted truncate", children: result_0.name })
+    ] }, `${result_0.symbol}-${result_0.provider}`)) })
+  ] });
+}
+function PositionCalculatorModal(t0) {
+  const $ = compilerRuntimeExports.c(115);
+  const {
+    isOpen,
+    onClose
+  } = t0;
+  const [accountSize, setAccountSize] = reactExports.useState(1e5);
+  const [riskPercent, setRiskPercent] = reactExports.useState(1);
+  const [entryPrice, setEntryPrice] = reactExports.useState(0);
+  const [stopPrice, setStopPrice] = reactExports.useState(0);
+  const [targetPrice, setTargetPrice] = reactExports.useState(0);
+  const [copyFeedback, setCopyFeedback] = reactExports.useState(false);
+  const [ticker, setTicker] = reactExports.useState("");
+  const [quoteFetching, setQuoteFetching] = reactExports.useState(false);
+  const {
+    setStatus
+  } = useStatusBar();
+  reactExports.useRef(0);
+  let t1;
+  let t2;
+  if ($[0] !== isOpen || $[1] !== onClose) {
+    t1 = () => {
+      const handler = (e) => {
+        if (e.key === "Escape" && isOpen) {
+          onClose();
+        }
+      };
+      window.addEventListener("keydown", handler);
+      return () => window.removeEventListener("keydown", handler);
+    };
+    t2 = [isOpen, onClose];
+    $[0] = isOpen;
+    $[1] = onClose;
+    $[2] = t1;
+    $[3] = t2;
+  } else {
+    t1 = $[2];
+    t2 = $[3];
+  }
+  reactExports.useEffect(t1, t2);
+  let t3;
+  let t4;
+  if ($[4] !== setStatus || $[5] !== ticker) {
+    t3 = () => {
+      if (!ticker) {
+        return;
+      }
+      let cancelled = false;
+      setQuoteFetching(true);
+      apiFetch(`/api/v1/market-data/quote?ticker=${encodeURIComponent(ticker)}`).then((quote) => {
+        if (!cancelled) {
+          setEntryPrice(Math.round(quote.last_price * 100) / 100);
+          setQuoteFetching(false);
+        }
+      }).catch((err) => {
+        if (!cancelled) {
+          setQuoteFetching(false);
+          setStatus(`Could not fetch quote: ${err instanceof Error ? err.message : "error"}`);
+        }
+      });
+      return () => {
+        cancelled = true;
+      };
+    };
+    t4 = [ticker, setStatus];
+    $[4] = setStatus;
+    $[5] = ticker;
+    $[6] = t3;
+    $[7] = t4;
+  } else {
+    t3 = $[6];
+    t4 = $[7];
+  }
+  reactExports.useEffect(t3, t4);
+  let t5;
+  let t6;
+  if ($[8] === /* @__PURE__ */ Symbol.for("react.memo_cache_sentinel")) {
+    t5 = () => {
+      const handler_0 = (e_0) => {
+        const detail = e_0.detail;
+        if (detail) {
+          if (detail.entry_price != null) {
+            setEntryPrice(detail.entry_price);
+          }
+          if (detail.stop_loss != null) {
+            setStopPrice(detail.stop_loss);
+          }
+          if (detail.target_price != null) {
+            setTargetPrice(detail.target_price);
+          }
+          if (detail.ticker) {
+            setTicker(detail.ticker);
+          }
+        }
+      };
+      window.addEventListener("zorivest:open-calculator", handler_0);
+      return () => window.removeEventListener("zorivest:open-calculator", handler_0);
+    };
+    t6 = [];
+    $[8] = t5;
+    $[9] = t6;
+  } else {
+    t5 = $[8];
+    t6 = $[9];
+  }
+  reactExports.useEffect(t5, t6);
+  const risk1R = accountSize * (riskPercent / 100);
+  const riskPerShare = Math.abs(entryPrice - stopPrice);
+  const shares = riskPerShare > 0 ? Math.floor(risk1R / riskPerShare) : 0;
+  const dollarRisk = shares * riskPerShare;
+  const rewardPerShare = Math.abs(targetPrice - entryPrice);
+  const rrRatio = riskPerShare > 0 ? rewardPerShare / riskPerShare : 0;
+  const positionValue = shares * entryPrice;
+  const positionPercent = accountSize > 0 ? positionValue / accountSize * 100 : 0;
+  const t7 = Math.round(rrRatio * 100) / 100;
+  const t8 = Math.round(positionPercent * 10) / 10;
+  let t9;
+  if ($[10] !== dollarRisk || $[11] !== positionValue || $[12] !== risk1R || $[13] !== riskPerShare || $[14] !== shares || $[15] !== t7 || $[16] !== t8) {
+    t9 = {
+      risk1R,
+      riskPerShare,
+      shares,
+      dollarRisk,
+      rrRatio: t7,
+      positionValue,
+      positionPercent: t8
+    };
+    $[10] = dollarRisk;
+    $[11] = positionValue;
+    $[12] = risk1R;
+    $[13] = riskPerShare;
+    $[14] = shares;
+    $[15] = t7;
+    $[16] = t8;
+    $[17] = t9;
+  } else {
+    t9 = $[17];
+  }
+  const result = t9;
+  let t10;
+  if ($[18] !== result.shares) {
+    t10 = async () => {
+      try {
+        await navigator.clipboard.writeText(String(result.shares));
+        setCopyFeedback(true);
+        setTimeout(() => setCopyFeedback(false), 1500);
+      } catch {
+      }
+    };
+    $[18] = result.shares;
+    $[19] = t10;
+  } else {
+    t10 = $[19];
+  }
+  const handleCopyShares = t10;
+  let t11;
+  if ($[20] === /* @__PURE__ */ Symbol.for("react.memo_cache_sentinel")) {
+    t11 = () => {
+      setAccountSize(1e5);
+      setRiskPercent(1);
+      setEntryPrice(0);
+      setStopPrice(0);
+      setTargetPrice(0);
+      setTicker("");
+      setQuoteFetching(false);
+    };
+    $[20] = t11;
+  } else {
+    t11 = $[20];
+  }
+  const handleReset = t11;
+  if (!isOpen) {
+    return null;
+  }
+  let t12;
+  if ($[21] === /* @__PURE__ */ Symbol.for("react.memo_cache_sentinel")) {
+    t12 = /* @__PURE__ */ jsxRuntimeExports.jsx("h2", { id: "calc-modal-heading", className: "text-md font-semibold text-fg", children: "🧮 Position Calculator" });
+    $[21] = t12;
+  } else {
+    t12 = $[21];
+  }
+  let t13;
+  if ($[22] !== onClose) {
+    t13 = /* @__PURE__ */ jsxRuntimeExports.jsxs("div", { className: "flex items-center justify-between p-4 border-b border-bg-subtle", children: [
+      t12,
+      /* @__PURE__ */ jsxRuntimeExports.jsx("button", { onClick: onClose, className: "text-fg-muted hover:text-fg cursor-pointer", "data-testid": "close-calculator", "aria-label": "Close calculator", children: "✕" })
+    ] });
+    $[22] = onClose;
+    $[23] = t13;
+  } else {
+    t13 = $[23];
+  }
+  let t14;
+  if ($[24] === /* @__PURE__ */ Symbol.for("react.memo_cache_sentinel")) {
+    t14 = /* @__PURE__ */ jsxRuntimeExports.jsx("label", { className: "block text-xs text-fg-muted mb-1", children: "Ticker" });
+    $[24] = t14;
+  } else {
+    t14 = $[24];
+  }
+  let t15;
+  if ($[25] !== ticker) {
+    t15 = /* @__PURE__ */ jsxRuntimeExports.jsx(TickerAutocomplete, { value: ticker, onChange: setTicker, placeholder: "Search ticker...", "data-testid": "calc-ticker" });
+    $[25] = ticker;
+    $[26] = t15;
+  } else {
+    t15 = $[26];
+  }
+  let t16;
+  if ($[27] !== quoteFetching) {
+    t16 = quoteFetching && /* @__PURE__ */ jsxRuntimeExports.jsx("span", { "data-testid": "calc-quote-loading", className: "text-xs text-fg-muted mt-1 block", children: "Fetching quote…" });
+    $[27] = quoteFetching;
+    $[28] = t16;
+  } else {
+    t16 = $[28];
+  }
+  let t17;
+  if ($[29] !== t15 || $[30] !== t16) {
+    t17 = /* @__PURE__ */ jsxRuntimeExports.jsxs("div", { children: [
+      t14,
+      t15,
+      t16
+    ] });
+    $[29] = t15;
+    $[30] = t16;
+    $[31] = t17;
+  } else {
+    t17 = $[31];
+  }
+  let t18;
+  if ($[32] === /* @__PURE__ */ Symbol.for("react.memo_cache_sentinel")) {
+    t18 = /* @__PURE__ */ jsxRuntimeExports.jsx("label", { htmlFor: "calc-account-size", className: "block text-xs text-fg-muted mb-1", children: "Account Size ($)" });
+    $[32] = t18;
+  } else {
+    t18 = $[32];
+  }
+  let t19;
+  if ($[33] === /* @__PURE__ */ Symbol.for("react.memo_cache_sentinel")) {
+    t19 = (e_1) => setAccountSize(parseFloat(e_1.target.value) || 0);
+    $[33] = t19;
+  } else {
+    t19 = $[33];
+  }
+  let t20;
+  if ($[34] !== accountSize) {
+    t20 = /* @__PURE__ */ jsxRuntimeExports.jsxs("div", { children: [
+      t18,
+      /* @__PURE__ */ jsxRuntimeExports.jsx("input", { id: "calc-account-size", "data-testid": "calc-account-size", type: "number", value: accountSize, onChange: t19, className: "w-full px-3 py-1.5 text-sm rounded-md bg-bg border border-bg-subtle text-fg" })
+    ] });
+    $[34] = accountSize;
+    $[35] = t20;
+  } else {
+    t20 = $[35];
+  }
+  let t21;
+  if ($[36] === /* @__PURE__ */ Symbol.for("react.memo_cache_sentinel")) {
+    t21 = /* @__PURE__ */ jsxRuntimeExports.jsx("label", { htmlFor: "calc-risk-percent", className: "block text-xs text-fg-muted mb-1", children: "Risk %" });
+    $[36] = t21;
+  } else {
+    t21 = $[36];
+  }
+  let t22;
+  if ($[37] === /* @__PURE__ */ Symbol.for("react.memo_cache_sentinel")) {
+    t22 = (e_2) => setRiskPercent(parseFloat(e_2.target.value) || 0);
+    $[37] = t22;
+  } else {
+    t22 = $[37];
+  }
+  let t23;
+  if ($[38] !== riskPercent) {
+    t23 = /* @__PURE__ */ jsxRuntimeExports.jsxs("div", { children: [
+      t21,
+      /* @__PURE__ */ jsxRuntimeExports.jsx("input", { id: "calc-risk-percent", "data-testid": "calc-risk-percent", type: "number", step: "0.1", value: riskPercent, onChange: t22, className: "w-full px-3 py-1.5 text-sm rounded-md bg-bg border border-bg-subtle text-fg" })
+    ] });
+    $[38] = riskPercent;
+    $[39] = t23;
+  } else {
+    t23 = $[39];
+  }
+  let t24;
+  if ($[40] !== t20 || $[41] !== t23) {
+    t24 = /* @__PURE__ */ jsxRuntimeExports.jsxs("div", { className: "grid grid-cols-2 gap-3", children: [
+      t20,
+      t23
+    ] });
+    $[40] = t20;
+    $[41] = t23;
+    $[42] = t24;
+  } else {
+    t24 = $[42];
+  }
+  let t25;
+  if ($[43] === /* @__PURE__ */ Symbol.for("react.memo_cache_sentinel")) {
+    t25 = /* @__PURE__ */ jsxRuntimeExports.jsx("label", { htmlFor: "calc-entry-price", className: "block text-xs text-fg-muted mb-1", children: "Entry Price" });
+    $[43] = t25;
+  } else {
+    t25 = $[43];
+  }
+  const t26 = entryPrice || "";
+  let t27;
+  if ($[44] === /* @__PURE__ */ Symbol.for("react.memo_cache_sentinel")) {
+    t27 = (e_3) => setEntryPrice(parseFloat(e_3.target.value) || 0);
+    $[44] = t27;
+  } else {
+    t27 = $[44];
+  }
+  let t28;
+  if ($[45] !== t26) {
+    t28 = /* @__PURE__ */ jsxRuntimeExports.jsxs("div", { children: [
+      t25,
+      /* @__PURE__ */ jsxRuntimeExports.jsx("input", { id: "calc-entry-price", "data-testid": "calc-entry-price", type: "number", step: "0.01", value: t26, onChange: t27, placeholder: "0.00", className: "w-full px-3 py-1.5 text-sm rounded-md bg-bg border border-bg-subtle text-fg" })
+    ] });
+    $[45] = t26;
+    $[46] = t28;
+  } else {
+    t28 = $[46];
+  }
+  let t29;
+  if ($[47] === /* @__PURE__ */ Symbol.for("react.memo_cache_sentinel")) {
+    t29 = /* @__PURE__ */ jsxRuntimeExports.jsx("label", { htmlFor: "calc-stop-price", className: "block text-xs text-fg-muted mb-1", children: "Stop Price" });
+    $[47] = t29;
+  } else {
+    t29 = $[47];
+  }
+  const t30 = stopPrice || "";
+  let t31;
+  if ($[48] === /* @__PURE__ */ Symbol.for("react.memo_cache_sentinel")) {
+    t31 = (e_4) => setStopPrice(parseFloat(e_4.target.value) || 0);
+    $[48] = t31;
+  } else {
+    t31 = $[48];
+  }
+  let t32;
+  if ($[49] !== t30) {
+    t32 = /* @__PURE__ */ jsxRuntimeExports.jsxs("div", { children: [
+      t29,
+      /* @__PURE__ */ jsxRuntimeExports.jsx("input", { id: "calc-stop-price", "data-testid": "calc-stop-price", type: "number", step: "0.01", value: t30, onChange: t31, placeholder: "0.00", className: "w-full px-3 py-1.5 text-sm rounded-md bg-bg border border-bg-subtle text-fg" })
+    ] });
+    $[49] = t30;
+    $[50] = t32;
+  } else {
+    t32 = $[50];
+  }
+  let t33;
+  if ($[51] === /* @__PURE__ */ Symbol.for("react.memo_cache_sentinel")) {
+    t33 = /* @__PURE__ */ jsxRuntimeExports.jsx("label", { htmlFor: "calc-target-price", className: "block text-xs text-fg-muted mb-1", children: "Target Price" });
+    $[51] = t33;
+  } else {
+    t33 = $[51];
+  }
+  const t34 = targetPrice || "";
+  let t35;
+  if ($[52] === /* @__PURE__ */ Symbol.for("react.memo_cache_sentinel")) {
+    t35 = (e_5) => setTargetPrice(parseFloat(e_5.target.value) || 0);
+    $[52] = t35;
+  } else {
+    t35 = $[52];
+  }
+  let t36;
+  if ($[53] !== t34) {
+    t36 = /* @__PURE__ */ jsxRuntimeExports.jsxs("div", { children: [
+      t33,
+      /* @__PURE__ */ jsxRuntimeExports.jsx("input", { id: "calc-target-price", "data-testid": "calc-target-price", type: "number", step: "0.01", value: t34, onChange: t35, placeholder: "0.00", className: "w-full px-3 py-1.5 text-sm rounded-md bg-bg border border-bg-subtle text-fg" })
+    ] });
+    $[53] = t34;
+    $[54] = t36;
+  } else {
+    t36 = $[54];
+  }
+  let t37;
+  if ($[55] !== t28 || $[56] !== t32 || $[57] !== t36) {
+    t37 = /* @__PURE__ */ jsxRuntimeExports.jsxs("div", { className: "grid grid-cols-3 gap-3", children: [
+      t28,
+      t32,
+      t36
+    ] });
+    $[55] = t28;
+    $[56] = t32;
+    $[57] = t36;
+    $[58] = t37;
+  } else {
+    t37 = $[58];
+  }
+  let t38;
+  if ($[59] === /* @__PURE__ */ Symbol.for("react.memo_cache_sentinel")) {
+    t38 = /* @__PURE__ */ jsxRuntimeExports.jsx("h3", { className: "text-xs text-fg-muted mb-3 uppercase tracking-wider", children: "Results" });
+    $[59] = t38;
+  } else {
+    t38 = $[59];
+  }
+  let t39;
+  if ($[60] === /* @__PURE__ */ Symbol.for("react.memo_cache_sentinel")) {
+    t39 = /* @__PURE__ */ jsxRuntimeExports.jsx("span", { className: "block text-xs text-fg-muted", children: "Shares" });
+    $[60] = t39;
+  } else {
+    t39 = $[60];
+  }
+  let t40;
+  if ($[61] !== result.shares) {
+    t40 = result.shares.toLocaleString();
+    $[61] = result.shares;
+    $[62] = t40;
+  } else {
+    t40 = $[62];
+  }
+  let t41;
+  if ($[63] !== t40) {
+    t41 = /* @__PURE__ */ jsxRuntimeExports.jsx("span", { className: "text-lg font-semibold text-fg font-mono", "data-testid": "calc-shares-output", children: t40 });
+    $[63] = t40;
+    $[64] = t41;
+  } else {
+    t41 = $[64];
+  }
+  const t42 = copyFeedback ? "✓" : "📋";
+  let t43;
+  if ($[65] !== handleCopyShares || $[66] !== t42) {
+    t43 = /* @__PURE__ */ jsxRuntimeExports.jsx("button", { "data-testid": "calc-copy-shares-btn", onClick: handleCopyShares, className: "text-fg-muted hover:text-fg text-xs cursor-pointer transition-colors", "aria-label": "Copy shares to clipboard", title: "Copy shares to clipboard", children: t42 });
+    $[65] = handleCopyShares;
+    $[66] = t42;
+    $[67] = t43;
+  } else {
+    t43 = $[67];
+  }
+  let t44;
+  if ($[68] !== t41 || $[69] !== t43) {
+    t44 = /* @__PURE__ */ jsxRuntimeExports.jsxs("div", { className: "px-3 py-2 rounded-md bg-bg", children: [
+      t39,
+      /* @__PURE__ */ jsxRuntimeExports.jsxs("div", { className: "flex items-center gap-2", children: [
+        t41,
+        t43
+      ] })
+    ] });
+    $[68] = t41;
+    $[69] = t43;
+    $[70] = t44;
+  } else {
+    t44 = $[70];
+  }
+  let t45;
+  if ($[71] === /* @__PURE__ */ Symbol.for("react.memo_cache_sentinel")) {
+    t45 = /* @__PURE__ */ jsxRuntimeExports.jsx("span", { className: "block text-xs text-fg-muted", children: "Dollar Risk (1R)" });
+    $[71] = t45;
+  } else {
+    t45 = $[71];
+  }
+  let t46;
+  if ($[72] !== result.dollarRisk) {
+    t46 = result.dollarRisk.toLocaleString(void 0, {
+      minimumFractionDigits: 2
+    });
+    $[72] = result.dollarRisk;
+    $[73] = t46;
+  } else {
+    t46 = $[73];
+  }
+  let t47;
+  if ($[74] !== t46) {
+    t47 = /* @__PURE__ */ jsxRuntimeExports.jsxs("div", { className: "px-3 py-2 rounded-md bg-bg", children: [
+      t45,
+      /* @__PURE__ */ jsxRuntimeExports.jsxs("span", { className: "text-lg font-semibold text-fg font-mono", "data-testid": "calc-dollar-risk-output", children: [
+        "$",
+        t46
+      ] })
+    ] });
+    $[74] = t46;
+    $[75] = t47;
+  } else {
+    t47 = $[75];
+  }
+  let t48;
+  if ($[76] === /* @__PURE__ */ Symbol.for("react.memo_cache_sentinel")) {
+    t48 = /* @__PURE__ */ jsxRuntimeExports.jsx("span", { className: "block text-xs text-fg-muted", children: "R:R Ratio" });
+    $[76] = t48;
+  } else {
+    t48 = $[76];
+  }
+  const t49 = `text-lg font-semibold font-mono ${result.rrRatio >= 2 ? "text-green-400" : result.rrRatio >= 1 ? "text-yellow-400" : "text-red-400"}`;
+  let t50;
+  if ($[77] !== result.rrRatio) {
+    t50 = result.rrRatio.toFixed(2);
+    $[77] = result.rrRatio;
+    $[78] = t50;
+  } else {
+    t50 = $[78];
+  }
+  let t51;
+  if ($[79] !== t49 || $[80] !== t50) {
+    t51 = /* @__PURE__ */ jsxRuntimeExports.jsxs("div", { className: "px-3 py-2 rounded-md bg-bg", children: [
+      t48,
+      /* @__PURE__ */ jsxRuntimeExports.jsx("span", { className: t49, "data-testid": "calc-rr-output", children: t50 })
+    ] });
+    $[79] = t49;
+    $[80] = t50;
+    $[81] = t51;
+  } else {
+    t51 = $[81];
+  }
+  let t52;
+  if ($[82] === /* @__PURE__ */ Symbol.for("react.memo_cache_sentinel")) {
+    t52 = /* @__PURE__ */ jsxRuntimeExports.jsx("span", { className: "block text-xs text-fg-muted", children: "Position Value" });
+    $[82] = t52;
+  } else {
+    t52 = $[82];
+  }
+  let t53;
+  if ($[83] !== result.positionValue) {
+    t53 = result.positionValue.toLocaleString(void 0, {
+      minimumFractionDigits: 2
+    });
+    $[83] = result.positionValue;
+    $[84] = t53;
+  } else {
+    t53 = $[84];
+  }
+  let t54;
+  if ($[85] !== t53) {
+    t54 = /* @__PURE__ */ jsxRuntimeExports.jsxs("div", { className: "px-3 py-2 rounded-md bg-bg", children: [
+      t52,
+      /* @__PURE__ */ jsxRuntimeExports.jsxs("span", { className: "text-lg font-semibold text-fg font-mono", "data-testid": "calc-position-value-output", children: [
+        "$",
+        t53
+      ] })
+    ] });
+    $[85] = t53;
+    $[86] = t54;
+  } else {
+    t54 = $[86];
+  }
+  let t55;
+  if ($[87] !== t44 || $[88] !== t47 || $[89] !== t51 || $[90] !== t54) {
+    t55 = /* @__PURE__ */ jsxRuntimeExports.jsxs("div", { className: "grid grid-cols-2 gap-3", children: [
+      t44,
+      t47,
+      t51,
+      t54
+    ] });
+    $[87] = t44;
+    $[88] = t47;
+    $[89] = t51;
+    $[90] = t54;
+    $[91] = t55;
+  } else {
+    t55 = $[91];
+  }
+  let t56;
+  if ($[92] !== result.positionPercent) {
+    t56 = result.positionPercent > 100 && /* @__PURE__ */ jsxRuntimeExports.jsxs("div", { className: "mt-3 px-3 py-2 rounded-md bg-red-500/10 border border-red-500/20 text-red-400 text-xs", "data-testid": "calc-oversize-warning", children: [
+      "⚠️ Position is ",
+      result.positionPercent,
+      "% of account — exceeds 100%"
+    ] });
+    $[92] = result.positionPercent;
+    $[93] = t56;
+  } else {
+    t56 = $[93];
+  }
+  let t57;
+  if ($[94] !== result.riskPerShare) {
+    t57 = result.riskPerShare.toFixed(2);
+    $[94] = result.riskPerShare;
+    $[95] = t57;
+  } else {
+    t57 = $[95];
+  }
+  let t58;
+  if ($[96] !== result.positionPercent || $[97] !== t57) {
+    t58 = /* @__PURE__ */ jsxRuntimeExports.jsxs("div", { className: "mt-3 text-xs text-fg-muted text-center", children: [
+      "Risk/Share: $",
+      t57,
+      " · Position: ",
+      result.positionPercent,
+      "% of account"
+    ] });
+    $[96] = result.positionPercent;
+    $[97] = t57;
+    $[98] = t58;
+  } else {
+    t58 = $[98];
+  }
+  let t59;
+  if ($[99] !== t55 || $[100] !== t56 || $[101] !== t58) {
+    t59 = /* @__PURE__ */ jsxRuntimeExports.jsxs("div", { className: "border-t border-bg-subtle pt-4", children: [
+      t38,
+      t55,
+      t56,
+      t58
+    ] });
+    $[99] = t55;
+    $[100] = t56;
+    $[101] = t58;
+    $[102] = t59;
+  } else {
+    t59 = $[102];
+  }
+  let t60;
+  if ($[103] === /* @__PURE__ */ Symbol.for("react.memo_cache_sentinel")) {
+    t60 = /* @__PURE__ */ jsxRuntimeExports.jsx("button", { "data-testid": "calc-reset-btn", onClick: handleReset, className: "px-4 py-1.5 text-sm rounded-md border border-bg-subtle bg-bg text-fg-muted hover:text-fg cursor-pointer", children: "Reset" });
+    $[103] = t60;
+  } else {
+    t60 = $[103];
+  }
+  let t61;
+  if ($[104] !== onClose) {
+    t61 = /* @__PURE__ */ jsxRuntimeExports.jsxs("div", { className: "flex gap-2 pt-2 border-t border-bg-subtle", children: [
+      t60,
+      /* @__PURE__ */ jsxRuntimeExports.jsx("button", { onClick: onClose, className: "px-4 py-1.5 text-sm rounded-md bg-accent text-accent-fg hover:bg-accent/90 border border-accent cursor-pointer ml-auto", children: "Close" })
+    ] });
+    $[104] = onClose;
+    $[105] = t61;
+  } else {
+    t61 = $[105];
+  }
+  let t62;
+  if ($[106] !== t17 || $[107] !== t24 || $[108] !== t37 || $[109] !== t59 || $[110] !== t61) {
+    t62 = /* @__PURE__ */ jsxRuntimeExports.jsxs("div", { className: "p-4 space-y-4", children: [
+      t17,
+      t24,
+      t37,
+      t59,
+      t61
+    ] });
+    $[106] = t17;
+    $[107] = t24;
+    $[108] = t37;
+    $[109] = t59;
+    $[110] = t61;
+    $[111] = t62;
+  } else {
+    t62 = $[111];
+  }
+  let t63;
+  if ($[112] !== t13 || $[113] !== t62) {
+    t63 = /* @__PURE__ */ jsxRuntimeExports.jsx("div", { className: "fixed inset-0 bg-black/50 flex items-center justify-center z-50", "data-testid": "calculator-modal", role: "dialog", "aria-modal": "true", "aria-labelledby": "calc-modal-heading", children: /* @__PURE__ */ jsxRuntimeExports.jsxs("div", { className: "bg-bg-elevated border border-bg-subtle rounded-lg shadow-xl w-[420px] max-h-[90vh] overflow-y-auto", children: [
+      t13,
+      t62
+    ] }) });
+    $[112] = t13;
+    $[113] = t62;
+    $[114] = t63;
+  } else {
+    t63 = $[114];
+  }
+  return t63;
+}
+function usePersistedState(key, defaultValue) {
+  const $ = compilerRuntimeExports.c(27);
+  const queryClient2 = useQueryClient();
+  let t0;
+  if ($[0] !== key) {
+    t0 = ["settings", key];
+    $[0] = key;
+    $[1] = t0;
+  } else {
+    t0 = $[1];
+  }
+  const queryKey = t0;
+  let t1;
+  if ($[2] !== defaultValue || $[3] !== key) {
+    t1 = async () => {
+      try {
+        const result = await apiFetch(`/api/v1/settings/${key}`);
+        return result.value;
+      } catch {
+        return defaultValue;
+      }
+    };
+    $[2] = defaultValue;
+    $[3] = key;
+    $[4] = t1;
+  } else {
+    t1 = $[4];
+  }
+  let t2;
+  if ($[5] !== defaultValue || $[6] !== queryKey || $[7] !== t1) {
+    t2 = {
+      queryKey,
+      queryFn: t1,
+      initialData: defaultValue
+    };
+    $[5] = defaultValue;
+    $[6] = queryKey;
+    $[7] = t1;
+    $[8] = t2;
+  } else {
+    t2 = $[8];
+  }
+  const {
+    data,
+    isFetching
+  } = useQuery(t2);
+  let t3;
+  if ($[9] !== key) {
+    t3 = async (value) => {
+      await apiFetch(`/api/v1/settings/${key}`, {
+        method: "PUT",
+        body: JSON.stringify({
+          value
+        })
+      });
+    };
+    $[9] = key;
+    $[10] = t3;
+  } else {
+    t3 = $[10];
+  }
+  let t4;
+  let t5;
+  let t6;
+  if ($[11] !== queryClient2 || $[12] !== queryKey) {
+    t4 = async (newValue) => {
+      await queryClient2.cancelQueries({
+        queryKey
+      });
+      const previous = queryClient2.getQueryData(queryKey);
+      queryClient2.setQueryData(queryKey, newValue);
+      return {
+        previous
+      };
+    };
+    t5 = (_err, _newValue, context) => {
+      queryClient2.setQueryData(queryKey, context?.previous);
+    };
+    t6 = () => {
+      queryClient2.invalidateQueries({
+        queryKey
+      });
+    };
+    $[11] = queryClient2;
+    $[12] = queryKey;
+    $[13] = t4;
+    $[14] = t5;
+    $[15] = t6;
+  } else {
+    t4 = $[13];
+    t5 = $[14];
+    t6 = $[15];
+  }
+  let t7;
+  if ($[16] !== t3 || $[17] !== t4 || $[18] !== t5 || $[19] !== t6) {
+    t7 = {
+      mutationFn: t3,
+      onMutate: t4,
+      onError: t5,
+      onSettled: t6
+    };
+    $[16] = t3;
+    $[17] = t4;
+    $[18] = t5;
+    $[19] = t6;
+    $[20] = t7;
+  } else {
+    t7 = $[20];
+  }
+  const mutation = useMutation(t7);
+  let t8;
+  if ($[21] !== mutation) {
+    t8 = (value_0) => mutation.mutate(value_0);
+    $[21] = mutation;
+    $[22] = t8;
+  } else {
+    t8 = $[22];
+  }
+  const setValue = t8;
+  const t9 = data ?? defaultValue;
+  let t10;
+  if ($[23] !== isFetching || $[24] !== setValue || $[25] !== t9) {
+    t10 = [t9, setValue, isFetching];
+    $[23] = isFetching;
+    $[24] = setValue;
+    $[25] = t9;
+    $[26] = t10;
+  } else {
+    t10 = $[26];
+  }
+  return t10;
+}
+function useRouteRestoration(currentPath, navigate) {
+  const $ = compilerRuntimeExports.c(14);
+  const [savedPage, setSavedPage, isFetching] = usePersistedState("ui.activePage", "/");
+  const hasRestored = reactExports.useRef(false);
+  let t0;
+  if ($[0] !== currentPath || $[1] !== isFetching || $[2] !== navigate || $[3] !== savedPage) {
+    t0 = () => {
+      if (!hasRestored.current && !isFetching) {
+        hasRestored.current = true;
+        if (savedPage && savedPage !== "/" && savedPage !== currentPath) {
+          navigate(savedPage);
+        }
+      }
+    };
+    $[0] = currentPath;
+    $[1] = isFetching;
+    $[2] = navigate;
+    $[3] = savedPage;
+    $[4] = t0;
+  } else {
+    t0 = $[4];
+  }
+  let t1;
+  if ($[5] !== isFetching || $[6] !== savedPage) {
+    t1 = [savedPage, isFetching];
+    $[5] = isFetching;
+    $[6] = savedPage;
+    $[7] = t1;
+  } else {
+    t1 = $[7];
+  }
+  reactExports.useEffect(t0, t1);
+  let t2;
+  if ($[8] !== currentPath || $[9] !== savedPage || $[10] !== setSavedPage) {
+    t2 = () => {
+      if (hasRestored.current && currentPath !== savedPage) {
+        setSavedPage(currentPath);
+      }
+    };
+    $[8] = currentPath;
+    $[9] = savedPage;
+    $[10] = setSavedPage;
+    $[11] = t2;
+  } else {
+    t2 = $[11];
+  }
+  let t3;
+  if ($[12] !== currentPath) {
+    t3 = [currentPath];
+    $[12] = currentPath;
+    $[13] = t3;
+  } else {
+    t3 = $[13];
+  }
+  reactExports.useEffect(t2, t3);
+}
+function useTheme() {
+  const $ = compilerRuntimeExports.c(6);
+  const [theme, setTheme] = usePersistedState("ui.theme", "dark");
+  let t0;
+  let t1;
+  if ($[0] !== theme) {
+    t0 = () => {
+      const root = document.documentElement;
+      if (theme === "dark") {
+        root.classList.add("dark");
+      } else {
+        root.classList.remove("dark");
+      }
+    };
+    t1 = [theme];
+    $[0] = theme;
+    $[1] = t0;
+    $[2] = t1;
+  } else {
+    t0 = $[1];
+    t1 = $[2];
+  }
+  reactExports.useEffect(t0, t1);
+  let t2;
+  if ($[3] !== setTheme || $[4] !== theme) {
+    t2 = [theme, setTheme];
+    $[3] = setTheme;
+    $[4] = theme;
+    $[5] = t2;
+  } else {
+    t2 = $[5];
+  }
+  return t2;
+}
 function AppShell(t0) {
-  const $ = compilerRuntimeExports.c(16);
+  const $ = compilerRuntimeExports.c(26);
   const {
     children
   } = t0;
   const [paletteOpen, setPaletteOpen] = reactExports.useState(false);
+  const [calculatorOpen, setCalculatorOpen] = reactExports.useState(false);
+  const navigate = useNavigate();
+  const location = useLocation();
   let t1;
+  if ($[0] !== navigate) {
+    t1 = (path) => navigate({
+      to: path
+    });
+    $[0] = navigate;
+    $[1] = t1;
+  } else {
+    t1 = $[1];
+  }
+  useRouteRestoration(location.pathname, t1);
+  useTheme();
   let t2;
-  if ($[0] === /* @__PURE__ */ Symbol.for("react.memo_cache_sentinel")) {
-    t1 = () => {
+  let t3;
+  if ($[2] === /* @__PURE__ */ Symbol.for("react.memo_cache_sentinel")) {
+    t2 = () => {
       const handler = (e) => {
         if ((e.ctrlKey || e.metaKey) && e.key === "k") {
           e.preventDefault();
@@ -23292,89 +24736,146 @@ function AppShell(t0) {
       window.addEventListener("keydown", handler);
       return () => window.removeEventListener("keydown", handler);
     };
-    t2 = [];
-    $[0] = t1;
-    $[1] = t2;
+    t3 = [];
+    $[2] = t2;
+    $[3] = t3;
   } else {
-    t1 = $[0];
-    t2 = $[1];
+    t2 = $[2];
+    t3 = $[3];
   }
-  reactExports.useEffect(t1, t2);
-  let t3;
+  reactExports.useEffect(t2, t3);
   let t4;
-  if ($[2] === /* @__PURE__ */ Symbol.for("react.memo_cache_sentinel")) {
-    t3 = /* @__PURE__ */ jsxRuntimeExports.jsx(SkipLink, {});
-    t4 = /* @__PURE__ */ jsxRuntimeExports.jsx(NavRail, {});
-    $[2] = t3;
-    $[3] = t4;
-  } else {
-    t3 = $[2];
-    t4 = $[3];
-  }
   let t5;
   if ($[4] === /* @__PURE__ */ Symbol.for("react.memo_cache_sentinel")) {
-    t5 = /* @__PURE__ */ jsxRuntimeExports.jsx(Header, { onCommandPaletteToggle: () => setPaletteOpen(true) });
-    $[4] = t5;
+    t4 = () => {
+      const handler_0 = (e_0) => {
+        if (e_0.ctrlKey && e_0.shiftKey && e_0.key === "C") {
+          e_0.preventDefault();
+          setCalculatorOpen(_temp2$1);
+        }
+      };
+      window.addEventListener("keydown", handler_0);
+      return () => window.removeEventListener("keydown", handler_0);
+    };
+    t5 = [];
+    $[4] = t4;
+    $[5] = t5;
   } else {
-    t5 = $[4];
+    t4 = $[4];
+    t5 = $[5];
   }
+  reactExports.useEffect(t4, t5);
   let t6;
-  if ($[5] !== children) {
-    t6 = /* @__PURE__ */ jsxRuntimeExports.jsx("main", { id: "main-content", className: "flex-1 overflow-auto p-4", children });
-    $[5] = children;
-    $[6] = t6;
-  } else {
-    t6 = $[6];
-  }
   let t7;
-  if ($[7] === /* @__PURE__ */ Symbol.for("react.memo_cache_sentinel")) {
-    t7 = /* @__PURE__ */ jsxRuntimeExports.jsx(StatusFooter, {});
+  if ($[6] === /* @__PURE__ */ Symbol.for("react.memo_cache_sentinel")) {
+    t6 = () => {
+      const handler_1 = () => setCalculatorOpen(true);
+      window.addEventListener("zorivest:open-calculator", handler_1);
+      return () => window.removeEventListener("zorivest:open-calculator", handler_1);
+    };
+    t7 = [];
+    $[6] = t6;
     $[7] = t7;
   } else {
+    t6 = $[6];
     t7 = $[7];
   }
+  reactExports.useEffect(t6, t7);
   let t8;
-  if ($[8] !== t6) {
-    t8 = /* @__PURE__ */ jsxRuntimeExports.jsxs("div", { className: "flex flex-col flex-1 min-w-0", children: [
-      t5,
-      t6,
-      t7
-    ] });
-    $[8] = t6;
-    $[9] = t8;
-  } else {
-    t8 = $[9];
-  }
   let t9;
-  if ($[10] === /* @__PURE__ */ Symbol.for("react.memo_cache_sentinel")) {
-    t9 = () => setPaletteOpen(false);
-    $[10] = t9;
+  if ($[8] === /* @__PURE__ */ Symbol.for("react.memo_cache_sentinel")) {
+    t8 = /* @__PURE__ */ jsxRuntimeExports.jsx(SkipLink, {});
+    t9 = /* @__PURE__ */ jsxRuntimeExports.jsx(NavRail, {});
+    $[8] = t8;
+    $[9] = t9;
   } else {
-    t9 = $[10];
+    t8 = $[8];
+    t9 = $[9];
   }
   let t10;
-  if ($[11] !== paletteOpen) {
-    t10 = /* @__PURE__ */ jsxRuntimeExports.jsx(CommandPalette, { open: paletteOpen, onClose: t9 });
-    $[11] = paletteOpen;
-    $[12] = t10;
+  if ($[10] === /* @__PURE__ */ Symbol.for("react.memo_cache_sentinel")) {
+    t10 = /* @__PURE__ */ jsxRuntimeExports.jsx(Header, { onCommandPaletteToggle: () => setPaletteOpen(true) });
+    $[10] = t10;
   } else {
-    t10 = $[12];
+    t10 = $[10];
   }
   let t11;
-  if ($[13] !== t10 || $[14] !== t8) {
-    t11 = /* @__PURE__ */ jsxRuntimeExports.jsx(StatusBarProvider, { children: /* @__PURE__ */ jsxRuntimeExports.jsxs("div", { className: "flex h-screen bg-bg text-fg", children: [
-      t3,
-      t4,
-      t8,
-      t10
-    ] }) });
-    $[13] = t10;
-    $[14] = t8;
-    $[15] = t11;
+  if ($[11] !== children) {
+    t11 = /* @__PURE__ */ jsxRuntimeExports.jsx("main", { id: "main-content", className: "flex-1 overflow-auto p-4", children });
+    $[11] = children;
+    $[12] = t11;
   } else {
-    t11 = $[15];
+    t11 = $[12];
   }
-  return t11;
+  let t12;
+  if ($[13] === /* @__PURE__ */ Symbol.for("react.memo_cache_sentinel")) {
+    t12 = /* @__PURE__ */ jsxRuntimeExports.jsx(StatusFooter, {});
+    $[13] = t12;
+  } else {
+    t12 = $[13];
+  }
+  let t13;
+  if ($[14] !== t11) {
+    t13 = /* @__PURE__ */ jsxRuntimeExports.jsxs("div", { className: "flex flex-col flex-1 min-w-0", children: [
+      t10,
+      t11,
+      t12
+    ] });
+    $[14] = t11;
+    $[15] = t13;
+  } else {
+    t13 = $[15];
+  }
+  let t14;
+  if ($[16] === /* @__PURE__ */ Symbol.for("react.memo_cache_sentinel")) {
+    t14 = () => setPaletteOpen(false);
+    $[16] = t14;
+  } else {
+    t14 = $[16];
+  }
+  let t15;
+  if ($[17] !== paletteOpen) {
+    t15 = /* @__PURE__ */ jsxRuntimeExports.jsx(CommandPalette, { open: paletteOpen, onClose: t14 });
+    $[17] = paletteOpen;
+    $[18] = t15;
+  } else {
+    t15 = $[18];
+  }
+  let t16;
+  if ($[19] === /* @__PURE__ */ Symbol.for("react.memo_cache_sentinel")) {
+    t16 = () => setCalculatorOpen(false);
+    $[19] = t16;
+  } else {
+    t16 = $[19];
+  }
+  let t17;
+  if ($[20] !== calculatorOpen) {
+    t17 = /* @__PURE__ */ jsxRuntimeExports.jsx(PositionCalculatorModal, { isOpen: calculatorOpen, onClose: t16 });
+    $[20] = calculatorOpen;
+    $[21] = t17;
+  } else {
+    t17 = $[21];
+  }
+  let t18;
+  if ($[22] !== t13 || $[23] !== t15 || $[24] !== t17) {
+    t18 = /* @__PURE__ */ jsxRuntimeExports.jsx(StatusBarProvider, { children: /* @__PURE__ */ jsxRuntimeExports.jsxs("div", { className: "flex h-screen bg-bg text-fg", children: [
+      t8,
+      t9,
+      t13,
+      t15,
+      t17
+    ] }) });
+    $[22] = t13;
+    $[23] = t15;
+    $[24] = t17;
+    $[25] = t18;
+  } else {
+    t18 = $[25];
+  }
+  return t18;
+}
+function _temp2$1(prev_0) {
+  return !prev_0;
 }
 function _temp$1(prev) {
   return !prev;
@@ -23386,29 +24887,36 @@ const rootRoute = createRootRoute({
 const accountsRoute = createRoute({
   getParentRoute: () => rootRoute,
   path: "/",
-  component: React.lazy(() => __vitePreload(() => import("./AccountsHome-Bkd1uhj1.js"), true ? [] : void 0, import.meta.url))
+  component: React.lazy(() => __vitePreload(() => import("./AccountsHome-DIDLaTtX.js"), true ? [] : void 0, import.meta.url))
 });
 const tradesRoute = createRoute({
   getParentRoute: () => rootRoute,
   path: "/trades",
-  component: React.lazy(() => __vitePreload(() => import("./TradesLayout-Y3DY7gke.js"), true ? [] : void 0, import.meta.url))
+  component: React.lazy(() => __vitePreload(() => import("./TradesLayout-D7g1qJpB.js"), true ? [] : void 0, import.meta.url))
 });
 const planningRoute = createRoute({
   getParentRoute: () => rootRoute,
   path: "/planning",
-  component: React.lazy(() => __vitePreload(() => import("./PlanningLayout-D4UTlBqg.js"), true ? [] : void 0, import.meta.url))
+  component: React.lazy(() => __vitePreload(() => import("./PlanningLayout-g1GD8_SI.js"), true ? [] : void 0, import.meta.url))
 });
 const schedulingRoute = createRoute({
   getParentRoute: () => rootRoute,
   path: "/scheduling",
-  component: React.lazy(() => __vitePreload(() => import("./SchedulingLayout-DwhLxxXI.js"), true ? [] : void 0, import.meta.url))
+  component: React.lazy(() => __vitePreload(() => import("./SchedulingLayout-BLv3Dq1H.js"), true ? [] : void 0, import.meta.url))
 });
 const settingsRoute = createRoute({
   getParentRoute: () => rootRoute,
   path: "/settings",
-  component: React.lazy(() => __vitePreload(() => import("./SettingsLayout-BqiG5VIr.js"), true ? [] : void 0, import.meta.url))
+  component: React.lazy(() => __vitePreload(() => import("./SettingsLayout-C_VemhkX.js"), true ? [] : void 0, import.meta.url))
 });
-const routeTree = rootRoute.addChildren([accountsRoute, tradesRoute, planningRoute, schedulingRoute, settingsRoute]);
+const settingsMarketRoute = createRoute({
+  getParentRoute: () => rootRoute,
+  path: "/settings/market",
+  component: React.lazy(() => __vitePreload(() => import("./MarketDataProvidersPage-DsJ9Keon.js"), true ? [] : void 0, import.meta.url).then((m) => ({
+    default: m.MarketDataProvidersPage
+  })))
+});
+const routeTree = rootRoute.addChildren([accountsRoute, tradesRoute, planningRoute, schedulingRoute, settingsRoute, settingsMarketRoute]);
 const router = createRouter({
   routeTree,
   history: hashHistory,
@@ -23690,20 +25198,6 @@ var $e = reactExports.forwardRef(function(e, t) {
     })) : null;
   }));
 });
-const getApiBase = () => typeof window !== "undefined" && window.api ? window.api.baseUrl : "http://127.0.0.1:8000";
-const getToken = () => typeof window !== "undefined" && window.api ? window.api.token : "";
-async function apiFetch(path, init) {
-  const res = await fetch(`${getApiBase()}${path}`, {
-    ...init,
-    headers: {
-      "Content-Type": "application/json",
-      Authorization: `Bearer ${getToken()}`,
-      ...init?.headers
-    }
-  });
-  if (!res.ok) throw new Error(`API ${res.status}: ${await res.text()}`);
-  return res.json();
-}
 const NotificationContext = reactExports.createContext(null);
 const SUPPRESSIBLE_CATEGORIES = ["success", "info", "warning", "confirmation"];
 async function fetchAllPreferences() {
@@ -23836,18 +25330,15 @@ if (rootEl) {
 }
 export {
   React as R,
-  Subscribable as S,
+  TickerAutocomplete as T,
   useStatusBar as a,
   useQuery as b,
   compilerRuntimeExports as c,
   apiFetch as d,
-  noop as e,
-  shouldThrowError as f,
-  getDefaultState as g,
-  hashKey as h,
+  useTheme as e,
+  useMutation as f,
+  useNavigate as g,
   jsxRuntimeExports as j,
-  notifyManager as n,
   reactExports as r,
-  shallowEqualObjects as s,
   useQueryClient as u
 };

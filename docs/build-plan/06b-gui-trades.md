@@ -483,4 +483,3 @@ TRADE DETAIL · [Info] [Journal] [Screenshots] [Excursion] [Fees] [Mistakes] [Ro
 - `ExpectancyDashboard` — win rate, avg win/loss, expectancy per trade, Kelly % (§13)
 - `MonthlyPnLCalendar` — calendar heatmap of daily P&L with color coding (§20)
 - `StrategyBreakdownPanel` — P&L breakdown by strategy_name with totals (§21)
-

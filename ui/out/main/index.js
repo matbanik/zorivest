@@ -230,6 +230,11 @@ function registerIpcHandlers() {
   electron.ipcMain.handle("log-renderer-ready", (_event, timestamp) => {
     console.log(`[startup] renderer ready at ${timestamp}ms`);
   });
+  electron.ipcMain.handle("open-external", (_event, url) => {
+    if (typeof url === "string" && /^https?:\/\//.test(url)) {
+      electron.shell.openExternal(url);
+    }
+  });
 }
 electron.app.whenReady().then(async () => {
   registerIpcHandlers();

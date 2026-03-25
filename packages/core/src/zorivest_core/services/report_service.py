@@ -170,7 +170,9 @@ class ReportService:
             return self.uow.trade_plans.get(plan_id)
 
     def list_plans(
-        self, limit: int = 100, offset: int = 0,
+        self,
+        limit: int = 100,
+        offset: int = 0,
     ) -> list[TradePlan]:
         """List TradePlans with pagination."""
         with self.uow:
@@ -196,7 +198,9 @@ class ReportService:
     # ── Linking methods (MEU-67) ────────────────────────────────────────
 
     def link_plan_to_trade(
-        self, plan_id: int, trade_id: str,
+        self,
+        plan_id: int,
+        trade_id: str,
     ) -> TradePlan:
         """Link a TradePlan to an executed Trade.
 
