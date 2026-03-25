@@ -202,7 +202,7 @@ class TestCascadeDelete:
     """AC-9: Deleting a watchlist removes all its items."""
 
     def test_delete_watchlist_cascades_items(
-        self, service: WatchlistService, engine: Any
+        self, service: WatchlistService, engine
     ) -> None:
         # Create two watchlists with items
         wl_a = service.create("WatchlistA")
