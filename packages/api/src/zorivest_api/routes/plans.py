@@ -253,10 +253,10 @@ def _to_response(plan: object) -> dict:
         "account_id": plan.account_id,  # type: ignore[attr-defined]
         "created_at": plan.created_at.isoformat() if plan.created_at else "",  # type: ignore[attr-defined]
         "updated_at": plan.updated_at.isoformat() if plan.updated_at else "",  # type: ignore[attr-defined]
-        "executed_at": plan.executed_at.isoformat()
+        "executed_at": plan.executed_at.isoformat()  # type: ignore[attr-defined]
         if getattr(plan, "executed_at", None)
-        else None,  # type: ignore[attr-defined]
-        "cancelled_at": plan.cancelled_at.isoformat()
+        else None,
+        "cancelled_at": plan.cancelled_at.isoformat()  # type: ignore[attr-defined]
         if getattr(plan, "cancelled_at", None)
-        else None,  # type: ignore[attr-defined]
+        else None,
     }
