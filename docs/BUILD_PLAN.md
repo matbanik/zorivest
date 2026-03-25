@@ -32,7 +32,7 @@ Domain → Infrastructure → Services → REST API → MCP Server → GUI → D
 | 5 | [MCP Server](build-plan/05-mcp-server.md) | `05-mcp-server.md` | Phase 4, 8 | TypeScript MCP tools, Vitest |
 | 6 | [GUI](build-plan/06-gui.md) | `06-gui.md` | Phase 4, 8 | Electron + React desktop app |
 | 7 | [Distribution](build-plan/07-distribution.md) | `07-distribution.md` | All | Electron Builder, PyPI, npm |
-| 8 | [Market Data](build-plan/08-market-data.md) | `08-market-data.md` | Phases 2–4 | 12 market data providers, API key encryption, MCP tools |
+| 8 | [Market Data](build-plan/08-market-data.md) | `08-market-data.md` | Phases 2–4 | 14 market data providers (12 API-key + 2 free via MEU-65), API key encryption, MCP tools |
 | 9 | [Scheduling & Pipelines](build-plan/09-scheduling.md) | `09-scheduling.md` | Phases 2–5, 8 | Policy engine, pipeline runner, APScheduler |
 | 10 | [Service Daemon](build-plan/10-service-daemon.md) | `10-service-daemon.md` | Phases 4, 7, 9 | Cross-platform OS service, ServiceManager |
 
@@ -205,7 +205,7 @@ Domain → Infrastructure → Services → REST API → MCP Server → GUI → D
 | MEU-46 | `gui-mcp-status` | 15i | [06f §6f.9](build-plan/06f-gui-settings.md) | MCP Server Status panel · **E2E Wave 0**: sidebar `data-testid` + `launch`/`mcp-tool` tests (5) | ✅ |
 | MEU-46a | `mcp-rest-proxy` | 15i.1 | [06f §6f.9 Data Sources](build-plan/06f-gui-settings.md) | REST proxy endpoints for MCP tool data (toolset count, API uptime) → completes MEU-46 panel · **Note:** GUI Settings "Registered tools" field currently shows `—`; this MEU adds `GET /api/v1/mcp/toolsets` + `GET /api/v1/mcp/diagnostics` endpoints so the GUI can display real numbers · `[PD-46a]`: static catalog + API uptime only (runtime loaded state deferred to `[MCP-HTTPBROKEN]`) · Depends on: MEU-46 ✅, Phase 4 ✅, Phase 5 ✅ | ✅ |
 | MEU-47 | `gui-trades` | 16 | [06b](build-plan/06b-gui-trades.md) | React pages — Trades · **E2E Wave 1**: `trade-entry`/`mode-gating` tests (+7 = 12) | ✅ |
-| MEU-48 | `gui-plans` | 16 | [06c](build-plan/06c-gui-planning.md) | React pages — Plans · **E2E Wave 4**: `position-size` tests (+2 = 18) | ⬜ |
+| MEU-48 | `gui-plans` | 16 | [06c](build-plan/06c-gui-planning.md), [06h](build-plan/06h-gui-calculator.md) | React pages — Plans · **E2E Wave 4**: `position-size` tests (+2 = 18) · **Calculator expansion (deferred per 06h §Exit Criteria):** ① Account balance auto-load from `/api/v1/accounts` ([06h §87-93](build-plan/06h-gui-calculator.md)) — depends on MEU-71 `gui-accounts` · ② Copy-to-clipboard button on share size output · ③ Ticker field to auto-fetch entry price from market data `GET /api/v1/market/quote/{ticker}` — depends on MEU-65 `market-data-gui` for provider setup · ④ Ticker autocomplete dropdown (short + full name) using `GET /api/v1/market/search?q=` (MEU-61 API already built) — reusable for TradePlanPage ticker field too | ✅ |
 | MEU-49 | `gui-notifications` | 16a | [06a §notify](build-plan/06a-gui-shell.md) | Notification system (toasts) | ✅ |
 | MEU-50 | `gui-command-palette` | 16b | [06a §Ctrl+K](build-plan/06a-gui-shell.md) | Command palette (Ctrl+K) | ✅ |
 | MEU-51 | `gui-state-persistence` | 16c | [06a §state](build-plan/06a-gui-shell.md) | UI state persistence | ✅ |
@@ -220,8 +220,8 @@ Domain → Infrastructure → Services → REST API → MCP Server → GUI → D
 |-----|------|:-----------:|----------------|-------------|:------:|
 | MEU-52 | `trade-report-entity` | 17 | [01 §entities](build-plan/01-domain-layer.md) | TradeReport entity + service | ✅ |
 | MEU-53 | `trade-report-mcp-api` | 18 | [05c](build-plan/05c-mcp-trade-analytics.md) | TradeReport MCP tools + API routes | ✅ |
-| MEU-54 | `multi-account-ui` | 19 | [06b](build-plan/06b-gui-trades.md) | Multi-account UI (badges, filtering) | ⬜ |
-| MEU-55 | `report-gui` | 20 | [06b](build-plan/06b-gui-trades.md) | Report GUI panel (ratings, tags, lessons) | ⬜ |
+| MEU-54 | `multi-account-ui` | 19 | [06b](build-plan/06b-gui-trades.md) | Multi-account UI (badges, filtering) | ✅ |
+| MEU-55 | `report-gui` | 20 | [06b](build-plan/06b-gui-trades.md) | Report GUI panel (ratings, tags, lessons) | ✅ |
 
 ---
 
@@ -234,13 +234,14 @@ Domain → Infrastructure → Services → REST API → MCP Server → GUI → D
 | MEU-56 | `market-provider-entity` | 21 | [08 §entity](build-plan/08-market-data.md) | MarketDataProvider entity + AuthMethod enum | ✅ |
 | MEU-57 | `market-response-dtos` | 22 | [08 §dtos](build-plan/08-market-data.md) | Normalized DTOs (MarketQuote, MarketNewsItem, etc.) | ✅ |
 | MEU-58 | `market-provider-settings` | 23 | [08 §settings](build-plan/08-market-data.md) | MarketProviderSettingModel + encrypted key storage | ✅ |
-| MEU-59 | `market-provider-registry` | 24 | [08 §registry](build-plan/08-market-data.md) | Provider registry (12 providers, config map) | ✅ |
+| MEU-59 | `market-provider-registry` | 24 | [08 §registry](build-plan/08-market-data.md) | Provider registry (12 API-key + 2 free providers, config map) | ✅ |
 | MEU-60 | `market-connection-svc` | 25 | [08 §connection](build-plan/08-market-data.md) | ProviderConnectionService (test, configure, list) | ✅ |
 | MEU-61 | `market-data-service` | 26 | [08 §service](build-plan/08-market-data.md) | MarketDataService (quote, news, search, SEC filings) | ✅ |
 | MEU-62 | `market-rate-limiter` | 27 | [08 §rate-limit](build-plan/08-market-data.md) | Rate limiter (token-bucket) + log redaction | ✅ |
 | MEU-63 | `market-data-api` | 28 | [08 §api](build-plan/08-market-data.md) | Market data REST API (8 routes) | ✅ |
 | MEU-64 | `market-data-mcp` | 29 | [05e](build-plan/05e-mcp-market-data.md) | Market data MCP tools (7 tools) | ✅ |
-| MEU-65 | `market-data-gui` | 30 | [06f §providers](build-plan/06f-gui-settings.md) | Market Data Providers GUI settings page | ⬜ |
+| MEU-65 | `market-data-gui` | 30 | [06f §providers](build-plan/06f-gui-settings.md) | Market Data Providers GUI settings page | ✅ |
+| MEU-65a | `market-data-wiring` | 30.1 | [08 §8.9](build-plan/08-market-data.md#step-89-service-wiring) | Wire real `MarketDataService` + `ProviderConnectionService` into FastAPI lifespan (retire stubs); Yahoo Finance zero-config search fallback | ✅ |
 
 ---
 
@@ -255,7 +256,11 @@ Domain → Infrastructure → Services → REST API → MCP Server → GUI → D
 | MEU-68 | `watchlist` | 33 | [03](build-plan/03-service-layer.md) | Watchlist entity + service | ✅ |
 | MEU-69 | `plan-watchlist-mcp` | 34 | [05d](build-plan/05d-mcp-trade-planning.md) | TradePlan + Watchlist MCP tools | ✅ |
 | MEU-70 | `gui-planning` | 35 | [06c](build-plan/06c-gui-planning.md) | Planning GUI (plan cards, watchlists) | ⬜ |
-| MEU-71 | `gui-accounts` | 35a | [06d](build-plan/06d-gui-accounts.md) | Account Management GUI · **E2E Wave 2**: `persistence` tests (+2 = 14) | ⬜ |
+| MEU-70a | `watchlist-visual-redesign` | 35.1 | [06i](build-plan/06i-gui-watchlist-visual.md) | Watchlist visual redesign (Level 1: dark palette, price columns, tabular figures, gain/loss arrows) + [PLAN-NOSIZE] full-stack `position_size`/`shares` field · Depends on: MEU-65, MEU-70 | ⏯ |
+| MEU-70b | `planning-ux-polish` | 35.2 | [06c §ux](build-plan/06c-gui-planning.md) | Trade Planner UX polish: segmented status buttons (no dropdown), conditional Link-to-Trade grayout, picker selection label feedback, editable `shares_planned` field · Frontend-only | ✅ |
+| MEU-71 | `account-entity-api` | 35a.0 | [06d](build-plan/06d-gui-accounts.md) | Account entity + service + REST API; migrate `TradePlan.account` + `Trade.account` from free-form string to FK; Alembic migration | ⏸ |
+| MEU-71a | `account-gui` | 35a.1 | [06d](build-plan/06d-gui-accounts.md) | Account Management GUI (list, add, edit, balance display); accounts dropdown in Trade Planner form | ⏸ |
+| MEU-71b | `calculator-account-integration` | 35a.2 | [06h](build-plan/06h-gui-calculator.md) | Position Calculator pulls account balance from selected account for risk % calculation · Depends on MEU-71 + MEU-71a | ⏸ |
 | MEU-72 | `gui-scheduling` | 35b | [06e](build-plan/06e-gui-scheduling.md) | Scheduling GUI | ⬜ |
 | MEU-73 | `gui-email-settings` | 35c | [06f §email](build-plan/06f-gui-settings.md) | Email Provider Settings GUI | ⬜ |
 | MEU-74 | `gui-backup-restore` | 35d | [06f §backup](build-plan/06f-gui-settings.md) | Backup & Restore Settings GUI · **E2E Wave 3**: `backup-restore` tests (+2 = 16) | ⬜ |
@@ -296,10 +301,10 @@ Domain → Infrastructure → Services → REST API → MCP Server → GUI → D
 
 | MEU | Slug | Matrix Item | Build Plan Ref | Description | Status |
 |-----|------|:-----------:|----------------|-------------|:------:|
-| MEU-90a | `persistence-wiring` | 49.0 | [09a §all](build-plan/09a-persistence-integration.md) | Replace StubUnitOfWork with SqlAlchemyUnitOfWork; wire all 17 real repos; fix guardrails getattr/dict mismatch; Alembic bootstrap | ⬜ |
-| MEU-90b | `mode-gating-test-isolation` | 49.1 | [testing-strategy](build-plan/testing-strategy.md) | Fix 8 flaky mode-gating tests: per-test `app.state` reset so lock/unlock doesn't leak across modules | ⬜ |
-| MEU-90c | `sqlcipher-native-deps` | 49.2 | [02 §2.3](build-plan/02-infrastructure.md), [ADR-001](../adrs/ADR-001-optional-sqlcipher-encryption.md) | Resolve sqlcipher3 availability on Windows; clear 15 skipped encryption tests | ⬜ |
-| MEU-90d | `rendering-deps` | 49.3 | [09 §9.7d](build-plan/09-scheduling.md) | Install + validate Playwright + kaleido rendering extras; clear 1 skipped RenderStep test | ⬜ |
+| MEU-90a | `persistence-wiring` | 49.0 | [09a §all](build-plan/09a-persistence-integration.md) | Replace StubUnitOfWork with SqlAlchemyUnitOfWork; wire all 17 real repos; fix guardrails getattr/dict mismatch; Alembic bootstrap | 🟡 |
+| MEU-90b | `mode-gating-test-isolation` | 49.1 | [testing-strategy](build-plan/testing-strategy.md) | Fix 8 flaky mode-gating tests: per-test `app.state` reset so lock/unlock doesn't leak across modules | 🔴 |
+| MEU-90c | `sqlcipher-native-deps` | 49.2 | [02 §2.3](build-plan/02-infrastructure.md), [ADR-001](../adrs/ADR-001-optional-sqlcipher-encryption.md) | Resolve sqlcipher3 availability on Windows; clear 15 skipped encryption tests | 🚫 closed — won't fix locally; CI covered via `crypto-tests` job (ADR-001 Option A+B, human decision 2026-03-22) |
+| MEU-90d | `rendering-deps` | 49.3 | [09 §9.7d](build-plan/09-scheduling.md) | Install + validate Playwright + kaleido rendering extras; clear 1 skipped RenderStep test | 🟡 |
 
 ---
 
@@ -489,10 +494,10 @@ Domain → Infrastructure → Services → REST API → MCP Server → GUI → D
 | P0 — Phase 2/2A | MEU-12 → MEU-21 | 10 | 10 |
 | P0 — Phase 3/4 | MEU-22 → MEU-30 | 9 | 9 |
 | P0 — Phase 5 | MEU-31 → MEU-42 | 12 | 12 |
-| P0 — Phase 6 | MEU-43 → MEU-51 | 10 | 6 |
-| P1 | MEU-52 → MEU-55 | 4 | 2 |
-| P1.5 — Phase 8 | MEU-56 → MEU-65 | 10 | 9 |
-| P2 | MEU-66 → MEU-76 | 11 | 4 |
+| P0 — Phase 6 | MEU-43 → MEU-51 | 10 | 7 |
+| P1 | MEU-52 → MEU-55 | 4 | 4 |
+| P1.5 — Phase 8 | MEU-56 → MEU-65 | 10 | 10 |
+| P2 | MEU-66 → MEU-76 | 12 | 4 |
 | P2.5 — Phase 9 | MEU-77 → MEU-90 | 14 | 14 |
 | P2.5a — Integration | MEU-90a → MEU-90d | 4 | 0 |
 | P2.6 — Phase 10 | MEU-91 → MEU-95 | 5 | 0 |
@@ -500,7 +505,7 @@ Domain → Infrastructure → Services → REST API → MCP Server → GUI → D
 | P3 — Tax | MEU-123 → MEU-156 | 34 | 0 |
 | Phase 7 | MEU-157 | 1 | 0 |
 | Research | MEU-158 → MEU-170 | 13 | 0 |
-| **Total** | | **178** | **82** |
+| **Total** | | **179** | **85** |
 
 ---
 

@@ -830,3 +830,49 @@ Pattern match: Memory/Session/Zorivest-{project-slug}-{date} ✅
 
 - Status: `corrections_applied`
 - All recheck 7 findings resolved. Ready for recheck.
+
+---
+
+## Recheck Update 9 — 2026-03-24 (Modified Workflow Emphasis)
+
+### Scope Reviewed
+
+- Rechecked with the updated `critical-review-feedback` workflow priority order, which now emphasizes runtime behavior, TDD/test rigor, and evidence quality ahead of documentation drift for implementation-adjacent reviews.
+- Reviewed:
+  - `docs/execution/plans/2026-03-15-pipeline-steps/implementation-plan.md`
+  - `docs/execution/plans/2026-03-15-pipeline-steps/task.md`
+  - `pyproject.toml`
+  - `AGENTS.md`
+  - `.agent/workflows/critical-review-feedback.md`
+  - existence of claimed execution artifacts (`070/071/072` handoffs, reflection, metrics, registry rows)
+
+### Commands Executed
+
+- Line-numbered `Get-Content` reads for:
+  - `docs/execution/plans/2026-03-15-pipeline-steps/implementation-plan.md`
+  - `docs/execution/plans/2026-03-15-pipeline-steps/task.md`
+  - `.agent/context/handoffs/2026-03-15-pipeline-steps-plan-critical-review.md`
+  - `AGENTS.md`
+  - `.agent/workflows/critical-review-feedback.md`
+- Validation spot checks:
+  - `Get-ChildItem` for handoffs `070`, `071`, `072`
+  - `Get-ChildItem` for reflection + `commit-messages.md`
+  - `rg -n "2026-03-15-pipeline-steps|MEU-85|MEU-86|MEU-87" docs/BUILD_PLAN.md .agent/context/meu-registry.md docs/execution/metrics.md`
+  - `uv sync --extra rendering --dry-run`
+  - `pomera_notes.list(search_term="Zorivest pipeline steps", limit=10)`
+
+### Findings by Severity
+
+- No findings under the modified review emphasis.
+
+### Rationale
+
+- The previously blocking plan defects that materially affected execution readiness are closed in the current artifacts: the render extra resolves cleanly from workspace root, the task row for session memory now targets the canonical `pomera_notes` artifact, and the plan/task pair no longer relies on the broken broad-search validation path.
+- The plan's claimed downstream outputs are also no longer speculative: the execution handoffs, reflection, metrics row, and registry/BUILD_PLAN entries all exist, so there is no remaining functionality-first reason to reopen the historical plan review.
+- I did not elevate residual document-history oddities in this pass because the updated workflow explicitly deprioritizes documentation drift unless it misstates runtime behavior, test coverage, or unresolved risk.
+
+### Updated Verdict
+
+- Verdict: `approved`
+- Residual risks:
+  - This is now a historical plan artifact for a project that has already been executed. Any future review should be implementation-focused rather than reopening plan-format questions unless new evidence shows the plan still misstates shipped behavior.

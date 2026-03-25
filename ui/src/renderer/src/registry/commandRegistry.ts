@@ -82,7 +82,7 @@ export function createStaticEntries(
             category: 'action',
             keywords: ['size', 'risk', 'shares'],
             icon: Calculator,
-            action: () => { console.info('[command] Position Calculator — not yet implemented') },
+            action: () => { window.dispatchEvent(new CustomEvent('zorivest:open-calculator')) },
             shortcut: 'Ctrl+Shift+C',
         },
         {

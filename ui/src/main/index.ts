@@ -140,6 +140,13 @@ function registerIpcHandlers(): void {
     ipcMain.handle('log-renderer-ready', (_event, timestamp: number) => {
         console.log(`[startup] renderer ready at ${timestamp}ms`)
     })
+
+    // Open external URLs in the system browser (http/https only)
+    ipcMain.handle('open-external', (_event, url: string) => {
+        if (typeof url === 'string' && /^https?:\/\//.test(url)) {
+            shell.openExternal(url)
+        }
+    })
 }
 
 /** App startup sequence */

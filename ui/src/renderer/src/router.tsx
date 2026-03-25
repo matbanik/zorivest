@@ -49,12 +49,23 @@ const settingsRoute = createRoute({
     component: React.lazy(() => import('./features/settings/SettingsLayout')),
 })
 
+const settingsMarketRoute = createRoute({
+    getParentRoute: () => rootRoute,
+    path: '/settings/market',
+    component: React.lazy(
+        () => import('./features/settings/MarketDataProvidersPage').then(m => ({
+            default: m.MarketDataProvidersPage,
+        })),
+    ),
+})
+
 const routeTree = rootRoute.addChildren([
     accountsRoute,
     tradesRoute,
     planningRoute,
     schedulingRoute,
     settingsRoute,
+    settingsMarketRoute,
 ])
 
 export const router = createRouter({

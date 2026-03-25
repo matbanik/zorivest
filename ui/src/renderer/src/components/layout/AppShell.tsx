@@ -1,10 +1,11 @@
-import React, { useEffect, useState } from 'react'
+import React, { useEffect, useState, useCallback } from 'react'
 import { useNavigate, useLocation } from '@tanstack/react-router'
 import SkipLink from '../SkipLink'
 import NavRail from './NavRail'
 import Header from './Header'
 import StatusFooter from './StatusFooter'
 import CommandPalette from '../CommandPalette'
+import PositionCalculatorModal from '../../features/planning/PositionCalculatorModal'
 import { StatusBarProvider } from '../../hooks/useStatusBar'
 import { useRouteRestoration } from '../../hooks/useRouteRestoration'
 import { useTheme } from '../../hooks/useTheme'
@@ -20,9 +21,11 @@ interface AppShellProps {
  * Per 06-gui.md §App Shell Architecture.
  *
  * MEU-51: Persistence wiring — route restoration + theme persistence.
+ * MEU-48: Global Position Calculator (Ctrl+Shift+C / command palette).
  */
 export default function AppShell({ children }: AppShellProps) {
     const [paletteOpen, setPaletteOpen] = useState(false)
+    const [calculatorOpen, setCalculatorOpen] = useState(false)
     const navigate = useNavigate()
     const location = useLocation()
 
@@ -44,6 +47,29 @@ export default function AppShell({ children }: AppShellProps) {
         return () => window.removeEventListener('keydown', handler)
     }, [])
 
+    // Global Ctrl+Shift+C shortcut — opens Position Calculator from any page (AC-13)
+    useEffect(() => {
+        const handler = (e: KeyboardEvent) => {
+            if (e.ctrlKey && e.shiftKey && e.key === 'C') {
+                e.preventDefault()
+                setCalculatorOpen((prev) => !prev)
+            }
+        }
+        window.addEventListener('keydown', handler)
+        return () => window.removeEventListener('keydown', handler)
+    }, [])
+
+    // Listen for command palette / custom event trigger
+    useEffect(() => {
+        const handler = () => setCalculatorOpen(true)
+        window.addEventListener('zorivest:open-calculator', handler)
+        return () => window.removeEventListener('zorivest:open-calculator', handler)
+    }, [])
+
+    const handleOpenCalculator = useCallback(() => {
+        setCalculatorOpen(true)
+    }, [])
+
     return (
         <StatusBarProvider>
             <div className="flex h-screen bg-bg text-fg">
@@ -59,6 +85,10 @@ export default function AppShell({ children }: AppShellProps) {
                 <CommandPalette
                     open={paletteOpen}
                     onClose={() => setPaletteOpen(false)}
+                />
+                <PositionCalculatorModal
+                    isOpen={calculatorOpen}
+                    onClose={() => setCalculatorOpen(false)}
                 />
             </div>
         </StatusBarProvider>

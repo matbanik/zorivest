@@ -159,6 +159,36 @@ Living reference of implementation standards discovered during development sessi
 - **Bad example:** `cast(TradeModel.time, String).like(pattern)` — format is implementation-dependent
 - **Good example:** `func.strftime('%Y-%m-%d %H:%M', TradeModel.time).like(pattern)`
 
+### G11 — Global Actions Must Route Through AppShell via Custom Events
+- **Severity:** 🔴 Critical
+- **Applies to:** GUI
+- **Rule:** Command palette actions and global keyboard shortcuts that open modals/panels must be owned by `AppShell` (always-mounted root), not by feature-specific layouts. Use custom DOM events (`window.dispatchEvent(new CustomEvent('zorivest:action-name'))`) to bridge the command registry → AppShell gap.
+- **Origin:** 2026-03-20 — Position Calculator command palette entry was a console-log stub. After wiring it to `PlanningLayout`, it only worked on the `/planning` page. Keyboard shortcut `Ctrl+Shift+C` had the same bug — the `useEffect` listener was inside `PlanningLayout` which only mounts on one route.
+- **Bad example:** Calculator state + `Ctrl+Shift+C` listener inside `PlanningLayout` → only works when user is on `/planning` page → Command Palette "Position Calculator" does nothing on `/trades`
+- **Good example:**
+  1. `commandRegistry.ts`: `action: () => window.dispatchEvent(new CustomEvent('zorivest:open-calculator'))`
+  2. `AppShell.tsx`: `useEffect(() => { window.addEventListener('zorivest:open-calculator', handler); ... }, [])`
+  3. `AppShell.tsx`: Renders `<PositionCalculatorModal>` + owns `calculatorOpen` state + `Ctrl+Shift+C` listener
+  4. `PlanningLayout.tsx`: Calculator button dispatches same event: `window.dispatchEvent(new CustomEvent('zorivest:open-calculator'))`
+
+**Pattern summary:**
+
+| Layer | Responsibility | File |
+|-------|---------------|------|
+| Command Registry | Dispatch named custom event | `commandRegistry.ts` |
+| AppShell | Listen for event + own state + render modal + own keyboard shortcut | `AppShell.tsx` |
+| Feature Layout | Button triggers same event (convenience shortcut) | e.g. `PlanningLayout.tsx` |
+
+**Event naming convention:** `zorivest:{verb}-{noun}` (e.g. `zorivest:open-calculator`, `zorivest:import-trades`, `zorivest:start-review`)
+
+**Checklist for new global actions:**
+1. [ ] Modal/panel component exists with `isOpen` + `onClose` props
+2. [ ] State + `useEffect` listener added to `AppShell.tsx`
+3. [ ] `commandRegistry.ts` action dispatches `CustomEvent`
+4. [ ] Keyboard shortcut listener in `AppShell.tsx` (not feature layout)
+5. [ ] Feature page button (if any) dispatches same `CustomEvent`
+6. [ ] Tests verify event dispatch (not modal presence in feature layout)
+
 ---
 
 ## Pagination Standards
@@ -237,3 +267,106 @@ description: "List items with pagination. Returns {items, total, limit, offset} 
 - Count query uses same filters as list but no `LIMIT`/`OFFSET`/`ORDER BY`
 - MCP description must explicitly tell agents that `total` is real, and suggest `limit=1` for count-only discovery
 - For datasets < 100K rows, inline COUNT is negligible cost; at scale, consider caching or approximate counts
+
+---
+
+## Date & Time Formatting
+
+### DT1 — Trade Timestamp Display Format
+- **Severity:** 🟡 Medium
+- **Applies to:** GUI
+- **Rule:** Format all trade/event timestamps as `MM-DD-YYYY h:mmAM/PM` (e.g. `03-20-2026 2:35PM`). Never use locale strings (`toLocaleString`, `Mar 20, 2026`).
+- **Origin:** 2026-03-20 — Trade picker displayed `"3/20/2026, 2:35:00 PM"` (locale format); required format `"03-20-2026 2:35PM"`.
+- **Bad example:** `new Date(iso).toLocaleString()` → `"3/20/2026, 2:35:00 PM"` (varies by locale)
+- **Good example:**
+  ```ts
+  function formatTimestamp(iso: string | null | undefined): string {
+      if (!iso) return ''
+      const d = new Date(iso)
+      const mm = String(d.getMonth() + 1).padStart(2, '0')
+      const dd = String(d.getDate()).padStart(2, '0')
+      const h = d.getHours() % 12 || 12
+      const minutes = String(d.getMinutes()).padStart(2, '0')
+      const ampm = d.getHours() >= 12 ? 'PM' : 'AM'
+      return `${mm}-${dd}-${d.getFullYear()} ${h}:${minutes}${ampm}`
+  }
+  ```
+
+### DT2 — No Seconds in UI Display
+- **Severity:** 🟢 Minor
+- **Applies to:** GUI
+- **Rule:** Trade timestamps in the UI omit seconds (`h:mmAM/PM`, not `h:mm:ssAM/PM`). Full ISO precision is preserved in the data layer.
+- **Origin:** 2026-03-20 — Seconds added visual noise without adding value for typical trading use cases.
+- **Bad example:** `"03-20-2026 2:35:12PM"` — seconds shown
+- **Good example:** `"03-20-2026 2:35PM"` — minutes-only display
+
+---
+
+## GUI Element System Decisions
+
+Decisions made based on web research (UX Stack Exchange, Nielsen Norman Group, IxDF, Material Design) during the 2026-03-24 MEU-70b session. Apply these patterns whenever similar controls appear in any Zorivest GUI.
+
+### UX1 — Mutually Exclusive State Controls: Segmented Buttons, Not Select + Buttons
+- **Severity:** 🔴 Critical
+- **Applies to:** GUI
+- **Rule:** For 2–5 mutually exclusive options with known labels (status, direction, timeframe), use a **segmented button group** (`<div role="group">` of `<button>`s). Never combine a `<select>` and tag buttons for the same field.
+- **Origin:** 2026-03-24 MEU-70b — Trade Planner had a status `<select>` AND four tag buttons. Clicking a tag did nothing until the dropdown was changed first (two controls, one truth). Research: UX Stack Exchange + r/userexperience confirm segmented buttons are canonical for ≤5 known options.
+- **Bad example:** `<select>` for status + separate quick-transition `<button>` row → user must think about which control to use
+- **Good example:**
+  ```tsx
+  <div className="flex gap-1" role="group" aria-label="Plan status">
+      {OPTIONS.map(({ value, label, activeClass }) => (
+          <button key={value} aria-pressed={current === value}
+              onClick={() => setCurrent(value)}
+              className={current === value ? activeClass : 'ghost-class'}>
+              {label}
+          </button>
+      ))}
+  </div>
+  ```
+- **Visual rule:** Active state = filled background + colored text. Inactive = ghost/muted, no fill.
+- **Color conventions:**
+
+  | State | Classes |
+  |-------|---------|
+  | Draft | `bg-bg-elevated text-fg border-bg-subtle` |
+  | Active | `bg-blue-500/20 text-blue-300 border-blue-500/40` |
+  | Executed | `bg-green-500/20 text-green-300 border-green-500/40` |
+  | Cancelled | `bg-red-500/15 text-red-400 border-red-500/30` |
+
+### UX2 — Conditional Fields: Responsive Enabling (Grayout + Tooltip), Not Progressive Disclosure (Hide)
+- **Severity:** 🟡 Medium
+- **Applies to:** GUI
+- **Rule:** When a field requires a prerequisite state, **disable it with a tooltip** explaining the prerequisite — do not hide it. Hidden fields are not discoverable; disabled fields teach the causal relationship.
+- **Origin:** 2026-03-24 MEU-70b — "Link to Trade" picker was hidden behind `{isExecutedStatus && ...}`. Users had no way to discover the field or understand that Executed status would reveal it. NNG + IxDF: responsive enabling is preferred when the field's existence *signals a capability*; progressive disclosure only for entire optional sections.
+- **Bad example:** `{condition && <TradePickerField />}` — field doesn't exist until condition is met; not discoverable
+- **Good example:**
+  ```tsx
+  <input
+      disabled={!condition}
+      placeholder={condition ? 'Filter trades...' : 'Set status to Executed first'}
+      title={!condition ? 'Change status to Executed to link a trade' : undefined}
+      className={condition
+          ? 'bg-bg border-green-500/30'
+          : 'opacity-50 cursor-not-allowed bg-bg-elevated'}
+  />
+  ```
+- **When to use progressive disclosure instead:** Only when the field is always irrelevant unless a major condition is met AND there is a visible containing section header explaining the context.
+
+### UX3 — Combobox/Picker: Show Selected Label in Input After Selection (Not Search Text)
+- **Severity:** 🟡 Medium
+- **Applies to:** GUI
+- **Rule:** When a user selects an item from a combobox picker list, the **input shows the selected item's human-readable label** and the list collapses. A `×` clear button deselects. Never leave the search query text in the input after selection.
+- **Origin:** 2026-03-24 MEU-70b — Trade linker picker showed `✓` on the selected item while the list was visible, but the input still showed the search query (`"8:"`) after scrolling away. NNG combobox pattern + Material Design: input value must reflect the selection post-close.
+- **Bad example:** User searches `"8:"`, selects trade, input still shows `"8:"` — unclear what is linked
+- **Good example:**
+  ```tsx
+  // Two states: search text (typing) vs label (selected)
+  <input value={pickerLabel || pickerSearch}
+      onChange={(e) => { setPickerLabel(''); setPickerSearch(e.target.value) }} />
+  // On item select:
+  setPickerLabel(humanLabel)   // collapses list
+  setPickerSearch('')
+  // List rendered only when: isActive && !pickerLabel
+  ```
+- **Clear button rule:** Absolute-positioned `×` inside the input wrapper; visible only when `pickerLabel` is set.

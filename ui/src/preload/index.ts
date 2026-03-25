@@ -40,3 +40,10 @@ contextBridge.exposeInMainWorld('startupMetrics', {
         ipcRenderer.invoke('log-renderer-ready', Date.now())
     },
 })
+
+contextBridge.exposeInMainWorld('electron', {
+    /** Open a URL in the system default browser. Only http/https URLs are allowed. */
+    openExternal(url: string): void {
+        ipcRenderer.invoke('open-external', url)
+    },
+})

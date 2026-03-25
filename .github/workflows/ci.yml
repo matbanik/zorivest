@@ -149,3 +149,37 @@ jobs:
         run: npm audit --omit=dev
         working-directory: ui
         continue-on-error: true
+
+  # ── SQLCipher Encryption Tests (Linux only — ADR-001 Option A+B) ──────────
+  # sqlcipher3-binary has no Windows wheels; tests run here on Linux where
+  # prebuilt wheels are available. Local Windows dev keeps the skip guards.
+  # Decision: 2026-03-22 (ADR-001 §Addendum).
+  crypto-tests:
+    name: Encryption Tests (Linux + SQLCipher)
+    runs-on: ubuntu-latest
+
+    steps:
+      - uses: actions/checkout@v5
+
+      - name: Install uv
+        uses: astral-sh/setup-uv@v7
+        with:
+          enable-cache: true
+
+      - name: Set up Python
+        run: uv python install
+
+      - name: Install dependencies (base)
+        run: uv sync --all-packages --group dev
+
+      - name: Install [crypto] extra
+        run: uv pip install "packages/infrastructure[crypto]"
+
+      - name: Verify sqlcipher3 available
+        run: uv run python -c "import sqlcipher3; print('sqlcipher3 OK:', sqlcipher3.sqlite_version)"
+
+      - name: Encryption unit tests (14 tests)
+        run: uv run pytest tests/security/test_encryption_integrity.py -x --tb=short -q
+
+      - name: Encryption integration test (1 test)
+        run: uv run pytest tests/integration/test_database_connection.py -x --tb=short -q

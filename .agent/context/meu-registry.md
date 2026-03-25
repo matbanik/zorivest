@@ -89,12 +89,13 @@
 | MEU-56 | `market-provider-entity` | 21 | AuthMethod enum + ProviderConfig VO + MarketDataPort Protocol | ✅ approved |
 | MEU-57 | `market-response-dtos` | 22 | MarketQuote, MarketNewsItem, TickerSearchResult, SecFiling DTOs | ✅ approved |
 | MEU-58 | `market-provider-settings` | 23 | API key encryption + encrypted_api_secret column | ✅ approved |
-| MEU-59 | `market-provider-registry` | 24 | Static provider registry (12 providers) | ✅ approved |
+| MEU-59 | `market-provider-registry` | 24 | Static provider registry (12 providers; 2 free added by MEU-65) | ✅ approved |
 | MEU-62 | `market-rate-limiter` | 25 | Token-bucket rate limiter + log redaction | ✅ approved |
 | MEU-60 | `market-connection-svc` | 26 | ProviderConnectionService + persistence | ✅ approved |
 | MEU-61 | `market-data-service` | 27 | MarketDataService + 10 normalizers | ✅ approved |
 | MEU-63 | `market-data-api` | 28 | Market data REST API (8 routes) | ✅ approved |
 | MEU-64 | `market-data-mcp` | 29 | Market data MCP tools (7 tools) | ✅ approved |
+| MEU-65 | `market-data-gui` | 30 | Market Data Providers GUI settings page (14 providers, real service wiring, free provider badges, IPC external links, Wave 6 E2E) | ✅ approved |
 
 ## P1: Trade Reviews & Multi-Account
 
@@ -198,7 +199,7 @@ P2.75 (broker adapters): MEU-96 → MEU-99
 | MEU-88 | `send-step` | 47 | SendStep + async email delivery (aiosmtplib, SHA-256 dedup, DeliveryRepository) | ✅ approved |
 | MEU-89 | `scheduling-api-mcp` | 48 | Scheduling REST API (16 endpoints) + MCP tools (6+2); scheduler lifecycle | ✅ approved |
 | MEU-90 | `scheduling-guardrails` | 49 | PipelineGuardrails (4 rate-limit/approval checks) + approval-reset on patch | ✅ approved |
-| MEU-90a | `persistence-wiring` | 49.0 | Replace StubUnitOfWork with SqlAlchemyUnitOfWork; wire all 17 real repos into FastAPI lifespan; fix getattr/dict guardrails mismatch; Alembic bootstrap; remove repo-level stubs | ⬜ planned |
-| MEU-90b | `mode-gating-test-isolation` | 49.1 | Fix 8 flaky mode-gating tests: per-test `app.state` reset so lock/unlock doesn't leak across modules | ⬜ planned |
-| MEU-90c | `sqlcipher-native-deps` | 49.2 | Resolve sqlcipher3 availability on Windows; clear 15 skipped encryption tests | ⬜ planned |
-| MEU-90d | `rendering-deps` | 49.3 | Install + validate Playwright + kaleido rendering extras; clear 1 skipped RenderStep test | ⬜ planned |
+| MEU-90a | `persistence-wiring` | 49.0 | Replace StubUnitOfWork with SqlAlchemyUnitOfWork; wire all 17 real repos into FastAPI lifespan; fix getattr/dict guardrails mismatch; Alembic bootstrap; remove repo-level stubs | 🟡 ready_for_review |
+| MEU-90b | `mode-gating-test-isolation` | 49.1 | Fix 8 flaky mode-gating tests: per-test `app.state` reset so lock/unlock doesn't leak across modules | 🔴 changes_required |
+| MEU-90c | `sqlcipher-native-deps` | 49.2 | Resolve sqlcipher3 availability on Windows; clear 15 skipped encryption tests | 🚫 closed — won't fix locally; CI covered by `crypto-tests` job (ADR-001 A+B, human decision) |
+| MEU-90d | `rendering-deps` | 49.3 | Install + validate Playwright + kaleido rendering extras; clear 1 skipped RenderStep test | 🟡 ready_for_review |

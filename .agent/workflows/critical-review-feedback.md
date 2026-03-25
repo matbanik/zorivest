@@ -37,7 +37,7 @@ Read these files in order:
 3. `.agent/context/current-focus.md`
 4. `.agent/context/known-issues.md`
 5. `pomera_notes` search (`Zorivest`, `Memory/Session/*`, `Memory/Decisions/*`)
-6. `.agent/docs/emerging-standards.md` — verify applicable standards were followed in the reviewed work. Flag violations as findings.
+6. `.agent/docs/emerging-standards.md` — consult when architecture, API/UI contracts, or testing standards are implicated. Do not raise standalone findings for standards drift unless it affects runtime behavior, safety, or test validity.
 
 ---
 
@@ -169,12 +169,16 @@ Examples:
 
 If the canonical review file already exists, append a new dated section to it instead of creating another handoff file.
 
-### Zorivest Build-Plan Default (Required)
+### Zorivest Build-Plan Scope Rule
 
 When the target artifact describes work on `docs/build-plan/` (including plan/walkthrough/handoff files for build-plan sessions):
 
-- Treat `docs/build-plan/` as **required review scope** even if the user only provides `.agent/context/handoffs/*.md` files.
-- Always inspect the **actual `docs/build-plan` file state/changes** (not just handoff claims).
+- In **plan review mode** or **docs-only review sessions**, treat `docs/build-plan/` as **required review scope** even if the user only provides `.agent/context/handoffs/*.md` files.
+- In **implementation review mode**, inspect `docs/build-plan/` only when:
+  - the docs are the feature under review,
+  - the handoff claims specific build-plan updates as evidence,
+  - or a docs discrepancy appears to misstate delivered behavior, contracts, or test coverage.
+- When `docs/build-plan/` is in scope, inspect the **actual file state/changes** (not just handoff claims).
 - If `git diff` is not sufficient (for example untracked files), use direct file reads + deterministic checks and explicitly say so.
 
 ---
@@ -235,7 +239,7 @@ Read:
 5. Relevant related files likely to drift (indexes, references, downstream links, registry, prior canon)
 6. Current diffs (`git diff`) for the claimed files when available
 
-For Zorivest build-plan review sessions (required):
+For Zorivest build-plan review sessions (when `docs/build-plan/*` is in scope under the rule above):
 
 7. The actual changed `docs/build-plan/*` files referenced or implied by the artifact
 8. `git status --short -- docs/build-plan` and `git diff -- docs/build-plan/<claimed-files>` when applicable
@@ -247,25 +251,27 @@ For Zorivest build-plan review sessions (required):
 
 Use fast, reproducible command checks. Prefer `rg`.
 
-### Required Sweep Types (Docs/Handoff Reviews)
+### Required Sweep Types (Implementation Reviews)
 
-1. **Claim verification**
-   - Did the files/lines/phrases mentioned in the handoff actually change?
-2. **Residual references**
-   - Old names/phrases/slugs/anchors still present?
-3. **Cross-file consistency**
-   - Renamed headings updated in downstream links/indexes?
-4. **Cross-handoff consistency**
-   - Shared totals, phase-gate claims, registry state, and artifact timing consistent across the full project handoff set?
-5. **Verification quality**
-   - Are handoff checks strong enough, or do they create false confidence?
-6. **Evidence quality**
-   - Are diffs/commands reproducible and auditable?
-7. **Actual build-plan file changes (Zorivest required when in scope)**
-   - Did the claimed changes materially appear in `docs/build-plan/*`, with evidence tied to file lines/state?
-8. **Test rigor audit (required when test files are in scope)**
+1. **Runtime / contract verification**
+   - Does the delivered code actually satisfy the claimed API, UI, persistence, and round-trip behavior?
+2. **Test rigor audit (required when test files are in scope)**
    - Do tests assert meaningful behavior, or do they trivially pass with weak/vacuous assertions?
    - See IR-5 checklist item for grading criteria
+3. **Negative-path / failure-path verification**
+   - Do tests and code cover rejected writes, missing data, 404 vs non-404 semantics, invalid transitions, and persistence failures?
+4. **Claim verification**
+   - Did the files/lines/behaviors mentioned in the handoff actually change?
+5. **Cross-handoff consistency**
+   - Shared totals, phase-gate claims, registry state, and artifact timing consistent across the full project handoff set?
+6. **Verification quality**
+   - Are handoff checks strong enough, or do they create false confidence?
+7. **Evidence quality**
+   - Are commands/tests reproducible and auditable?
+8. **Actual build-plan file changes (when in scope)**
+   - Did the claimed changes materially appear in `docs/build-plan/*`, with evidence tied to file lines/state?
+9. **Residual references / cross-file consistency (when relevant)**
+   - Old names/phrases/slugs/anchors still present, or renamed headings left downstream links stale?
 
 ### Additional Required Sweep Types (Plan Review Mode)
 
@@ -313,22 +319,39 @@ rg -n "\.agent/context/handoffs" docs/build-plan
 
 Use the reviewer role output contract and report **findings first**.
 
+### Functionality-First Rule (Implementation Review Mode)
+
+When reviewing completed work handoffs, prioritize:
+
+1. runtime behavior and API/UI contract correctness
+2. TDD/test rigor and negative-path coverage
+3. persistence and round-trip correctness
+4. handoff claim accuracy
+5. documentation consistency
+
+Documentation-only discrepancies are non-blocking by default unless they:
+
+- misstate delivered behavior or contracts
+- falsely claim tests, validation, or completeness
+- hide missing work or unresolved risk
+- create unsafe or misleading operator/developer instructions
+
 ### Priorities (in order)
 
-1. Broken behavior/contracts (including broken links/anchors in docs)
-2. Contradictions between plan or handoff claims and actual file state
-3. Missed downstream updates (indexes, references, summaries, counts)
-4. Weak or misleading verification evidence
-5. Residual risk / testing gaps
+1. Broken runtime behavior / contract mismatches
+2. Weak, misleading, or missing tests that allow broken behavior to pass green
+3. Persistence, integration, or round-trip gaps
+4. Contradictions between plan or handoff claims and actual file state
+5. Documentation inconsistencies or downstream reference drift
 
 ### Severity Guidance (Docs Reviews)
 
 - `Critical`: Dangerous instructions/security regressions or decisions documented incorrectly
-- `High`: Broken navigation/anchors, incorrect contracts, false implementation claims
-- `Medium`: Portability, maintainability, or verification-quality issues
+- `High`: Incorrect contracts, false implementation claims, or documentation that materially misstates shipped behavior
+- `Medium`: Portability, maintainability, verification-quality, or navigation issues
 - `Low`: Auditability, wording, minor evidence quality gaps
 
-### Docs Review Checklist (run every time)
+### Docs Review Checklist (required for plan review mode, docs-only reviews, or when docs are evidence for implementation claims)
 
 | # | Check | What To Look For |
 |---|---|---|
@@ -341,7 +364,7 @@ Use the reviewer role output contract and report **findings first**.
 | DR-7 | Evidence freshness | Handoff-claimed counts match reproduced command output (any mismatch is LOW minimum) |
 | DR-8 | Completion vs residual risk | If residual risk acknowledges known gaps, conclusion must NOT say "implementation complete" or "all ACs met" |
 
-> If code changes are also in scope, additionally apply the reviewer role's Adversarial Verification Checklist (AV-1..AV-5) AND the Implementation Review Checklist below.
+> If code changes are in scope, the Implementation Review Checklist below is primary. Run the Docs Review Checklist only for documentation that is itself under review or is being used as evidence for implementation claims.
 
 ### Implementation Review Checklist (required when reviewing work handoffs)
 
@@ -429,7 +452,7 @@ If `.agent/context/current-focus.md` already has unrelated user edits in progres
 2. **Do not approve based on phrase-only grep checks** when heading renames or link anchors are involved.
 3. **Do not treat the handoff as source of truth**; treat file state + diffs as source of truth.
 4. **Do not bury findings behind summaries**; findings come first.
-5. **For Zorivest build-plan work, always inspect and cite actual `docs/build-plan/*` file changes** (or explicit file-state checks when diffs are unavailable). A handoff-only review is invalid.
+5. **For implementation reviews, do not elevate documentation drift above broken behavior or weak tests.** Inspect and cite actual `docs/build-plan/*` changes only when docs are in scope under the build-plan scope rule.
 6. **When a correlated project produced multiple MEU handoffs, load all of them.** The newest work handoff is only the discovery seed.
 7. **Never review a review.** Auto-discovery excludes `*critical-review*`, `*-corrections*`, and `*-recheck*` handoffs as review seeds. Valid targets are work handoffs or unstarted execution plan folders.
 8. **If no implementation handoff exists yet, review the newest unstarted execution plan instead of failing discovery.** This is a plan-accuracy and consistency review, not an implementation validation.
@@ -437,6 +460,7 @@ If `.agent/context/current-focus.md` already has unrelated user edits in progres
 10. **Auto-discovery starts from `docs/execution/plans/` first.** Do not begin by picking the newest handoff unless the user explicitly provides a handoff path.
 11. **One rolling review file per target.** For the same execution plan folder, keep plan-review updates in the same `-plan-critical-review.md` file and implementation-review updates in the same `-implementation-critical-review.md` file.
 12. **When test files are in review scope, audit every test for assertion strength (IR-5).** A test suite where all tests pass is not evidence of quality — tests that trivially pass with weak assertions (try/except safety nets, key-only checks, private-method patching) must be flagged. Report the per-test rating table in the review handoff.
+13. **A weak or misleading test is `Medium` minimum when it can allow broken behavior to pass green.** Documentation-only discrepancies are `Low` by default unless they materially misstate runtime behavior, test coverage, or unresolved risk.
 
 ---
 

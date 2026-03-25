@@ -276,6 +276,37 @@ See `.agent/docs/code-quality.md` for full examples and forbidden patterns.
 - [ ] No inline `# TODO` or commented-out alternatives left behind
 - [ ] Code was NOT copied verbatim from build plan — adapt to actual FIC and project structure
 
+## Windows Shell (PowerShell)
+
+> [!IMPORTANT]
+> **Never pipe long-running commands through filters in PowerShell.** Piping `vitest`, `pytest`, `npm run`, or any process that exits after producing output into `| Select-String`, `| findstr`, or `| Where-Object` causes the pipeline to hang indefinitely — the outer process keeps stdin open waiting for more data even after the child process exits.
+
+**Broken pattern (DO NOT USE):**
+```powershell
+npx vitest run | Select-String "FAIL"       # hangs
+npx vitest run 2>&1 | findstr "Error"      # hangs
+command | Where-Object { $_ -match "..." } # hangs
+```
+
+**Correct pattern — redirect to file, then read:**
+```powershell
+# Step 1: run the command, capture both streams to a file
+npx vitest run > C:\Temp\out.txt 2>&1
+
+# Step 2: read the file using text-editor (get_text_file_contents) or Get-Content
+Get-Content C:\Temp\out.txt | Select-Object -Last 20
+```
+
+Or in one line (semicolon separates commands, no pipe):
+```powershell
+npx vitest run > C:\Temp\out.txt 2>&1; Get-Content C:\Temp\out.txt | Select-Object -Last 30
+```
+
+**Why this works:** The `>` redirect is handled by the shell itself before the child process starts, so the child exits cleanly. The file is then a static artifact that can be filtered safely. Use `get_text_file_contents` (text-editor MCP tool) to read specific line ranges from large output files.
+
+**Also avoid:**
+- `npm run dev` exit code 1 — this is always expected when `concurrently` terminates (Electron window closes), not a build failure.
+
 ## Commits
 
 - **Never auto-commit.** Only `git commit` or `git push` when (a) the user explicitly directs it, or (b) it is a defined step in the approved plan/task. Human always reviews and approves.

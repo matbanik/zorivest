@@ -74,12 +74,12 @@
 - **Discovered:** 2026-03-19 (MEU-90a stub cleanup pass)
 - **Status:** Partially cleaned (4 dead scheduling stubs deleted); remainder tracked below
 
-#### Phase 1 — Wireable now (proposed MEU-90b `service-wiring`)
+#### Phase 1 — Wireable now (MEU-90a `persistence-wiring`)
 
 | Stub | Real impl MEU | Blocker |
 |------|---------------|---------|
 | `StubUnitOfWork` + 7 `_InMemory*` repos | MEU-90a ✅ | Only `test_watchlist_service.py` uses it — convert to real in-memory SQLAlchemy UoW |
-| `McpGuardService` | MEU-38 ✅ | Lifespan wiring (stateless, no DB) |
+| `McpGuardService` | MEU-90a ✅ | Moved to `services/mcp_guard.py`; no longer in stubs |
 | `StubMarketDataService` | MEU-61 ✅ | Lifespan wiring (needs provider config) |
 | `StubProviderConnectionService` | MEU-60 ✅ | Lifespan wiring |
 
@@ -91,7 +91,7 @@
 | `StubReviewService` (3 methods) | MEU-110 `ai-review-persona` (⬜) | AI review + mistake tracking |
 | `StubTaxService` (12 methods) | MEU-123–126 (core engine), retire at MEU-148 `tax-api` | [04f §Service Wiring](../docs/build-plan/04f-api-tax.md) |
 
-- **Fix:** Phase 1 via MEU-90b; Phase 2 naturally retires each stub when its real service is implemented.
+- **Fix:** Phase 1 via MEU-90a (`persistence-wiring`); Phase 2 naturally retires each stub when its real service is implemented.
 - **Roadmap:** Full stub retirement roadmap with MEU assignments in [09a §Stub Retirement Roadmap](../docs/build-plan/09a-persistence-integration.md).
 
 ### [MCP-CONFIRM] — `create_trade` inputSchema missing `confirmation_token` field
@@ -109,6 +109,39 @@
 - **Status:** Active — by design
 - **Details:** The MCP server's `start` script runs `node dist/index.js`. After editing files in `mcp-server/src/`, the changes are invisible to the running MCP process until `dist/` is rebuilt and the IDE is restarted. This caused 2 unnecessary IDE restarts during the 2026-03-19 session when the `confirmation_token` schema fix was applied to source but `dist/` still had old code.
 - **Workaround:** After any `mcp-server/src/` change: `cd mcp-server && npm run build` then restart the IDE to reload the MCP server process.
+### [PLAN-NOSIZE] — TradePlan entity missing `position_size` / `shares` field
+- **Severity:** Medium
+- **Component:** core / api / mcp-server / ui
+- **Discovered:** 2026-03-20
+- **Status:** Open — deferred to future run
+- **Details:** The `TradePlan` entity (`entities.py` L113-151) has no `position_size` or `shares` field. The Position Calculator computes shares on-the-fly but the result is never persisted on the plan. Users expect to see share count in the Trade Plan detail view. Adding this requires full-stack propagation: domain entity → SQLAlchemy model → Alembic migration → API schemas (`CreatePlanRequest`, `UpdatePlanRequest`, `PlanResponse`) → MCP trade-planning toolset → GUI form display. The calculator already has the formula (`calculate_position_size` in `zorivest_core.domain.calculator`).
+- **Workaround:** Use the standalone Position Calculator modal (C2 copy-to-clipboard) to compute shares separately.
+
+### [E2E-AXEELECTRON] — `@axe-core/playwright` AxeBuilder incompatible with Electron sandbox
+- **Severity:** High
+- **Component:** ui (E2E tests)
+- **Discovered:** 2026-03-22 (MEU-65 Wave 6 E2E)
+- **Status:** Workaround Applied
+- **Details:** `AxeBuilder.analyze()` internally calls `browserContext.newPage()`, which Electron rejects with `Protocol error (Target.createTarget): Not supported`. Additionally, Electron's `sandbox: true` + `contextIsolation: true` blocks `page.addScriptTag({ content: inlineString })` (inline script injection). This means the standard `@axe-core/playwright` API is completely unusable in Electron E2E tests without a workaround.
+- **Workaround:** Load axe-core via a `file://` URL — Electron's sandboxed renderer allows loading local filesystem assets. Use `pathToFileURL()` from Node.js `url` module (handles Windows paths correctly), then call `window.axe.run()` via `page.evaluate()`:
+  ```typescript
+  const axeUrl = pathToFileURL(resolve(__dirname, '../../node_modules/axe-core/axe.min.js')).href
+  await page.addScriptTag({ url: axeUrl })
+  const violations = await page.evaluate(async () => {
+      const r = await (window as any).axe.run(document, { runOnly: { type: 'tag', values: ['wcag2a', 'wcag2aa'] } })
+      return r.violations.map((v: any) => ({ id: v.id, impact: v.impact }))
+  })
+  expect(violations).toEqual([])
+  ```
+- **Note:** `disableIsolation()` is documented in newer axe-core/playwright but was not available in the installed version — always verify method availability before using.
+
+### [E2E-AXESILENT] — Accessibility scan failures are silent if the scanner itself crashes
+- **Severity:** Medium (testing process risk)
+- **Component:** ui (E2E tests)
+- **Discovered:** 2026-03-22 (MEU-65 Wave 6 E2E)
+- **Status:** Active — process awareness
+- **Details:** When `AxeBuilder.analyze()` throws (e.g., Electron protocol error), the test fails at the scan call — not at `expect(violations).toEqual([])`. If violation logging logic is guarded by `if (violations.length > 0)`, it is never reached, making it appear as if no violations were found (the log file is not written). This caused several debugging sessions chasing heading-order and label violations when the real issue was the scanner never running.
+- **Workaround:** When debugging axe failures in E2E, always check the error at the scan call itself (not just the assertion). Wrap the scan in a try/catch during debugging to distinguish "scanner failed" from "violations found". Prefer writing violation details via `test.info().attach()` rather than filesystem writes, as attach() works regardless of where in the test the failure occurs.
 
 ## Template
 
@@ -123,3 +156,12 @@ When adding issues, use this format:
 - **Details:** What happens, how to reproduce
 - **Workaround:** (if any)
 ```
+
+---
+
+### [DOC-STALESLUG] — `09a-persistence-integration.md` references stale MEU-90b slug
+- **Severity:** Low
+- **Component:** docs
+- **Discovered:** 2026-03-22
+- **Status:** ✅ **Resolved 2026-03-22 (MEU-90b `mode-gating-test-isolation`)**
+- **Details:** `docs/build-plan/09a-persistence-integration.md` lines 81–82 referenced `MEU-90b service-wiring`. Fixed to `MEU-90a persistence-wiring` and updated `08-market-data.md` section heading.

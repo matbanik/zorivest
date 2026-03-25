@@ -1,14 +1,23 @@
 # Current Focus — Zorivest
 
-> Last updated: 2026-03-07
+> Last updated: 2026-03-23
 
 ## Active Phase
 
-**Phase 1 + 1A — Domain Layer + Logging (P0) — Dual-Agent Execution**
+**Phase 8 — Market Data Aggregation Layer (in progress)**
 
 ## Current Priority
 
-Execute Phase 1 + 1A using the dual-agent workflow (Opus 4.6 implementation → GPT-5.4 Codex validation). Work is broken into 11 Manageable Execution Units (MEUs). See `.agent/context/meu-registry.md` for full registry.
+Complete post-MEU-65 closeout deliverables (reflection, metrics, commit messages). MEU-90a/b
+persistence wiring cluster is done; real `ProviderConnectionService` is now wired in `main.py`.
+
+### Dependency Chain
+
+```
+MEU-90a/b/c/d  ← service-wiring ✅ DONE (keys → encrypted DB, real providers)
+  └── MEU-65   ← market-data-gui  ✅ DONE (14 providers, E2E Wave 6 complete)
+        └── MEU-48 calculator ticker auto-fill  🔵 next
+```
 
 ## Agent Configuration
 
@@ -20,10 +29,10 @@ Execute Phase 1 + 1A using the dual-agent workflow (Opus 4.6 implementation → 
 
 ## Next Steps
 
-1. ✅ **Phase 1A (Logging) Completed** — MEU-2A, MEU-3A, MEU-1A all approved (2026-03-07)
-2. **Phase 1 (Domain)** — 8/11 approved. MEU-3/4/5 pending Codex review, MEU-6/7/8 need status check
-3. Run `/create-plan` to scope the next project
-4. ✅ **Validation baseline locked to GPT-5.4 Codex** for the reviewer/tester role (resolved 2026-03-06).
+1. ✅ **MEU-65 `market-data-gui`** — fully closed (2026-03-23): Wave 6 E2E 7/7 pass, real `ProviderConnectionService` wired, all trackers updated.
+2. ✅ **MEU-90a** — `SqlAlchemyUnitOfWork` wired into FastAPI lifespan
+3. ✅ **MEU-90b** — real `ProviderConnectionService` wired (API key encryption + DB persistence)
+4. **Next:** MEU-48 calculator ticker auto-fill (unblocked) or next P2 item per build plan
 
 ## Archived Files (pomera_notes)
 
@@ -79,3 +88,4 @@ The following files were archived to pomera_notes and deleted from the repo on 2
 - [x] Final re-check completed for `docs/build-plan/04-rest-api.md` wholeness fixes; results saved in `.agent/context/handoffs/2026-02-27-build-plan-04-rest-api-wholeness-final-recheck.md`
 - [x] `docs/build-plan/` critically reviewed from the `friction-inventory.md` perspective with official MCP/Anthropic/OpenAI research and dual-agent implementation guidance; handoff saved in `.agent/context/handoffs/2026-03-06-docs-build-plan-friction-agentic-senior-review.md`
 - [x] 16 reference docs relocated from `docs/` to `_inspiration/`; `docs/build-plan/` links and remaining `_inspiration/` stale references normalized, handoff saved in `.agent/context/handoffs/2026-03-06-docs-inspiration-relocation.md`
+- [x] **MEU-65 `market-data-gui`** — Market Data Providers GUI page complete (2026-03-23): 14 providers (12 registry + Yahoo Finance + TradingView free), `/settings/market` route, Settings nav card, Get API Key via `shell.openExternal` IPC, free-provider badge, real `ProviderConnectionService` wired, Wave 6 E2E 7/7 pass. Plan: `docs/execution/plans/2026-03-21-market-data-gui/task.md`

@@ -9,6 +9,7 @@ import {
     type ColumnDef,
 } from '@tanstack/react-table'
 import { useState, useMemo } from 'react'
+import AccountTypeBadge from './AccountTypeBadge'
 
 // ── Types ────────────────────────────────────────────────────────────────
 
@@ -24,6 +25,7 @@ export interface Trade {
     quantity: number
     price: number
     account_id: string
+    account_type?: string
     commission: number
     realized_pnl: number | null
     notes: string | null
@@ -87,7 +89,13 @@ export const tradeColumns = [
         header: 'Account',
         cell: (info) => {
             const val = info.getValue()
-            return <span title={val}>{val.length > 20 ? `${val.slice(0, 20)}…` : val}</span>
+            const accountType = info.row.original.account_type
+            return (
+                <span className="inline-flex items-center gap-1.5" title={val}>
+                    {accountType && <AccountTypeBadge accountType={accountType} />}
+                    {val.length > 15 ? `${val.slice(0, 15)}…` : val}
+                </span>
+            )
         },
     }),
     col.accessor('commission', {

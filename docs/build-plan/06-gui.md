@@ -412,6 +412,7 @@ export const useAccountContext = () => useContext(AccountContext);
 | 3 | **MEU-74** `gui-backup-restore` | `backup-restore.test.ts` (2) | **16** | `backup-create-btn`, `backup-restore-btn`, `backup-passphrase-input` |
 | 4 | **MEU-48** `gui-plans` | `position-size.test.ts` (2) | **18** | `calc-account-size`, `calc-risk-percent`, `calc-result-shares` |
 | 5 | **MEU-96/99** import GUI | `import.test.ts` (2) | **20** | `import-file-input`, `import-submit-btn`, `import-result-count` |
+| 6 | **MEU-65** `market-data-gui` | `settings-market-data.test.ts` (3: nav, provider list, axe-core) | **23** | `market-data-providers`, `provider-list`, `provider-item`, `provider-detail`, `provider-save-btn`, `provider-test-btn`, `provider-test-all-btn`, `provider-remove-key-btn` |
 
 > [!IMPORTANT]
 > **Build before every E2E run.** Wave 0 tests require `npm run build` (alias for `electron-vite build`) to produce `out/main/index.js` and a healthy Python backend (automated by `global-setup.ts`). Playwright launches the compiled bundle, not source files — source changes are invisible until you rebuild.
