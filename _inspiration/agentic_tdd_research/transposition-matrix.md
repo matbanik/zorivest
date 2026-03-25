@@ -150,7 +150,7 @@ Add to `meu-handoff.md` header:
 - **Opus (Antigravity)**: The large AGENTS.md is loaded by the IDE as `user_rules`, which IS in context. This DOES inflate Opus's context. **Impact: Real.**
 - **Codex**: Would read AGENTS.md from the project root. If we don't have a project-root AGENTS.md, Codex reads nothing. If we create one, it should be slim.
 
-**Strategy**: 
+**Strategy**:
 1. The large AGENTS.md in `user_rules` is **Antigravity-specific** — it governs the IDE, not the project. It should stay as-is for Opus (it's the operating manual).
 2. The project-root `AGENTS.md` (239 lines) is already a well-structured project-level config for all agents including Codex.
 3. `GEMINI.md` (now 135 lines) carries Antigravity+Opus-specific instructions including the TDD protocol.
@@ -218,9 +218,9 @@ project_doc_fallback_filenames = ["AGENTS.md", "GEMINI.md"]
 Add to `tdd-implementation.md` Step 4 (Green Phase):
 
 ```markdown
-> ⚠️ **Test Immutability**: Once tests are written in the Red phase, do NOT modify 
-> test assertions or expected values in the Green phase. If a test expectation is 
-> wrong, fix the *implementation*, not the *test*. The only acceptable test 
+> ⚠️ **Test Immutability**: Once tests are written in the Red phase, do NOT modify
+> test assertions or expected values in the Green phase. If a test expectation is
+> wrong, fix the *implementation*, not the *test*. The only acceptable test
 > modification in Green phase is fixing test setup/fixtures, never assertions.
 ```
 
@@ -354,7 +354,7 @@ sequenceDiagram
     participant C as Codex 5.3 (VS Code)
 
     H->>O: "Start MEU-1 using /tdd-implementation"
-    
+
     rect rgb(40, 40, 80)
     Note over O: Step 1 — Scope Lock
     O->>FS: Read meu-registry.md (~300 tok)

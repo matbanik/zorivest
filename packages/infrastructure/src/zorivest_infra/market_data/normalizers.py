@@ -287,4 +287,3 @@ SEARCH_NORMALIZERS: dict[str, Any] = {
     "Financial Modeling Prep": normalize_fmp_search,
     "Alpha Vantage": normalize_alpha_vantage_search,
 }
-

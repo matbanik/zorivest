@@ -184,4 +184,3 @@
   - 1) Canonicalize route/tool contracts (reports, accounts/calculator, MCP account-review naming).
   - 2) Reconcile `03` service contracts with `04/05` routes/tools (add missing service specs or downgrade claims).
   - 3) Synchronize index status rows (`input-index`, `output-index`, `gui-actions-index`) after canonical contract decisions.
-

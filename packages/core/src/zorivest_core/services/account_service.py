@@ -95,4 +95,3 @@ class AccountService:
         with self.uow:
             self.uow.accounts.delete(account_id)
             self.uow.commit()
-

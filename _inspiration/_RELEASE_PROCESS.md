@@ -75,7 +75,7 @@ The automated workflow will:
    ```bash
    # Linux/macOS
    sha256sum -c checksums.txt
-   
+
    # Windows PowerShell
    Get-FileHash zorivest-v1.0.0-windows.exe -Algorithm SHA256
    ```

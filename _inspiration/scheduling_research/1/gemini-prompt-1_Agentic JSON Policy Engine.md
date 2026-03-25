@@ -366,7 +366,7 @@ JSON
 
 {  
   "name": "Tax Loss Harvester",  
-  "triggers": \[{ "type": "cron", "expression": "0 16 \* \* 5" }\],   
+  "triggers": \[{ "type": "cron", "expression": "0 16 \* \* 5" }\],  
   "start\_at": "GetPositions",  
   "states": {  
     "GetPositions": {  

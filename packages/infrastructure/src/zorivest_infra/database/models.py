@@ -63,7 +63,9 @@ class ImageModel(Base):
     __tablename__ = "images"
 
     id = Column(Integer, primary_key=True, autoincrement=True)
-    owner_type = Column(String(20), nullable=False, index=True)  # "trade", "report", "plan"
+    owner_type = Column(
+        String(20), nullable=False, index=True
+    )  # "trade", "report", "plan"
     owner_id = Column(String, nullable=False, index=True)
     data = Column(LargeBinary, nullable=False)
     thumbnail = Column(LargeBinary, nullable=True)
@@ -88,7 +90,9 @@ class AccountModel(Base):
     created_at = Column(DateTime, nullable=False)
 
     trades = relationship("TradeModel", back_populates="account_rel")
-    balance_snapshots = relationship("BalanceSnapshotModel", back_populates="account_rel")
+    balance_snapshots = relationship(
+        "BalanceSnapshotModel", back_populates="account_rel"
+    )
 
 
 # ── Report/Plan/Watchlist Models ──────────────────────────────────────────
@@ -220,6 +224,25 @@ class MarketProviderSettingModel(Base):
     updated_at = Column(DateTime, nullable=True)
 
 
+class EmailProviderModel(Base):
+    """Email SMTP provider configuration — singleton row (id=1).
+
+    Source: 06f-gui-settings.md §Email Provider
+    """
+
+    __tablename__ = "email_provider"
+
+    id = Column(Integer, primary_key=True, default=1)
+    provider_preset = Column(String(50), nullable=True)
+    smtp_host = Column(String(256), nullable=True)
+    port = Column(Integer, nullable=True)
+    security = Column(String(10), nullable=True)  # "STARTTLS" | "SSL"
+    username = Column(String(256), nullable=True)
+    password_encrypted = Column(LargeBinary, nullable=True)  # Fernet-encrypted
+    from_email = Column(String(256), nullable=True)
+    updated_at = Column(DateTime, nullable=True)
+
+
 # ── Guard/Circuit Breaker ─────────────────────────────────────────────────
 
 
@@ -301,7 +324,9 @@ class TransactionLedgerModel(Base):
     __tablename__ = "transaction_ledger"
 
     id = Column(Integer, primary_key=True, autoincrement=True)
-    trade_exec_id = Column(String, ForeignKey("trades.exec_id"), nullable=False, index=True)
+    trade_exec_id = Column(
+        String, ForeignKey("trades.exec_id"), nullable=False, index=True
+    )
     fee_type = Column(String(20), nullable=False)
     amount = Column(Numeric(15, 6), nullable=False)
     currency = Column(String(3), default="USD")
@@ -365,7 +390,9 @@ class BankTransactionModel(Base):
     __tablename__ = "bank_transactions"
 
     id = Column(Integer, primary_key=True, autoincrement=True)
-    account_id = Column(String, ForeignKey("accounts.account_id"), nullable=False, index=True)
+    account_id = Column(
+        String, ForeignKey("accounts.account_id"), nullable=False, index=True
+    )
     date = Column(DateTime, nullable=False)
     post_date = Column(DateTime, nullable=True)
     description = Column(Text, nullable=False)
@@ -421,7 +448,9 @@ class PipelineRunModel(Base):
     __tablename__ = "pipeline_runs"
 
     id = Column(String(36), primary_key=True, default=lambda: str(uuid.uuid4()))
-    policy_id = Column(String(36), ForeignKey("policies.id"), nullable=False, index=True)
+    policy_id = Column(
+        String(36), ForeignKey("policies.id"), nullable=False, index=True
+    )
     status = Column(String(20), nullable=False, default="pending")  # PipelineStatus
     trigger_type = Column(String(20), nullable=False)  # "scheduled" | "manual" | "mcp"
     started_at = Column(DateTime, nullable=True)
@@ -466,7 +495,10 @@ class PipelineStateModel(Base):
     __tablename__ = "pipeline_state"
     __table_args__ = (
         UniqueConstraint(
-            "policy_id", "provider_id", "data_type", "entity_key",
+            "policy_id",
+            "provider_id",
+            "data_type",
+            "entity_key",
             name="uq_pipeline_state",
         ),
     )
@@ -511,9 +543,7 @@ class ReportVersionModel(Base):
     __tablename__ = "report_versions"
 
     id = Column(String(36), primary_key=True, default=lambda: str(uuid.uuid4()))
-    report_id = Column(
-        String(36), ForeignKey("reports.id"), nullable=False, index=True
-    )
+    report_id = Column(String(36), ForeignKey("reports.id"), nullable=False, index=True)
     version = Column(Integer, nullable=False)
     spec_json = Column(Text, nullable=False)
     snapshot_json = Column(Text, nullable=True)
@@ -529,9 +559,7 @@ class ReportDeliveryModel(Base):
     __tablename__ = "report_delivery"
 
     id = Column(String(36), primary_key=True, default=lambda: str(uuid.uuid4()))
-    report_id = Column(
-        String(36), ForeignKey("reports.id"), nullable=False, index=True
-    )
+    report_id = Column(String(36), ForeignKey("reports.id"), nullable=False, index=True)
     channel = Column(String(20), nullable=False)  # "email" | "local_file"
     recipient = Column(String(256), nullable=False)
     status = Column(String(20), nullable=False, default="pending")
@@ -547,9 +575,7 @@ class FetchCacheModel(Base):
 
     __tablename__ = "fetch_cache"
     __table_args__ = (
-        UniqueConstraint(
-            "provider", "data_type", "entity_key", name="uq_fetch_cache"
-        ),
+        UniqueConstraint("provider", "data_type", "entity_key", name="uq_fetch_cache"),
     )
 
     id = Column(String(36), primary_key=True, default=lambda: str(uuid.uuid4()))

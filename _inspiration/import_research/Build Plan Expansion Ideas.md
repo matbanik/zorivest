@@ -1450,7 +1450,7 @@ def parse_ofx(file_path: str) -> BankStatementResult:
     parser = OFXTree()
     parser.parse(file_path)
     ofx = parser.convert()
-    
+
     account = ofx.statements[0]  # BankAccount or CreditCardAccount
     transactions = []
     for txn in account.transactions:
@@ -1592,7 +1592,7 @@ def detect_bank_from_csv(file_path: str, configs: Dict[str, BankConfig]) -> Bank
     with open(file_path, encoding='utf-8') as f:
         # Read first 5 lines for header detection
         header_lines = [f.readline().strip() for _ in range(5)]
-    
+
     header = None
     for line in header_lines:
         if any(line.startswith(fp) for fp in sum(
@@ -1600,10 +1600,10 @@ def detect_bank_from_csv(file_path: str, configs: Dict[str, BankConfig]) -> Bank
         )):
             header = line
             break
-    
+
     if header is None:
         return None  # → Fall back to manual column mapping GUI
-    
+
     for bank_id, config in configs.items():
         for fingerprint in config.detection.header_fingerprint:
             if header.startswith(fingerprint):
@@ -1722,7 +1722,7 @@ def parse_pdf_statement(file_path: str, config: PDFBankConfig) -> BankStatementR
                     for row in table:
                         if is_transaction_row(row, config):
                             transactions.append(parse_row(row, config))
-            
+
             # Option B: Text extraction + regex (semi-structured PDFs)
             else:
                 text = page.extract_text(layout=True)
@@ -1730,7 +1730,7 @@ def parse_pdf_statement(file_path: str, config: PDFBankConfig) -> BankStatementR
                     match = re.match(config.transaction_pattern, line.strip())
                     if match:
                         transactions.append(parse_regex_match(match, config))
-    
+
     return BankStatementResult(transactions=transactions)
 ```
 
@@ -1774,7 +1774,7 @@ def deduplicate(new_txns: List[BankTransaction],
                 existing_txns: List[BankTransaction]) -> List[BankTransaction]:
     existing_fitids = {t.reference_id for t in existing_txns if t.reference_id}
     existing_hashes = {t.dedup_hash for t in existing_txns}
-    
+
     unique_txns = []
     for txn in new_txns:
         # L1: FITID match (OFX only, 100% reliable)
@@ -1784,7 +1784,7 @@ def deduplicate(new_txns: List[BankTransaction],
         if txn.dedup_hash in existing_hashes:
             continue
         unique_txns.append(txn)
-    
+
     return unique_txns
 ```
 

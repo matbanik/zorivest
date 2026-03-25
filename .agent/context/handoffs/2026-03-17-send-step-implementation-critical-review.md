@@ -291,4 +291,3 @@ All 4 findings addressed: 3 fixed in code/docs, 1 deferred to MEU-89 with BUILD_
 - **Concrete follow-up actions:**
   1. Optionally normalize the stale count strings in [`075-2026-03-17-send-step-bp09s9.8.md`](.agent/context/handoffs/075-2026-03-17-send-step-bp09s9.8.md) so the older tester matrix and file-purpose text match the corrected evidence section
   2. Carry forward the explicit runtime-wiring requirement in [`docs/BUILD_PLAN.md`](docs/BUILD_PLAN.md:284) when implementing MEU-89
-

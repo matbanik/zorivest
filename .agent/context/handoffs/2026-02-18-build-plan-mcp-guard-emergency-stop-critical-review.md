@@ -157,4 +157,3 @@
   1. Resolve auth model for `/mcp-guard/*` and align REST/MCP/GUI examples plus tests.
   2. Define and test an explicit standalone unlock recovery flow.
   3. Add missing threshold auto-lock tests and fix emergency-stop vitest example to be executable.
-

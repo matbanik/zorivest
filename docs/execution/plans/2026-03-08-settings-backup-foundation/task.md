@@ -43,4 +43,3 @@
 - [x] Phase gate: `uv run python tools/validate_codebase.py`
 - [x] Reflection + metrics → `2026-03-08-settings-backup-foundation-reflection.md`
 - [x] Proposed commit messages → `commit-messages.md`
-

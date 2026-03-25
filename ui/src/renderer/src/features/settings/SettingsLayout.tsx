@@ -78,6 +78,20 @@ export default function SettingsLayout() {
                     </div>
                     <span className="text-fg-muted group-hover:text-fg transition-colors">›</span>
                 </button>
+                <button
+                    data-testid="settings-email-link"
+                    onClick={() => navigate({ to: '/settings/email' })}
+                    className="w-full flex items-center justify-between px-4 py-3 hover:bg-bg-subtle transition-colors cursor-pointer group border-t border-bg-subtle"
+                >
+                    <div className="flex items-center gap-3">
+                        <span className="text-lg">✉️</span>
+                        <div className="text-left">
+                            <div className="text-sm font-medium text-fg">Email Provider</div>
+                            <div className="text-xs text-fg-muted">Configure SMTP for trade notifications</div>
+                        </div>
+                    </div>
+                    <span className="text-fg-muted group-hover:text-fg transition-colors">›</span>
+                </button>
             </div>
 
             {/* Theme Toggle */}
@@ -138,4 +152,3 @@ export default function SettingsLayout() {
         </div>
     )
 }
-

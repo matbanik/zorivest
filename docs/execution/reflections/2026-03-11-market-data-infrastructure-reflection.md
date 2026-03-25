@@ -70,4 +70,3 @@ Rule Adherence: **90%** (9/10 — git commit policy violation corrected mid-sess
 - MEU-61: `MarketDataService` (quote, news, search, SEC filings)
 - MEU-63: Market data REST API (8 routes)
 - MEU-64: Market data MCP tools (6 tools)
-

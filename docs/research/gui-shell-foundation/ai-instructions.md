@@ -153,12 +153,12 @@ export class PythonManager {
     const pythonPath = app.isPackaged
       ? join(process.resourcesPath, 'python', 'zorivest.exe')
       : 'uv'
-    
+
     const args = app.isPackaged
       ? ['--port', String(this.port), '--token', this.token]
       : ['run', 'uvicorn', 'zorivest.api.app:create_app', '--factory',
          '--port', String(this.port), '--host', '127.0.0.1']
-    
+
     this.process = spawn(pythonPath, args, {
       stdio: app.isPackaged ? 'ignore' : 'pipe',  // [Research-backed: Gemini §Stdio]
     })

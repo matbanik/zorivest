@@ -92,7 +92,7 @@ Add ADR reference to the Coder Output section so review handoffs also capture de
 
 ```diff
  ## Coder Output
- 
+
  - Changed files:
 -- Design notes:
 +- Design notes / ADRs referenced:
@@ -108,7 +108,7 @@ Add an ADR reference instruction to the "Design Decisions & Known Risks" section
 
 ```diff
  ## Design Decisions & Known Risks
- 
+
 -- **Decision**: {what you chose} — **Reasoning**: {why, in 1-2 sentences}
 +- **Decision**: {what you chose} — **Reasoning**: {why, in 1-2 sentences} — **ADR**: {ADR-NNNN if created, or "inline" if minor}
  - **Assumption**: {any assumption made during implementation}
@@ -123,7 +123,7 @@ Add `decisions/` to the coder's input reading order:
 
 ```diff
  ## Inputs (Read In Order)
- 
+
  1. `.agent/context/handoffs/{task}.md` (latest task handoff)
  2. `AGENTS.md`
 -3. `.agent/docs/architecture.md`
@@ -158,7 +158,7 @@ Replace duplicated instructions with cross-references:
 
 ```diff
  ## Execution Contract
- 
+
 -- One task per session; do not combine unrelated work streams.
 -- **Time is not a constraint.** Do not optimize for speed over quality.
 -- **Token usage is not a constraint** (subscription-based). Do not truncate or skip work.
@@ -220,7 +220,7 @@ Add two columns and a measurement guide:
 
 ```diff
  ## Session Metrics
- 
+
 -| Date | MEU(s) | Tool Calls | Time to First Green | Tests Added | Codex Findings | Prompt→Commit (min) | Notes |
 -|------|--------|------------|---------------------|-------------|---------------|---------------------|-------|
 -| 2026-03-06 | MEU-1 | — | — | — | — | — | Pilot |
@@ -348,7 +348,7 @@ Add a skills reference so agents know the directory exists:
 
 ```diff
  ## Context & Docs
- 
+
  - Architecture → `.agent/docs/architecture.md`
 +- Skills → `.agent/skills/` (load on-demand per task scope; see README inside)
  - Domain model → `.agent/docs/domain-model.md`
@@ -360,7 +360,7 @@ Add skill loading to the orchestrator's responsibilities:
 
 ```diff
  ## Must Do
- 
+
  7. Require blocking validation checks to pass before declaring done.
 +8. During PLANNING, check `.agent/skills/` for relevant skill files that match the task's target packages. Load applicable skills into context.
 ```

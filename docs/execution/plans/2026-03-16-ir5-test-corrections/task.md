@@ -95,4 +95,3 @@
 | 4 | IR-5 re-audit on modified files | reviewer | `re-audit-results.csv` | `python -c "import csv; weak=[r for r in csv.reader(open('docs/execution/plans/2026-03-16-ir5-test-corrections/re-audit-results.csv',encoding='utf-8-sig')) if len(r)>=6 and ('🔴' in r[5] or '🟡' in r[5])]; print(f'Remaining weak: {len(weak)}'); assert len(weak)==0"` | `[x]` |
 | 5 | Update pattern analysis with final counts | coder | `phase1-ir5-pattern-analysis.md` | `python -c "import csv; rows=list(csv.reader(open('docs/execution/plans/2026-03-16-ir5-test-corrections/re-audit-results.csv','r',encoding='utf-8-sig'))); weak=[r for r in rows[1:] if len(r)>=6 and ('🔴' in r[5] or '🟡' in r[5])]; assert len(weak)==0, f'{len(weak)} weak tests remain'"` | `[x]` |
 | 6 | Verify and update `docs/BUILD_PLAN.md` | coder | `docs/BUILD_PLAN.md` | `rg -n -e ir5 -e IR-5 -e "weak test" -e "test rigor" docs/BUILD_PLAN.md docs/build-plan/` — verify references are current | `[x]` |
-

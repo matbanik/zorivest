@@ -144,4 +144,3 @@ class TestUoWNestedRollbackIsolation:
             clean = uow.settings.get("clean.key")
             assert clean is not None
             assert clean.value == "clean_value"
-

@@ -67,7 +67,7 @@ Every bank account in Zorivest must support manual balance updates and manual tr
 GUI:
   Settings → Accounts → [Bank Name] → "Update Balance" button
     → Form: Balance amount, As-of date, Notes
-  
+
   Transactions → "Add Manual Transaction" button
     → Form: Date, Description, Amount, Category, Account, Notes
 
@@ -119,7 +119,7 @@ class BankStatementParser(ABC):
     @abstractmethod
     def detect(self, file_path: str) -> bool:
         """Can this parser handle this file?"""
-    
+
     @abstractmethod
     def parse(self, file_path: str) -> BankStatementResult:
         """Parse into standardized transactions + balance."""
@@ -195,7 +195,7 @@ Sandbox: https://api.wise-sandbox.com
 Key Endpoints:
   GET /v4/profiles/{profileId}/balances
     → All currency balances (40+ currencies)
-  
+
   GET /v1/profiles/{profileId}/balance-statements/{balanceId}/statement.json
     ?currency=USD&intervalStart=2025-01-01T00:00:00Z&intervalEnd=2025-02-01T00:00:00Z
     → Full transaction history with running balance
@@ -214,7 +214,7 @@ Auth: Personal access token (from Developer settings)
 Key Endpoints:
   GET /api/v2/accounts/{accountUid}/balance
     → Available balance, cleared balance, effective balance
-  
+
   GET /api/v2/feed/account/{accountUid}/category/{categoryUid}
     ?changesSince=2025-01-01T00:00:00Z
     → Transaction feed with categories

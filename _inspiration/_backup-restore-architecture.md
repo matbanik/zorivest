@@ -25,7 +25,7 @@ graph TD
         E -->|Yes| D
         D --> F[Rotation Cleanup]
     end
-    
+
     subgraph "Manual"
         G[BackupRecoveryManager] --> H[JSON Backup]
         G --> I[Database Backup]
@@ -33,7 +33,7 @@ graph TD
         G --> K[Repair]
         G --> L[Export/Import]
     end
-    
+
     D --> M[SQLite .db / .db.gz]
     H --> N[.json / .json.gz]
     I --> O[.zip archive]
@@ -98,7 +98,7 @@ sequenceDiagram
     participant User
     participant Recovery as BackupRecoveryManager
     participant DB as Database
-    
+
     User->>Recovery: restore_from_database_backup()
     Recovery->>Recovery: Detect format (ZIP/DB/GZ)
     alt ZIP format (new)

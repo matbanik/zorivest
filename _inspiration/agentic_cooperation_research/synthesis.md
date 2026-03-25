@@ -307,7 +307,7 @@ Based on Claude's failure analysis, these are explicitly **not recommended**:
 
 | # | Claim | Result |
 |---|-------|--------|
-| 18 | **Roblox: PR acceptance improved 30%→60% with prompt rules** | **NOT FOUND** in any public source. Roblox confirmed to use AI tools with 20% improvement in P75 landing time, but the specific 30%→60% acceptance rate stat appears to be hallucinated or from non-public sources. | 
+| 18 | **Roblox: PR acceptance improved 30%→60% with prompt rules** | **NOT FOUND** in any public source. Roblox confirmed to use AI tools with 20% improvement in P75 landing time, but the specific 30%→60% acceptance rate stat appears to be hallucinated or from non-public sources. |
 
 ### Summary
 

@@ -272,4 +272,3 @@ rg "Phase 8" docs/BUILD_PLAN.md
 | R3 | **API key persistence** (encrypted DB storage) | ✅ Done | 2026-03-22 — keys stored via `FernetEncryptionAdapter` + `SqlAlchemyUnitOfWork`. |
 
 > All MEU-65 work is closed. See `task.md` Steps 1–3 for execution detail and handoff `085` for evidence.
-

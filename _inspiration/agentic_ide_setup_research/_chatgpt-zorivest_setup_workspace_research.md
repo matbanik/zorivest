@@ -7,7 +7,7 @@ For multi-IDE support, we propose **static MD templates** shipped in the package
 
 Security must be paramount.  Validate and sanitize all file paths against the project root【28†L243-L250】【30†L363-L368】.  Reject any path that does not reside under the root (no `../` escapes, use `path.resolve`+prefix-check).  Detect and avoid symlink tricks (use `fs.realpath` if needed).  The tool should use the MCP confirmation middleware to require user approval of all write operations (e.g. obtain a confirmation token before writing).  Rate-limiting or guard-circuit-breaker is usually not needed for a one-time setup tool, but we must abide by MCP guard policies to prevent runaway loops.  Signing generated files is overkill, but including a version stamp (in `.agent/.meta.json`) can help integrity and updates.
 
-In implementation, examine analogous tools: e.g. [18] (Node MCP filesystem tool) shows a simplistic approach (using shell `echo` and `path.join`) – but it lacks any input validation and is unsafe.  Yeoman’s pattern (in [57]) shows robust conflict handling via an in-memory FS, which is not practical for MCP.  Instead, write straightforward TS code: 
+In implementation, examine analogous tools: e.g. [18] (Node MCP filesystem tool) shows a simplistic approach (using shell `echo` and `path.join`) – but it lacks any input validation and is unsafe.  Yeoman’s pattern (in [57]) shows robust conflict handling via an in-memory FS, which is not practical for MCP.  Instead, write straightforward TS code:
 
 ```ts
 import * as fs from 'fs/promises';
@@ -35,14 +35,14 @@ async function safeWrite(root: string, relPath: string, content: string) {
 
 Package templates under `mcp-server/templates/agent/` and include them in `package.json` via the `"files"` or `"directories"` field【34†L161-L166】 so they ship with the npm. Overall, this pattern (static templates + safe writes) has been used by CLI tools like CRA or Yeoman, but tailored for MCP: trust the tool if presented by a confirmed agent, handle conflicts by backup, and log actions.  This approach minimizes user surprise while allowing future updates (with diffs or version checks).  
 
-**Recommended Architecture**: The `zorivest_setup_workspace` tool lives in the `core` toolset.  Upon invocation, it: 
+**Recommended Architecture**: The `zorivest_setup_workspace` tool lives in the `core` toolset.  Upon invocation, it:
 1. Reads the detected client/IDE (`mcpContext.client`) to know which IDE-specific variants to generate.  
 2. Resolves the absolute project root (given by MCP `roots` capability) and ensures all operations stay within it【28†L243-L250】.  
 3. Creates `.agent/` subdirectories recursively.  
 4. Copies each template file (e.g. `.agent/context/README.md`, `AGENTS.md`, and the IDE variants) from the static assets to the filesystem.  For each file: if an existing file is found, rename it to `.bak/filename`, then write the new file.  Alternatively, if a template-version header is present, skip if not newer.  
 5. Records metadata in `.agent/.meta.json` (timestamp, tool version, file list) for future reference.  
 
-This design ensures safe file operations, respects idempotency, and cleanly supports multi-IDE templates.  The following sections detail the patterns and reasoning behind these choices. 
+This design ensures safe file operations, respects idempotency, and cleanly supports multi-IDE templates.  The following sections detail the patterns and reasoning behind these choices.
 
 # File System Operation Patterns  
 
@@ -71,7 +71,7 @@ This makes the write appear atomic on most OSes. Without this, an agent crash co
 
 **Permission Model:** Write with safe modes (e.g. `0o600` for files) so other users can’t read agent data. Handle write failures gracefully: e.g., catch `EACCES` or disk-full and return an error result to the agent. Log or surface errors clearly.  
 
-**Path Traversal/Symlinks:** Always normalize and check path prefixes【28†L243-L250】. Do not use string concatenation (`base + "/../evil"`) or unvalidated `path.join` (as in [18]). In [18], the code used `path.join(root, file)` and an `exec("echo...")`; it had no check for `../` and even used shell quoting (which could inject). We must not replicate that pattern【18†L281-L289】. 
+**Path Traversal/Symlinks:** Always normalize and check path prefixes【28†L243-L250】. Do not use string concatenation (`base + "/../evil"`) or unvalidated `path.join` (as in [18]). In [18], the code used `path.join(root, file)` and an `exec("echo...")`; it had no check for `../` and even used shell quoting (which could inject). We must not replicate that pattern【18†L281-L289】.
 
 **Example (combining above patterns):**  
 ```ts
@@ -99,7 +99,7 @@ async function writeFileSafe(root: string, relPath: string, data: string) {
   await fs.rename(tmp, target);
 }
 ```  
-This pattern is common in node-based tools and avoids both partial writes and path attacks. Use of `fs` APIs is preferable to `exec` (no shell injection risk). For reference, some MCP fileservers simply exec shell commands (e.g. [18]) which is **not recommended**. 
+This pattern is common in node-based tools and avoids both partial writes and path attacks. Use of `fs` APIs is preferable to `exec` (no shell injection risk). For reference, some MCP fileservers simply exec shell commands (e.g. [18]) which is **not recommended**.
 
 # Idempotency Strategy Recommendation  
 
@@ -172,9 +172,9 @@ const gemsSuffix = fs.readFileSync('templates/agent/GEMINI.md', 'utf8');
 fs.writeFileSync('.agent/GEMINI.md', `${baseContent}\n\n${gemsSuffix}`);
 ```
 
-Alternatively, use a templating engine (Handlebars/EJS) with placeholders for shared parts and IDE-specific flags. 
+Alternatively, use a templating engine (Handlebars/EJS) with placeholders for shared parts and IDE-specific flags.
 
-For multi-IDE support, we have two choices: generate *only* the detected IDE file, or generate *all* files. Generating all (`GEMINI.md`, `CLAUDE.md`, etc.) upfront is simplest and ensures no missing docs if the user later uses a different IDE. These files are small, so extra generation cost is minimal. We can conditionally include the IDE’s name/metadata. 
+For multi-IDE support, we have two choices: generate *only* the detected IDE file, or generate *all* files. Generating all (`GEMINI.md`, `CLAUDE.md`, etc.) upfront is simplest and ensures no missing docs if the user later uses a different IDE. These files are small, so extra generation cost is minimal. We can conditionally include the IDE’s name/metadata.
 
 **Template Maintenance:** Keep shared sections DRY. For example, common sections (like explaining the `.agent/` directory) live in `AGENTS.md`, while IDE-specific conventions (e.g. “Cursor expects `.cursorrules` files”) live in each variant. This avoids duplicating long text. In Git, we might even have partial includes, but at runtime the tool simply concatenates files.
 
@@ -205,7 +205,7 @@ In summary, our tool strictly confines to the project folder and uses safe APIs.
 **VS Code Extension APIs:** A VS Code extension can create files via `workspace.fs.writeFile()` (async, safe)【56†L11-L13】. However, since our tool is a standalone MCP server (not a VS extension), we’ll use Node fs instead. If integrating in VS Code in the future, similar path checks and `Uri.file` must be used.
 
 **Scaffolding CLIs:** Traditional scaffolders (Yeoman, Create-React-App) all copy static templates. *CRA* copies entire directories into a new app and errors on conflicts【40†L99-L107】. *Yeoman* uses a mem-fs layer to detect conflicts【57†L111-L119】, but ultimately it just writes chosen files. Neither is directly applicable, but lessons are:
-- Always copy whole folders (like `.agent/context/*`, `.agent/roles/*`). 
+- Always copy whole folders (like `.agent/context/*`, `.agent/roles/*`).
 - Check for existing files first.  
 - No built-in rollback – we must implement backups ourselves.
 
@@ -236,7 +236,7 @@ This ensures end users get the templates when they install/upgrade the MCP serve
 - If merging is too heavy, simpler is to backup old file and write new file, then let the developer manually merge changes by examining `.agent/.backup`.  
 Since `.agent/` is primarily machine-generated helper content, heavy merging may not be worth it. However, a semi-automated merge (for Markdown) could be scripted.
 
-**Notification:** The tool could return a structured result including `"updatedFiles": [...], "skippedFiles": [...]` so the calling agent can report what changed. We should log warnings if an existing file was overwritten. 
+**Notification:** The tool could return a structured result including `"updatedFiles": [...], "skippedFiles": [...]` so the calling agent can report what changed. We should log warnings if an existing file was overwritten.
 
 **Package Size:** Keep templates minimal. Markdown docs are tiny, so including them has negligible size impact. Still, use `.npmignore` or `files` to include only needed template directories (not e.g. tests or dev scratch).  
 
@@ -249,7 +249,7 @@ In sum, distribute templates via npm (with proper `files` field【34†L161-L166
 ```ts
 server.tool("zorivest_setup_workspace", "Bootstrap AI agent workspace", {}, async () => {
   // Determine project root from MCP 'roots' or CWD
-  const projectRoot = ...; 
+  const projectRoot = ...;
   await setupAgentFolder(projectRoot, detectedClient);
   return { success: true };
 });
@@ -276,7 +276,7 @@ async function scaffoldAgentWorkspace(root: string, client: string) {
   const agentDir = path.join(root, '.agent');
   // Ensure .agent folder
   await fs.mkdir(agentDir, { recursive: true });
-  
+
   // Common files
   const filesToCopy = [
     'AGENTS.md',
@@ -304,4 +304,3 @@ This architecture follows MCP patterns (tool name, JSON-RPC I/O, using `McpServe
 - Example MCP Filesystem Code – using `path.join` with `echo` (unsafe)【18†L281-L289】.  
 - Yeoman Doc – *Conflict resolution*: pre-existing file writes require user confirmation【57†L111-L119】.  
 - NPM Packaging – include static assets via `files`/`directories` fields【34†L161-L166】.  
-

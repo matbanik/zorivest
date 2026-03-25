@@ -553,5 +553,3 @@ class TestPersistenceWithUoW:
             assert len(steps) >= 1
             assert steps[0].step_id == "step_a"
             assert steps[0].status == "success"
-
-

@@ -117,4 +117,3 @@ These prior findings appear resolved in the current docs state:
    - out-of-range line references
 3. Refresh stale planned-tool notes in `mcp-tool-index` rows (`create_report`, `get_report_for_trade`, `create_trade_plan`).
 4. Add explicit failure handling / `isError: true` pattern to `create_report` draft in `05c`.
-

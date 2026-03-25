@@ -262,7 +262,7 @@ Domain → Infrastructure → Services → REST API → MCP Server → GUI → D
 | MEU-71a | `account-gui` | 35a.1 | [06d](build-plan/06d-gui-accounts.md) | Account Management GUI (list, add, edit, balance display); accounts dropdown in Trade Planner form | ⏸ |
 | MEU-71b | `calculator-account-integration` | 35a.2 | [06h](build-plan/06h-gui-calculator.md) | Position Calculator pulls account balance from selected account for risk % calculation · Depends on MEU-71 + MEU-71a | ⏸ |
 | MEU-72 | `gui-scheduling` | 35b | [06e](build-plan/06e-gui-scheduling.md) | Scheduling GUI | ⬜ |
-| MEU-73 | `gui-email-settings` | 35c | [06f §email](build-plan/06f-gui-settings.md) | Email Provider Settings GUI | ⬜ |
+| MEU-73 | `gui-email-settings` | 35c | [06f §email](build-plan/06f-gui-settings.md) | Email Provider Settings GUI | ✅ |
 | MEU-74 | `gui-backup-restore` | 35d | [06f §backup](build-plan/06f-gui-settings.md) | Backup & Restore Settings GUI · **E2E Wave 3**: `backup-restore` tests (+2 = 16) | ⬜ |
 | MEU-75 | `gui-config-export` | 35e | [06f §export](build-plan/06f-gui-settings.md) | Config Export/Import GUI | ⬜ |
 | MEU-76 | `gui-reset-defaults` | 35f | [06f §reset](build-plan/06f-gui-settings.md) | Reset to Default on settings pages | ⬜ |
@@ -301,10 +301,10 @@ Domain → Infrastructure → Services → REST API → MCP Server → GUI → D
 
 | MEU | Slug | Matrix Item | Build Plan Ref | Description | Status |
 |-----|------|:-----------:|----------------|-------------|:------:|
-| MEU-90a | `persistence-wiring` | 49.0 | [09a §all](build-plan/09a-persistence-integration.md) | Replace StubUnitOfWork with SqlAlchemyUnitOfWork; wire all 17 real repos; fix guardrails getattr/dict mismatch; Alembic bootstrap | 🟡 |
-| MEU-90b | `mode-gating-test-isolation` | 49.1 | [testing-strategy](build-plan/testing-strategy.md) | Fix 8 flaky mode-gating tests: per-test `app.state` reset so lock/unlock doesn't leak across modules | 🔴 |
+| MEU-90a | `persistence-wiring` | 49.0 | [09a §all](build-plan/09a-persistence-integration.md) | Replace StubUnitOfWork with SqlAlchemyUnitOfWork; wire all 17 real repos; fix guardrails getattr/dict mismatch; Alembic bootstrap | ✅ |
+| MEU-90b | `mode-gating-test-isolation` | 49.1 | [testing-strategy](build-plan/testing-strategy.md) | Fix 8 flaky mode-gating tests: per-test `app.state` reset so lock/unlock doesn't leak across modules | ✅ |
 | MEU-90c | `sqlcipher-native-deps` | 49.2 | [02 §2.3](build-plan/02-infrastructure.md), [ADR-001](../adrs/ADR-001-optional-sqlcipher-encryption.md) | Resolve sqlcipher3 availability on Windows; clear 15 skipped encryption tests | 🚫 closed — won't fix locally; CI covered via `crypto-tests` job (ADR-001 Option A+B, human decision 2026-03-22) |
-| MEU-90d | `rendering-deps` | 49.3 | [09 §9.7d](build-plan/09-scheduling.md) | Install + validate Playwright + kaleido rendering extras; clear 1 skipped RenderStep test | 🟡 |
+| MEU-90d | `rendering-deps` | 49.3 | [09 §9.7d](build-plan/09-scheduling.md) | Install + validate Playwright + kaleido rendering extras; clear 1 skipped RenderStep test | ✅ |
 
 ---
 
@@ -499,13 +499,13 @@ Domain → Infrastructure → Services → REST API → MCP Server → GUI → D
 | P1.5 — Phase 8 | MEU-56 → MEU-65 | 10 | 10 |
 | P2 | MEU-66 → MEU-76 | 12 | 4 |
 | P2.5 — Phase 9 | MEU-77 → MEU-90 | 14 | 14 |
-| P2.5a — Integration | MEU-90a → MEU-90d | 4 | 0 |
+| P2.5a — Integration | MEU-90a → MEU-90d | 4 | 3 |
 | P2.6 — Phase 10 | MEU-91 → MEU-95 | 5 | 0 |
 | P2.75 — Expansion | MEU-96 → MEU-122 | 27 | 2 |
 | P3 — Tax | MEU-123 → MEU-156 | 34 | 0 |
 | Phase 7 | MEU-157 | 1 | 0 |
 | Research | MEU-158 → MEU-170 | 13 | 0 |
-| **Total** | | **179** | **85** |
+| **Total** | | **179** | **88** |
 
 ---
 

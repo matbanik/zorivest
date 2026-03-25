@@ -34,7 +34,7 @@ For the watchlist table in a React/Electron UI, use a high-performance data grid
 - **TanStack Table (React Table)** – Lightweight and headless, allowing full control over rendering and virtualization (e.g. via `react-virtual` or `react-window`). Can handle dynamic data updates by updating row data in state. (One community solution for keyboard navigation involves setting `tabIndex` on `<tr>` and handling arrow keys【89†L330-L339】.)  
 - **AG Grid** – Popular enterprise grid. Supports streaming data via *async transactions* to batch updates【61†L293-L302】, enabling high-frequency quote updates without full re-renders. It also has built-in column filtering/sorting. (AG Grid’s client-side mode can handle thousands of rows and frequent updates efficiently.)  
 - **MUI DataGrid / XGrid** – React DataGrid (Material UI) has a Pro version that supports live updates and virtual scrolling. It also offers a built-in Sparkline column type with the `@mui/x-charts` SparkLineChart component【66†L78-L86】, which can render mini-charts in cells.  
-- **Other Options** – `react-data-grid` (adazzle), `Tabulator`, or `DevExtreme React Grid` are also capable of live updates. Many use canvas or WebGL for speed. 
+- **Other Options** – `react-data-grid` (adazzle), `Tabulator`, or `DevExtreme React Grid` are also capable of live updates. Many use canvas or WebGL for speed.
 
 For number formatting, use a library like `numbro` or `Intl.NumberFormat` to color positive values green and negative red (or use CSS classes). Right-align numeric columns. To minimize re-renders, only update cell values that change (key by ticker). Consider splitting into multiple components (e.g. fixed symbol column vs dynamic price columns).
 
@@ -43,7 +43,7 @@ For number formatting, use a library like `numbro` or `Intl.NumberFormat` to col
 - **react-sparklines** (SVG-based, simple API).
 - **TradingView Lightweight Charts** (canvas; very performant for time series, though setup is heavier).
 - **Chart.js or ApexCharts** – can draw small line charts, but may be overkill.
-- **Custom Canvas drawing** – for maximum performance, draw lines directly on HTML5 canvas for each row. 
+- **Custom Canvas drawing** – for maximum performance, draw lines directly on HTML5 canvas for each row.
 Choose a library that can update points incrementally. Avoid full re-rendering of all sparklines on each tick.
 
 Example snippet (using TanStack Table + MUI Sparkline):
@@ -63,10 +63,10 @@ const columns = [
     ) },
   // ... other columns ...
   { header: 'Trend', accessor: 'sparkData', cell: props => (
-      <SparkLineChart 
-         data={props.value} 
-         height={30} 
-         color={props.row.original.pctChange >= 0 ? 'rgba(0,200,0,0.7)' : 'rgba(200,0,0,0.7)'} 
+      <SparkLineChart
+         data={props.value}
+         height={30}
+         color={props.row.original.pctChange >= 0 ? 'rgba(0,200,0,0.7)' : 'rgba(200,0,0,0.7)'}
       />
     ) },
 ];
@@ -86,7 +86,7 @@ To handle rate limits and keep data fresh:
 - **Data Freshness Indicators:** Show a small timestamp or status icon on each row indicating last update. For example, a tooltip on price like “Updated 30s ago”, or a faded text color for stale (>30s) data. UI cues (blinking “Loading…” icon, or dimming) help users know when data isn’t live.  
 - **Incremental Columns:** Load essential columns (price, change) first, then secondary (extended-hours change, fundamentals) as separate queries. Use React Query dependent queries or trigger after initial render.
 
-Example strategy: On mounting the watchlist view, use one batch request to get all last prices and % changes. Display these immediately. Then, for each ticker, asynchronously fetch bid/ask or 52wk range (maybe from a different API). Use optimistic updates so values fill in when ready. 
+Example strategy: On mounting the watchlist view, use one batch request to get all last prices and % changes. Display these immediately. Then, for each ticker, asynchronously fetch bid/ask or 52wk range (maybe from a different API). Use optimistic updates so values fill in when ready.
 
 # Design Specification (Dark Theme)
 
@@ -114,5 +114,4 @@ Example strategy: On mounting the watchlist view, use one batch request to get a
 - **Portfolio Linkage:** Add a “Star” or tag to mark symbols as favorites. Prioritize fetching for favorites. Also, allow grouping tickers by user-defined lists (like Webull’s multiple watchlists).  
 - **Customization & Persistence:** Save column layouts and sorts per user. Enable drag/drop to reorder columns, and save these preferences (like IBKR’s Custom Views【58†L35-L43】).  
 
-Each of these strategic features may need additional infrastructure (e.g. WebSocket service, condition evaluator, order APIs), but will greatly enhance the watchlist’s power and appeal. 
-
+Each of these strategic features may need additional infrastructure (e.g. WebSocket service, condition evaluator, order APIs), but will greatly enhance the watchlist’s power and appeal.

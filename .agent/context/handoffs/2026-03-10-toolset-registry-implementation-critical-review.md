@@ -268,7 +268,7 @@
    - [04g-api-system.md](p:/zorivest/docs/build-plan/04g-api-system.md#L186) still says `get_confirmation_token` is the exception that calls the Python REST layer.
    - [05j-mcp-discovery.md](p:/zorivest/docs/build-plan/05j-mcp-discovery.md#L194) still shows `fetch(${API_BASE}/confirmation-tokens)` as the implementation.
    - [input-index.md](p:/zorivest/docs/build-plan/input-index.md#L686), [output-index.md](p:/zorivest/docs/build-plan/output-index.md#L365), and [build-priority-matrix.md](p:/zorivest/docs/build-plan/build-priority-matrix.md#L44) still describe an HMAC token lifecycle.
-   
+
    That is no longer a wording gap; it is a cross-plan contract contradiction between the current implementation and several canonical docs.
 
 2. **Low** — The evidence bundle is closer, but it still is not fully synchronized. The work handoff now reports `140/140` overall and `46` new tests, but its tester section still says `tests/confirmation.test.ts` is `14/14` even though the current file and rerun output show `16` tests ([043-2026-03-10-toolset-registry-bp05s5.11+5.12+5.13+5.14.md](p:/zorivest/.agent/context/handoffs/043-2026-03-10-toolset-registry-bp05s5.11+5.12+5.13+5.14.md#L65), [confirmation.test.ts](p:/zorivest/mcp-server/tests/confirmation.test.ts#L1)). [task.md](p:/zorivest/docs/execution/plans/2026-03-10-toolset-registry/task.md#L39) also still says `16 files / 133 tests` instead of `140`.

@@ -82,7 +82,7 @@ sequenceDiagram
     participant Notes as Notes Handler
     participant Detect as detect_sensitive_data()
     participant Encrypt as encrypt_note_content()
-    
+
     User->>Notes: save(auto_encrypt=True)
     Notes->>Detect: Scan input_content
     Detect-->>Notes: is_sensitive=True

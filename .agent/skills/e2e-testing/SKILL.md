@@ -172,4 +172,3 @@ await expect(appPage.testId('trade-list')).toHaveScreenshot('trades-table-wide.p
 ```
 
 **Pattern rule:** All table components must use a shared `getAlignClass()` helper for both `<th>` and `<td>` — see `TradesTable.tsx` for the reference implementation.
-

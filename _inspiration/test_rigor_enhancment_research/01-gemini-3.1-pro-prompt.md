@@ -71,7 +71,7 @@ The MCP server accepts JSON-RPC 2.0 messages from AI coding assistants and retur
    - Schema validation for tool input/output
    - Testing error propagation across the TypeScript/Python boundary
 
-3. **Security testing for MCP**: 
+3. **Security testing for MCP**:
    - Preventing prompt injection via tool arguments
    - Input sanitization for tool parameters that touch the database
    - Rate limiting and circuit breaker testing
@@ -81,7 +81,7 @@ The MCP server accepts JSON-RPC 2.0 messages from AI coding assistants and retur
 
 Research patterns for testing communication between architectural layers in Clean Architecture:
 
-1. **Contract testing between layers**: 
+1. **Contract testing between layers**:
    - Consumer-driven contract testing for the domain → infrastructure boundary
    - API contract testing (OpenAPI schema validation)
    - Repository contract tests (ensuring implementations match port interfaces)

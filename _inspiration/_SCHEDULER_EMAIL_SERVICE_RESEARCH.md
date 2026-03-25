@@ -99,7 +99,7 @@ async def lifespan(app: FastAPI):
         jobstores={'default': SQLAlchemyJobStore(url='sqlite:///jobs.db')},
         timezone='UTC',
     )
-    
+
     # Register jobs from service layer
     pipeline = app.state.pipeline_service
     scheduler.add_job(
@@ -111,12 +111,12 @@ async def lifespan(app: FastAPI):
         coalesce=True,
         misfire_grace_time=3600,
     )
-    
+
     scheduler.start()
     app.state.scheduler = scheduler
-    
+
     yield  # --- App is running ---
-    
+
     # --- Shutdown ---
     scheduler.shutdown(wait=True)
 
@@ -186,10 +186,10 @@ class CredentialStorePort(Protocol):
 ```python
 class ApSchedulerAdapter:
     """Wraps APScheduler as an infrastructure adapter."""
-    
+
     def __init__(self, scheduler: AsyncIOScheduler):
         self._scheduler = scheduler
-    
+
     def add_pipeline_job(self, pipeline_fn, cron_expr: str, job_id: str):
         self._scheduler.add_job(
             pipeline_fn,
@@ -200,10 +200,10 @@ class ApSchedulerAdapter:
             coalesce=True,
             misfire_grace_time=3600,
         )
-    
+
     def remove_job(self, job_id: str):
         self._scheduler.remove_job(job_id)
-    
+
     def get_jobs(self) -> list:
         return self._scheduler.get_jobs()
 ```
@@ -226,7 +226,7 @@ class ApSchedulerAdapter:
 ```python
 class PipelineService:
     """Orchestrates the fetch → process → render → email pipeline."""
-    
+
     def __init__(
         self,
         api: ExternalApiPort,
@@ -241,22 +241,22 @@ class PipelineService:
         self.emailer = emailer
         self.uow = uow
         self._lock = asyncio.Lock()
-    
+
     async def run(self) -> None:
         if self._lock.locked():
             logger.warning("Pipeline already running, skipping")
             return
-        
+
         async with self._lock:
             run_id = uuid.uuid4()
             started = datetime.now(timezone.utc)
-            
+
             # Stage 1: Fetch
             fetched = await self.api.fetch_into_db()
-            
+
             # Stage 2: Process
             processed = await self.processor.process_reports()
-            
+
             # Stage 3: Render
             context = {
                 "run_id": str(run_id),
@@ -266,7 +266,7 @@ class PipelineService:
                 "report_data": await self._get_report_data(),
             }
             html, text = self.renderer.render("daily_report.html", context)
-            
+
             # Stage 4: Send
             await self.emailer.send(
                 subject="Daily Report",
@@ -366,11 +366,11 @@ class Jinja2TemplateAdapter:
             loader=FileSystemLoader(templates_dir),
             autoescape=select_autoescape(["html", "xml"]),
         )
-    
+
     def render(self, template_name: str, context: dict) -> tuple[str, str]:
         html_template = self.env.get_template(template_name)
         html = html_template.render(**context)
-        
+
         # Plain text fallback
         text_name = template_name.replace(".html", ".txt")
         try:
@@ -378,7 +378,7 @@ class Jinja2TemplateAdapter:
             text = text_template.render(**context)
         except TemplateNotFoundError:
             text = self._strip_html(html)
-        
+
         return html, text
 ```
 
@@ -394,10 +394,10 @@ All styling **MUST** be inline. External stylesheets and `<style>` blocks are st
 <html>
 <body style="font-family: Arial, sans-serif; background-color: #f4f4f4; padding: 20px;">
   <div style="max-width: 600px; margin: 0 auto; background: #ffffff; border-radius: 8px; padding: 24px;">
-    
+
     <h2 style="color: #2c3e50; margin-top: 0;">📊 Daily Report</h2>
     <p style="color: #666;">Generated: {{ started_utc }}</p>
-    
+
     <!-- Summary stats -->
     <table style="width: 100%; margin-bottom: 20px;">
       <tr>
@@ -410,7 +410,7 @@ All styling **MUST** be inline. External stylesheets and `<style>` blocks are st
         </td>
       </tr>
     </table>
-    
+
     <!-- Data table -->
     <table style="width: 100%; border-collapse: collapse;">
       <thead>
@@ -438,7 +438,7 @@ All styling **MUST** be inline. External stylesheets and `<style>` blocks are st
         {% endfor %}
       </tbody>
     </table>
-    
+
     <p style="color: #999; font-size: 12px; margin-top: 20px;">
       Run ID: {{ run_id }} · Zorivest Automated Report
     </p>

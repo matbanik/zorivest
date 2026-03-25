@@ -24,7 +24,7 @@ Per the proposal (L93): `get_settings`/`update_settings` → potential `manage_s
 **Add CRUD Consolidation Note** after the tool definitions (~L287):
 
 Per the proposal (L92): Symmetrical CRUD candidates `create_policy`/`list_policies`/`update_policy_schedule` could merge. Add:
-- Constrained-client consolidation: `manage_policy(action: 'create'|'list'|'update_schedule', ...)` 
+- Constrained-client consolidation: `manage_policy(action: 'create'|'list'|'update_schedule', ...)`
 - `run_pipeline`, `preview_report`, `get_pipeline_history` are operational tools — not CRUD merge candidates
 - Discrete tools remain canonical
 

@@ -255,7 +255,7 @@ Freqtrade's `is_trading_mode` / `is_webserver_mode` dependency injection maps di
 # Dependencies that gate route availability
 def require_unlocked_db(db: SQLCipherDB = Depends(get_db)):
     """All domain routes require an unlocked database.
-    Only system routes (health, version, MCP guard status) 
+    Only system routes (health, version, MCP guard status)
     are available before unlock."""
     if not db.is_unlocked:
         raise HTTPException(403, "Database is locked")

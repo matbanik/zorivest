@@ -111,7 +111,7 @@ def get_system_encryption_key():
 def encrypt_api_key(api_key):
     """
     Encrypt an API key for storage.
-    
+
     Returns the key prefixed with 'ENC:' to mark it as encrypted.
     If encryption is unavailable or the key is a placeholder, returns as-is.
     """
@@ -136,7 +136,7 @@ def encrypt_api_key(api_key):
 def decrypt_api_key(encrypted_key):
     """
     Decrypt an API key for use.
-    
+
     Only decrypts keys prefixed with 'ENC:'. Non-encrypted keys pass through.
     """
     if not encrypted_key or encrypted_key == "enter_your_api_key" or not ENCRYPTION_AVAILABLE:
@@ -293,7 +293,7 @@ class MarketSettingsManager:
         try:
             if self.config_file.exists():
                 self._create_backup()
-            
+
             self.config_file.parent.mkdir(parents=True, exist_ok=True)
             with open(self.config_file, 'w', encoding='utf-8') as f:
                 json.dump(settings, f, indent=2, ensure_ascii=False)
@@ -957,12 +957,12 @@ class MarketConnectionTester:
     def test_connection(self, provider_name, api_key, timeout=30):
         """
         Test API connection for a single provider.
-        
+
         Args:
             provider_name: Provider name (must match PROVIDERS keys)
             api_key: Decrypted API key
             timeout: Request timeout in seconds
-        
+
         Returns:
             (success: bool, status_message: str)
         """
@@ -1142,7 +1142,7 @@ from collections import deque
 
 class RateLimiter:
     """Token-bucket rate limiter."""
-    
+
     def __init__(self, max_per_minute):
         self.max_per_minute = max_per_minute
         self.timestamps = deque()
@@ -1153,12 +1153,12 @@ class RateLimiter:
         # Remove timestamps older than 60 seconds
         while self.timestamps and self.timestamps[0] < now - 60:
             self.timestamps.popleft()
-        
+
         if len(self.timestamps) >= self.max_per_minute:
             sleep_time = 60 - (now - self.timestamps[0])
             if sleep_time > 0:
                 time.sleep(sleep_time)
-        
+
         self.timestamps.append(time.time())
 ```
 

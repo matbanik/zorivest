@@ -520,4 +520,3 @@ All 4 Pass 3 findings resolved. Plan artifacts now fully conform to create-plan.
 - Verdict: `approved`
 - Residual risk:
   - Approval here is limited to plan-review quality and handoff consistency. No implementation or automated tests were executed in this pass.
-

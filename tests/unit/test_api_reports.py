@@ -268,4 +268,3 @@ class TestReportRouteWiring:
         assert get_data["id"] == data["id"]
         assert get_data["trade_id"] == "E_WIRING"
         assert get_data["setup_quality"] == "A"
-

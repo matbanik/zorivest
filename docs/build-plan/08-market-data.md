@@ -706,7 +706,7 @@ async def test_all_providers(self) -> list[tuple[str, bool, str]]:
     async def _guarded_test(provider: ProviderStatus):
         async with self._test_semaphore:
             return (provider.provider_name, *await self.test_connection(provider.provider_name))
-    
+
     providers: list[ProviderStatus] = await self.list_providers()
     enabled = [p for p in providers if p.has_api_key]
     return await asyncio.gather(*[_guarded_test(p) for p in enabled])

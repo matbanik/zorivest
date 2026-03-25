@@ -94,4 +94,3 @@ class ImageService:
         """Get all images attached to an owner (trade, account, etc.)."""
         with self.uow:
             return self.uow.images.get_for_owner(owner_type, owner_id)
-

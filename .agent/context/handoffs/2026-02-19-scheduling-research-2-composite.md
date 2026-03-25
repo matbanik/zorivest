@@ -80,8 +80,8 @@
 
 - **Human approval required for merge/release/deploy:** yes
 - **Approval status:** pending
-- **Approver:** 
-- **Timestamp:** 
+- **Approver:**
+- **Timestamp:**
 
 ## Final Summary
 

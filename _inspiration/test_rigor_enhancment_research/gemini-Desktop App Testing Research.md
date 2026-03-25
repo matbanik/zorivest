@@ -33,7 +33,7 @@ test.describe('Full Path Trade Execution Flow', () \=\> {
   let electronApp;  
   let window;  
   let apiContext;  
-    
+
   test.beforeAll(async () \=\> {  
     // Strategy: Reset database using the Golden Master File Copy approach  
     // Copying the pre-encrypted fixture avoids PBKDF2 re-encryption latency  
@@ -44,7 +44,7 @@ test.describe('Full Path Trade Execution Flow', () \=\> {
     // Launch the Electron application  
     electronApp \= await electron.launch({ args: \['main.js'\] });  
     window \= await electronApp.firstWindow();  
-      
+
     // Initialize a direct HTTP context to the local FastAPI backend  
     apiContext \= await request.newContext({ baseURL: 'http://localhost:8000' });  
   });
@@ -71,7 +71,7 @@ test.describe('Full Path Trade Execution Flow', () \=\> {
     // This confirms the UoW and Repository successfully committed to SQLCipher  
     const response \= await apiContext.get('/api/trades/latest');  
     expect(response.status()).toBe(200);  
-      
+
     const responseData \= await response.json();  
     expect(responseData.ticker).toBe('NVDA');  
     expect(responseData.quantity).toBe(50);  
@@ -162,19 +162,19 @@ describe('MCP Server Tool Execution & Validation', () \=\> {
         }  
       }  
     };  
-      
+
     // Pipe the request to the MCP server's stdio  
     mcpProcess.stdin.write(JSON.stringify(requestPayload) \+ '\\n');  
-      
+
     // Capture the standard output  
     const { stdout } \= await mcpProcess;  
     const response \= JSON.parse(stdout);  
-      
+
     // Validate JSON-RPC 2.0 Contract  
     expect(response.jsonrpc).toBe("2.0");  
     expect(response.id).toBe("test-req-1");  
     expect(response.error).toBeUndefined();  
-      
+
     // Validate MCP Tool Result Schema  
     const ResultSchema \= z.object({  
       content: z.array(z.object({  
@@ -182,10 +182,10 @@ describe('MCP Server Tool Execution & Validation', () \=\> {
         text: z.string()  
       }))  
     });  
-      
+
     const validationResult \= ResultSchema.safeParse(response.result);  
     expect(validationResult.success).toBeTruthy();  
-      
+
     // Assert error propagation from Python backend translates properly  
     expect(response.result.content.text).toContain("Win Rate:");  
   });
@@ -244,7 +244,7 @@ from src.infrastructure.repositories import SQLAlchemyTradeRepository
 class TradeRepositoryInterface(ABC):  
     @abstractmethod  
     def save(self, trade: Trade) \-\> None: pass  
-      
+
     @abstractmethod  
     def get\_by\_id(self, trade\_id: str) \-\> Optional: pass
 
@@ -252,11 +252,11 @@ class TradeRepositoryInterface(ABC):
 class RepositoryContractTestSuite:  
     def test\_save\_and\_retrieve\_trade(self, repository: TradeRepositoryInterface):  
         trade \= Trade(id\="trade-123", ticker="TSLA", quantity=10, price=250.0)  
-          
+
         \# Act  
         repository.save(trade)  
         retrieved\_trade \= repository.get\_by\_id("trade-123")  
-          
+
         \# Assert Interface Conformance  
         assert retrieved\_trade is not None  
         assert retrieved\_trade.ticker \== "TSLA"  
@@ -268,18 +268,18 @@ class TestSQLAlchemyTradeRepository(RepositoryContractTestSuite):
     def repository(self, sqlcipher\_session):  
         \# Injects the real SQLAlchemy implementation into the contract test  
         return SQLAlchemyTradeRepository(session=sqlcipher\_session)  
-          
+
     def test\_uow\_rollback\_on\_failure(self, repository, sqlcipher\_session):  
         \# Testing the Unit of Work integration  
         trade \= Trade(id\="trade-456", ticker="MSFT", quantity=5, price=300.0)  
-          
+
         try:  
             with sqlcipher\_session.begin\_nested():  
                 repository.save(trade)  
                 raise ValueError("Simulated business logic failure")  
         except ValueError:  
             pass \# Transaction rolls back  
-              
+
         \# Verify eventual consistency and database integrity  
         assert repository.get\_by\_id("trade-456") is None
 
@@ -330,20 +330,20 @@ class TestDatabaseEncryptionIntegrity:
         temp\_dir \= tempfile.mkdtemp()  
         db\_path \= os.path.join(temp\_dir, 'secure\_journal.db')  
         encryption\_key \= 'test-strong-encryption-key-xyz'  
-          
+
         \# Initialize encrypted database  
         conn \= sqlcipher3.connect(db\_path)  
         cursor \= conn.cursor()  
-          
+
         \# Verify SQLCipher secure defaults are applied  
         cursor.execute(f"PRAGMA key \= '{encryption\_key}'")  
         cursor.execute("PRAGMA kdf\_iter \= 256000") \# Enforce high iteration count  
-          
+
         cursor.execute('''CREATE TABLE trades (id INTEGER PRIMARY KEY, notes TEXT)''')  
         conn.commit()  
-          
+
         yield {'conn': conn, 'cursor': cursor, 'path': db\_path, 'key': encryption\_key}  
-          
+
         \# Cleanup  
         conn.close()  
         os.remove(db\_path)  
@@ -406,7 +406,7 @@ import AxeBuilder from '@axe-core/playwright';
 test.describe('Automated Accessibility and Structure Validation', () \=\> {  
   test('Trade entry form meets WCAG 2.1 AA standards', async ({ page }) \=\> {  
     await page.goto('http://localhost:3000/\#/trade-entry');  
-      
+
     // Wait for dynamic React components to mount  
     await page.waitForSelector('form\[data-testid="trade-form"\]');
 

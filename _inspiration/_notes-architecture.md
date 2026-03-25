@@ -151,7 +151,7 @@ key        = PBKDF2HMAC(SHA256, 32 bytes, salt, 100,000 iterations)
 
 ```
   Store:   plaintext ──► Fernet.encrypt() ──► base64 encode ──► "ENC:" + data ──► DB
-  
+
   Retrieve: DB ──► check "ENC:" prefix ──► base64 decode ──► Fernet.decrypt() ──► plaintext
 ```
 

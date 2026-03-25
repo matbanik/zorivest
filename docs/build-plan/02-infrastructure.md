@@ -369,7 +369,7 @@ class BankImportConfigModel(Base):  # §26
 > **SQLite WAL Mode (Required):** Enable WAL journaling for concurrent read/write support, critical for PySide6 background tasks (analytics, imports). Set during connection factory initialization:
 > ```python
 > engine = create_engine(url, connect_args={"check_same_thread": False})
-> 
+>
 > @event.listens_for(engine, "connect")
 > def set_sqlite_pragmas(dbapi_conn, connection_record):
 >     cursor = dbapi_conn.cursor()
@@ -407,7 +407,7 @@ class TestTradeRepository:
         trade = make_trade(exec_id="TEST001")
         repo.save(trade)
         session.commit()
-        
+
         found = repo.get("TEST001")
         assert found is not None
         assert found.exec_id == "TEST001"
@@ -424,11 +424,11 @@ class TestImageRepository:
     def test_save_and_retrieve_image(self, session):
         trade_repo = SqlAlchemyTradeRepository(session)
         trade_repo.save(make_trade(exec_id="TRADE1"))
-        
+
         img_repo = SqlAlchemyImageRepository(session)
         image_id = img_repo.save("trade", "TRADE1", make_stored_image(b"RIFF\x00\x00\x00\x00WEBP_data"))
         session.commit()
-        
+
         retrieved = img_repo.get(image_id)
         assert retrieved is not None
         assert retrieved.data == b"RIFF\x00\x00\x00\x00WEBP_data"
@@ -474,7 +474,7 @@ class TestSqlCipherConnection:
         conn.execute("CREATE TABLE test (id INTEGER PRIMARY KEY)")
         conn.commit()
         conn.close()
-        
+
         # Verify: opening without passphrase fails (only when sqlcipher3 installed)
         import sqlite3
         raw_conn = sqlite3.connect(str(db_path))
@@ -512,4 +512,3 @@ class TestSqlCipherConnection:
 - Repository implementations passing integration tests
 - SQLCipher connection factory with optional encryption (`[crypto]` extra) and Argon2/PBKDF2 key derivation
 - Unit of Work implementation
-

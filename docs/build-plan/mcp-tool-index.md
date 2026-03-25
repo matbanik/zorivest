@@ -819,4 +819,3 @@ Generated from docs/build-plan/ on 2026-02-26. This index is agent-facing and op
 - docs/build-plan/05-mcp-server.md
 
 - docs/build-plan/build-priority-matrix.md
-

@@ -284,4 +284,3 @@ All 4 MEUs consolidated into a single handoff:
 | MEUs | Handoff File |
 |------|-------------|
 | MEU-77–80 | `060-2026-03-13-scheduling-domain-foundation-bp09s9.1.md` |
-

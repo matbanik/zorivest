@@ -129,7 +129,7 @@ The GUI React components already call `fetch('/api/v1/trades', ...)` etc. — th
 
 ### User Input
 
-@[/create-plan]for MEU-90a 
+@[/create-plan]for MEU-90a
 
 
 *Viewed [SOUL.md](file:///p:/zorivest/SOUL.md) *
@@ -234,7 +234,7 @@ Now let me present the plan for user approval:
 
 ### User Input
 
-@[/planning-corrections]@[p:\zorivest\.agent\context\handoffs\2026-03-18-persistence-wiring-plan-critical-review.md] 
+@[/planning-corrections]@[p:\zorivest\.agent\context\handoffs\2026-03-18-persistence-wiring-plan-critical-review.md]
 
 *Viewed [2026-03-18-persistence-wiring-plan-critical-review.md](file:///p:/zorivest/.agent/context/handoffs/2026-03-18-persistence-wiring-plan-critical-review.md) *
 
@@ -308,7 +308,7 @@ The grep shows that [StubStepStore](cci:2://file:///p:/zorivest/packages/api/src
 
 ### User Input
 
-@[/planning-corrections]@[p:\zorivest\.agent\context\handoffs\2026-03-18-persistence-wiring-plan-critical-review.md] 
+@[/planning-corrections]@[p:\zorivest\.agent\context\handoffs\2026-03-18-persistence-wiring-plan-critical-review.md]
 
 *Viewed [2026-03-18-persistence-wiring-plan-critical-review.md](file:///p:/zorivest/.agent/context/handoffs/2026-03-18-persistence-wiring-plan-critical-review.md) *
 
@@ -390,7 +390,7 @@ Good — `rg "if needed"` returns exit code 1 (no matches), confirming there's n
 
 ### User Input
 
-@[/planning-corrections]@[p:\zorivest\.agent\context\handoffs\2026-03-18-persistence-wiring-plan-critical-review.md] 
+@[/planning-corrections]@[p:\zorivest\.agent\context\handoffs\2026-03-18-persistence-wiring-plan-critical-review.md]
 
 *User accepted the command `rg -n "Remove.*classes|Validation.*rg" docs/execution/plans/2026-03-18-persistence-wiring/implementation-plan.md`*
 
@@ -432,7 +432,7 @@ Now append the corrections to the canonical review handoff:
 
 ### User Input
 
-execute @[/tdd-implementation] @[p:\zorivest\docs\execution\plans\2026-03-18-persistence-wiring\implementation-plan.md] @[p:\zorivest\docs\execution\plans\2026-03-18-persistence-wiring\task.md] 
+execute @[/tdd-implementation] @[p:\zorivest\docs\execution\plans\2026-03-18-persistence-wiring\implementation-plan.md] @[p:\zorivest\docs\execution\plans\2026-03-18-persistence-wiring\task.md]
 
 *Viewed [SOUL.md](file:///p:/zorivest/SOUL.md) *
 
@@ -662,7 +662,7 @@ Let me look at these 2 failing tests more closely:
 
 ### Planner Response
 
-I see the issue. The `TestLiveWiring.test_live_manual_run_route` and `TestLiveExecution.test_runner_executes_policy` tests use `TestClient(app)` which triggers the real lifespan. The lifespan creates a [SqlAlchemyUnitOfWork(engine)](cci:2://file:///p:/zorivest/packages/infrastructure/src/zorivest_infra/database/unit_of_work.py:43:0-122:36) but `PipelineRunner.run()` likely accesses `uow.pipeline_runs` directly without `with uow:`. 
+I see the issue. The `TestLiveWiring.test_live_manual_run_route` and `TestLiveExecution.test_runner_executes_policy` tests use `TestClient(app)` which triggers the real lifespan. The lifespan creates a [SqlAlchemyUnitOfWork(engine)](cci:2://file:///p:/zorivest/packages/infrastructure/src/zorivest_infra/database/unit_of_work.py:43:0-122:36) but `PipelineRunner.run()` likely accesses `uow.pipeline_runs` directly without `with uow:`.
 
 The error is `'SqlAlchemyUnitOfWork' object has no attribute 'pipeline_runs'` — this happens because the UoW attrs are only set inside [__enter__](cci:1://file:///p:/zorivest/packages/infrastructure/src/zorivest_infra/database/unit_of_work.py:79:4-100:19). This is expected — `PipelineRunner` needs to use `with self.uow:` to access repos.
 
@@ -678,7 +678,7 @@ I see — `PipelineRunner._persist_step()` accesses `self.uow._session` directly
 
 ### Planner Response
 
-I see! `PipelineRunner._create_run_record()` accesses `self.uow.pipeline_runs.create(...)` directly — it does NOT use `with self.uow:`. The runner was designed to work within a session that's already open (the stub UoW created the repos in [__init__](cci:1://file:///p:/zorivest/packages/api/src/zorivest_api/scheduling_adapters.py:78:4-79:23)). 
+I see! `PipelineRunner._create_run_record()` accesses `self.uow.pipeline_runs.create(...)` directly — it does NOT use `with self.uow:`. The runner was designed to work within a session that's already open (the stub UoW created the repos in [__init__](cci:1://file:///p:/zorivest/packages/api/src/zorivest_api/scheduling_adapters.py:78:4-79:23)).
 
 The runner needs a UoW that's already entered. But our plan says "pass un-entered UoW to services, they call `with self.uow:` per-method." The issue is that `PipelineRunner` doesn't follow this pattern — it accesses repos directly.
 
@@ -1193,7 +1193,7 @@ Now there's a nuance: the live-wiring tests in [test_api_scheduling.py](cci:7://
 
 Back to 13 failures (same as before the reentrant UoW attempt). The temp DB fixture works — settings 3/7 now pass, and plan/repo_contract tests pass. Remaining 13 failures:
 - **4× settings** — `test_valid_update_returns_200`, `test_all_or_nothing`, `test_no_dependency_overrides`, `test_put_get_roundtrip`
-- **2× watchlists** — `test_list_empty`, `test_list_returns_created` 
+- **2× watchlists** — `test_list_empty`, `test_list_returns_created`
 - **1× store_render_step** (pre-existing, orjson)
 - **And the rest from the FAILED list**
 
@@ -1429,7 +1429,7 @@ This is a pre-existing issue with the integration test isolation — not caused 
 
 Now let me do a final summary. Our original 11 regressions:
 - ✅ **7× settings** — fixed by entering UoW in lifespan
-- ✅ **2× watchlists** — fixed by function-scoped DB fixture 
+- ✅ **2× watchlists** — fixed by function-scoped DB fixture
 - ✅ **1× scheduling (test_runner_executes_policy)** — fixed by entering UoW in lifespan
 - ✅ **1× repo_contracts** — was cross-test pollution (passes alone), fixed by function-scoped DB  
 
@@ -1444,7 +1444,7 @@ Let me update the walkthrough and notify the user:
 
 ### User Input
 
-can you update @[p:\zorivest\docs\execution\plans\2026-03-18-persistence-wiring\task.md] 
+can you update @[p:\zorivest\docs\execution\plans\2026-03-18-persistence-wiring\task.md]
 Also elaborate more on the 3 remaining failures and to which MEU they are assigned to be resolved
 
 *Viewed [task.md](file:///p:/zorivest/docs/execution/plans/2026-03-18-persistence-wiring/task.md) *
@@ -1692,7 +1692,7 @@ It's tracked as a future item, not part of MEU-90a.
 
 ### User Input
 
-where is it tracked? I dont see it in @[p:\zorivest\.agent\context\known-issues.md] 
+where is it tracked? I dont see it in @[p:\zorivest\.agent\context\known-issues.md]
 
 ### Planner Response
 
@@ -1706,7 +1706,7 @@ Added `[SCHED-WALPICKLE]` to [known-issues.md](cci:7://file:///p:/zorivest/.agen
 
 ### User Input
 
-which MEU shoudl this be assigned to 
+which MEU shoudl this be assigned to
 
 ### Planner Response
 
@@ -1721,7 +1721,7 @@ Want me to add it to the task.md checklist?
 give me pros and cons between these options:
 
 Configure APScheduler to use a separate engine without WAL listeners for its job store
-Or 
+Or
 Use APScheduler's MemoryJobStore and persist schedules through our own PolicyRepository instead
 
 ### Planner Response
@@ -2791,7 +2791,7 @@ Line 268 — another `pipeline_run["id"]` that I missed:
 
 ### Planner Response
 
-**1545 passed, 0 failed, 16 skipped, 0 xfailed.** 🎉 
+**1545 passed, 0 failed, 16 skipped, 0 xfailed.** 🎉
 
 We gained 1 test — the formerly xfailed test is now a full pass. Let me update known-issues and notify you:
 
@@ -3554,7 +3554,7 @@ This is a Windows "port in use" error. The smoke test's API server process didn'
 
 ### Planner Response
 
-Port cleared. The issue was that the smoke test's backend process lingered. I also need to improve the smoke test's cleanup to prevent this. But for now — the port is free. 
+Port cleared. The issue was that the smoke test's backend process lingered. I also need to improve the smoke test's cleanup to prevent this. But for now — the port is free.
 
 Also, looking at the earlier terminal output more carefully, I can see the **first** run (before the restart) was actually working — health/version returned 200. But trades still returned **403 Forbidden**, which means `ZORIVEST_DEV_UNLOCK` isn't reaching the backend. Let me check — the first run used the *old* `dev:api` script (without `ZORIVEST_DEV_UNLOCK`). The second run failed due to port conflict.
 
@@ -4125,7 +4125,7 @@ The column definition at line 82-85 looks correct — `col.accessor('commission'
 
 Looking at the screenshot: Comm column is blank, but the "12.00" and "1.00" values appear under P&L. The commission values are *actually showing in the wrong column* — wait, let me look again. The P&L column shows `12.00`, `1.00`, `1.00` and the last column shows `+1`, `+1`, `+1`. Those `+1` values are the `realized_pnl` (formatted with `+` prefix). And `12.00` etc. are commission values rendered in the P&L position...
 
-No — actually the issue is simpler. `commission` is returned as `0` by the API for these trades (they were created with commission=0 or null), so `.toFixed(2)` shows `0.00` but it might be rendering as empty if the value is exactly `0`. Let me check if `.toFixed(2)` on `0` returns `"0.00"` — it does. 
+No — actually the issue is simpler. `commission` is returned as `0` by the API for these trades (they were created with commission=0 or null), so `.toFixed(2)` shows `0.00` but it might be rendering as empty if the value is exactly `0`. Let me check if `.toFixed(2)` on `0` returns `"0.00"` — it does.
 
 Actually, looking at the screenshot more carefully, the Comm column **does** show values — `12.00`, `1.00`, `1.00`. The column just gets cut off by the column width. The issue might just be that commission is working fine but the column header shows "Comm i" (truncated "Commission").
 

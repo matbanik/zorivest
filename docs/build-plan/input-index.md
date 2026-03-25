@@ -703,5 +703,3 @@ These inputs are triggered automatically by the system, IDE agent calls, or sche
 | MCP-only input parameters | 10 (`image_base64`, `confirm`, `verbose`, `wait_for_close`, `toolset_name`, `enable`, `tool_name`, `parameters`) |
 | MCP-only tool calls (no GUI equivalent) | 6 (`zorivest_service_status`, `zorivest_service_logs`, `list_available_toolsets`, `describe_toolset`, `enable_toolset`, `get_confirmation_token`) |
 | Files referenced | 12 build plan docs |
-
-

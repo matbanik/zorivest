@@ -50,6 +50,8 @@ EXPECTED_TABLES = {
     "report_delivery",
     "fetch_cache",
     "audit_log",
+    # MEU-73 email provider
+    "email_provider",
 }
 
 
@@ -72,7 +74,7 @@ class TestSchemaCreation:
     def test_exactly_30_tables(self) -> None:
         engine = _engine()
         inspector = inspect(engine)
-        assert len(inspector.get_table_names()) == 30
+        assert len(inspector.get_table_names()) == 31
 
 
 class TestColumnTypes:

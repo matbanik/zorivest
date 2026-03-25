@@ -28,9 +28,16 @@ class TestTradeRepository:
         assert issubclass(TradeRepository, Protocol)
         # Value: verify exact public method contract
         expected_methods = {
-            "count_filtered", "delete", "exists", "exists_by_fingerprint_since",
-            "get", "list_all", "list_filtered", "list_for_account",
-            "save", "update",
+            "count_filtered",
+            "delete",
+            "exists",
+            "exists_by_fingerprint_since",
+            "get",
+            "list_all",
+            "list_filtered",
+            "list_for_account",
+            "save",
+            "update",
         }
         actual_methods = {
             name
@@ -47,9 +54,16 @@ class TestTradeRepository:
         from zorivest_core.application.ports import TradeRepository
 
         expected_methods = {
-            "count_filtered", "delete", "exists", "exists_by_fingerprint_since",
-            "get", "list_all", "list_filtered", "list_for_account",
-            "save", "update",
+            "count_filtered",
+            "delete",
+            "exists",
+            "exists_by_fingerprint_since",
+            "get",
+            "list_all",
+            "list_filtered",
+            "list_for_account",
+            "save",
+            "update",
         }
         actual_methods = {
             name
@@ -72,8 +86,12 @@ class TestImageRepository:
         assert issubclass(ImageRepository, Protocol)
         # Value: verify exact public method contract
         expected_methods = {
-            "delete", "get", "get_for_owner", "get_full_data",
-            "get_thumbnail", "save",
+            "delete",
+            "get",
+            "get_for_owner",
+            "get_full_data",
+            "get_thumbnail",
+            "save",
         }
         actual_methods = {
             name
@@ -90,8 +108,12 @@ class TestImageRepository:
         from zorivest_core.application.ports import ImageRepository
 
         expected_methods = {
-            "delete", "get", "get_for_owner", "get_full_data",
-            "get_thumbnail", "save",
+            "delete",
+            "get",
+            "get_for_owner",
+            "get_full_data",
+            "get_thumbnail",
+            "save",
         }
         actual_methods = {
             name
@@ -116,9 +138,7 @@ class TestUnitOfWork:
         expected_methods = {"commit", "rollback"}
         actual_methods = {
             name
-            for name, _ in inspect.getmembers(
-                UnitOfWork, predicate=inspect.isfunction
-            )
+            for name, _ in inspect.getmembers(UnitOfWork, predicate=inspect.isfunction)
             if not name.startswith("_")
         }
         assert actual_methods == expected_methods, (
@@ -131,9 +151,7 @@ class TestUnitOfWork:
         expected_methods = {"commit", "rollback"}
         actual_methods = {
             name
-            for name, _ in inspect.getmembers(
-                UnitOfWork, predicate=inspect.isfunction
-            )
+            for name, _ in inspect.getmembers(UnitOfWork, predicate=inspect.isfunction)
             if not name.startswith("_")
         }
         assert actual_methods == expected_methods, (
@@ -145,9 +163,7 @@ class TestUnitOfWork:
 
         all_methods = {
             name
-            for name, _ in inspect.getmembers(
-                UnitOfWork, predicate=inspect.isfunction
-            )
+            for name, _ in inspect.getmembers(UnitOfWork, predicate=inspect.isfunction)
         }
         assert "__enter__" in all_methods
         assert "__exit__" in all_methods
@@ -183,14 +199,15 @@ class TestBrokerPort:
         assert issubclass(BrokerPort, Protocol)
         # Value: verify exact public method contract
         expected_methods = {
-            "get_account", "get_bars", "get_order_history",
-            "get_orders", "get_positions",
+            "get_account",
+            "get_bars",
+            "get_order_history",
+            "get_orders",
+            "get_positions",
         }
         actual_methods = {
             name
-            for name, _ in inspect.getmembers(
-                BrokerPort, predicate=inspect.isfunction
-            )
+            for name, _ in inspect.getmembers(BrokerPort, predicate=inspect.isfunction)
             if not name.startswith("_")
         }
         assert actual_methods == expected_methods, (
@@ -201,14 +218,15 @@ class TestBrokerPort:
         from zorivest_core.application.ports import BrokerPort
 
         expected_methods = {
-            "get_account", "get_bars", "get_order_history",
-            "get_orders", "get_positions",
+            "get_account",
+            "get_bars",
+            "get_order_history",
+            "get_orders",
+            "get_positions",
         }
         actual_methods = {
             name
-            for name, _ in inspect.getmembers(
-                BrokerPort, predicate=inspect.isfunction
-            )
+            for name, _ in inspect.getmembers(BrokerPort, predicate=inspect.isfunction)
             if not name.startswith("_")
         }
         assert actual_methods == expected_methods, (
@@ -303,7 +321,7 @@ class TestProtocolConvention:
             if obj.__module__ == mod.__name__
         ]
         # Value: verify exact count matches module integrity test
-        assert len(port_classes) == 18
+        assert len(port_classes) == 19
         for cls in port_classes:
             assert issubclass(cls, Protocol), f"{cls.__name__} is not a Protocol"
 
@@ -316,12 +334,10 @@ class TestProtocolConvention:
             if obj.__module__ == mod.__name__:
                 # runtime_checkable sets _is_runtime_protocol = True
                 is_runtime = getattr(obj, "_is_runtime_protocol", False)
-                assert not is_runtime, (
-                    f"{name} must NOT be @runtime_checkable"
-                )
+                assert not is_runtime, f"{name} must NOT be @runtime_checkable"
                 checked_count += 1
-        # Value: verify we actually checked all 18 protocol classes
-        assert checked_count == 18
+        # Value: verify we actually checked all 19 protocol classes
+        assert checked_count == 19
 
 
 # ── AC-8: Import surface ────────────────────────────────────────────────
@@ -351,9 +367,7 @@ class TestImportSurface:
             if isinstance(node, ast.Import):
                 for alias in node.names:
                     top = alias.name.split(".")[0]
-                    assert top in allowed_modules, (
-                        f"Forbidden import: {alias.name}"
-                    )
+                    assert top in allowed_modules, f"Forbidden import: {alias.name}"
                     import_count += 1
             elif isinstance(node, ast.ImportFrom):
                 if node.module is not None:
@@ -363,7 +377,9 @@ class TestImportSurface:
                     )
                     import_count += 1
         # Value: verify at least 2 imports were checked (not vacuously true)
-        assert import_count >= 2, f"Only {import_count} imports found — file may be empty"
+        assert import_count >= 2, (
+            f"Only {import_count} imports found — file may be empty"
+        )
 
 
 # ── Module integrity ────────────────────────────────────────────────────
@@ -407,8 +423,9 @@ class TestModuleIntegrity:
             # Phase 2.75 additions (MEU-96)
             "BrokerFileAdapter",
             "CSVBrokerAdapter",
+            # MEU-73
+            "EmailProviderRepository",
         }
         assert set(class_names) == expected, (
             f"Expected {expected}, got {set(class_names)}"
         )
-

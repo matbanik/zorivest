@@ -141,7 +141,7 @@ Some input-index rows lack 🖥️ but the GUI spec defines a GUI form for that 
 | 15b.1 | `provider` (Static) | 🖥️🤖🔌 | 06f: Not an input — provider name is from registry | Pre-populated dropdown, technically correct |
 | 7.5 | `currency` | 🖥️🔌 | 06d §AccountPage: Listed as form field | Missing 🤖 flag — should MCP support this? |
 
-**Recommendation**: 
+**Recommendation**:
 - Row 2.8 (`realized_pnl`): Clarify in index that this is "display-only on GUI; input via API/import only"
 - Row 2.7 (`commission`): Verify whether GUI allows manual commission entry or if it's auto-only
 - Row 15a.1: Confirm OAuth is P3 and add note to index  

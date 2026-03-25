@@ -133,7 +133,7 @@ const { data, isStale } \= useQuery({
   queryKey: \['quote', ticker\],  
   queryFn: () \=\> fetchQuoteFromUnifiedAPI(ticker),  
   enabled: isIntersecting, // Request is aborted/prevented if off-screen  
-  refetchInterval: isIntersecting? 3000 : false,   
+  refetchInterval: isIntersecting? 3000 : false,  
 });
 
 When the user scrolls, the outgoing rows instantly halt their polling intervals, and the incoming rows initiate theirs, maintaining a strictly capped number of concurrent network requests tied exactly to the viewport capacity.

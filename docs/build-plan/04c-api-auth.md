@@ -50,14 +50,14 @@ class KeyInfo(BaseModel):
 @auth_router.post("/unlock", status_code=200)
 async def unlock_database(request: UnlockRequest) -> UnlockResponse:
     """Unlock encrypted DB using API key (envelope encryption).
-    
+
     Flow:
     1. Hash API key → lookup wrapped DEK in bootstrap.json
     2. Derive KEK from API key via Argon2id
     3. Unwrap DEK with KEK (Fernet)
     4. Open SQLCipher with DEK → PRAGMA key
     5. Return session token for subsequent requests
-    
+
     Errors:
     - 401: Invalid or unknown API key
     - 403: API key revoked
@@ -81,7 +81,7 @@ async def auth_status() -> dict:
 @auth_router.post("/keys", status_code=201)
 async def create_api_key(request: KeyCreateRequest) -> dict:
     """Generate new API key. Returns the key ONCE (never stored in plain).
-    
+
     Flow:
     1. Generate random key: zrv_sk_<32 random chars>
     2. Hash key → store for lookup

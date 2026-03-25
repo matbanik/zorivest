@@ -13,7 +13,7 @@ graph TB
     subgraph "AI Assistant (Client)"
         A[Claude / Cursor / IDE]
     end
-    
+
     subgraph "MCP Server (Pomera)"
         B["pomera_mcp_server.py<br/>(Entry Point)"]
         C["StdioMCPServer<br/>(Transport)"]
@@ -21,14 +21,14 @@ graph TB
         E["ToolRegistry<br/>(24 Tool Adapters)"]
         F["MCPSecurityManager<br/>(Circuit Breaker)"]
     end
-    
+
     subgraph "Core Layer"
         G["AI Tools Engine"]
         H["Settings DB"]
         I["Notes DB"]
         J["File I/O Helpers"]
     end
-    
+
     A <-->|"stdin/stdout"| B
     B --> C
     C --> D
@@ -105,7 +105,7 @@ sequenceDiagram
     Server->>Registry: __init__(register_builtins=True)
     Registry->>Registry: _register_builtin_tools()
     Registry->>Adapter: Create 24 adapters
-    
+
     Note over Server: Client sends tools/call
     Server->>Registry: execute("pomera_case_transform", args)
     Registry->>Adapter: adapter.execute(args)

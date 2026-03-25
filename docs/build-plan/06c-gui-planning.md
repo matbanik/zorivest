@@ -177,4 +177,3 @@ Each item in the left pane shows:
 - Plan list with conviction-colored cards and status badges
 - Watchlist item CRUD with inline add/edit/delete
 - Position calculator accessible via cross-reference to [06h-gui-calculator.md](06h-gui-calculator.md)
-

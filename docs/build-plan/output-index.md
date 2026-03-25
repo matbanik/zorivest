@@ -387,4 +387,3 @@ Canonical registry of **every computed or derived output** the system produces �
 | Expansion analytics/behavioral (§17) | 13 |
 | Service daemon outputs (§18) | 8 |
 | Discovery/toolset outputs (§19) | 9 |
-

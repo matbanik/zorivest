@@ -134,7 +134,7 @@ app.include_router(service_router)     # /api/v1/service
 > Canonical cross-reference: every REST endpoint, its owner sub-file, and downstream consumers. Sub-files contain schemas and tests; this table is the single source of truth for route ownership.
 
 | Route ID | Method | Path | Owner | MCP Consumers (05) | GUI Consumers (06) |
-|----------|--------|------|-------|--------------------|--------------------| 
+|----------|--------|------|-------|--------------------|--------------------|
 
 **Trades (04a)**
 

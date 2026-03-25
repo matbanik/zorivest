@@ -39,6 +39,9 @@ from zorivest_infra.database.scheduling_repositories import (
 from zorivest_infra.database.watchlist_repository import (
     SqlAlchemyWatchlistRepository,
 )
+from zorivest_infra.database.email_provider_repository import (
+    SqlAlchemyEmailProviderRepository,
+)
 
 
 class SqlAlchemyUnitOfWork:
@@ -61,7 +64,7 @@ class SqlAlchemyUnitOfWork:
     app_defaults: SqlAlchemyAppDefaultsRepository
     market_provider_settings: SqlMarketProviderSettingsRepository
     trade_reports: SqlAlchemyTradeReportRepository  # MEU-52
-    trade_plans: SqlAlchemyTradePlanRepository      # MEU-66
+    trade_plans: SqlAlchemyTradePlanRepository  # MEU-66
     # Scheduling repos (MEU-82)
     policies: PolicyRepository
     pipeline_runs: PipelineRunRepository
@@ -71,6 +74,7 @@ class SqlAlchemyUnitOfWork:
     audit_log: AuditLogRepository
     deliveries: DeliveryRepository  # MEU-88
     watchlists: SqlAlchemyWatchlistRepository  # MEU-90a
+    email_provider: SqlAlchemyEmailProviderRepository  # MEU-73
 
     def __init__(self, engine: Engine) -> None:
         self._engine = engine
@@ -89,9 +93,13 @@ class SqlAlchemyUnitOfWork:
             self.round_trips = SqlAlchemyRoundTripRepository(self._session)
             self.settings = SqlAlchemySettingsRepository(self._session)
             self.app_defaults = SqlAlchemyAppDefaultsRepository(self._session)
-            self.market_provider_settings = SqlMarketProviderSettingsRepository(self._session)
-            self.trade_reports = SqlAlchemyTradeReportRepository(self._session)  # MEU-52
-            self.trade_plans = SqlAlchemyTradePlanRepository(self._session)      # MEU-66
+            self.market_provider_settings = SqlMarketProviderSettingsRepository(
+                self._session
+            )
+            self.trade_reports = SqlAlchemyTradeReportRepository(
+                self._session
+            )  # MEU-52
+            self.trade_plans = SqlAlchemyTradePlanRepository(self._session)  # MEU-66
             # Scheduling repos (MEU-82)
             self.policies = PolicyRepository(self._session)
             self.pipeline_runs = PipelineRunRepository(self._session)
@@ -101,6 +109,9 @@ class SqlAlchemyUnitOfWork:
             self.audit_log = AuditLogRepository(self._session)
             self.deliveries = DeliveryRepository(self._session)  # MEU-88
             self.watchlists = SqlAlchemyWatchlistRepository(self._session)  # MEU-90a
+            self.email_provider = SqlAlchemyEmailProviderRepository(
+                self._session
+            )  # MEU-73
         return self
 
     def __exit__(

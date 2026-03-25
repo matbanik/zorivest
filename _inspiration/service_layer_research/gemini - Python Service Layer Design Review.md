@@ -48,8 +48,8 @@ If the background TypeScript MCP server attempts to ingest a broker CSV while th
        def execute(self, command: RecordTradeCommand) \-\> int:  
            \# Business logic and data access co-located for the slice  
            trade \= Trade(  
-               ticker=command.ticker,   
-               quantity=command.quantity,   
+               ticker=command.ticker,  
+               quantity=command.quantity,  
                price=command.execution\_price  
            )
 

@@ -115,12 +115,12 @@ graph LR
     B --> C[Validate Value]
     C --> D[Write to SQLite]
     D --> E[Invalidate Cache]
-    
+
     F[App Startup] --> G[Load from SQLite]
     G --> H[Merge with Defaults]
     H --> I[Deep Merge]
     I --> J[Application Ready]
-    
+
     K[DB Failure] --> L[ErrorHandler]
     L --> M[Switch to JSON Fallback]
 ```

@@ -298,4 +298,3 @@
   1. Resolve Critical 1-4 before starting code implementation for expansion/scheduling/diagnostics.
   2. Run a single “contract reconciliation pass” across `04`, `05`, `06e`, `08`, and all three indexes.
   3. Add a lightweight parity check script (routes/tools/indexes) to prevent future drift.
-

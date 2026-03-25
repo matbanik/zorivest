@@ -237,6 +237,14 @@ class WatchlistRepository(Protocol):
     def get_items(self, watchlist_id: int) -> list[WatchlistItem]: ...
 
 
+class EmailProviderRepository(Protocol):
+    """Repository for email provider configuration (single-row). MEU-73."""
+
+    def get(self) -> Optional[Any]: ...
+
+    def save(self, config: Any) -> None: ...
+
+
 class UnitOfWork(Protocol):
     """Transactional unit of work wrapping repository access."""
 
@@ -251,6 +259,7 @@ class UnitOfWork(Protocol):
     trade_reports: TradeReportRepository  # MEU-52
     trade_plans: TradePlanRepository  # MEU-66
     watchlists: WatchlistRepository  # MEU-68
+    email_provider: EmailProviderRepository  # MEU-73
 
     def __enter__(self) -> UnitOfWork: ...
 

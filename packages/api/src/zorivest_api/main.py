@@ -39,6 +39,7 @@ from zorivest_api.routes.watchlists import watchlist_router
 from zorivest_api.routes.scheduling import scheduling_router
 from zorivest_api.routes.scheduler import scheduler_router
 from zorivest_api.routes.mcp_toolsets import mcp_toolsets_router  # MEU-46a
+from zorivest_api.routes.email_settings import email_settings_router  # MEU-73
 from zorivest_api.schemas.common import ErrorEnvelope
 from zorivest_api.auth.auth_service import AuthService
 from zorivest_api.services.mcp_guard import McpGuardService
@@ -54,6 +55,7 @@ from zorivest_core.services.settings_service import SettingsService
 from zorivest_core.services.report_service import ReportService
 from zorivest_core.services.provider_connection_service import ProviderConnectionService
 from zorivest_core.services.watchlist_service import WatchlistService
+from zorivest_core.services.email_provider_service import EmailProviderService  # MEU-73
 from zorivest_core.services.scheduling_service import SchedulingService
 from zorivest_core.services.scheduler_service import SchedulerService
 from zorivest_core.services.pipeline_guardrails import PipelineGuardrails
@@ -67,7 +69,10 @@ from zorivest_infra.database.unit_of_work import (
 from zorivest_infra.database.models import Base
 from zorivest_infra.market_data.provider_registry import PROVIDER_REGISTRY
 from zorivest_infra.market_data.rate_limiter import RateLimiter
-from zorivest_infra.market_data.service_factory import FernetEncryptionAdapter, HttpxClient
+from zorivest_infra.market_data.service_factory import (
+    FernetEncryptionAdapter,
+    HttpxClient,
+)
 from zorivest_infra.market_data.normalizers import (
     QUOTE_NORMALIZERS,
     NEWS_NORMALIZERS,
@@ -150,7 +155,7 @@ async def lifespan(app: FastAPI) -> AsyncGenerator[None, None]:
     # Add missing columns to existing databases created before the column was added.
     _inline_migrations = [
         "ALTER TABLE trades ADD COLUMN notes TEXT DEFAULT ''",
-        "ALTER TABLE trade_plans ADD COLUMN executed_at TEXT",   # T5: status timestamps
+        "ALTER TABLE trade_plans ADD COLUMN executed_at TEXT",  # T5: status timestamps
         "ALTER TABLE trade_plans ADD COLUMN cancelled_at TEXT",  # T5: status timestamps
     ]
     with engine.connect() as conn:
@@ -204,6 +209,9 @@ async def lifespan(app: FastAPI) -> AsyncGenerator[None, None]:
     )
     app.state.report_service = ReportService(uow)  # MEU-53
     app.state.watchlist_service = WatchlistService(uow)  # MEU-68
+    app.state.email_provider_service = EmailProviderService(
+        uow=uow, encryption=_encryption
+    )  # MEU-73
 
     # ── Scheduling adapters (bridge async dict protocols → sync ORM repos) ──
     audit_adapter = AuditCounterAdapter(uow)
@@ -315,6 +323,9 @@ def create_app() -> FastAPI:
     app.include_router(account_router)
     app.include_router(auth_router)
     app.include_router(confirm_router)
+    app.include_router(
+        email_settings_router
+    )  # MEU-73 — before settings_router (static path wins)
     app.include_router(settings_router)
     app.include_router(log_router)
     app.include_router(guard_router)

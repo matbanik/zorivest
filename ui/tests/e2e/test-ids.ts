@@ -131,4 +131,3 @@ export const MARKET_DATA_PROVIDERS = {
     PROVIDER_ENABLE_TOGGLE: 'provider-enable-toggle',
     PROVIDER_GET_API_KEY_BTN: 'provider-get-api-key-btn',
 } as const
-

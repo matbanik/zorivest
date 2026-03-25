@@ -222,4 +222,3 @@ Official MCP docs/spec pages reviewed:
 5. Cleanup examples:
    - remove `any` in TypeScript snippets
    - add annotation placeholders/comments for future implementation
-

@@ -765,7 +765,3 @@ An orchestration framework that maps each component of an automated trading syst
 | ⚪ **P3** | FinAgent | Academic reference only |
 
 ---
-
-
-
-

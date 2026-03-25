@@ -26,7 +26,7 @@
 ```
 User Action                  Processing                    Storage
 ─────────────                ──────────                    ───────
-                             
+
 [Paste from clipboard] ──►  Read QImage from clipboard
         or                           │
 [Open file dialog]     ──►  Read file bytes
@@ -107,20 +107,20 @@ import io
 
 def standardize_to_webp(image_data: bytes, quality: int = 85) -> bytes:
     """Convert any supported image format to WebP.
-    
+
     Args:
         image_data: Raw PNG/JPEG/GIF/WebP bytes
         quality: WebP quality (0-100, default 85)
-    
+
     Returns:
         WebP bytes of the standardized image
     """
     img = Image.open(io.BytesIO(image_data))
-    
+
     # Preserve transparency if present, otherwise convert to RGB
     if img.mode not in ("RGB", "RGBA"):
         img = img.convert("RGBA" if img.has_transparency_data else "RGB")
-    
+
     buffer = io.BytesIO()
     img.save(buffer, format="WEBP", quality=quality, method=4)
     return buffer.getvalue()
@@ -128,17 +128,17 @@ def standardize_to_webp(image_data: bytes, quality: int = 85) -> bytes:
 
 def generate_thumbnail(image_data: bytes, max_size: int = 200) -> bytes:
     """Generate a thumbnail from raw image bytes.
-    
+
     Args:
         image_data: Raw image bytes (any supported format)
         max_size: Maximum dimension (width or height)
-    
+
     Returns:
         WebP bytes of the thumbnail
     """
     img = Image.open(io.BytesIO(image_data))
     img.thumbnail((max_size, max_size), Image.Resampling.LANCZOS)
-    
+
     buffer = io.BytesIO()
     img.save(buffer, format="WEBP", quality=80)
     return buffer.getvalue()
@@ -146,7 +146,7 @@ def generate_thumbnail(image_data: bytes, max_size: int = 200) -> bytes:
 
 def validate_image(data: bytes) -> tuple[str, int, int]:
     """Validate image data and return (mime_type, width, height).
-    
+
     Raises ValueError if not a valid image or exceeds size limit.
     Returns the *original* mime_type for logging/auditing — the image
     will be standardized to WebP after validation.
@@ -161,17 +161,17 @@ def validate_image(data: bytes) -> tuple[str, int, int]:
         b"GIF87a": "image/gif",
         b"GIF89a": "image/gif",
     }
-    
+
     # Check standard magic bytes
     for magic, mime in MAGIC_BYTES.items():
         if data[:len(magic)] == magic:
             img = Image.open(io.BytesIO(data))
             return mime, img.width, img.height
-    
+
     # WebP: RIFF header + WEBP at bytes 8-12
     if data[:4] == b"RIFF" and data[8:12] == b"WEBP":
         img = Image.open(io.BytesIO(data))
         return "image/webp", img.width, img.height
-    
+
     raise ValueError("Unsupported image format. Supported: PNG, JPEG, GIF, WebP")
 ```

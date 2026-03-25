@@ -61,7 +61,7 @@ import { resolve } from 'path'
 
 export default defineConfig({  
   main: {  
-    // Automatically externalize Node.js built-ins and dependencies   
+    // Automatically externalize Node.js built-ins and dependencies  
     // to prevent Vite from attempting to bundle them into the main process  
     plugins:,  
     build: {  
@@ -173,7 +173,7 @@ function createWindow() {
   })
 
   mainWindow.loadFile(join(\_\_dirname, '../renderer/index.html'))  
-    
+
   // Prevent arbitrary navigation to malicious external URLs  
   mainWindow.webContents.on('will-navigate', (event, url) \=\> {  
     if (\!url.startsWith('http://localhost') &&\!url.startsWith('file://')) {  
@@ -194,9 +194,9 @@ import { contextBridge, ipcRenderer } from 'electron'
 contextBridge.exposeInMainWorld('zorivestAPI', {  
   // Retrieve the dynamic port and ephemeral secret required for FastAPI requests  
   getBackendConfig: () \=\> ipcRenderer.invoke('get-backend-config'),  
-    
+
   // Non-sensitive window persistence logic (suitable for electron-store)  
-  saveWindowState: (state: { x: number, y: number }) \=\>   
+  saveWindowState: (state: { x: number, y: number }) \=\>  
     ipcRenderer.send('save-window-state', state)  
 })
 
@@ -280,7 +280,7 @@ module.exports \= {
   // Ensure Tailwind only scans the renderer folder to optimize build times  
   // and prevent accidental inclusion of Node.js files  
   content: \[  
-    "./src/renderer/index.html",   
+    "./src/renderer/index.html",  
     "./src/renderer/src/\*\*/\*.{ts,tsx}"  
   \],  
   theme: {  
@@ -379,17 +379,17 @@ export class PythonManager {
 
   public async start(apiSecret: string): Promise\<{ port: number }\> {  
     this.port \= await this.getFreePort()  
-      
+
     // Resolve path based on Dev vs Packaged environment  
     const isDev \=\!app.isPackaged  
-    const scriptPath \= isDev   
+    const scriptPath \= isDev  
      ? join(\_\_dirname, '../../backend/app.py')  
       : join(process.resourcesPath, 'backend', 'api.exe') // Output of PyInstaller
 
     const command \= isDev? 'python' : scriptPath  
     // Pass the port and the ephemeral secret to FastAPI  
-    const args \= isDev   
-     ?   
+    const args \= isDev  
+     ?  
       :
 
     // Use spawn and ignore stdio in production to prevent buffer overflows  
@@ -404,7 +404,7 @@ export class PythonManager {
 
     // Block Electron window creation until FastAPI acknowledges readiness  
     await this.waitForHealthCheck()  
-      
+
     return { port: this.port }  
   }
 
@@ -475,10 +475,10 @@ if \_\_name\_\_ \== "\_\_main\_\_":
     parser.add\_argument("--port", type\=int, required=True)  
     parser.add\_argument("--secret", type\=str, required=True)  
     args \= parser.parse\_args()  
-      
+
     \# Store the secret globally to validate all incoming React requests  
     API\_SECRET \= args.secret  
-      
+
     uvicorn.run(app, host="127.0.0.1", port=args.port, log\_level="warning")
 
 ### **3\. Risk Assessment**
@@ -512,7 +512,7 @@ Code snippet
   "asar": true,  
   "extraResources": \[  
     {  
-      "from": "backend/dist",   
+      "from": "backend/dist",  
       "to": "backend",  
       "filter": \["\*\*/\*"\]  
     }  

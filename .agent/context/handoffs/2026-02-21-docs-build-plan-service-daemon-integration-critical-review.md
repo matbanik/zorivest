@@ -274,4 +274,3 @@
   1. Decide platform persistence/account model for Phase 10.
   2. Apply a doc synchronization patch across overview/index/API/MCP/GUI/testing files.
   3. Re-run one consistency review pass before coding.
-

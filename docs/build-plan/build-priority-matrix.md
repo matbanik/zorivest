@@ -287,4 +287,3 @@
 ---
 
 **The first lines of code you write are `test_calculator.py` and `test_logging_config.py`. Phase 1 and Phase 1A start in parallel — both have zero dependencies.**
-

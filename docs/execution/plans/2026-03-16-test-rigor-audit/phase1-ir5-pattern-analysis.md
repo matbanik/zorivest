@@ -61,7 +61,7 @@ graph TD
     A --> D["RC-3: Missing<br/>Contract Testing"]
     A --> E["RC-4: Mock Overuse<br/>in Service Layer"]
     A --> F["RC-5: Setup Tests<br/>vs Behavior Tests"]
-    
+
     B -->|"⚠️ est. 39"| G["test_ports.py<br/>Type-guard tests<br/>CSV: 11 weak"]
     C -->|"~90 tests"| H["Weak assertions<br/>across all layers"]
     D -->|"~48 tests"| I["API status-code-only<br/>tests"]

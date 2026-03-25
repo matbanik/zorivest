@@ -339,7 +339,7 @@ class ImageService:
 
 class TaxService:
     """Tax computation, lot management, and quarterly estimate tracking.
-    
+
     All 8 methods share one axis of change: federal/state tax rules.
     Research consensus: cohesive, NOT an SRP violation.
     """

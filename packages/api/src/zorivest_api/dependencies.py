@@ -145,6 +145,15 @@ async def get_scheduler_service(request: Request):  # noqa: ANN201
         raise HTTPException(500, "SchedulerService not configured")
     return svc
 
+
+async def get_email_provider_service(request: Request):  # noqa: ANN201
+    """Resolve EmailProviderService from app state (MEU-73)."""
+    svc = getattr(request.app.state, "email_provider_service", None)
+    if svc is None:
+        raise HTTPException(500, "EmailProviderService not configured")
+    return svc
+
+
 # ── Authentication providers ───────────────────────────────────────────
 
 

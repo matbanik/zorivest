@@ -41,13 +41,13 @@ This phase is split into eight domain-specific sub-files:
 
  3. On Python healthy:
     Create main BrowserWindow
-    show: false                          
+    show: false  
     Load index.html ──────────────────▶ 4. React mounts AppShell
     └─ Log: startup.renderer_load_ms       └─ Nav rail renders (sync)
                                             └─ Accounts Home skeleton
                                             └─ Log: startup.shell_paint_ms
 
- 5. win.once('ready-to-show')           
+ 5. win.once('ready-to-show')  
     └─ win.show() ─────────────────────▶ 6. User sees app structure
     └─ Hide splash window                  (skeleton screens, not blank)
     └─ Log: startup.window_show_ms

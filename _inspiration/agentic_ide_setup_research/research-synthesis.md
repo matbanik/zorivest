@@ -103,7 +103,7 @@ Tier 3 (explicit --full flag or user request):
 ### Idempotency Strategy (Hybrid)
 
 1. **First run**: Write all files, record hashes in `.scaffold-meta.json`
-2. **Subsequent runs**: 
+2. **Subsequent runs**:
    - If file hash matches stored hash → template unchanged AND user unchanged → **skip**
    - If file hash differs from stored hash → user modified → **skip with warning** ("user-modified, not overwriting")
    - If template version is newer than stored → **backup to `.agent/.backup/` then overwrite**, unless user-modified → **conflict warning**
@@ -117,16 +117,16 @@ Tier 3 (explicit --full flag or user request):
 async function safeWrite(root: string, relPath: string, content: string): Promise<void> {
   const fullPath = path.resolve(root, relPath);
   const realRoot = await fs.realpath(root);
-  const realPath = path.dirname(fullPath) === fullPath 
-    ? fullPath 
+  const realPath = path.dirname(fullPath) === fullPath
+    ? fullPath
     : await fs.realpath(path.dirname(fullPath)).then(d => path.join(d, path.basename(fullPath)));
-  
+
   if (!realPath.startsWith(realRoot)) {
     throw new Error(`Path traversal detected: ${relPath}`);
   }
-  
+
   await fs.mkdir(path.dirname(fullPath), { recursive: true });
-  
+
   // Backup existing
   try {
     await fs.access(fullPath);
@@ -134,7 +134,7 @@ async function safeWrite(root: string, relPath: string, content: string): Promis
     await fs.mkdir(backupDir, { recursive: true });
     await fs.copyFile(fullPath, path.join(backupDir, path.basename(fullPath)));
   } catch { /* file doesn't exist */ }
-  
+
   // Atomic write
   const tmp = fullPath + '.tmp';
   await fs.writeFile(tmp, content, { mode: 0o644 });

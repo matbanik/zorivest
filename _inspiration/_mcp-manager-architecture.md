@@ -162,15 +162,15 @@ flowchart TD
     A[User clicks Execute Tool] --> B{Server running?}
     B -->|Yes| C[_execute_via_server]
     B -->|No| D[_execute_directly]
-    
+
     C --> E[Build JSON-RPC request]
     E --> F[Write to process.stdin]
     F --> G[Read process.stdout]
     G --> H[Parse JSON response]
-    
+
     D --> I[registry.execute_tool]
     I --> J[Get result dict]
-    
+
     H --> K[_show_test_result]
     J --> K
     K --> L[Display in result area]
@@ -273,4 +273,3 @@ In-memory, per-session metrics collector for MCP tool execution. Exposed via `po
 | p95 > 1000ms (non-network tools) | `Tool 'X' p95 latency is 1500ms` |
 
 **Excluded from slow warnings**: `pomera_web_search`, `pomera_ai_tools`, `pomera_read_url` (network-bound, expected to be slow).
-

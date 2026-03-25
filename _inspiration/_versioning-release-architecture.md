@@ -48,7 +48,7 @@ sequenceDiagram
     participant Validate as validate_version.py
     participant Git as Git
     participant GH as GitHub
-    
+
     Dev->>Script: python bump_version.py --patch
     Script->>Validate: Pre-flight checks
     Validate->>Validate: Format X.Y.Z?

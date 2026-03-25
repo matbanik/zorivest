@@ -94,7 +94,7 @@ class DataFetcher(Protocol):
     """Protocol defining the interface for all data acquisition providers."""  
     async def fetch(self, config: Dict\[str, Any\], state: Dict\[str, Any\]) \-\> Any:  
        ...  
-      
+
     def validate\_config(self, config: Dict\[str, Any\]) \-\> bool:  
        ...
 
@@ -257,7 +257,7 @@ SQLite's **JSON1 extension** allows efficient querying of this data:
 
 SQL
 
-SELECT symbol FROM market\_data   
+SELECT symbol FROM market\_data  
 WHERE json\_extract(payload, '$.esg\_score') \> 80
 
 This offers the schema flexibility of NoSQL with the transactional integrity of SQL.32

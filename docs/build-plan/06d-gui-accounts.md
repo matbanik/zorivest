@@ -298,4 +298,3 @@ For BANK/SAVINGS accounts, a new "Transactions" tab appears in the Account Detai
 - `BrokerSyncButton` — dynamic broker-specific fetch button (§1, §24, §25)
 - `ColumnMappingWizard` — manual CSV column mapping for unrecognized bank formats (§26)
 - `ManualTransactionForm` — manual bank transaction entry form (§26)
-

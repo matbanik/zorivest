@@ -33,26 +33,26 @@
 ```
 IDE Config                          MCP Server (TS, :8766)              Python API (:8765)
 ─────────                          ──────────────────────              ─────────────────
-Authorization: Bearer zrv_sk_...   
-     │                              
-     │── HTTP POST /mcp ──────────▶ Extract API key from               
-                                    request Authorization header        
-                                         │                              
-                                    First request only:                 
+Authorization: Bearer zrv_sk_...  
+     │  
+     │── HTTP POST /mcp ──────────▶ Extract API key from  
+                                    request Authorization header  
+                                         │  
+                                    First request only:  
                                     POST /auth/unlock {api_key}  ──────▶ Validates key
                                          │                              Returns session_token
-                                         ▼                              
-                                    Store session_token in memory       
-                                    (short-lived, e.g. 1h TTL)         
-                                         │                              
-                                    Subsequent REST calls:              
+                                         ▼  
+                                    Store session_token in memory  
+                                    (short-lived, e.g. 1h TTL)  
+                                         │  
+                                    Subsequent REST calls:  
                                     Authorization: Bearer <session_token>
-                                         │                              
-                                    On 401 from Python API:             
-                                    Re-extract API key from CURRENT     
-                                    incoming MCP request header          
-                                    → POST /auth/unlock again           
-                                    → Get new session_token             
+                                         │  
+                                    On 401 from Python API:  
+                                    Re-extract API key from CURRENT  
+                                    incoming MCP request header  
+                                    → POST /auth/unlock again  
+                                    → Get new session_token  
 ```
 
 | Rule | Detail |

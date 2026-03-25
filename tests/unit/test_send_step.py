@@ -672,4 +672,3 @@ async def test_save_local_fails_without_pdf_path():
     assert result["sent"] == 0
     assert result["failed"] == 1
     assert "No pdf_path" in result["deliveries"][0]["error"]
-

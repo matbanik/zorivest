@@ -104,7 +104,7 @@ Key FlexQuery XML structure handled:
   <FlexStatements>
     <FlexStatement>
       <Trades>
-        <Trade accountId="..." symbol="..." dateTime="..." 
+        <Trade accountId="..." symbol="..." dateTime="..."
                quantity="..." tradePrice="..." ibCommission="..."
                assetCategory="STK" .../>
       </Trades>

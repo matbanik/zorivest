@@ -9,6 +9,12 @@ description: Agent-safe git operations with SSH commit signing. Handles commit, 
 
 > **Do NOT `git commit` or `git push` unless (a) the user explicitly directs it, or (b) it is a defined step in the approved plan/task.** Never auto-commit at the end of a correction cycle or verification pass.
 
+> [!CAUTION]
+> **NEVER use `--no-verify` without explicit human approval.**
+> Bypassing pre-commit hooks defeats the safety net and pushes broken code to CI.
+> If a pre-commit hook fails, **stop and fix the underlying issue** — do NOT bypass the hook.
+> The only exception is if the user explicitly says "bypass the hooks" or "use --no-verify".
+
 ## The One Rule
 
 > **Run the script. Don't improvise git commands.**
@@ -59,6 +65,36 @@ pwsh -File .agent/skills/git-workflow/scripts/agent-commit.ps1 -Message "wip: sa
 5. ✅ Commits with `-m` flag (never opens editor)
 6. ✅ Pushes to origin (unless `-Push $false`)
 7. ✅ Verifies with `git log --oneline -1`
+
+### Pre-Commit Hook Failures
+
+**Symptom**: `git commit` fails with `[WARNING] Unstaged files detected` or a hook exit code.
+
+**Correct response — always:**
+1. Read the hook output to identify the exact failure (lint, type error, test)
+2. Fix the underlying issue in the affected file(s)
+3. Re-run the commit — do NOT add `--no-verify`
+
+**NEVER do this:**
+```powershell
+# ❌ Hides the error, pushes broken code to CI
+git commit --no-verify -m "..."
+```
+
+**If the hook is genuinely misconfigured** (e.g., it blocks commits to main unconditionally),
+call `notify_user` and ask the user if they want to bypass — never decide unilaterally.
+
+### Lint Failures (Ruff)
+
+**Symptom**: Quality Gate fails at lint step.
+
+**Diagnosis**: Ruff errors include file:line:col and rule codes.
+
+**Fix**:
+```bash
+uv run ruff check packages/ tests/ --fix   # auto-fix safe issues
+uv run ruff check packages/ tests/         # verify remaining issues
+```
 
 ## Agent Workflow Checklist
 

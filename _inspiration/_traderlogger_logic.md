@@ -51,30 +51,30 @@ import math
 def calculate_position_size(balance: float, risk_prct: float, entry: float, stop: float, target: float) -> dict:
     """
     Calculate all position sizing outputs.
-    
+
     Args:
         balance:    Total account equity (e.g., 437903.03)
         risk_prct:  Risk percentage as entered by user (e.g., 1.0 means 1%)
         entry:      Planned entry price per share
         stop:       Planned stop-loss price per share
         target:     Planned profit target price per share
-        
+
     Returns:
         Dictionary with all 7 calculated values.
     """
-    
+
     # --- Step 1: Normalize risk percentage ---
     # Convert from "1.0" (user input meaning 1%) to 0.01 (decimal).
     # Clamp to valid range [0.01% .. 100%].
     risk_decimal = risk_prct / 100.0
     if not (0.0001 <= risk_decimal <= 1.0):
         risk_decimal = 0.01  # Default to 1% if out of range
-    
+
     # --- Step 2: Account Risk (1R) ---
     # The dollar amount you are willing to lose on this trade.
     acc_1r = balance * risk_decimal
     # Example: $437,903.03 × 0.01 = $4,379.03
-    
+
     # --- Step 3: Risk-per-Share ---
     # The price distance between your entry and your stop-loss.
     # This applies whether you are going long (entry > stop) or short (stop > entry).
@@ -83,7 +83,7 @@ def calculate_position_size(balance: float, risk_prct: float, entry: float, stop
     else:
         risk_per_share = 0
     # Example: |619.61 - 618.61| = $1.00
-    
+
     # --- Step 4: Share Size to Buy ---
     # How many shares you can afford at your risk level.
     # Uses floor() to round DOWN — never risk more than your 1R.
@@ -92,12 +92,12 @@ def calculate_position_size(balance: float, risk_prct: float, entry: float, stop
     else:
         share_size = 0
     # Example: floor($4,379.03 / $1.00) = 4,379 shares
-    
+
     # --- Step 5: Position Size (total dollar cost) ---
     # Uses ceil() to round UP — gives worst-case cost estimate.
     position_size = math.ceil(entry * share_size)
     # Example: ceil(619.61 × 4,379) = $2,712,872
-    
+
     # --- Step 6: Potential per Share ---
     # The price distance between entry and target.
     if target > 0:
@@ -105,7 +105,7 @@ def calculate_position_size(balance: float, risk_prct: float, entry: float, stop
     else:
         potential_per_share = 0
     # Example: |620.61 - 619.61| = $1.00
-    
+
     # --- Step 7: Reward/Risk Ratio ---
     # How much reward you get for each unit of risk.
     # Floored to 2 decimal places (truncated, not rounded).
@@ -115,12 +115,12 @@ def calculate_position_size(balance: float, risk_prct: float, entry: float, stop
         reward_risk_ratio = 0
     reward_risk_ratio = math.floor(reward_risk_ratio * 100) / 100
     # Example: $1.00 / $1.00 = 1.00
-    
+
     # --- Step 8: Potential Profit ---
     # Total dollar profit if the target is reached.
     potential_profit = potential_per_share * share_size
     # Example: $1.00 × 4,379 = $4,379.00
-    
+
     # --- Step 9: Position to Account (%) ---
     # What fraction of your account is used by this position.
     # Floored to 2 decimal places.
@@ -130,7 +130,7 @@ def calculate_position_size(balance: float, risk_prct: float, entry: float, stop
         account_at_risk_prct = 0
     account_at_risk_prct = math.floor(account_at_risk_prct * 100) / 100
     # Example: ($2,712,872 / $437,903.03) × 100 = 619.61%
-    
+
     return {
         "account_risk_1r":       acc_1r,               # $4,379.03
         "risk_per_share":        risk_per_share,        # $1.00
@@ -241,19 +241,19 @@ def fetch_ticker_price(ticker: str) -> float | None:
     """
     Attempt to fetch the latest closing price for a US stock ticker.
     Tries multiple exchanges in order until one returns a valid price.
-    
+
     Args:
         ticker: Stock symbol, e.g., "SPY", "AAPL", "MSFT"
-        
+
     Returns:
         The closing price as a float, or None if not found.
     """
     # Uppercase the ticker for consistency
     ticker = ticker.strip().upper()
-    
+
     # Try these US exchanges in order of priority
     exchanges = ["NASDAQ", "NYSE", "AMEX", "ARCA"]
-    
+
     for exchange in exchanges:
         try:
             handler = TA_Handler(
@@ -264,15 +264,15 @@ def fetch_ticker_price(ticker: str) -> float | None:
             )
             analysis = handler.get_analysis()
             price = analysis.indicators["close"]
-            
+
             if price is not None:
                 return float(price)
-                
+
         except Exception as e:
             # This exchange didn't have the symbol — try the next one
             print(f"TradingView fetch error for {ticker} on {exchange}: {e}")
             continue
-    
+
     return None  # Not found on any exchange
 ```
 
@@ -285,16 +285,16 @@ def on_price_fetched(price: float):
     the Entry, Stop, and Target fields.
     """
     rounded_price = round(price, 2)
-    
+
     # Set Entry to the fetched price
     calc_vars['Entry'].set(rounded_price)
-    
+
     # Set Stop to $1.00 below entry (default risk per share)
     calc_vars['Stop'].set(round(rounded_price - 1.0, 2))
-    
+
     # Set Target to $1.00 above entry (default reward per share)
     calc_vars['Target'].set(round(rounded_price + 1.0, 2))
-    
+
     # These variable changes automatically trigger recalculation
     # via the trace callbacks (Section 1.3)
 ```
@@ -308,13 +308,13 @@ def fetch_price_button_clicked():
     Launches the fetch on a background thread so the UI stays responsive.
     """
     ticker = calc_vars['Ticker'].get().strip()
-    
+
     if not ticker:
         messagebox.showwarning("Input Required", "Please enter a ticker symbol.")
         return
-    
+
     status_bar.set(f"Fetching price for {ticker}...")
-    
+
     def background_work():
         price = fetch_ticker_price(ticker)
         if price is not None:
@@ -326,7 +326,7 @@ def fetch_price_button_clicked():
                 "Fetch Error",
                 f"Could not fetch price for {ticker} on major US exchanges."
             ))
-    
+
     Thread(target=background_work, daemon=True).start()
 ```
 
@@ -430,7 +430,7 @@ def load_config() -> tuple:
     Returns defaults if file is missing or corrupted.
     """
     defaults = ("127.0.0.1", 7497, 1, True, 5, False)
-    
+
     if not os.path.exists(CONFIG_FILE):
         return defaults
     try:
@@ -456,19 +456,19 @@ The core of the TWS integration is a single class that inherits from **both** `E
 class IBApp(EWrapper, EClient):
     """
     Combined API client + callback handler for Interactive Brokers TWS.
-    
+
     This class:
     - Inherits EClient to SEND requests (connect, reqExecutions, etc.)
     - Inherits EWrapper to RECEIVE callbacks (execDetails, error, etc.)
     - Holds a reference to the GUI so it can push data to the UI
     """
-    
+
     def __init__(self, gui_reference):
         EClient.__init__(self, self)   # Initialize the client with self as wrapper
         self.gui = gui_reference       # Reference to update the GUI
         self.nextOrderId = None        # Set by TWS on connection
         self.next_req_id = 20000       # Starting request ID counter
-    
+
     def get_next_req_id(self) -> int:
         """
         Generate a unique request ID for each API call.
@@ -514,7 +514,7 @@ from threading import Thread
 def connect_to_tws(is_auto_connect=False):
     """
     Initiate connection to TWS.
-    
+
     Args:
         is_auto_connect: True if called automatically on startup
                          (suppresses "already connected" dialog).
@@ -524,26 +524,26 @@ def connect_to_tws(is_auto_connect=False):
         if not is_auto_connect:
             messagebox.showinfo("Info", "Already connected to TWS.")
         return
-    
+
     # Reload settings in case they changed
     host, port, client_id, *_ = load_config()
-    
+
     # Update status bar
     update_status(f"Connecting to {host}:{port} with Client ID {client_id}...")
     login_button.config(state="disabled")
-    
+
     # Create a fresh API instance
     ib_app = IBApp(gui_reference=self)
-    
+
     # --- Step 1: Connect (non-blocking, establishes socket) ---
     ib_app.connect(host, port, clientId=client_id)
-    
+
     # --- Step 2: Run the message loop on a daemon thread ---
     # .run() is a blocking loop that reads messages from TWS.
     # It MUST run on a separate thread to keep the GUI responsive.
     api_thread = Thread(target=ib_app.run, daemon=True)
     api_thread.start()
-    
+
     # --- Step 3: Check connection status after 3 seconds ---
     # TWS needs a moment to complete the handshake.
     root.after(3000, lambda: check_connection_status(is_auto_connect))
@@ -583,10 +583,10 @@ def nextValidId(self, orderId: int):
     """
     super().nextValidId(orderId)
     self.nextOrderId = orderId
-    
+
     # Immediately request all today's executions
     self.reqExecutions(10001, ExecutionFilter())
-    
+
     # Also request the list of managed accounts
     self.reqManagedAccts()
 
@@ -600,7 +600,7 @@ def managedAccounts(self, accountsList: str):
     """
     super().managedAccounts(accountsList)
     accounts = [acc for acc in accountsList.split(',') if acc]
-    
+
     # Populate the Account dropdown in the calculator
     self.gui.set_managed_accounts(accounts)
     # set_managed_accounts also auto-triggers a balance snapshot
@@ -614,17 +614,17 @@ Trade data arrives via the `execDetails` callback. Each execution represents one
 def execDetails(self, reqId: int, contract: Contract, execution: Execution):
     """
     Called by TWS for each execution/fill that matches the request filter.
-    
+
     Args:
         reqId:     The request ID that initiated this data.
         contract:  Contains symbol, security type, currency, exchange.
         execution: Contains time, side (BOT/SLD), shares, price, account, execId.
     """
     super().execDetails(reqId, contract, execution)
-    
+
     # Show temporary status while processing
     self.gui.update_status(f"Processing trade: {contract.symbol}...", is_temporary=True)
-    
+
     # Build a trade data dictionary from the API objects
     trade_data = {
         "ExecId":       execution.execId,           # Unique execution ID (string)
@@ -638,7 +638,7 @@ def execDetails(self, reqId: int, contract: Contract, execution: Execution):
         "Commission":   0.0,  # Placeholder — updated later via commissionReport
         "Realized P&L": 0.0,  # Placeholder — updated later via commissionReport
     }
-    
+
     # Send to GUI for display and persistence
     self.gui.add_trade_to_table(trade_data)
 ```
@@ -675,7 +675,7 @@ import sys
 def commissionReport(self, commissionReport: CommissionReport):
     """
     Called by TWS with the commission and realized P&L for a specific execution.
-    
+
     Args:
         commissionReport.execId:      Matches an execution's execId.
         commissionReport.commission:  Dollar amount of commission (e.g., 1.02).
@@ -683,7 +683,7 @@ def commissionReport(self, commissionReport: CommissionReport):
                                       May be sys.float_info.max if no P&L applies.
     """
     super().commissionReport(commissionReport)
-    
+
     self.gui.update_trade_financials(
         exec_id    = commissionReport.execId,
         commission = commissionReport.commission,
@@ -697,16 +697,16 @@ def update_trade_financials(exec_id: str, commission: float, pnl: float):
     """
     # Find the trade in our in-memory list
     trade = next((t for t in trades if t.get("ExecId") == exec_id), None)
-    
+
     if trade:
         # Guard: TWS sends sys.float_info.max (1.7976931348623157e+308)
         # when there is no realized P&L. Treat it as 0.00.
         if pnl >= sys.float_info.max:
             pnl = 0.0
-        
+
         trade["Commission"] = commission
         trade["Realized P&L"] = pnl
-        
+
         # Save to disk and update the specific table row
         save_trades(trades)
         update_table_row(exec_id, trade)
@@ -736,7 +736,7 @@ def take_balance_snapshot():
 def accountSummary(self, reqId: int, account: str, tag: str, value: str, currency: str):
     """
     TWS callback with account summary data.
-    
+
     Args:
         reqId:    The request ID.
         account:  Account ID (e.g., "DU3584717").
@@ -745,11 +745,11 @@ def accountSummary(self, reqId: int, account: str, tag: str, value: str, currenc
         currency: Currency code (e.g., "USD").
     """
     super().accountSummary(reqId, account, tag, value, currency)
-    
+
     if tag == "NetLiquidation":
         # Update the calculator's Account Balance field
         self.gui.update_account_balance(account, value)
-        
+
         # Also log to balance history file
         self.gui.log_account_balance(account, value)
 
@@ -775,11 +775,11 @@ def start_auto_refresh():
     - The app is connected to TWS
     """
     stop_auto_refresh()  # Cancel any existing timer
-    
+
     if auto_refresh_enabled and ib_app and ib_app.isConnected():
         # Refresh immediately
         refresh_trades()
-        
+
         # Schedule the next refresh after N seconds
         auto_refresh_job = root.after(
             auto_refresh_seconds * 1000,   # Convert seconds to milliseconds
@@ -862,20 +862,20 @@ def add_trade_to_table(trade_data: dict):
     Called from the execDetails callback.
     """
     exec_id = trade_data.get("ExecId")
-    
+
     # DEDUP CHECK: skip if we've already seen this execution
     if not exec_id or exec_id in trade_exec_ids:
         return
-    
+
     # Mark as seen
     trade_exec_ids.add(exec_id)
-    
+
     # Insert at the beginning of the list (newest first)
     trades.insert(0, trade_data)
-    
+
     # Persist to disk immediately
     save_trades(trades)
-    
+
     # Re-sort and re-render the table
     sort_and_repopulate_table()
 ```
@@ -909,14 +909,14 @@ def log_account_balance(account: str, balance_str: str):
     try:
         new_balance = float(balance_str)
         history = load_balance_history()
-        
+
         # Find the most recent entry for this specific account
         latest_entry = None
         for record in reversed(history):
             if record.get("Account") == account:
                 latest_entry = record
                 break
-        
+
         # Only log if this is the first entry OR the balance changed
         if latest_entry is None or float(latest_entry.get("Balance", 0.0)) != new_balance:
             new_record = {
@@ -927,7 +927,7 @@ def log_account_balance(account: str, balance_str: str):
             history.append(new_record)
             save_balance_history(history)
             print(f"Logged new balance for {account}: {new_balance}")
-            
+
     except ValueError:
         print(f"Could not log balance for {account}, invalid value: {balance_str}")
 ```
@@ -944,11 +944,11 @@ def on_closing():
     """
     # 1. Stop the auto-refresh timer
     stop_auto_refresh()
-    
+
     # 2. Disconnect from TWS if connected
     if ib_app and ib_app.isConnected():
         ib_app.disconnect()
-    
+
     # 3. Destroy the window and exit
     root.destroy()
 ```
@@ -973,7 +973,7 @@ def connectionClosed(self):
 def error(self, reqId, errorCode, errorString, advancedOrderReject=""):
     """
     TWS error callback. Handles informational and real errors.
-    
+
     Error code ranges:
     - 2104, 2106, 2108, 2158: Informational (market data farm connected, etc.)
     - 162: Historical data limit
@@ -984,7 +984,7 @@ def error(self, reqId, errorCode, errorString, advancedOrderReject=""):
     # System-level messages (not tied to a request)
     if reqId == -1 and errorCode not in [2104, 2158, 2106]:
         self.gui.update_status(f"TWS Info: {errorString}")
-    
+
     # Request-specific errors (ignore informational codes)
     elif reqId > 0 and errorCode not in [2104, 2106, 2108, 162, 321]:
         print(f"Error. Id: {reqId}, Code: {errorCode}, Msg: {errorString}")

@@ -11,7 +11,7 @@ trade import system from image or tabular source file
 
 account balance import system from pdf, csv statements or images
 
-review mcp commands and create complete list based on workflows for 
+review mcp commands and create complete list based on workflows for
 account balance checking
 trade planing
 investment risk exposure

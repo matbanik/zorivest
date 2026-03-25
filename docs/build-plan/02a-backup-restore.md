@@ -21,7 +21,7 @@ Add an `AppDefaultModel` table alongside the existing `SettingModel`. Together t
 
 class AppDefaultModel(Base):
     """Application-level setting defaults. Seeded from code registry during migration.
-    
+
     Users never write to this table directly — they write to SettingModel (user overrides).
     This table is the source of truth for "Reset to Default" and for showing
     default values in the GUI.
@@ -148,7 +148,7 @@ class ResolvedSetting:
 
 class SettingsResolver:
     """Three-tier setting resolution: user override → app default → hardcoded fallback.
-    
+
     Pure domain logic — no I/O. Receives data from service layer.
     """
 
@@ -548,7 +548,7 @@ Extends the architecture from [`_backup-restore-architecture.md`](../../_inspira
 
 class BackupManager:
     """Automatic timed backups with GFS rotation.
-    
+
     Responsibilities:
     - Schedule periodic backups (time-based, change-based)
     - Create consistent snapshots via SQLite Online Backup API
@@ -588,7 +588,7 @@ class BackupManager:
 
 class BackupRecoveryManager:
     """Manual backup, restore, repair, and config export/import.
-    
+
     Responsibilities:
     - Create ad-hoc manual backups
     - Restore from backup file (decrypt → verify → stage → swap)
@@ -775,7 +775,7 @@ async def import_config(
     service: ConfigService = Depends(get_config_service),
 ):
     """Import config from JSON. dry_run=true returns diff without writing.
-    
+
     Import writes to user_settings only — never touches app_defaults.
     """
     validation = service.validate_import(body)
@@ -831,7 +831,7 @@ async def verify_backup(
 @settings_router.get("/resolved")
 async def get_resolved_settings(service: SettingsService = Depends(get_settings_service)):
     """Bulk read all settings with three-tier resolution.
-    
+
     Returns map of key → {value, source, value_type} where
     source is "user" | "default" | "hardcoded".
     """

@@ -413,6 +413,167 @@
         "title": "DatabaseStatus",
         "type": "object"
       },
+      "EmailConfigRequest": {
+        "properties": {
+          "from_email": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "From Email"
+          },
+          "password": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "default": "",
+            "title": "Password"
+          },
+          "port": {
+            "anyOf": [
+              {
+                "type": "integer"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Port"
+          },
+          "provider_preset": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Provider Preset"
+          },
+          "security": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Security"
+          },
+          "smtp_host": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Smtp Host"
+          },
+          "username": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Username"
+          }
+        },
+        "title": "EmailConfigRequest",
+        "type": "object"
+      },
+      "EmailConfigResponse": {
+        "properties": {
+          "from_email": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "From Email"
+          },
+          "has_password": {
+            "default": false,
+            "title": "Has Password",
+            "type": "boolean"
+          },
+          "port": {
+            "anyOf": [
+              {
+                "type": "integer"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Port"
+          },
+          "provider_preset": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Provider Preset"
+          },
+          "security": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Security"
+          },
+          "smtp_host": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Smtp Host"
+          },
+          "username": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Username"
+          }
+        },
+        "title": "EmailConfigResponse",
+        "type": "object"
+      },
       "EstimateTaxRequest": {
         "properties": {
           "account_id": {
@@ -1358,6 +1519,24 @@
           "attempt"
         ],
         "title": "StepResponse",
+        "type": "object"
+      },
+      "TestConnectionResponse": {
+        "properties": {
+          "message": {
+            "title": "Message",
+            "type": "string"
+          },
+          "success": {
+            "title": "Success",
+            "type": "boolean"
+          }
+        },
+        "required": [
+          "success",
+          "message"
+        ],
+        "title": "TestConnectionResponse",
         "type": "object"
       },
       "UnlockRequest": {
@@ -4814,6 +4993,90 @@
         "summary": "Update Settings",
         "tags": [
           "settings"
+        ]
+      }
+    },
+    "/api/v1/settings/email": {
+      "get": {
+        "description": "Get current email provider config.\n\nAC-E1: has_password is a bool, raw password is never returned.\nAC-E5: returns safe defaults when not yet configured (no 500).",
+        "operationId": "get_email_config_api_v1_settings_email_get",
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/EmailConfigResponse"
+                }
+              }
+            },
+            "description": "Successful Response"
+          }
+        },
+        "summary": "Get Email Config",
+        "tags": [
+          "email-settings"
+        ]
+      },
+      "put": {
+        "description": "Save email provider config.\n\nAC-E2: saves all 7 fields.\nAC-E3: empty password field keeps existing stored password.",
+        "operationId": "save_email_config_api_v1_settings_email_put",
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/EmailConfigRequest"
+              }
+            }
+          },
+          "required": true
+        },
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/EmailConfigResponse"
+                }
+              }
+            },
+            "description": "Successful Response"
+          },
+          "422": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HTTPValidationError"
+                }
+              }
+            },
+            "description": "Validation Error"
+          }
+        },
+        "summary": "Save Email Config",
+        "tags": [
+          "email-settings"
+        ]
+      }
+    },
+    "/api/v1/settings/email/test": {
+      "post": {
+        "description": "Send a test SMTP connection using stored credentials.\n\nAC-E4: returns {success: bool, message: str}.",
+        "operationId": "test_email_connection_api_v1_settings_email_test_post",
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/TestConnectionResponse"
+                }
+              }
+            },
+            "description": "Successful Response"
+          }
+        },
+        "summary": "Test Email Connection",
+        "tags": [
+          "email-settings"
         ]
       }
     },

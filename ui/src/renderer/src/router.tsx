@@ -59,6 +59,12 @@ const settingsMarketRoute = createRoute({
     ),
 })
 
+const settingsEmailRoute = createRoute({
+    getParentRoute: () => rootRoute,
+    path: '/settings/email',
+    component: React.lazy(() => import('./features/settings/EmailSettingsPage')),
+})
+
 const routeTree = rootRoute.addChildren([
     accountsRoute,
     tradesRoute,
@@ -66,6 +72,7 @@ const routeTree = rootRoute.addChildren([
     schedulingRoute,
     settingsRoute,
     settingsMarketRoute,
+    settingsEmailRoute,
 ])
 
 export const router = createRouter({

@@ -434,4 +434,3 @@ describe("remove_from_watchlist", () => {
         expect(parsed.success).toBe(false);
     });
 });
-

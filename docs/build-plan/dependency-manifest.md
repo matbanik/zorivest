@@ -125,4 +125,3 @@ uv add --package zorivest-core numpy scipy alpaca-py
 
 > [!NOTE]
 > **Omitted dependencies (CR2-6):** `tabula-py` omitted because it requires a JRE; `pdfplumber` covers the same PDF table extraction use case without Java. `pikepdf` omitted because encrypted bank PDFs are a niche edge case; deferred until user demand is confirmed.
-

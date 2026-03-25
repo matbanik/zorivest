@@ -23,4 +23,3 @@ class ProviderStatus(BaseModel):
     timeout: int
     last_test_status: str | None = None
     signup_url: str | None = None
-

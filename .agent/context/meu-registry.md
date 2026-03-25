@@ -199,7 +199,8 @@ P2.75 (broker adapters): MEU-96 → MEU-99
 | MEU-88 | `send-step` | 47 | SendStep + async email delivery (aiosmtplib, SHA-256 dedup, DeliveryRepository) | ✅ approved |
 | MEU-89 | `scheduling-api-mcp` | 48 | Scheduling REST API (16 endpoints) + MCP tools (6+2); scheduler lifecycle | ✅ approved |
 | MEU-90 | `scheduling-guardrails` | 49 | PipelineGuardrails (4 rate-limit/approval checks) + approval-reset on patch | ✅ approved |
-| MEU-90a | `persistence-wiring` | 49.0 | Replace StubUnitOfWork with SqlAlchemyUnitOfWork; wire all 17 real repos into FastAPI lifespan; fix getattr/dict guardrails mismatch; Alembic bootstrap; remove repo-level stubs | 🟡 ready_for_review |
-| MEU-90b | `mode-gating-test-isolation` | 49.1 | Fix 8 flaky mode-gating tests: per-test `app.state` reset so lock/unlock doesn't leak across modules | 🔴 changes_required |
+| MEU-90a | `persistence-wiring` | 49.0 | Replace StubUnitOfWork with SqlAlchemyUnitOfWork; wire all 17 real repos into FastAPI lifespan; fix getattr/dict guardrails mismatch; Alembic bootstrap; remove repo-level stubs | ✅ 2026-03-24 |
+| MEU-90b | `mode-gating-test-isolation` | 49.1 | Fix 8 flaky mode-gating tests: per-test `app.state` reset so lock/unlock doesn't leak across modules | ✅ 2026-03-24 |
 | MEU-90c | `sqlcipher-native-deps` | 49.2 | Resolve sqlcipher3 availability on Windows; clear 15 skipped encryption tests | 🚫 closed — won't fix locally; CI covered by `crypto-tests` job (ADR-001 A+B, human decision) |
-| MEU-90d | `rendering-deps` | 49.3 | Install + validate Playwright + kaleido rendering extras; clear 1 skipped RenderStep test | 🟡 ready_for_review |
+| MEU-90d | `rendering-deps` | 49.3 | Install + validate Playwright + kaleido rendering extras; clear 1 skipped RenderStep test | ✅ 2026-03-24 |
+| MEU-73 | `gui-email-settings` | 35c | Email Provider Settings GUI — full stack (backend model/repo/service/route, frontend page/route/nav, 16 tests) | ✅ 2026-03-25 |
