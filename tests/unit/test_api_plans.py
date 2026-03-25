@@ -253,6 +253,35 @@ class TestPatchPlanStatus:
         assert resp.json()["status"] == "executed"
         svc.link_plan_to_trade.assert_called_once_with(1, "T001")
 
+    def test_patch_status_executed_with_link_sets_executed_at(self, client) -> None:
+        """F2 regression: PATCH executed+link must set executed_at in the response.
+
+        Previously link_plan_to_trade only returned a plan with executed_at unset,
+        and the route tried to patch it in memory (broken). Now link_plan_to_trade
+        persists executed_at directly and returns it populated.
+        """
+        from datetime import datetime, timezone
+
+        ts = datetime.now(timezone.utc)
+        http, svc = client
+        svc.link_plan_to_trade.return_value = _sample_plan(
+            status="executed",
+            linked_trade_id="T001",
+            executed_at=ts,
+        )
+
+        resp = http.patch("/api/v1/trade-plans/1/status", json={
+            "status": "executed",
+            "linked_trade_id": "T001",
+        })
+        assert resp.status_code == 200
+        data = resp.json()
+        assert data["status"] == "executed"
+        # executed_at must be present and non-null in the response
+        assert data.get("executed_at") is not None, (
+            "executed_at must be persisted and returned when plan is linked+executed"
+        )
+
     def test_patch_status_link_trade_not_found_404(self, client) -> None:
         http, svc = client
         svc.link_plan_to_trade.side_effect = ValueError("Trade 'MISSING' not found")

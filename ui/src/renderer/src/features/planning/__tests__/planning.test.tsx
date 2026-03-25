@@ -1,0 +1,949 @@
+import { describe, it, expect, vi, beforeEach } from 'vitest'
+import { render, screen, fireEvent, waitFor, act } from '@testing-library/react'
+import { QueryClient, QueryClientProvider } from '@tanstack/react-query'
+import type { ReactNode } from 'react'
+
+// Mock api module
+const mockApiFetch = vi.fn()
+vi.mock('@/lib/api', () => ({
+    apiFetch: (...args: unknown[]) => mockApiFetch(...args),
+}))
+
+// Mock status bar
+const mockSetStatus = vi.fn()
+vi.mock('@/hooks/useStatusBar', () => ({
+    useStatusBar: () => ({ setStatus: mockSetStatus }),
+}))
+
+import TradePlanPage, { type TradePlan } from '../TradePlanPage'
+import WatchlistPage from '../WatchlistPage'
+import PositionCalculatorModal from '../PositionCalculatorModal'
+import PlanningLayout from '../PlanningLayout'
+
+// ─── Test Helpers ─────────────────────────────────────────────────────────
+
+function createWrapper() {
+    const queryClient = new QueryClient({
+        defaultOptions: { queries: { retry: false, gcTime: 0 } },
+    })
+    return function Wrapper({ children }: { children: ReactNode }) {
+        return <QueryClientProvider client={queryClient}>{children}</QueryClientProvider>
+    }
+}
+
+// ─── Test Data ────────────────────────────────────────────────────────────
+
+const MOCK_PLANS: TradePlan[] = [
+    {
+        id: 1,
+        ticker: 'AAPL',
+        direction: 'BOT',
+        conviction: 'high',
+        strategy_name: 'Gap Fill',
+        strategy_description: 'Morning gap fill play',
+        entry_price: 190,
+        stop_loss: 188,
+        target_price: 196,
+        entry_conditions: 'Gap down > 2%',
+        exit_conditions: 'Gap fill complete',
+        timeframe: 'intraday',
+        risk_reward_ratio: 3.0,
+        status: 'active',
+        linked_trade_id: null,
+        account_id: 'DU123456',
+        created_at: '2026-03-20T10:00:00Z',
+        updated_at: '2026-03-20T10:00:00Z',
+    },
+    {
+        id: 2,
+        ticker: 'NVDA',
+        direction: 'SLD',
+        conviction: 'low',
+        strategy_name: 'Breakdown',
+        strategy_description: '',
+        entry_price: 800,
+        stop_loss: 810,
+        target_price: 770,
+        entry_conditions: '',
+        exit_conditions: '',
+        timeframe: 'swing',
+        risk_reward_ratio: 3.0,
+        status: 'draft',
+        linked_trade_id: null,
+        account_id: null,
+        created_at: '2026-03-19T09:00:00Z',
+        updated_at: '2026-03-19T09:00:00Z',
+    },
+]
+
+const MOCK_WATCHLISTS = [
+    {
+        id: 1,
+        name: 'Tech Stocks',
+        description: 'Large-cap tech',
+        created_at: '2026-03-20T10:00:00Z',
+        updated_at: '2026-03-20T10:00:00Z',
+        items: [
+            { id: 1, watchlist_id: 1, ticker: 'AAPL', added_at: '2026-03-20T10:00:00Z', notes: 'Watch for earnings' },
+            { id: 2, watchlist_id: 1, ticker: 'MSFT', added_at: '2026-03-20T10:00:00Z', notes: '' },
+        ],
+    },
+]
+
+// ─── TradePlanPage Tests ──────────────────────────────────────────────────
+
+describe('MEU-48: TradePlanPage', () => {
+    beforeEach(() => {
+        vi.clearAllMocks()
+        mockApiFetch.mockImplementation((url: string) => {
+            if (url.includes('/api/v1/trade-plans') && !url.includes('/status')) {
+                return Promise.resolve(MOCK_PLANS)
+            }
+            if (url.includes('/api/v1/accounts')) return Promise.resolve([])
+            return Promise.resolve({})
+        })
+    })
+
+    it('should render page with testid', async () => {
+        render(<TradePlanPage />, { wrapper: createWrapper() })
+        await waitFor(() => {
+            expect(screen.getByTestId('trade-plan-page')).toBeInTheDocument()
+        })
+    })
+
+    it('should render plan cards with conviction indicators (AC-2)', async () => {
+        render(<TradePlanPage />, { wrapper: createWrapper() })
+        await waitFor(() => {
+            expect(screen.getByText('AAPL')).toBeInTheDocument()
+            expect(screen.getByText('NVDA')).toBeInTheDocument()
+        })
+        const indicators = screen.getAllByTestId('conviction-indicator')
+        expect(indicators.length).toBe(2)
+        expect(indicators[0].textContent).toBe('🟢') // high
+        expect(indicators[1].textContent).toBe('🔴') // low
+    })
+
+    it('should show status badges on plan cards', async () => {
+        render(<TradePlanPage />, { wrapper: createWrapper() })
+        await waitFor(() => {
+            expect(screen.getByText('active')).toBeInTheDocument()
+            expect(screen.getByText('draft')).toBeInTheDocument()
+        })
+    })
+
+    it('should filter plans by status (AC-6)', async () => {
+        render(<TradePlanPage />, { wrapper: createWrapper() })
+        await waitFor(() => {
+            expect(screen.getByText('AAPL')).toBeInTheDocument()
+        })
+        fireEvent.change(screen.getByTestId('plan-status-filter'), { target: { value: 'draft' } })
+        await waitFor(() => {
+            expect(screen.queryByText('AAPL')).not.toBeInTheDocument()
+            expect(screen.getByText('NVDA')).toBeInTheDocument()
+        })
+    })
+
+    it('should filter plans by conviction (AC-6)', async () => {
+        render(<TradePlanPage />, { wrapper: createWrapper() })
+        await waitFor(() => {
+            expect(screen.getByText('AAPL')).toBeInTheDocument()
+        })
+        fireEvent.change(screen.getByTestId('plan-conviction-filter'), { target: { value: 'high' } })
+        await waitFor(() => {
+            expect(screen.getByText('AAPL')).toBeInTheDocument()
+            expect(screen.queryByText('NVDA')).not.toBeInTheDocument()
+        })
+    })
+
+    it('should open detail panel with all fields on card click (AC-3)', async () => {
+        render(<TradePlanPage />, { wrapper: createWrapper() })
+        await waitFor(() => {
+            expect(screen.getByText('AAPL')).toBeInTheDocument()
+        })
+        fireEvent.click(screen.getByTestId('plan-card-1'))
+        await waitFor(() => {
+            expect(screen.getByTestId('plan-detail-panel')).toBeInTheDocument()
+            expect(screen.getByTestId('plan-ticker-input')).toHaveValue('AAPL')
+            expect(screen.getByTestId('plan-entry-price')).toHaveValue(190)
+            expect(screen.getByTestId('plan-stop-loss')).toHaveValue(188)
+            expect(screen.getByTestId('plan-target-price')).toHaveValue(196)
+        })
+    })
+
+    it('should compute R:R ratio live (AC-4)', async () => {
+        render(<TradePlanPage />, { wrapper: createWrapper() })
+        await waitFor(() => {
+            expect(screen.getByText('AAPL')).toBeInTheDocument()
+        })
+        fireEvent.click(screen.getByTestId('plan-card-1'))
+        await waitFor(() => {
+            const rrDisplay = screen.getByTestId('plan-rr-display')
+            expect(rrDisplay).toBeInTheDocument()
+            // entry=190, stop=188, target=196 → risk=2, reward=6, R:R=3.00
+            expect(rrDisplay.textContent).toContain('3.00')
+        })
+    })
+
+    it('should create a new plan via POST (AC-5)', async () => {
+        mockApiFetch.mockImplementation((url: string, opts?: Record<string, unknown>) => {
+            if (opts?.method === 'POST') return Promise.resolve({ id: 3 })
+            if (url.includes('/api/v1/trade-plans')) return Promise.resolve(MOCK_PLANS)
+            if (url.includes('/api/v1/accounts')) return Promise.resolve([])
+            return Promise.resolve({})
+        })
+        render(<TradePlanPage />, { wrapper: createWrapper() })
+        fireEvent.click(screen.getByTestId('new-plan-btn'))
+        await waitFor(() => {
+            expect(screen.getByTestId('plan-detail-panel')).toBeInTheDocument()
+        })
+        fireEvent.change(screen.getByTestId('plan-ticker-input'), { target: { value: 'TSLA' } })
+        fireEvent.change(screen.getByTestId('plan-strategy-name'), { target: { value: 'Breakout' } })
+        fireEvent.click(screen.getByTestId('plan-save-btn'))
+        await waitFor(() => {
+            expect(mockApiFetch).toHaveBeenCalledWith(
+                '/api/v1/trade-plans',
+                expect.objectContaining({ method: 'POST' }),
+            )
+        })
+    })
+
+    it('should delete a plan (AC-5)', async () => {
+        mockApiFetch.mockImplementation((url: string, opts?: Record<string, unknown>) => {
+            if (opts?.method === 'DELETE') return Promise.resolve(undefined)
+            if (url.includes('/api/v1/trade-plans')) return Promise.resolve(MOCK_PLANS)
+            if (url.includes('/api/v1/accounts')) return Promise.resolve([])
+            return Promise.resolve({})
+        })
+        render(<TradePlanPage />, { wrapper: createWrapper() })
+        await waitFor(() => {
+            expect(screen.getByText('AAPL')).toBeInTheDocument()
+        })
+        fireEvent.click(screen.getByTestId('plan-card-1'))
+        await waitFor(() => {
+            expect(screen.getByTestId('plan-delete-btn')).toBeInTheDocument()
+        })
+        fireEvent.click(screen.getByTestId('plan-delete-btn'))
+        await waitFor(() => {
+            expect(mockApiFetch).toHaveBeenCalledWith(
+                '/api/v1/trade-plans/1',
+                expect.objectContaining({ method: 'DELETE' }),
+            )
+        })
+    })
+
+    it('should change status via PATCH (AC-5a)', async () => {
+        mockApiFetch.mockImplementation((url: string, opts?: Record<string, unknown>) => {
+            if (opts?.method === 'PATCH') return Promise.resolve({ ...MOCK_PLANS[0], status: 'executed' })
+            if (url.includes('/api/v1/trade-plans')) return Promise.resolve(MOCK_PLANS)
+            if (url.includes('/api/v1/accounts')) return Promise.resolve([])
+            return Promise.resolve({})
+        })
+        render(<TradePlanPage />, { wrapper: createWrapper() })
+        await waitFor(() => {
+            expect(screen.getByText('AAPL')).toBeInTheDocument()
+        })
+        fireEvent.click(screen.getByTestId('plan-card-1'))
+        await waitFor(() => {
+            expect(screen.getByTestId('plan-status-buttons')).toBeInTheDocument()
+        })
+        fireEvent.click(screen.getByTestId('plan-status-executed'))
+        await waitFor(() => {
+            expect(mockApiFetch).toHaveBeenCalledWith(
+                '/api/v1/trade-plans/1/status',
+                expect.objectContaining({ method: 'PATCH' }),
+            )
+        })
+    })
+
+    it('should show linked_trade_id as readonly (AC-7)', async () => {
+        const linkedPlan = { ...MOCK_PLANS[0], linked_trade_id: 'T001' }
+        mockApiFetch.mockImplementation((url: string) => {
+            if (url.includes('/api/v1/trade-plans')) return Promise.resolve([linkedPlan])
+            if (url.includes('/api/v1/accounts')) return Promise.resolve([])
+            return Promise.resolve({})
+        })
+        render(<TradePlanPage />, { wrapper: createWrapper() })
+        await waitFor(() => {
+            expect(screen.getByText('AAPL')).toBeInTheDocument()
+        })
+        fireEvent.click(screen.getByTestId(`plan-card-${linkedPlan.id}`))
+        await waitFor(() => {
+            const linkedField = screen.getByTestId('plan-linked-trade')
+            expect(linkedField).toHaveAttribute('readonly')
+            expect(linkedField).toHaveValue('T001')
+        })
+    })
+})
+
+// ─── WatchlistPage Tests ──────────────────────────────────────────────────
+
+describe('MEU-48: WatchlistPage', () => {
+    beforeEach(() => {
+        vi.clearAllMocks()
+        mockApiFetch.mockImplementation((url: string) => {
+            if (url === '/api/v1/watchlists/') return Promise.resolve(MOCK_WATCHLISTS)
+            if (url === '/api/v1/watchlists/1') return Promise.resolve(MOCK_WATCHLISTS[0])
+            return Promise.resolve({})
+        })
+    })
+
+    it('should render watchlist page', async () => {
+        render(<WatchlistPage />, { wrapper: createWrapper() })
+        await waitFor(() => {
+            expect(screen.getByTestId('watchlist-page')).toBeInTheDocument()
+        })
+    })
+
+    it('should render watchlist cards with item counts (AC-8)', async () => {
+        render(<WatchlistPage />, { wrapper: createWrapper() })
+        await waitFor(() => {
+            expect(screen.getByText('Tech Stocks')).toBeInTheDocument()
+            // W3: now shows ticker list instead of item count
+            expect(screen.getByText('AAPL, MSFT')).toBeInTheDocument()
+        })
+    })
+
+    it('should show items on card click (AC-8)', async () => {
+        render(<WatchlistPage />, { wrapper: createWrapper() })
+        await waitFor(() => {
+            expect(screen.getByText('Tech Stocks')).toBeInTheDocument()
+        })
+        fireEvent.click(screen.getByTestId('watchlist-card-1'))
+        await waitFor(() => {
+            expect(screen.getByTestId('watchlist-detail-panel')).toBeInTheDocument()
+            expect(screen.getByTestId('watchlist-item-AAPL')).toBeInTheDocument()
+            expect(screen.getByTestId('watchlist-item-MSFT')).toBeInTheDocument()
+        })
+    })
+
+    it('should add ticker inline (AC-9)', async () => {
+        mockApiFetch.mockImplementation((url: string, opts?: Record<string, unknown>) => {
+            if (opts?.method === 'POST' && url.includes('/items')) {
+                return Promise.resolve({ id: 3, watchlist_id: 1, ticker: 'GOOG', added_at: '', notes: '' })
+            }
+            if (url === '/api/v1/watchlists/') return Promise.resolve(MOCK_WATCHLISTS)
+            if (url === '/api/v1/watchlists/1') return Promise.resolve(MOCK_WATCHLISTS[0])
+            return Promise.resolve({})
+        })
+        render(<WatchlistPage />, { wrapper: createWrapper() })
+        await waitFor(() => {
+            expect(screen.getByText('Tech Stocks')).toBeInTheDocument()
+        })
+        fireEvent.click(screen.getByTestId('watchlist-card-1'))
+        await waitFor(() => {
+            expect(screen.getByTestId('watchlist-ticker-input')).toBeInTheDocument()
+        })
+        fireEvent.change(screen.getByTestId('watchlist-ticker-input-input'), { target: { value: 'GOOG' } })
+        fireEvent.click(screen.getByTestId('watchlist-add-ticker-btn'))
+        await waitFor(() => {
+            expect(mockApiFetch).toHaveBeenCalledWith(
+                '/api/v1/watchlists/1/items',
+                expect.objectContaining({ method: 'POST' }),
+            )
+        })
+    })
+
+    it('should remove ticker (AC-9)', async () => {
+        mockApiFetch.mockImplementation((url: string, opts?: Record<string, unknown>) => {
+            if (opts?.method === 'DELETE') return Promise.resolve(undefined)
+            if (url === '/api/v1/watchlists/') return Promise.resolve(MOCK_WATCHLISTS)
+            if (url === '/api/v1/watchlists/1') return Promise.resolve(MOCK_WATCHLISTS[0])
+            return Promise.resolve({})
+        })
+        render(<WatchlistPage />, { wrapper: createWrapper() })
+        await waitFor(() => {
+            expect(screen.getByText('Tech Stocks')).toBeInTheDocument()
+        })
+        fireEvent.click(screen.getByTestId('watchlist-card-1'))
+        await waitFor(() => {
+            expect(screen.getByTestId('remove-ticker-AAPL')).toBeInTheDocument()
+        })
+        fireEvent.click(screen.getByTestId('remove-ticker-AAPL'))
+        await waitFor(() => {
+            expect(mockApiFetch).toHaveBeenCalledWith(
+                '/api/v1/watchlists/1/items/AAPL',
+                expect.objectContaining({ method: 'DELETE' }),
+            )
+        })
+    })
+
+    it('should create a new watchlist (AC-10)', async () => {
+        mockApiFetch.mockImplementation((url: string, opts?: Record<string, unknown>) => {
+            if (opts?.method === 'POST' && url === '/api/v1/watchlists/') {
+                return Promise.resolve({ id: 2, name: 'New List', description: '', items: [] })
+            }
+            if (url === '/api/v1/watchlists/') return Promise.resolve(MOCK_WATCHLISTS)
+            return Promise.resolve({})
+        })
+        render(<WatchlistPage />, { wrapper: createWrapper() })
+        fireEvent.click(screen.getByTestId('new-watchlist-btn'))
+        await waitFor(() => {
+            expect(screen.getByTestId('watchlist-name')).toBeInTheDocument()
+        })
+        fireEvent.change(screen.getByTestId('watchlist-name'), { target: { value: 'New List' } })
+        fireEvent.click(screen.getByTestId('watchlist-save-btn'))
+        await waitFor(() => {
+            expect(mockApiFetch).toHaveBeenCalledWith(
+                '/api/v1/watchlists/',
+                expect.objectContaining({ method: 'POST' }),
+            )
+        })
+    })
+})
+
+// ─── PositionCalculatorModal Tests ────────────────────────────────────────
+
+describe('MEU-48: PositionCalculatorModal', () => {
+    it('should not render when closed', () => {
+        render(<PositionCalculatorModal isOpen={false} onClose={vi.fn()} />)
+        expect(screen.queryByTestId('calculator-modal')).not.toBeInTheDocument()
+    })
+
+    it('should render with all input fields (AC-14)', () => {
+        render(<PositionCalculatorModal isOpen={true} onClose={vi.fn()} />)
+        expect(screen.getByTestId('calculator-modal')).toBeInTheDocument()
+        expect(screen.getByTestId('calc-account-size')).toBeInTheDocument()
+        expect(screen.getByTestId('calc-risk-percent')).toBeInTheDocument()
+        expect(screen.getByTestId('calc-entry-price')).toBeInTheDocument()
+        expect(screen.getByTestId('calc-stop-price')).toBeInTheDocument()
+        expect(screen.getByTestId('calc-target-price')).toBeInTheDocument()
+    })
+
+    it('should compute shares correctly (AC-15)', () => {
+        render(<PositionCalculatorModal isOpen={true} onClose={vi.fn()} />)
+        // Default: $100k, 1% risk = $1000 risk
+        // Entry 100, Stop 98 → risk/share = $2 → shares = floor(1000/2) = 500
+        fireEvent.change(screen.getByTestId('calc-entry-price'), { target: { value: '100' } })
+        fireEvent.change(screen.getByTestId('calc-stop-price'), { target: { value: '98' } })
+        fireEvent.change(screen.getByTestId('calc-target-price'), { target: { value: '106' } })
+        expect(screen.getByTestId('calc-shares-output').textContent).toBe('500')
+    })
+
+    it('should compute R:R ratio correctly (AC-15)', () => {
+        render(<PositionCalculatorModal isOpen={true} onClose={vi.fn()} />)
+        fireEvent.change(screen.getByTestId('calc-entry-price'), { target: { value: '100' } })
+        fireEvent.change(screen.getByTestId('calc-stop-price'), { target: { value: '98' } })
+        fireEvent.change(screen.getByTestId('calc-target-price'), { target: { value: '106' } })
+        // risk=2, reward=6 → R:R = 3.00
+        expect(screen.getByTestId('calc-rr-output').textContent).toBe('3.00')
+    })
+
+    it('should show oversize warning when position > 100% (AC-15)', () => {
+        render(<PositionCalculatorModal isOpen={true} onClose={vi.fn()} />)
+        // $100k account, 1% risk, entry=1000, stop=999 → risk/share=$1 → shares=1000 → position=$1M (1000%)
+        fireEvent.change(screen.getByTestId('calc-entry-price'), { target: { value: '1000' } })
+        fireEvent.change(screen.getByTestId('calc-stop-price'), { target: { value: '999' } })
+        fireEvent.change(screen.getByTestId('calc-target-price'), { target: { value: '1003' } })
+        expect(screen.getByTestId('calc-oversize-warning')).toBeInTheDocument()
+    })
+
+    it('should close on Escape key', () => {
+        const onClose = vi.fn()
+        render(<PositionCalculatorModal isOpen={true} onClose={onClose} />)
+        fireEvent.keyDown(window, { key: 'Escape' })
+        expect(onClose).toHaveBeenCalled()
+    })
+})
+
+// ─── PlanningLayout Tests ─────────────────────────────────────────────────
+
+describe('MEU-48: PlanningLayout', () => {
+    beforeEach(() => {
+        vi.clearAllMocks()
+        mockApiFetch.mockImplementation((url: string) => {
+            if (url.includes('/api/v1/trade-plans')) return Promise.resolve([])
+            if (url.includes('/api/v1/watchlists')) return Promise.resolve([])
+            if (url.includes('/api/v1/mcp-guard/status')) return Promise.resolve({ is_locked: false })
+            return Promise.resolve({})
+        })
+    })
+
+    it('should render tabs (AC-1)', async () => {
+        render(<PlanningLayout />, { wrapper: createWrapper() })
+        await waitFor(() => {
+            expect(screen.getByTestId('planning-layout')).toBeInTheDocument()
+            expect(screen.getByTestId('planning-tab-trade-plans')).toBeInTheDocument()
+            expect(screen.getByTestId('planning-tab-watchlists')).toBeInTheDocument()
+        })
+    })
+
+    it('should switch tabs', async () => {
+        render(<PlanningLayout />, { wrapper: createWrapper() })
+        await waitFor(() => {
+            expect(screen.getByTestId('trade-plan-page')).toBeInTheDocument()
+        })
+        fireEvent.click(screen.getByTestId('planning-tab-watchlists'))
+        await waitFor(() => {
+            expect(screen.getByTestId('watchlist-page')).toBeInTheDocument()
+        })
+    })
+
+    it('should dispatch open-calculator event via button', async () => {
+        const spy = vi.fn()
+        window.addEventListener('zorivest:open-calculator', spy)
+        render(<PlanningLayout />, { wrapper: createWrapper() })
+        await waitFor(() => {
+            expect(screen.getByTestId('open-calculator-btn')).toBeInTheDocument()
+        })
+        fireEvent.click(screen.getByTestId('open-calculator-btn'))
+        expect(spy).toHaveBeenCalledTimes(1)
+        window.removeEventListener('zorivest:open-calculator', spy)
+    })
+
+    it('should render without calculator modal (modal is in AppShell) (AC-13)', async () => {
+        render(<PlanningLayout />, { wrapper: createWrapper() })
+        await waitFor(() => {
+            expect(screen.getByTestId('planning-layout')).toBeInTheDocument()
+        })
+        // Calculator modal is rendered in AppShell, not PlanningLayout
+        expect(screen.queryByTestId('calculator-modal')).not.toBeInTheDocument()
+    })
+})
+
+// ─── MEU-70 TIER 1: C2 — Copy-to-clipboard ───────────────────────────────
+
+describe('MEU-70 T1: C2 — Copy-to-clipboard on shares', () => {
+    it('should render copy button next to shares output', () => {
+        render(<PositionCalculatorModal isOpen={true} onClose={vi.fn()} />)
+        fireEvent.change(screen.getByTestId('calc-entry-price'), { target: { value: '100' } })
+        fireEvent.change(screen.getByTestId('calc-stop-price'), { target: { value: '98' } })
+        expect(screen.getByTestId('calc-copy-shares-btn')).toBeInTheDocument()
+    })
+
+    it('should copy shares to clipboard on click', async () => {
+        const writeText = vi.fn().mockResolvedValue(undefined)
+        Object.assign(navigator, { clipboard: { writeText } })
+
+        render(<PositionCalculatorModal isOpen={true} onClose={vi.fn()} />)
+        fireEvent.change(screen.getByTestId('calc-entry-price'), { target: { value: '100' } })
+        fireEvent.change(screen.getByTestId('calc-stop-price'), { target: { value: '98' } })
+        fireEvent.change(screen.getByTestId('calc-target-price'), { target: { value: '106' } })
+
+        fireEvent.click(screen.getByTestId('calc-copy-shares-btn'))
+        await waitFor(() => {
+            expect(writeText).toHaveBeenCalledWith('500')
+        })
+    })
+})
+
+// ─── MEU-70 TIER 1: T3 — Account dropdown on Trade Plan ──────────────────
+
+describe('MEU-70 T1: T3 — Account dropdown', () => {
+    const MOCK_ACCOUNTS = [
+        { account_id: 'acc-1', name: 'Main Trading', account_type: 'margin' },
+        { account_id: 'acc-2', name: 'IRA', account_type: 'retirement' },
+    ]
+
+    beforeEach(() => {
+        vi.clearAllMocks()
+        mockApiFetch.mockImplementation((url: string) => {
+            if (url.includes('/api/v1/trade-plans')) return Promise.resolve(MOCK_PLANS)
+            if (url.includes('/api/v1/accounts')) return Promise.resolve(MOCK_ACCOUNTS)
+            return Promise.resolve({})
+        })
+    })
+
+    it('should render account select dropdown in plan form', async () => {
+        render(<TradePlanPage />, { wrapper: createWrapper() })
+        fireEvent.click(screen.getByTestId('new-plan-btn'))
+        await waitFor(() => {
+            expect(screen.getByTestId('plan-account-select')).toBeInTheDocument()
+        })
+    })
+
+    it('should populate account dropdown with fetched accounts', async () => {
+        render(<TradePlanPage />, { wrapper: createWrapper() })
+        fireEvent.click(screen.getByTestId('new-plan-btn'))
+        await waitFor(() => {
+            const select = screen.getByTestId('plan-account-select') as HTMLSelectElement
+            // Should have default 'None' + 2 accounts
+            expect(select.options.length).toBeGreaterThanOrEqual(3)
+        })
+    })
+
+    it('should set account_id when account is selected', async () => {
+        mockApiFetch.mockImplementation((url: string, opts?: Record<string, unknown>) => {
+            if (opts?.method === 'POST') return Promise.resolve({ id: 3 })
+            if (url.includes('/api/v1/trade-plans')) return Promise.resolve(MOCK_PLANS)
+            if (url.includes('/api/v1/accounts')) return Promise.resolve(MOCK_ACCOUNTS)
+            return Promise.resolve({})
+        })
+        render(<TradePlanPage />, { wrapper: createWrapper() })
+        fireEvent.click(screen.getByTestId('new-plan-btn'))
+        // Wait for accounts to load into dropdown
+        await waitFor(() => {
+            const select = screen.getByTestId('plan-account-select') as HTMLSelectElement
+            expect(select.options.length).toBeGreaterThanOrEqual(3)
+        })
+        fireEvent.change(screen.getByTestId('plan-account-select'), { target: { value: 'acc-1' } })
+        fireEvent.change(screen.getByTestId('plan-ticker-input'), { target: { value: 'TSLA' } })
+        fireEvent.click(screen.getByTestId('plan-save-btn'))
+        await waitFor(() => {
+            const call = mockApiFetch.mock.calls.find(
+                (c: unknown[]) => (c[1] as Record<string, unknown>)?.method === 'POST',
+            )
+            expect(call).toBeDefined()
+            const body = JSON.parse((call![1] as Record<string, string>).body)
+            expect(body.account_id).toBe('acc-1')
+        })
+    })
+})
+
+// ─── MEU-70 TIER 1: T6 — Strategy name combobox ──────────────────────────
+
+describe('MEU-70 T1: T6 — Strategy name combobox', () => {
+    const PLANS_WITH_STRATEGIES: TradePlan[] = [
+        { ...MOCK_PLANS[0], strategy_name: 'Gap Fill' },
+        { ...MOCK_PLANS[1], strategy_name: 'Breakout' },
+    ]
+
+    beforeEach(() => {
+        vi.clearAllMocks()
+        mockApiFetch.mockImplementation((url: string) => {
+            if (url.includes('/api/v1/trade-plans')) return Promise.resolve(PLANS_WITH_STRATEGIES)
+            if (url.includes('/api/v1/accounts')) return Promise.resolve([])
+            return Promise.resolve({})
+        })
+    })
+
+    it('should render strategy name as datalist-backed input', async () => {
+        render(<TradePlanPage />, { wrapper: createWrapper() })
+        await waitFor(() => {
+            expect(screen.getByText('AAPL')).toBeInTheDocument()
+        })
+        fireEvent.click(screen.getByTestId('new-plan-btn'))
+        await waitFor(() => {
+            expect(screen.getByTestId('plan-strategy-name')).toHaveAttribute('list')
+        })
+    })
+
+    it('should include existing strategy names as datalist options', async () => {
+        render(<TradePlanPage />, { wrapper: createWrapper() })
+        await waitFor(() => {
+            expect(screen.getByText('AAPL')).toBeInTheDocument()
+        })
+        fireEvent.click(screen.getByTestId('new-plan-btn'))
+        await waitFor(() => {
+            const datalist = document.getElementById('strategy-suggestions')
+            expect(datalist).toBeInTheDocument()
+            const options = datalist!.querySelectorAll('option')
+            const values = Array.from(options).map((o) => o.value)
+            expect(values).toContain('Gap Fill')
+            expect(values).toContain('Breakout')
+        })
+    })
+
+    it('should allow free-text entry of new strategy names', async () => {
+        render(<TradePlanPage />, { wrapper: createWrapper() })
+        fireEvent.click(screen.getByTestId('new-plan-btn'))
+        await waitFor(() => {
+            expect(screen.getByTestId('plan-strategy-name')).toBeInTheDocument()
+        })
+        fireEvent.change(screen.getByTestId('plan-strategy-name'), { target: { value: 'New Custom Strategy' } })
+        expect(screen.getByTestId('plan-strategy-name')).toHaveValue('New Custom Strategy')
+    })
+})
+
+// ─── MEU-70 TIER 1: T2 — Calculator ↔ Trade Plan integration ─────────────
+
+describe('MEU-70 T1: T2 — Calculator ↔ Trade Plan', () => {
+    beforeEach(() => {
+        vi.clearAllMocks()
+        mockApiFetch.mockImplementation((url: string) => {
+            if (url.includes('/api/v1/trade-plans')) return Promise.resolve(MOCK_PLANS)
+            if (url.includes('/api/v1/accounts')) return Promise.resolve([])
+            return Promise.resolve({})
+        })
+    })
+
+    it('should show Calculate Position button in plan detail', async () => {
+        render(<TradePlanPage />, { wrapper: createWrapper() })
+        await waitFor(() => {
+            expect(screen.getByText('AAPL')).toBeInTheDocument()
+        })
+        fireEvent.click(screen.getByTestId('plan-card-1'))
+        await waitFor(() => {
+            expect(screen.getByTestId('plan-calculate-position-btn')).toBeInTheDocument()
+        })
+    })
+
+    it('should dispatch open-calculator event with plan prices on click', async () => {
+        const spy = vi.fn()
+        window.addEventListener('zorivest:open-calculator', spy)
+
+        render(<TradePlanPage />, { wrapper: createWrapper() })
+        await waitFor(() => {
+            expect(screen.getByText('AAPL')).toBeInTheDocument()
+        })
+        fireEvent.click(screen.getByTestId('plan-card-1'))
+        await waitFor(() => {
+            expect(screen.getByTestId('plan-calculate-position-btn')).toBeInTheDocument()
+        })
+        fireEvent.click(screen.getByTestId('plan-calculate-position-btn'))
+        expect(spy).toHaveBeenCalledTimes(1)
+
+        const event = spy.mock.calls[0][0] as CustomEvent
+        expect(event.detail).toEqual(
+            expect.objectContaining({
+                entry_price: 190,
+                stop_loss: 188,
+                target_price: 196,
+            }),
+        )
+        window.removeEventListener('zorivest:open-calculator', spy)
+    })
+})
+
+// ─── MEU-70 TIER 1: W3 — Better watchlist item display ───────────────────
+
+describe('MEU-70 T1: W3 — Better watchlist display', () => {
+    beforeEach(() => {
+        vi.clearAllMocks()
+        mockApiFetch.mockImplementation((url: string) => {
+            if (url === '/api/v1/watchlists/') return Promise.resolve(MOCK_WATCHLISTS)
+            if (url === '/api/v1/watchlists/1') return Promise.resolve(MOCK_WATCHLISTS[0])
+            return Promise.resolve({})
+        })
+    })
+
+    it('should show ticker symbols in sidebar card instead of just count', async () => {
+        render(<WatchlistPage />, { wrapper: createWrapper() })
+        await waitFor(() => {
+            expect(screen.getByText('Tech Stocks')).toBeInTheDocument()
+        })
+        const card = screen.getByTestId('watchlist-card-1')
+        expect(card).toHaveTextContent('AAPL')
+        expect(card).toHaveTextContent('MSFT')
+    })
+})
+
+// ─── MEU-70 TIER 1: T5 — Status timestamps display ──────────────────────
+
+describe('MEU-70 T1: T5 — Status timestamps display', () => {
+    const EXECUTED_PLAN = {
+        ...MOCK_PLANS[0],
+        status: 'executed',
+        executed_at: '2026-03-20T15:45:00Z',
+    }
+
+    beforeEach(() => {
+        vi.clearAllMocks()
+        mockApiFetch.mockImplementation((url: string) => {
+            if (url.includes('/api/v1/trade-plans')) return Promise.resolve([EXECUTED_PLAN])
+            if (url.includes('/api/v1/accounts')) return Promise.resolve([])
+            return Promise.resolve({})
+        })
+    })
+
+    it('should show executed_at timestamp for executed plans', async () => {
+        render(<TradePlanPage />, { wrapper: createWrapper() })
+        await waitFor(() => {
+            expect(screen.getByText('AAPL')).toBeInTheDocument()
+        })
+        fireEvent.click(screen.getByTestId('plan-card-1'))
+        await waitFor(() => {
+            expect(screen.getByTestId('plan-executed-at')).toBeInTheDocument()
+        })
+    })
+})
+
+// --- T4-UX: TDD Red Phase ---
+// AC-T4-UX-1: label shows date/time, not "T -"          [Human-approved]
+// AC-T4-UX-2: picker has text search input               [Human-approved]
+// AC-T4-UX-3: option data-testid uses exec_id            [Human-approved]
+// AC-T4-UX-3b: filtering hides non-matching options      [Human-approved]
+
+const REAL_API_TRADE = {
+    exec_id: 'E-001',
+    time: '2026-03-20T14:35:00Z',
+    instrument: 'asd',
+    action: 'BOT',
+    quantity: 100,
+    price: 50.25,
+}
+const EXECUTED_PLAN_UX = { ...MOCK_PLANS[0], ticker: 'asd', status: 'executed' }
+
+describe('MEU-48 T4-UX: Searchable Trade Picker', () => {
+    beforeEach(() => {
+        vi.clearAllMocks()
+        mockApiFetch.mockImplementation((url: string) => {
+            if (url.includes('/api/v1/trade-plans')) return Promise.resolve([EXECUTED_PLAN_UX])
+            if (url.includes('/api/v1/accounts')) return Promise.resolve([])
+            if (url.includes('/api/v1/trades')) return Promise.resolve({ items: [REAL_API_TRADE], total: 1 })
+            return Promise.resolve({})
+        })
+    })
+
+    async function openExecutedPlanDetail() {
+        render(<TradePlanPage />, { wrapper: createWrapper() })
+        await waitFor(() => expect(screen.getByText('asd')).toBeInTheDocument())
+        fireEvent.click(screen.getByTestId('plan-card-1'))
+        // wait for picker + search input (sync) then options (async query)
+        await waitFor(() => expect(screen.getByTestId('trade-picker-search')).toBeInTheDocument())
+        await waitFor(() => expect(screen.getByTestId('trade-option-E-001')).toBeInTheDocument())
+    }
+
+    it('AC-T4-UX-1: option label shows date/time not "T -" prefix', async () => {
+        await openExecutedPlanDetail()
+        const option = screen.getByTestId('trade-option-E-001')
+        expect(option.textContent).not.toMatch(/^T -/)
+        expect(option.textContent).toMatch(/2026|BOT/i)
+    })
+
+    it('AC-T4-UX-2: trade picker section has a text search input', async () => {
+        await openExecutedPlanDetail()
+        expect(screen.getByTestId('trade-picker-search')).toBeInTheDocument()
+    })
+
+    it('AC-T4-UX-3: option data-testid uses exec_id (correct field mapping)', async () => {
+        await openExecutedPlanDetail()
+        expect(screen.getByTestId('trade-option-E-001')).toBeInTheDocument()
+    })
+
+    it('AC-T4-UX-3b: typing filter hides non-matching trade options', async () => {
+        await openExecutedPlanDetail()
+        fireEvent.change(screen.getByTestId('trade-picker-search'), { target: { value: 'ZZZNOMATCH' } })
+        expect(screen.queryByTestId('trade-option-E-001')).not.toBeInTheDocument()
+    })
+})
+
+// --- Date Format + Trade Selection TDD Red Phase ---
+// AC-T4-DATE-1: date label uses MM-DD-YYYY h:mmAM/PM format  [Human-approved]
+// AC-T4-SELECT-1: clicking a trade highlights it as selected  [Human-approved]
+
+describe('MEU-48 T4-UX: Date Format + Trade Selection', () => {
+    beforeEach(() => {
+        vi.clearAllMocks()
+        mockApiFetch.mockImplementation((url: string) => {
+            if (url.includes('/api/v1/trade-plans')) return Promise.resolve([EXECUTED_PLAN_UX])
+            if (url.includes('/api/v1/accounts')) return Promise.resolve([])
+            if (url.includes('/api/v1/trades')) return Promise.resolve({ items: [REAL_API_TRADE], total: 1 })
+            return Promise.resolve({})
+        })
+    })
+
+    async function openAndWaitForTrades() {
+        render(<TradePlanPage />, { wrapper: createWrapper() })
+        await waitFor(() => expect(screen.getByText('asd')).toBeInTheDocument())
+        fireEvent.click(screen.getByTestId('plan-card-1'))
+        await waitFor(() => expect(screen.getByTestId('trade-picker-search')).toBeInTheDocument())
+        await waitFor(() => expect(screen.getByTestId('trade-option-E-001')).toBeInTheDocument())
+    }
+
+    it('AC-T4-DATE-1: date label format is MM-DD-YYYY not "Mar X, YYYY"', async () => {
+        await openAndWaitForTrades()
+        const option = screen.getByTestId('trade-option-E-001')
+        // Must match 03-20-2026 format
+        expect(option.textContent).toMatch(/03-20-2026/)
+        // Must NOT use locale "Mar 20, 2026" format
+        expect(option.textContent).not.toMatch(/Mar 20, 2026/)
+    })
+
+    it('AC-T4-SELECT-1: clicking a trade option shows the selected label in the picker input (MEU-70b)', async () => {
+        render(<TradePlanPage />, { wrapper: createWrapper() })
+        await waitFor(() => expect(screen.getByText('asd')).toBeInTheDocument())
+        fireEvent.click(screen.getByTestId('plan-card-1'))
+        await waitFor(() => expect(screen.getByTestId('trade-picker-search')).toBeInTheDocument())
+        // Wait for trade options to load
+        await waitFor(() => expect(screen.queryByTestId('trade-option-E-001')).toBeInTheDocument())
+        // Click the trade option
+        fireEvent.click(screen.getByTestId('trade-option-E-001'))
+        // MEU-70b: after selection, the options list collapses and the input shows the selected label
+        await waitFor(() => {
+            const input = screen.getByTestId('trade-picker-search') as HTMLInputElement
+            // Input value should now contain the trade label (date + action + qty@price)
+            expect(input.value).toMatch(/03-20-2026/)
+        })
+        // The option list should be hidden (label is set, !tradePickerLabel = false → list hidden)
+        expect(screen.queryByTestId('trade-option-E-001')).not.toBeInTheDocument()
+    })
+})
+
+describe('Recheck R1-R5: persistence and contract regressions', () => {
+    beforeEach(() => {
+        vi.clearAllMocks()
+        mockApiFetch.mockImplementation((url: string) => {
+            if (url.includes('/api/v1/trade-plans')) return Promise.resolve([EXECUTED_PLAN_UX])
+            if (url.includes('/api/v1/accounts')) return Promise.resolve([])
+            if (url.includes('/api/v1/trades')) return Promise.resolve({ items: [REAL_API_TRADE], total: 1 })
+            return Promise.resolve({})
+        })
+    })
+
+    it('R1: handleSave PUT payload includes linked_trade_id', async () => {
+        render(<TradePlanPage />, { wrapper: createWrapper() })
+        await waitFor(() => expect(screen.getByText('asd')).toBeInTheDocument())
+        fireEvent.click(screen.getByTestId('plan-card-1'))
+        await waitFor(() => expect(screen.getByTestId('trade-option-E-001')).toBeInTheDocument())
+        // Select a trade in the picker
+        fireEvent.click(screen.getByTestId('trade-option-E-001'))
+        // Click Save Changes
+        fireEvent.click(screen.getByTestId('plan-save-btn'))
+        await waitFor(() => {
+            const putCalls = mockApiFetch.mock.calls.filter(
+                (c: unknown[]) =>
+                    (c[0] as string).includes('/api/v1/trade-plans/') &&
+                    (c[1] as RequestInit)?.method === 'PUT',
+            )
+            expect(putCalls.length).toBeGreaterThanOrEqual(1)
+            const body = JSON.parse((putCalls[0][1] as RequestInit).body as string)
+            expect(body).toHaveProperty('linked_trade_id', 'E-001')
+        })
+    })
+
+    it('R2: trade picker queries /api/v1/trades with search= not ticker=', async () => {
+        render(<TradePlanPage />, { wrapper: createWrapper() })
+        await waitFor(() => expect(screen.getByText('asd')).toBeInTheDocument())
+        fireEvent.click(screen.getByTestId('plan-card-1'))
+        await waitFor(() => {
+            const tradeCalls = mockApiFetch.mock.calls.filter(
+                (c: unknown[]) => (c[0] as string).includes('/api/v1/trades'),
+            )
+            expect(tradeCalls.length).toBeGreaterThanOrEqual(1)
+            const url = tradeCalls[0][0] as string
+            // R2: must use 'search=' not 'ticker='
+            expect(url).toContain('search=')
+            expect(url).not.toContain('ticker=')
+        })
+    })
+
+    it('R3: status stays unchanged in local form on PATCH failure', async () => {
+        mockApiFetch.mockImplementation((url: string, opts?: RequestInit) => {
+            if (url.includes('/status') && opts?.method === 'PATCH') {
+                return Promise.reject(new Error('API 500: Server error'))
+            }
+            if (url.includes('/api/v1/trade-plans')) return Promise.resolve([EXECUTED_PLAN_UX])
+            if (url.includes('/api/v1/accounts')) return Promise.resolve([])
+            if (url.includes('/api/v1/trades')) return Promise.resolve({ items: [], total: 0 })
+            return Promise.resolve({})
+        })
+        render(<TradePlanPage />, { wrapper: createWrapper() })
+        await waitFor(() => expect(screen.getByText('asd')).toBeInTheDocument())
+        fireEvent.click(screen.getByTestId('plan-card-1'))
+        await waitFor(() => expect(screen.getByTestId('plan-status-active')).toBeInTheDocument())
+        // Attempt to change to 'active' status (PATCH will fail)
+        fireEvent.click(screen.getByTestId('plan-status-active'))
+        // After failure, 'executed' button should still be aria-pressed=true (original status)
+        await waitFor(() => {
+            const executedBtn = screen.getByTestId('plan-status-executed') as HTMLButtonElement
+            expect(executedBtn.getAttribute('aria-pressed')).toBe('true')
+        })
+    })
+
+    it('R5: zorivest:open-calculator event detail includes ticker', async () => {
+        render(<TradePlanPage />, { wrapper: createWrapper() })
+        await waitFor(() => expect(screen.getByText('asd')).toBeInTheDocument())
+        fireEvent.click(screen.getByTestId('plan-card-1'))
+        await waitFor(() => expect(screen.getByTestId('plan-calculate-position-btn')).toBeInTheDocument())
+
+        let capturedDetail: Record<string, unknown> | null = null
+        window.addEventListener('zorivest:open-calculator', (e) => {
+            capturedDetail = (e as CustomEvent).detail
+        }, { once: true })
+
+        fireEvent.click(screen.getByTestId('plan-calculate-position-btn'))
+        expect(capturedDetail).not.toBeNull()
+        expect(capturedDetail).toHaveProperty('ticker')
+        expect(typeof (capturedDetail as unknown as Record<string, unknown>).ticker).toBe('string')
+    })
+})

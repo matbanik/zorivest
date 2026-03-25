@@ -25,6 +25,7 @@ import TradeDetailPanel from '../TradeDetailPanel'
 import ScreenshotPanel from '../ScreenshotPanel'
 import TradeReportForm from '../TradeReportForm'
 import TradesLayout from '../TradesLayout'
+import AccountTypeBadge from '../AccountTypeBadge'
 
 // ─── Test Data ────────────────────────────────────────────────────────────────
 
@@ -36,11 +37,12 @@ const MOCK_TRADES: Trade[] = [
         quantity: 100,
         price: 619.61,
         account_id: 'DU123456',
+        account_type: 'broker',
         commission: 1.02,
         realized_pnl: null,
         notes: 'Test note',
         image_count: 2,
-        created_at: '2026-03-18T14:32:00Z',
+        time: '2026-03-18T14:32:00Z',
     },
     {
         exec_id: 'T002',
@@ -48,13 +50,19 @@ const MOCK_TRADES: Trade[] = [
         action: 'SLD',
         quantity: 50,
         price: 198.30,
-        account_id: 'DU123456',
+        account_id: 'DU789012',
+        account_type: 'ira',
         commission: 0.52,
         realized_pnl: 220,
         notes: null,
         image_count: 0,
-        created_at: '2026-03-18T14:35:00Z',
+        time: '2026-03-18T14:35:00Z',
     },
+]
+
+const MOCK_ACCOUNTS = [
+    { account_id: 'DU123456', account_type: 'broker' },
+    { account_id: 'DU789012', account_type: 'ira' },
 ]
 
 // ─── Helpers ──────────────────────────────────────────────────────────────────
@@ -226,36 +234,223 @@ describe('ScreenshotPanel', () => {
 
 // ─── TradeReportForm Tests ───────────────────────────────────────────────────
 
+const MOCK_REPORT_RESPONSE = {
+    id: 1,
+    trade_id: 'T001',
+    setup_quality: 'A',
+    execution_quality: 'B',
+    followed_plan: true,
+    emotional_state: 'Confident',
+    lessons_learned: 'Good entry, held position',
+    tags: ['momentum', 'breakout'],
+    created_at: '2026-03-18T15:00:00Z',
+}
+
 describe('TradeReportForm', () => {
-    it('should render star ratings', () => {
-        render(<TradeReportForm trade={MOCK_TRADES[0]} />, { wrapper: createWrapper() })
-        expect(screen.getByText('Setup Quality')).toBeInTheDocument()
-        expect(screen.getByText('Execution Quality')).toBeInTheDocument()
+    beforeEach(() => {
+        vi.clearAllMocks()
+        // Default: no existing report (404)
+        mockApiFetch.mockImplementation((url: string) => {
+            if (url.includes('/report')) {
+                return Promise.reject(new Error('API 404: Not Found'))
+            }
+            return Promise.reject(new Error('Unknown URL'))
+        })
     })
 
-    it('should render emotional state dropdown', () => {
+    it('should render star ratings', async () => {
         render(<TradeReportForm trade={MOCK_TRADES[0]} />, { wrapper: createWrapper() })
-        expect(screen.getByTestId('trade-emotional-state')).toBeInTheDocument()
+        await waitFor(() => {
+            expect(screen.getByText('Setup Quality')).toBeInTheDocument()
+            expect(screen.getByText('Execution Quality')).toBeInTheDocument()
+        })
     })
 
-    it('should render followed-plan select', () => {
+    it('should render emotional state dropdown', async () => {
         render(<TradeReportForm trade={MOCK_TRADES[0]} />, { wrapper: createWrapper() })
-        expect(screen.getByTestId('trade-followed-plan')).toBeInTheDocument()
+        await waitFor(() => {
+            expect(screen.getByTestId('trade-emotional-state')).toBeInTheDocument()
+        })
     })
 
-    it('should render lessons textarea', () => {
+    it('should render followed-plan toggle as Yes/No buttons', async () => {
         render(<TradeReportForm trade={MOCK_TRADES[0]} />, { wrapper: createWrapper() })
-        expect(screen.getByTestId('trade-lessons')).toBeInTheDocument()
+        await waitFor(() => {
+            expect(screen.getByTestId('trade-followed-plan')).toBeInTheDocument()
+            expect(screen.getByText('Yes')).toBeInTheDocument()
+            expect(screen.getByText('No')).toBeInTheDocument()
+        })
     })
 
-    it('should render tag input', () => {
+    it('should render lessons textarea', async () => {
         render(<TradeReportForm trade={MOCK_TRADES[0]} />, { wrapper: createWrapper() })
-        expect(screen.getByTestId('trade-tag-input')).toBeInTheDocument()
+        await waitFor(() => {
+            expect(screen.getByTestId('trade-lessons')).toBeInTheDocument()
+        })
     })
 
-    it('should render save journal button', () => {
+    it('should render tag input', async () => {
         render(<TradeReportForm trade={MOCK_TRADES[0]} />, { wrapper: createWrapper() })
-        expect(screen.getByTestId('trade-report-save')).toBeInTheDocument()
+        await waitFor(() => {
+            expect(screen.getByTestId('trade-tag-input')).toBeInTheDocument()
+        })
+    })
+
+    it('should render save journal button', async () => {
+        render(<TradeReportForm trade={MOCK_TRADES[0]} />, { wrapper: createWrapper() })
+        await waitFor(() => {
+            expect(screen.getByTestId('trade-report-save')).toBeInTheDocument()
+        })
+    })
+})
+
+// ─── MEU-55: Trade Report API Wiring ─────────────────────────────────────────
+
+describe('MEU-55: TradeReportForm API wiring', () => {
+    beforeEach(() => {
+        vi.clearAllMocks()
+    })
+
+    it('AC-1: should fetch existing report on mount via GET', async () => {
+        mockApiFetch.mockImplementation((url: string) => {
+            if (url.includes('/report')) {
+                return Promise.resolve(MOCK_REPORT_RESPONSE)
+            }
+            return Promise.reject(new Error('Unknown'))
+        })
+        render(<TradeReportForm trade={MOCK_TRADES[0]} />, { wrapper: createWrapper() })
+        await waitFor(() => {
+            expect(mockApiFetch).toHaveBeenCalledWith(
+                expect.stringContaining('/api/v1/trades/T001/report')
+            )
+        })
+    })
+
+    it('AC-2: should initialize with empty defaults on 404', async () => {
+        mockApiFetch.mockImplementation((url: string) => {
+            if (url.includes('/report')) {
+                // R4: apiFetch throws Error('API 404: ...') for 404 responses (api.ts:23)
+                return Promise.reject(new Error('API 404: Not Found'))
+            }
+            return Promise.reject(new Error('Unknown'))
+        })
+        render(<TradeReportForm trade={MOCK_TRADES[0]} />, { wrapper: createWrapper() })
+        await waitFor(() => {
+            // Lessons textarea should be empty
+            const lessons = screen.getByTestId('trade-lessons') as HTMLTextAreaElement
+            expect(lessons.value).toBe('')
+        })
+    })
+
+    it('AC-3: save button should call POST for new report', async () => {
+        mockApiFetch.mockImplementation((url: string, opts?: any) => {
+            if (url.includes('/report') && !opts) {
+                return Promise.reject(new Error('API 404: Not Found'))  // GET → no existing
+            }
+            if (url.includes('/report') && opts?.method === 'POST') {
+                return Promise.resolve({ ...MOCK_REPORT_RESPONSE, id: 2 })
+            }
+            return Promise.reject(new Error('Unknown'))
+        })
+        render(<TradeReportForm trade={MOCK_TRADES[0]} />, { wrapper: createWrapper() })
+        await waitFor(() => {
+            expect(screen.getByTestId('trade-report-save')).toBeInTheDocument()
+        })
+        fireEvent.click(screen.getByTestId('trade-report-save'))
+        await waitFor(() => {
+            expect(mockApiFetch).toHaveBeenCalledWith(
+                `/api/v1/trades/T001/report`,
+                expect.objectContaining({ method: 'POST' })
+            )
+        })
+    })
+
+    it('AC-4a: should convert star ratings to letter grades in payload', async () => {
+        let capturedBody: any = null
+        mockApiFetch.mockImplementation((url: string, opts?: any) => {
+            if (url.includes('/report') && !opts) {
+                return Promise.reject(new Error('API 404: Not Found'))
+            }
+            if (url.includes('/report') && opts?.method === 'POST') {
+                capturedBody = JSON.parse(opts.body)
+                return Promise.resolve({ ...MOCK_REPORT_RESPONSE, id: 2 })
+            }
+            return Promise.reject(new Error('Unknown'))
+        })
+        render(<TradeReportForm trade={MOCK_TRADES[0]} />, { wrapper: createWrapper() })
+        await waitFor(() => {
+            expect(screen.getByTestId('trade-report-save')).toBeInTheDocument()
+        })
+        // Click 5 stars on setup quality (default 0 → will send 'F' for 0, but let's set to 5)
+        const stars = screen.getByTestId('star-rating-setup-quality').querySelectorAll('button')
+        fireEvent.click(stars[4])  // 5th star = 5 → grade A
+        fireEvent.click(screen.getByTestId('trade-report-save'))
+        await waitFor(() => {
+            expect(capturedBody).not.toBeNull()
+            expect(capturedBody.setup_quality).toBe('A')
+        })
+    })
+
+    it('AC-4b: should send followed_plan as boolean', async () => {
+        let capturedBody: any = null
+        mockApiFetch.mockImplementation((url: string, opts?: any) => {
+            if (url.includes('/report') && !opts) {
+                return Promise.reject(new Error('API 404: Not Found'))
+            }
+            if (url.includes('/report') && opts?.method === 'POST') {
+                capturedBody = JSON.parse(opts.body)
+                return Promise.resolve({ ...MOCK_REPORT_RESPONSE, id: 2 })
+            }
+            return Promise.reject(new Error('Unknown'))
+        })
+        render(<TradeReportForm trade={MOCK_TRADES[0]} />, { wrapper: createWrapper() })
+        await waitFor(() => {
+            expect(screen.getByTestId('trade-report-save')).toBeInTheDocument()
+        })
+        // Click No toggle
+        fireEvent.click(screen.getByText('No'))
+        fireEvent.click(screen.getByTestId('trade-report-save'))
+        await waitFor(() => {
+            expect(capturedBody).not.toBeNull()
+            expect(capturedBody.followed_plan).toBe(false)
+        })
+    })
+
+    it('AC-4c: should send emotional_state as string', async () => {
+        let capturedBody: any = null
+        mockApiFetch.mockImplementation((url: string, opts?: any) => {
+            if (url.includes('/report') && !opts) {
+                return Promise.reject(new Error('API 404: Not Found'))
+            }
+            if (url.includes('/report') && opts?.method === 'POST') {
+                capturedBody = JSON.parse(opts.body)
+                return Promise.resolve({ ...MOCK_REPORT_RESPONSE, id: 2 })
+            }
+            return Promise.reject(new Error('Unknown'))
+        })
+        render(<TradeReportForm trade={MOCK_TRADES[0]} />, { wrapper: createWrapper() })
+        await waitFor(() => {
+            expect(screen.getByTestId('trade-report-save')).toBeInTheDocument()
+        })
+        fireEvent.click(screen.getByTestId('trade-report-save'))
+        await waitFor(() => {
+            expect(capturedBody).not.toBeNull()
+            expect(typeof capturedBody.emotional_state).toBe('string')
+        })
+    })
+
+    it('AC-6: should populate form with existing report data', async () => {
+        mockApiFetch.mockImplementation((url: string) => {
+            if (url.includes('/report')) {
+                return Promise.resolve(MOCK_REPORT_RESPONSE)
+            }
+            return Promise.reject(new Error('Unknown'))
+        })
+        render(<TradeReportForm trade={MOCK_TRADES[0]} />, { wrapper: createWrapper() })
+        await waitFor(() => {
+            const lessons = screen.getByTestId('trade-lessons') as HTMLTextAreaElement
+            expect(lessons.value).toBe('Good entry, held position')
+        })
     })
 })
 
@@ -267,6 +462,9 @@ describe('TradesLayout', () => {
         mockApiFetch.mockImplementation((url: string) => {
             if (url.includes('/api/v1/trades')) {
                 return Promise.resolve({ items: MOCK_TRADES })
+            }
+            if (url.includes('/api/v1/accounts')) {
+                return Promise.resolve([])
             }
             if (url.includes('/api/v1/mcp-guard/status')) {
                 return Promise.resolve({ is_locked: false })
@@ -316,6 +514,9 @@ describe('TradesLayout', () => {
             if (url.includes('/api/v1/trades')) {
                 return Promise.resolve({ items: MOCK_TRADES })
             }
+            if (url.includes('/api/v1/accounts')) {
+                return Promise.resolve([])
+            }
             if (url.includes('/api/v1/mcp-guard/status')) {
                 return Promise.resolve({ is_locked: true })
             }
@@ -324,6 +525,182 @@ describe('TradesLayout', () => {
         render(<TradesLayout />, { wrapper: createWrapper() })
         await waitFor(() => {
             expect(screen.getByTestId('add-trade-btn')).toBeDisabled()
+        })
+    })
+})
+
+// ─── MEU-54: Multi-Account UI Tests ──────────────────────────────────────────
+
+describe('AccountTypeBadge', () => {
+    it('should render badge with correct data-testid', () => {
+        render(<AccountTypeBadge accountType="broker" />)
+        expect(screen.getByTestId('account-type-badge')).toBeInTheDocument()
+    })
+
+    it('should render correct label for broker', () => {
+        render(<AccountTypeBadge accountType="broker" />)
+        expect(screen.getByText('Broker')).toBeInTheDocument()
+    })
+
+    it('should render correct label for ira', () => {
+        render(<AccountTypeBadge accountType="ira" />)
+        expect(screen.getByText('IRA')).toBeInTheDocument()
+    })
+
+    it('should render correct label for 401k', () => {
+        render(<AccountTypeBadge accountType="401k" />)
+        expect(screen.getByText('401k')).toBeInTheDocument()
+    })
+
+    it('should handle unknown account type gracefully', () => {
+        render(<AccountTypeBadge accountType="custom" />)
+        expect(screen.getByText('custom')).toBeInTheDocument()
+    })
+
+    it('should be case-insensitive', () => {
+        render(<AccountTypeBadge accountType="BROKER" />)
+        expect(screen.getByText('Broker')).toBeInTheDocument()
+    })
+})
+
+describe('MEU-54: TradesTable account column', () => {
+    it('should render account type badges when account_type is present', () => {
+        render(<TradesTable data={MOCK_TRADES} />, { wrapper: createWrapper() })
+        const badges = screen.getAllByTestId('account-type-badge')
+        expect(badges.length).toBeGreaterThanOrEqual(2)
+    })
+
+    it('should render account ID alongside badge', () => {
+        render(<TradesTable data={MOCK_TRADES} />, { wrapper: createWrapper() })
+        expect(screen.getByText('DU123456')).toBeInTheDocument()
+    })
+
+    it('should truncate account IDs longer than 15 characters per G7', () => {
+        const longIdTrades: Trade[] = [{
+            ...MOCK_TRADES[0],
+            account_id: 'VERY_LONG_ACCOUNT_ID_12345',
+        }]
+        render(<TradesTable data={longIdTrades} />, { wrapper: createWrapper() })
+        expect(screen.getByText('VERY_LONG_ACCOU…')).toBeInTheDocument()
+    })
+})
+
+describe('MEU-54: TradesLayout account filter', () => {
+    const MOCK_FILTER_ACCOUNTS = [
+        { account_id: 'DU123456', account_type: 'broker' },
+        { account_id: 'DU789012', account_type: 'ira' },
+    ]
+
+    beforeEach(() => {
+        vi.clearAllMocks()
+        mockApiFetch.mockImplementation((url: string) => {
+            if (url.includes('/api/v1/accounts')) {
+                // AC-3: return account list from dedicated endpoint
+                return Promise.resolve(MOCK_FILTER_ACCOUNTS)
+            }
+            if (url.includes('/api/v1/trades')) {
+                return Promise.resolve({ items: MOCK_TRADES })
+            }
+            if (url.includes('/api/v1/mcp-guard/status')) {
+                return Promise.resolve({ is_locked: false })
+            }
+            return Promise.reject(new Error('Unknown URL'))
+        })
+    })
+
+    it('should render account filter dropdown', async () => {
+        render(<TradesLayout />, { wrapper: createWrapper() })
+        await waitFor(() => {
+            expect(screen.getByTestId('account-filter-dropdown')).toBeInTheDocument()
+        })
+    })
+
+    it('should have All Accounts as default option', async () => {
+        render(<TradesLayout />, { wrapper: createWrapper() })
+        await waitFor(() => {
+            expect(screen.getByText('All Accounts')).toBeInTheDocument()
+        })
+    })
+
+    it('AC-3: should query GET /api/v1/accounts for dropdown options', async () => {
+        render(<TradesLayout />, { wrapper: createWrapper() })
+        await waitFor(() => {
+            // Verify the accounts endpoint was called (AC-3 contract)
+            const accountsCalls = mockApiFetch.mock.calls.filter(
+                (c: unknown[]) => (c[0] as string).includes('/api/v1/accounts'),
+            )
+            expect(accountsCalls.length).toBeGreaterThanOrEqual(1)
+        })
+    })
+
+    it('AC-3: should populate dropdown from /api/v1/accounts response', async () => {
+        render(<TradesLayout />, { wrapper: createWrapper() })
+        await waitFor(() => {
+            const options = screen.getByTestId('account-filter-dropdown').querySelectorAll('option')
+            // All Accounts + 2 accounts from MOCK_FILTER_ACCOUNTS = 3 options
+            expect(options.length).toBeGreaterThanOrEqual(3)
+        })
+    })
+
+    it('AC-4: should re-query trades with account_id when filter changes', async () => {
+        render(<TradesLayout />, { wrapper: createWrapper() })
+        // Wait for dropdown to populate from accounts query
+        await waitFor(() => {
+            const options = screen.getByTestId('account-filter-dropdown').querySelectorAll('option')
+            expect(options.length).toBeGreaterThanOrEqual(3)
+        })
+        // Change filter selection
+        fireEvent.change(screen.getByTestId('account-filter-dropdown'), {
+            target: { value: 'DU123456' },
+        })
+        await waitFor(() => {
+            // Verify a trades query was made with account_id param
+            const tradesCalls = mockApiFetch.mock.calls.filter(
+                (c: unknown[]) => (c[0] as string).includes('/api/v1/trades') &&
+                    (c[0] as string).includes('account_id=DU123456'),
+            )
+            expect(tradesCalls.length).toBeGreaterThanOrEqual(1)
+        })
+    })
+})
+
+describe('MEU-55: TradeReportForm R4 error handling', () => {
+    it('R4: non-404 GET error shows error state, not empty create form', async () => {
+        mockApiFetch.mockImplementation((url: string) => {
+            if (url.includes('/report')) {
+                return Promise.reject(new Error('API 500: Internal Server Error'))
+            }
+            return Promise.reject(new Error('Unknown'))
+        })
+        render(<TradeReportForm trade={MOCK_TRADES[0]} />, { wrapper: createWrapper() })
+        await waitFor(() => {
+            // Error state must be shown — form should NOT render the create/edit UI
+            expect(screen.getByTestId('trade-report-error')).toBeInTheDocument()
+            expect(screen.queryByTestId('trade-report-form')).not.toBeInTheDocument()
+        })
+    })
+
+    it('AC-8: existing report uses PUT not POST', async () => {
+        const MOCK_EXISTING: typeof MOCK_REPORT_RESPONSE = { ...MOCK_REPORT_RESPONSE }
+        mockApiFetch.mockImplementation((url: string, opts?: RequestInit) => {
+            if (url.includes('/report') && !opts) {
+                return Promise.resolve(MOCK_EXISTING)
+            }
+            if (url.includes('/report') && opts?.method === 'PUT') {
+                return Promise.resolve(MOCK_EXISTING)
+            }
+            return Promise.reject(new Error('Unknown'))
+        })
+        render(<TradeReportForm trade={MOCK_TRADES[0]} />, { wrapper: createWrapper() })
+        await waitFor(() => {
+            expect(screen.getByTestId('trade-report-save')).toBeInTheDocument()
+        })
+        fireEvent.click(screen.getByTestId('trade-report-save'))
+        await waitFor(() => {
+            const putCalls = mockApiFetch.mock.calls.filter(
+                (c: unknown[]) => (c[0] as string).includes('/report') && (c[1] as RequestInit)?.method === 'PUT',
+            )
+            expect(putCalls.length).toBeGreaterThanOrEqual(1)
         })
     })
 })

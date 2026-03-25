@@ -13,7 +13,7 @@ This MEU implements report-only methods; plan/journal methods deferred to MEU-66
 from __future__ import annotations
 
 from dataclasses import replace
-from datetime import datetime
+from datetime import datetime, timezone
 from typing import TYPE_CHECKING, Any
 
 from zorivest_core.domain.entities import TradePlan, TradeReport
@@ -220,6 +220,7 @@ class ReportService:
                 plan,
                 linked_trade_id=trade_id,
                 status="executed",
+                executed_at=datetime.now(timezone.utc),
                 updated_at=datetime.now(),
             )
             self.uow.trade_plans.update(updated)

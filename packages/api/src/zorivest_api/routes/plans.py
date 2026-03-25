@@ -7,6 +7,7 @@ Source: 04a-api-trades.md §TradePlan endpoints (nested under /api/v1/trade-plan
 from __future__ import annotations
 
 from typing import Optional
+from datetime import datetime, timezone
 
 from fastapi import APIRouter, Depends, HTTPException, Query
 from pydantic import BaseModel, model_validator
@@ -90,6 +91,8 @@ class PlanResponse(BaseModel):
     account_id: Optional[str] = None
     created_at: str
     updated_at: str
+    executed_at: Optional[str] = None   # T5: when status → executed
+    cancelled_at: Optional[str] = None  # T5: when status → cancelled
 
     model_config = {"from_attributes": True}
 
@@ -189,10 +192,18 @@ async def patch_plan_status(
 ):
     """Transition plan status (DRAFT→ACTIVE→EXECUTED)."""
     try:
+        update_data: dict = {"status": body.status}
+        # T5: auto-set status timestamps
+        if body.status == "executed":
+            update_data["executed_at"] = datetime.now(timezone.utc)
+        elif body.status == "cancelled":
+            update_data["cancelled_at"] = datetime.now(timezone.utc)
+
         if body.status == "executed" and body.linked_trade_id:
+            # link_plan_to_trade handles linking, status=executed, and executed_at persistence
             plan = service.link_plan_to_trade(plan_id, body.linked_trade_id)
         else:
-            plan = service.update_plan(plan_id, {"status": body.status})
+            plan = service.update_plan(plan_id, update_data)
         return _to_response(plan)
     except ValueError as e:
         msg = str(e)
@@ -240,4 +251,6 @@ def _to_response(plan: object) -> dict:
         "account_id": plan.account_id,                   # type: ignore[attr-defined]
         "created_at": plan.created_at.isoformat() if plan.created_at else "",  # type: ignore[attr-defined]
         "updated_at": plan.updated_at.isoformat() if plan.updated_at else "",  # type: ignore[attr-defined]
+        "executed_at": plan.executed_at.isoformat() if getattr(plan, 'executed_at', None) else None,  # type: ignore[attr-defined]
+        "cancelled_at": plan.cancelled_at.isoformat() if getattr(plan, 'cancelled_at', None) else None,  # type: ignore[attr-defined]
     }

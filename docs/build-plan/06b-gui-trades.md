@@ -329,11 +329,10 @@ When viewing a trade's detail panel, a "Journal" tab provides post-trade analysi
 | Field | Type | Source | Notes |
 |-------|------|--------|-------|
 | `trade_id` | `readonly` | from selected trade | Links report to trade |
-| `setup_quality` | `rating` (1–5 stars) | user input | Star rating component |
-| `execution_quality` | `rating` (1–5 stars) | user input | Star rating component |
-| `followed_plan` | `select` | Yes / No / Partially / N/A | Links to TradePlan if Yes |
-| `linked_plan_id` | `select` | populated from `/api/v1/trade-plans` | Optional — shows only if followed_plan != N/A |
-| `emotional_state` | `select` | predefined enum | Confident, Fearful, Greedy, Impulsive, Hesitant, Calm |
+| `setup_quality` | `rating` (1–5 stars) | user input | GUI shows stars; API stores as letter grade A–F ({5→A, 4→B, 3→C, 2→D, 1→F}) |
+| `execution_quality` | `rating` (1–5 stars) | user input | GUI shows stars; API stores as letter grade A–F ({5→A, 4→B, 3→C, 2→D, 1→F}) |
+| `followed_plan` | `toggle` | boolean | API: `bool`. GUI renders as Yes/No toggle. |
+| `emotional_state` | `select` | free string | API: `str`. Suggested values: Confident, Fearful, Greedy, Impulsive, Hesitant, Calm |
 | `lessons_learned` | `textarea` | user input | Free-text journaling |
 | `tags` | `tag-input` | user input | Chip-style tag input with autocomplete from existing tags |
 

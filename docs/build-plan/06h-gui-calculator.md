@@ -8,6 +8,8 @@
 
 Build the position size calculator as a standalone modal tool accessible from anywhere in the application via command palette (`Ctrl+Shift+C`) or from the Trade Plan detail view. Supports **five instrument modes** (Equity, Futures, Options, Forex, Crypto), multi-scenario comparison, calculation history, and one-click plan creation. The calculator is a pure-math tool with zero persistence dependencies — it calls a single REST endpoint.
 
+> **Implementation phasing**: Equity mode is the base implementation (MEU-48). Additional modes (Futures, Options, Forex, Crypto), scenario comparison, calculation history, and Copy-to-Plan are expansion features delivered in a follow-up MEU.
+
 > **Source**: [Input Index §1](input-index.md), [Domain Model Reference](domain-model-reference.md) `PositionSizeCalculator`. Originally documented in [06c-gui-planning.md](06c-gui-planning.md); extracted here for expanded specification.
 
 ---
@@ -352,7 +354,14 @@ The calculator is designed for rapid keyboard use:
 
 ## Exit Criteria
 
+**Base (MEU-48 — Equity mode):**
 - Calculator modal opens from command palette (Ctrl+Shift+C) and from Trade Plan detail
+- Equity mode inputs (account size, risk %, entry, stop, target) compute correct outputs
+- Warning messages display (position > account, risk > 3%, R:R < 1, entry == stop)
+- Division-by-zero guarded when entry == stop
+- Tab/Enter keyboard flow works without mouse
+
+**Expansion (follow-up MEU):**
 - Mode selector switches between Equity, Futures, Options, Forex, and Crypto
 - Instrument-specific fields show/hide dynamically on mode change
 - Account dropdown populates with all accounts + "All Accounts" default
@@ -363,17 +372,20 @@ The calculator is designed for rapid keyboard use:
 - Forex pip-based sizing works with standard/mini/micro lots
 - Crypto fractional quantity and liquidation price compute correctly
 - Warning messages display per-mode (margin, leverage, delta, fees)
-- Division-by-zero guarded when entry == stop
 - Save Scenario adds row to comparison table with mode column (max 5)
 - Cross-mode scenario comparison renders correctly (Equity vs Futures vs Forex)
 - Recent calculations list shows last 10 with mode icon and Load button
 - Copy to Plan creates pre-filled trade plan and navigates to planning page
-- Tab/Enter keyboard flow works without mouse
 
 ## Outputs
 
-- React components: `PositionCalculatorModal`, `InstrumentModeSelector`, `ScenarioComparisonTable`, `CalculationHistory`, `FuturesPresetSelector`
+**Base (MEU-48 — Equity mode):**
+- React component: `PositionCalculatorModal` (Equity computation only)
 - Keyboard-driven modal with global shortcut (Ctrl+Shift+C)
+- `data-testid` attrs matching E2E Wave 4 `CALCULATOR` constants
+
+**Expansion (follow-up MEU):**
+- React components: `InstrumentModeSelector`, `ScenarioComparisonTable`, `CalculationHistory`, `FuturesPresetSelector`
 - 5 instrument modes with dynamic field rendering
 - Futures symbol presets (/ES, /NQ, /YM, /RTY, /CL, /GC, /MES, /MNQ)
 - Account selector with balance auto-resolution

@@ -1,4 +1,4 @@
-import { useState, useCallback, useEffect, useRef } from 'react'
+import { useState, useCallback, useEffect, useRef, useMemo } from 'react'
 import { useQuery, useQueryClient } from '@tanstack/react-query'
 import { apiFetch } from '@/lib/api'
 import { useStatusBar } from '@/hooks/useStatusBar'
@@ -24,6 +24,11 @@ interface GuardStatusResponse {
     is_locked: boolean
 }
 
+interface AccountSummary {
+    account_id: string
+    account_type: string
+}
+
 /**
  * TradesLayout — list+detail split layout per 06b-gui-trades.md.
  *
@@ -36,6 +41,7 @@ export default function TradesLayout() {
     const [selectedTrade, setSelectedTrade] = useState<Trade | null>(null)
     const [filterQuery, setFilterQuery] = useState('')
     const [debouncedSearch, setDebouncedSearch] = useState('')
+    const [accountFilter, setAccountFilter] = useState<string>('')
     const queryClient = useQueryClient()
     const { setStatus } = useStatusBar()
 
@@ -49,11 +55,12 @@ export default function TradesLayout() {
     }, [filterQuery])
 
     const { data: trades = [], refetch, isFetching } = useQuery<Trade[]>({
-        queryKey: ['trades', { search: debouncedSearch }],
+        queryKey: ['trades', { search: debouncedSearch, account_id: accountFilter }],
         queryFn: async () => {
             try {
                 const params = new URLSearchParams({ limit: '200', offset: '0' })
                 if (debouncedSearch) params.set('search', debouncedSearch)
+                if (accountFilter) params.set('account_id', accountFilter)
                 const result = await apiFetch<{ items: Trade[] }>(`/api/v1/trades?${params}`)
                 return result.items
             } catch {
@@ -62,6 +69,40 @@ export default function TradesLayout() {
         },
         refetchInterval: 5_000,
     })
+
+    // AC-3: Fetch available accounts from GET /api/v1/accounts for the filter dropdown.
+    // Falls back to trade-derived accumulation for accounts not yet in the accounts list.
+    const { data: fetchedAccounts = [] } = useQuery<AccountSummary[]>({
+        queryKey: ['accounts'],
+        queryFn: async () => {
+            try {
+                const result = await apiFetch<AccountSummary[]>('/api/v1/accounts')
+                return result
+            } catch {
+                return []
+            }
+        },
+        refetchInterval: 5_000,
+    })
+
+    // Merge fetched accounts with any trade-derived ones (graceful fallback for stale data)
+    const seenAccountsRef = useRef(new Map<string, string>())
+    const uniqueAccounts = useMemo(() => {
+        // Seed from the dedicated accounts query (AC-3 source of truth)
+        for (const a of fetchedAccounts) {
+            seenAccountsRef.current.set(a.account_id, a.account_type)
+        }
+        // Supplement with trade-embedded account data (fallback for pre-existing trades)
+        for (const t of trades) {
+            if (t.account_id && !seenAccountsRef.current.has(t.account_id)) {
+                seenAccountsRef.current.set(t.account_id, t.account_type ?? '')
+            }
+        }
+        return Array.from(seenAccountsRef.current.entries()).map(([id, type]) => ({
+            account_id: id,
+            account_type: type,
+        }))
+    }, [fetchedAccounts, trades])
 
     const { data: guardStatus } = useQuery<GuardStatusResponse>({
         queryKey: ['mcp-guard-status'],
@@ -183,15 +224,28 @@ export default function TradesLayout() {
                 </div>
 
                 {/* Search/Filter bar */}
-                <div className="px-4 pb-3">
+                <div className="px-4 pb-3 flex gap-2">
                     <input
                         type="search"
                         placeholder="Filter by instrument, exec ID, account, or action…"
                         value={filterQuery}
                         onChange={(e) => setFilterQuery(e.target.value)}
-                        className="w-full px-3 py-1.5 text-sm rounded-md bg-bg border border-bg-subtle text-fg placeholder:text-fg-muted/50 focus:outline-none focus:border-accent"
+                        className="flex-1 px-3 py-1.5 text-sm rounded-md bg-bg border border-bg-subtle text-fg placeholder:text-fg-muted/50 focus:outline-none focus:border-accent"
                         data-testid="trades-filter-input"
                     />
+                    <select
+                        data-testid="account-filter-dropdown"
+                        value={accountFilter}
+                        onChange={(e) => setAccountFilter(e.target.value)}
+                        className="px-3 py-1.5 text-sm rounded-md bg-bg border border-bg-subtle text-fg focus:outline-none focus:border-accent"
+                    >
+                        <option value="">All Accounts</option>
+                        {uniqueAccounts.map((acc) => (
+                            <option key={acc.account_id} value={acc.account_id}>
+                                {acc.account_id}
+                            </option>
+                        ))}
+                    </select>
                 </div>
                 <TradesTable
                     data={trades}
