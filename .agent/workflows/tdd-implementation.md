@@ -41,6 +41,10 @@ Write ALL tests FIRST in the appropriate `tests/unit/` file. Every AC must have 
 - Error condition tests
 
 // turbo
+
+> **P0 REMINDER:** Use the redirect-to-file pattern for this command.
+> `pytest tests/unit/test_{module}.py -x --tb=short -v *> C:\Temp\zorivest\pytest.txt; Get-Content C:\Temp\zorivest\pytest.txt | Select-Object -Last 40`
+
 Run tests to confirm they FAIL:
 ```bash
 pytest tests/unit/test_{module}.py -x --tb=short -v
@@ -60,6 +64,10 @@ Write the minimum code to make all tests pass. Follow the build plan spec exactl
 Do not invent new product behavior in code. If a gap appears during implementation, route it back to planning/research and update the FIC before continuing.
 
 // turbo
+
+> **P0 REMINDER:** Use the redirect-to-file pattern for this command.
+> `pytest tests/unit/test_{module}.py -x --tb=short -v *> C:\Temp\zorivest\pytest.txt; Get-Content C:\Temp\zorivest\pytest.txt | Select-Object -Last 40`
+
 Run tests to confirm they PASS:
 ```bash
 pytest tests/unit/test_{module}.py -x --tb=short -v
@@ -82,6 +90,10 @@ ruff check packages/core/src/ # ← adjust per active phase
 ### 6. Full Test Suite
 
 // turbo
+
+> **P0 REMINDER:** Use the redirect-to-file pattern for this command.
+> `pytest -x --tb=short -m "unit" *> C:\Temp\zorivest\pytest.txt; Get-Content C:\Temp\zorivest\pytest.txt | Select-Object -Last 40`
+
 Run the complete test suite to check for regressions:
 ```bash
 pytest -x --tb=short -m "unit"

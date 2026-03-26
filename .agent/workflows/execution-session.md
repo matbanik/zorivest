@@ -66,6 +66,10 @@ Follow the plan **exactly**. The prompt contains:
 - **Guardrails** — hard scope limits
 
 Key rules during execution:
+
+> ⚠️ **P0 Terminal Pre-Flight** — Before the first `run_command` in this phase, invoke
+> `.agent/skills/terminal-preflight/SKILL.md` and confirm all 4 checklist items.
+> See `AGENTS.md §PRIORITY 0` for the redirect pattern.
 - Follow `.agent/workflows/tdd-implementation.md` for all TDD work
 - Follow `.agent/workflows/meu-handoff.md` for handoff creation
 - **Execute all MEUs in the approved project plan**, completing each MEU's TDD cycle before starting the next
@@ -108,6 +112,12 @@ Before declaring any MEU "ready for review" or writing completion claims in the 
    - Verify `task.md` items match actual completion state.
    - Verify `BUILD_PLAN.md` summary counts match row-level data.
    - Do NOT create reflection/metrics artifacts until AFTER Codex validation completes.
+
+7. **Pre-Completion Sweep** (Pattern: count-bearing string drift, meta-review RULE-2)
+   - `rg` all count-bearing strings (test counts, "passing", "FAIL_TO_PASS") across ALL touched handoffs/docs.
+   - Cross-check every file listed in the handoff evidence table exists on disk: `Test-Path <path>` for each.
+   - Run `pre-handoff-review` SKILL (`.agent/skills/pre-handoff-review/SKILL.md`) — 10-pattern self-check.
+   - Only after all three sub-steps pass: mark complete and set `corrections_applied`.
 
 ### 5. Meta-Reflection (Post-Execution)
 

@@ -1,3 +1,55 @@
+## PRIORITY 0 — SYSTEM CONSTRAINTS (Non-Negotiable)
+
+> [!CAUTION]
+> **These constraints override ALL task-level instructions.** Environment stability failures (terminal hangs, buffer saturation) waste 10–30 minutes per incident and require human intervention. No task priority, deadline, or KPI justifies violating P0 rules.
+
+### Priority Hierarchy
+
+| Tier | Scope | Examples | Override? |
+|------|-------|----------|-----------|
+| **P0** | Environment stability | Terminal redirect, no-pipe rule, receipts dir | Never |
+| **P1** | Quality gates | Tests pass, type checks clean, lint clean | Only by human |
+| **P2** | Task completion | Feature delivery, bug fix, handoff | Yields to P0/P1 |
+| **P3** | Speed / convenience | Fewer tool calls, shorter output | Yields to all |
+
+### Windows Shell — Mandatory Redirect-to-File Pattern
+
+**PowerShell's six-stream output model causes buffer-saturation hangs on unredirected commands.** Every `run_command` must redirect ALL streams to a file, then read the file.
+
+#### Pre-flight Checklist (satisfy ALL before every `run_command`)
+
+- [ ] **Redirect check**: command ends with `*> <filepath>` (all-stream redirect)
+- [ ] **Receipts dir**: output routed to `C:\Temp\zorivest\` (created automatically)
+- [ ] **No-pipe check**: no `|` piping stdout of long-running process to a filter
+- [ ] **Background flag**: if command may run >5s, use appropriate `WaitMsBeforeAsync`
+
+> Invoke `.agent/skills/terminal-preflight/SKILL.md` before your first `run_command` in any execution phase.
+
+#### INCORRECT vs CORRECT Patterns
+
+```powershell
+# ❌ INCORRECT — causes buffer saturation and infinite polling
+uv run pytest tests/ -x --tb=short -v
+npx vitest run
+uv run pyright packages/
+
+# ✅ CORRECT — fire-and-read pattern
+uv run pytest tests/ -x --tb=short -v *> C:\Temp\zorivest\pytest.txt; Get-Content C:\Temp\zorivest\pytest.txt | Select-Object -Last 40
+```
+
+#### Per-Tool Redirect Table
+
+| Tool | Redirect Command |
+|------|------------------|
+| `pytest` | `uv run pytest tests/ -x --tb=short -v *> C:\Temp\zorivest\pytest.txt; Get-Content C:\Temp\zorivest\pytest.txt \| Select-Object -Last 40` |
+| `vitest` | `npx vitest run *> C:\Temp\zorivest\vitest.txt; Get-Content C:\Temp\zorivest\vitest.txt \| Select-Object -Last 40` |
+| `pyright` | `uv run pyright packages/ *> C:\Temp\zorivest\pyright.txt; Get-Content C:\Temp\zorivest\pyright.txt \| Select-Object -Last 30` |
+| `ruff` | `uv run ruff check packages/ *> C:\Temp\zorivest\ruff.txt; Get-Content C:\Temp\zorivest\ruff.txt \| Select-Object -Last 20` |
+| `validate_codebase.py` | `uv run python tools/validate_codebase.py --scope meu *> C:\Temp\zorivest\validate.txt; Get-Content C:\Temp\zorivest\validate.txt \| Select-Object -Last 50` |
+| `git` | `git status *> C:\Temp\zorivest\git-status.txt; Get-Content C:\Temp\zorivest\git-status.txt` |
+
+---
+
 # Zorivest Agent Instructions
 
 AI-specific guidance for working with the Zorivest codebase. Single source of truth for all AI coding assistants.
@@ -278,31 +330,10 @@ See `.agent/docs/code-quality.md` for full examples and forbidden patterns.
 
 ## Windows Shell (PowerShell)
 
+> See **§PRIORITY 0** above for the authoritative redirect-to-file pattern (`*>`) and per-tool command table. The P0 block is the single source of truth for all terminal execution rules.
+
 > [!IMPORTANT]
 > **Never pipe long-running commands through filters in PowerShell.** Piping `vitest`, `pytest`, `npm run`, or any process that exits after producing output into `| Select-String`, `| findstr`, or `| Where-Object` causes the pipeline to hang indefinitely — the outer process keeps stdin open waiting for more data even after the child process exits.
-
-**Broken pattern (DO NOT USE):**
-```powershell
-npx vitest run | Select-String "FAIL"       # hangs
-npx vitest run 2>&1 | findstr "Error"      # hangs
-command | Where-Object { $_ -match "..." } # hangs
-```
-
-**Correct pattern — redirect to file, then read:**
-```powershell
-# Step 1: run the command, capture both streams to a file
-npx vitest run > C:\Temp\out.txt 2>&1
-
-# Step 2: read the file using text-editor (get_text_file_contents) or Get-Content
-Get-Content C:\Temp\out.txt | Select-Object -Last 20
-```
-
-Or in one line (semicolon separates commands, no pipe):
-```powershell
-npx vitest run > C:\Temp\out.txt 2>&1; Get-Content C:\Temp\out.txt | Select-Object -Last 30
-```
-
-**Why this works:** The `>` redirect is handled by the shell itself before the child process starts, so the child exits cleanly. The file is then a static artifact that can be filtered safely. Use `get_text_file_contents` (text-editor MCP tool) to read specific line ranges from large output files.
 
 **Also avoid:**
 - `npm run dev` exit code 1 — this is always expected when `concurrently` terminates (Electron window closes), not a build failure.
@@ -331,6 +362,7 @@ At session end, create or update a handoff file:
 | Git Workflow | `.agent/skills/git-workflow/SKILL.md` | Agent-safe git operations with SSH commit signing. Prevents interactive prompt hangs. |
 | Codebase Quality Gate | `.agent/skills/quality-gate/SKILL.md` | Validation pipeline: type checks, linting, tests, anti-placeholder scans, evidence checks. Supports phase-level and MEU-scoped runs. |
 | Pre-Handoff Review | `.agent/skills/pre-handoff-review/SKILL.md` | Self-review protocol addressing 10 recurring patterns from critical review analysis. Reduces average review passes from 4-11 to 3-5. |
+| Terminal Pre-Flight | `.agent/skills/terminal-preflight/SKILL.md` | Mandatory pre-flight checklist for terminal commands. Enforces the redirect-to-file pattern to prevent PowerShell buffer saturation and session hangs. |
 
 ## MCP Servers
 

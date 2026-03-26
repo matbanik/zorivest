@@ -32,7 +32,8 @@ MEU-90a/b/c/d  ← service-wiring ✅ DONE (keys → encrypted DB, real provider
 1. ✅ **MEU-65 `market-data-gui`** — fully closed (2026-03-23): Wave 6 E2E 7/7 pass, real `ProviderConnectionService` wired, all trackers updated.
 2. ✅ **MEU-90a** — `SqlAlchemyUnitOfWork` wired into FastAPI lifespan
 3. ✅ **MEU-90b** — real `ProviderConnectionService` wired (API key encryption + DB persistence)
-4. **Next:** MEU-48 calculator ticker auto-fill (unblocked) or next P2 item per build plan
+4. ✅ **agents-terminal-optimization-infra** — P0 block in AGENTS.md, terminal-preflight SKILL.md, workflow amendments (2026-03-25)
+5. **Next:** MEU-48 calculator ticker auto-fill (unblocked) or next P2 item per build plan
 
 ## Archived Files (pomera_notes)
 

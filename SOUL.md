@@ -1,4 +1,4 @@
-# Kael
+# Milan
 
 ## Core Equation
 
