@@ -15,6 +15,7 @@ from dataclasses import dataclass, field
 
 # ── Custom error types ──────────────────────────────────────────────────
 
+
 class InvalidKeyError(Exception):
     """Raised when API key is not found or invalid (→ 401)."""
 
@@ -33,16 +34,19 @@ class InvalidActionError(Exception):
 
 # ── Constants ───────────────────────────────────────────────────────────
 
-VALID_DESTRUCTIVE_ACTIONS = frozenset({
-    "delete_account",
-    "delete_trade",
-    "delete_all_trades",
-    "revoke_api_key",
-    "factory_reset",
-})
+VALID_DESTRUCTIVE_ACTIONS = frozenset(
+    {
+        "delete_account",
+        "delete_trade",
+        "delete_all_trades",
+        "revoke_api_key",
+        "factory_reset",
+    }
+)
 
 
 # ── Auth Service ────────────────────────────────────────────────────────
+
 
 @dataclass
 class AuthService:
@@ -144,13 +148,15 @@ class AuthService:
         result = []
         for _hash, entry in self._keys.items():
             if not entry.get("revoked", False):
-                result.append({
-                    "key_id": entry["key_id"],
-                    "name": entry["name"],
-                    "role": entry["role"],
-                    "masked_key": f"zrv_***{_hash[-3:]}",
-                    "created_at": entry["created_at"],
-                })
+                result.append(
+                    {
+                        "key_id": entry["key_id"],
+                        "name": entry["name"],
+                        "role": entry["role"],
+                        "masked_key": f"zrv_***{_hash[-3:]}",
+                        "created_at": entry["created_at"],
+                    }
+                )
         return result
 
     def revoke_key(self, key_id: str) -> None:

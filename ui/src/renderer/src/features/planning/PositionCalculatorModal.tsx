@@ -1,6 +1,7 @@
 import { useState, useCallback, useEffect, useMemo, useRef } from 'react'
 import { apiFetch } from '@/lib/api'
 import { useStatusBar } from '@/hooks/useStatusBar'
+import { useAccounts } from '@/hooks/useAccounts'
 import TickerAutocomplete from '@/components/TickerAutocomplete'
 
 // ── Equity Position Calculator (AC-13, AC-14, AC-15) ─────────────────────
@@ -11,7 +12,7 @@ interface PositionCalculatorModalProps {
 }
 
 export default function PositionCalculatorModal({ isOpen, onClose }: PositionCalculatorModalProps) {
-    const [accountSize, setAccountSize] = useState<number>(100000)
+    const [accountSize, setAccountSize] = useState<number>(0)
     const [riskPercent, setRiskPercent] = useState<number>(1)
     const [entryPrice, setEntryPrice] = useState<number>(0)
     const [stopPrice, setStopPrice] = useState<number>(0)
@@ -19,8 +20,38 @@ export default function PositionCalculatorModal({ isOpen, onClose }: PositionCal
     const [copyFeedback, setCopyFeedback] = useState(false)
     const [ticker, setTicker] = useState('')  // C4: ticker field
     const [quoteFetching, setQuoteFetching] = useState(false)  // C3: loading state
+    const [selectedAccount, setSelectedAccount] = useState<string>('__ALL__')  // MEU-71b: default All Accounts per 06h L80
     const { setStatus } = useStatusBar()
     const prevEntryRef = useRef<number>(0)  // C3: preserve user entry price on fail
+    const { accounts, portfolioTotal, isLoading } = useAccounts()  // MEU-71b: account data
+
+    // MEU-71b AC-2/AC-3/AC-5: Handle account selection → auto-fill balance
+    const handleAccountChange = useCallback((accountId: string) => {
+        setSelectedAccount(accountId)
+        if (accountId === '__ALL__') {
+            // AC-3: Portfolio total
+            setAccountSize(portfolioTotal)
+        } else if (accountId && accountId !== '') {
+            // AC-2: Individual account balance
+            const acct = accounts.find(a => a.account_id === accountId)
+            if (acct?.latest_balance != null) {
+                setAccountSize(acct.latest_balance)
+            }
+        }
+        // AC-1: "" (Manual) — keep existing value, no auto-fill
+    }, [accounts, portfolioTotal])
+
+    // MEU-71b: one-shot initial fill when accounts finish loading and default is __ALL__
+    // With accountSize=0 initial, zero-total portfolios are correct by default (0=0).
+    // Only sync when there's a positive balance to fill in.
+    // handleAccountChange covers all subsequent switches (including back to __ALL__).
+    const initialFillDone = useRef(false)
+    useEffect(() => {
+        if (!initialFillDone.current && !isLoading && selectedAccount === '__ALL__' && portfolioTotal > 0) {
+            initialFillDone.current = true
+            setAccountSize(portfolioTotal)
+        }
+    }, [isLoading, portfolioTotal, selectedAccount])
 
     // Keyboard shortcuts
     useEffect(() => {
@@ -110,6 +141,7 @@ export default function PositionCalculatorModal({ isOpen, onClose }: PositionCal
         setTargetPrice(0)
         setTicker('')  // C4: reset ticker
         setQuoteFetching(false)  // C3: clear loading state
+        setSelectedAccount('')  // MEU-71b: reset account selection
     }, [])
 
     if (!isOpen) return null
@@ -148,6 +180,26 @@ export default function PositionCalculatorModal({ isOpen, onClose }: PositionCal
                                 Fetching quote…
                             </span>
                         )}
+                    </div>
+
+                    {/* MEU-71b: Account Selection (AC-1) */}
+                    <div>
+                        <label htmlFor="calc-account-select" className="block text-xs text-fg-muted mb-1">Account</label>
+                        <select
+                            id="calc-account-select"
+                            data-testid="calc-account-select"
+                            value={selectedAccount}
+                            onChange={(e) => handleAccountChange(e.target.value)}
+                            className="w-full px-3 py-1.5 text-sm rounded-md bg-bg border border-bg-subtle text-fg"
+                        >
+                            <option value="">Manual</option>
+                            <option value="__ALL__">All Accounts ({portfolioTotal.toLocaleString(undefined, { style: 'currency', currency: 'USD' })})</option>
+                            {accounts.map((acct) => (
+                                <option key={acct.account_id} value={acct.account_id}>
+                                    {acct.name} {acct.latest_balance != null ? `($${acct.latest_balance.toLocaleString()})` : ''}
+                                </option>
+                            ))}
+                        </select>
                     </div>
 
                     {/* Inputs (AC-14) */}

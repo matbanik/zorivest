@@ -16,6 +16,7 @@ version_router = APIRouter(tags=["system"])
 
 class VersionResponse(BaseModel):
     """Canonical 04g version response."""
+
     version: str
     context: str
 

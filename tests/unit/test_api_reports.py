@@ -40,6 +40,7 @@ def client(mock_report_svc):
     app.dependency_overrides[require_unlocked_db] = lambda: None
 
     from zorivest_api import dependencies as deps
+
     # Also inject mock trade/image services since the app registers those routes
     app.dependency_overrides[deps.get_trade_service] = lambda: MagicMock()
     app.dependency_overrides[deps.get_image_service] = lambda: MagicMock()
@@ -52,8 +53,8 @@ def _sample_report(**overrides) -> TradeReport:
     defaults = {
         "id": 1,
         "trade_id": "T001",
-        "setup_quality": 4,        # int (B grade) — domain stores ints
-        "execution_quality": 3,    # int (C grade) — domain stores ints
+        "setup_quality": 4,  # int (B grade) — domain stores ints
+        "execution_quality": 3,  # int (C grade) — domain stores ints
         "followed_plan": True,
         "emotional_state": "confident",
         "created_at": datetime(2025, 7, 15, 10, 30, 0),
@@ -74,14 +75,17 @@ class TestCreateReport:
         http, report_svc = client
         report_svc.create.return_value = _sample_report()
 
-        resp = http.post("/api/v1/trades/T001/report", json={
-            "setup_quality": "B",       # Letter grade per 04a spec
-            "execution_quality": "C",   # Letter grade per 04a spec
-            "followed_plan": True,
-            "emotional_state": "confident",
-            "lessons_learned": "Good timing",
-            "tags": ["spy"],
-        })
+        resp = http.post(
+            "/api/v1/trades/T001/report",
+            json={
+                "setup_quality": "B",  # Letter grade per 04a spec
+                "execution_quality": "C",  # Letter grade per 04a spec
+                "followed_plan": True,
+                "emotional_state": "confident",
+                "lessons_learned": "Good timing",
+                "tags": ["spy"],
+            },
+        )
 
         assert resp.status_code == 201
         data = resp.json()
@@ -93,12 +97,15 @@ class TestCreateReport:
         http, report_svc = client
         report_svc.create.side_effect = ValueError("Trade 'T999' not found")
 
-        resp = http.post("/api/v1/trades/T999/report", json={
-            "setup_quality": "C",
-            "execution_quality": "C",
-            "followed_plan": False,
-            "emotional_state": "neutral",
-        })
+        resp = http.post(
+            "/api/v1/trades/T999/report",
+            json={
+                "setup_quality": "C",
+                "execution_quality": "C",
+                "followed_plan": False,
+                "emotional_state": "neutral",
+            },
+        )
 
         assert resp.status_code == 404
         # Value: verify error detail
@@ -109,12 +116,15 @@ class TestCreateReport:
         http, report_svc = client
         report_svc.create.side_effect = ValueError("already exists")
 
-        resp = http.post("/api/v1/trades/T001/report", json={
-            "setup_quality": "C",
-            "execution_quality": "C",
-            "followed_plan": False,
-            "emotional_state": "neutral",
-        })
+        resp = http.post(
+            "/api/v1/trades/T001/report",
+            json={
+                "setup_quality": "C",
+                "execution_quality": "C",
+                "followed_plan": False,
+                "emotional_state": "neutral",
+            },
+        )
 
         assert resp.status_code == 409
         # Value: verify error detail
@@ -125,11 +135,14 @@ class TestCreateReport:
         """Reject invalid letter grade values."""
         http, report_svc = client
 
-        resp = http.post("/api/v1/trades/T001/report", json={
-            "setup_quality": "Z",  # Invalid grade
-            "execution_quality": "A",
-            "followed_plan": True,
-        })
+        resp = http.post(
+            "/api/v1/trades/T001/report",
+            json={
+                "setup_quality": "Z",  # Invalid grade
+                "execution_quality": "A",
+                "followed_plan": True,
+            },
+        )
 
         assert resp.status_code == 422  # Pydantic validation
         # Value: verify validation error shape
@@ -169,9 +182,12 @@ class TestUpdateReport:
         http, report_svc = client
         report_svc.update.return_value = _sample_report(setup_quality=5)
 
-        resp = http.put("/api/v1/trades/T001/report", json={
-            "setup_quality": "A",  # Letter grade
-        })
+        resp = http.put(
+            "/api/v1/trades/T001/report",
+            json={
+                "setup_quality": "A",  # Letter grade
+            },
+        )
         assert resp.status_code == 200
         assert resp.json()["setup_quality"] == "A"  # Int 5 → grade A
 
@@ -235,27 +251,35 @@ class TestReportRouteWiring:
         http = wired_client
 
         # Step 1: Create a trade so report creation can find it
-        trade_resp = http.post("/api/v1/trades", json={
-            "exec_id": "E_WIRING",
-            "time": "2025-07-15T10:30:00",
-            "instrument": "AAPL",
-            "action": "BOT",
-            "quantity": 100,
-            "price": 150.0,
-            "account_id": "ACC001",
-        })
+        trade_resp = http.post(
+            "/api/v1/trades",
+            json={
+                "exec_id": "E_WIRING",
+                "time": "2025-07-15T10:30:00",
+                "instrument": "AAPL",
+                "action": "BOT",
+                "quantity": 100,
+                "price": 150.0,
+                "account_id": "ACC001",
+            },
+        )
         assert trade_resp.status_code == 201, f"Trade create failed: {trade_resp.text}"
 
         # Step 2: Create a report for that trade
-        report_resp = http.post("/api/v1/trades/E_WIRING/report", json={
-            "setup_quality": "A",
-            "execution_quality": "B",
-            "followed_plan": True,
-            "emotional_state": "confident",
-            "lessons_learned": "Wiring test",
-            "tags": ["integration"],
-        })
-        assert report_resp.status_code == 201, f"Report create failed: {report_resp.text}"
+        report_resp = http.post(
+            "/api/v1/trades/E_WIRING/report",
+            json={
+                "setup_quality": "A",
+                "execution_quality": "B",
+                "followed_plan": True,
+                "emotional_state": "confident",
+                "lessons_learned": "Wiring test",
+                "tags": ["integration"],
+            },
+        )
+        assert report_resp.status_code == 201, (
+            f"Report create failed: {report_resp.text}"
+        )
         data = report_resp.json()
         assert data["id"] != 0, f"Expected nonzero ID, got {data['id']}"
         assert data["setup_quality"] == "A"

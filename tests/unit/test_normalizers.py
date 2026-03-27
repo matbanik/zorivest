@@ -7,7 +7,6 @@ Tests each normalizer function with realistic provider JSON fixtures.
 from __future__ import annotations
 
 
-
 import pytest
 
 from zorivest_core.application.market_dtos import (

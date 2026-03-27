@@ -78,7 +78,14 @@ def test_ac_s4_params_recipients_max_length():
     with pytest.raises(ValidationError):
         SendStep.Params(
             channel="email",
-            recipients=["a@x.com", "b@x.com", "c@x.com", "d@x.com", "e@x.com", "f@x.com"],
+            recipients=[
+                "a@x.com",
+                "b@x.com",
+                "c@x.com",
+                "d@x.com",
+                "e@x.com",
+                "f@x.com",
+            ],
         )
 
 
@@ -131,7 +138,9 @@ async def test_ac_s7_execute_dispatches_email():
     from zorivest_core.pipeline_steps.send_step import SendStep
 
     step = SendStep()
-    step._send_emails = AsyncMock(return_value={"sent": 1, "failed": 0, "deliveries": []})
+    step._send_emails = AsyncMock(
+        return_value={"sent": 1, "failed": 0, "deliveries": []}
+    )
 
     context = StepContext(run_id="run-1", policy_id="pol-1")
 
@@ -156,7 +165,9 @@ async def test_ac_s8_execute_dispatches_local_file():
     from zorivest_core.pipeline_steps.send_step import SendStep
 
     step = SendStep()
-    step._save_local = AsyncMock(return_value={"sent": 1, "failed": 0, "deliveries": []})
+    step._save_local = AsyncMock(
+        return_value={"sent": 1, "failed": 0, "deliveries": []}
+    )
 
     context = StepContext(run_id="run-1", policy_id="pol-1")
 

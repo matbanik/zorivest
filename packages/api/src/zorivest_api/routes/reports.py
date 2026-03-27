@@ -71,7 +71,8 @@ def _int_to_grade(value: int) -> str:
 
 
 @report_router.post(
-    "/{exec_id}/report", status_code=201,
+    "/{exec_id}/report",
+    status_code=201,
     dependencies=[Depends(require_unlocked_db)],
 )
 async def create_report(
@@ -135,7 +136,8 @@ async def update_report(
 
 
 @report_router.delete(
-    "/{exec_id}/report", status_code=204,
+    "/{exec_id}/report",
+    status_code=204,
     dependencies=[Depends(require_unlocked_db)],
 )
 async def delete_report(
@@ -155,13 +157,13 @@ async def delete_report(
 def _to_response(report: object) -> dict:
     """Convert TradeReport entity to response dict with letter grades."""
     return {
-        "id": report.id,               # type: ignore[attr-defined]
-        "trade_id": report.trade_id,     # type: ignore[attr-defined]
-        "setup_quality": _int_to_grade(report.setup_quality),   # type: ignore[attr-defined]
+        "id": report.id,  # type: ignore[attr-defined]
+        "trade_id": report.trade_id,  # type: ignore[attr-defined]
+        "setup_quality": _int_to_grade(report.setup_quality),  # type: ignore[attr-defined]
         "execution_quality": _int_to_grade(report.execution_quality),  # type: ignore[attr-defined]
-        "followed_plan": report.followed_plan,   # type: ignore[attr-defined]
+        "followed_plan": report.followed_plan,  # type: ignore[attr-defined]
         "emotional_state": report.emotional_state,  # type: ignore[attr-defined]
         "lessons_learned": report.lessons_learned,  # type: ignore[attr-defined]
-        "tags": report.tags,            # type: ignore[attr-defined]
+        "tags": report.tags,  # type: ignore[attr-defined]
         "created_at": report.created_at.isoformat() if report.created_at else "",  # type: ignore[attr-defined]
     }

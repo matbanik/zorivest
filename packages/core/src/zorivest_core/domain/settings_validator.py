@@ -142,9 +142,7 @@ class SettingsValidator:
 
         # Enum constraint
         if spec.allowed_values is not None and str_val not in spec.allowed_values:
-            errors.append(
-                f"'{str_val}' not in allowed values: {spec.allowed_values}"
-            )
+            errors.append(f"'{str_val}' not in allowed values: {spec.allowed_values}")
 
         # Numeric range
         if spec.value_type in ("int", "float"):
@@ -159,9 +157,7 @@ class SettingsValidator:
 
         # String length cap
         if len(str_val) > spec.max_length:
-            errors.append(
-                f"Value length {len(str_val)} exceeds max {spec.max_length}"
-            )
+            errors.append(f"Value length {len(str_val)} exceeds max {spec.max_length}")
 
         # Custom per-key validator
         if spec.validator is not None and not spec.validator(raw_value):

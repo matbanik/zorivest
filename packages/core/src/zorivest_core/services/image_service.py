@@ -32,9 +32,7 @@ class ImageService:
             if command.owner_type.value == "trade":
                 trade = self.uow.trades.get(command.owner_id)
                 if trade is None:
-                    raise NotFoundError(
-                        f"Trade not found: {command.owner_id}"
-                    )
+                    raise NotFoundError(f"Trade not found: {command.owner_id}")
 
             image = ImageAttachment(
                 id=0,  # assigned by repository

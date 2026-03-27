@@ -63,23 +63,29 @@ def locked_client():
 class TestLogIngestion:
     def test_log_ingest_returns_204(self, client: TestClient) -> None:
         """AC-1: POST /api/v1/logs returns 204."""
-        resp = client.post("/api/v1/logs", json={
-            "level": "info",
-            "component": "startup",
-            "message": "App started",
-        })
+        resp = client.post(
+            "/api/v1/logs",
+            json={
+                "level": "info",
+                "component": "startup",
+                "message": "App started",
+            },
+        )
         assert resp.status_code == 204
         # Value: verify 204 has no body (correct HTTP semantics)
         assert resp.content == b""
 
     def test_log_entry_schema(self, client: TestClient) -> None:
         """AC-2: LogEntry accepts {level, component, message, data}."""
-        resp = client.post("/api/v1/logs", json={
-            "level": "error",
-            "component": "renderer",
-            "message": "Failed to render",
-            "data": {"error_code": 42},
-        })
+        resp = client.post(
+            "/api/v1/logs",
+            json={
+                "level": "error",
+                "component": "renderer",
+                "message": "Failed to render",
+                "data": {"error_code": 42},
+            },
+        )
         assert resp.status_code == 204
         # Value: verify no body on structured log entry
         assert resp.content == b""
@@ -127,7 +133,9 @@ class TestMcpGuardStatus:
 class TestMcpGuardConfig:
     def test_config_update(self, client: TestClient) -> None:
         """AC-4: PUT config updates thresholds."""
-        resp = client.put("/api/v1/mcp-guard/config", json={"calls_per_minute_limit": 30})
+        resp = client.put(
+            "/api/v1/mcp-guard/config", json={"calls_per_minute_limit": 30}
+        )
         assert resp.status_code == 200
         data = resp.json()
         assert data["calls_per_minute_limit"] == 30
@@ -164,10 +172,13 @@ class TestMcpGuardCheck:
 
     def test_check_auto_locks_on_threshold(self, client: TestClient) -> None:
         """AC-7: Enable guard with limit=2, third call auto-locks."""
-        client.put("/api/v1/mcp-guard/config", json={
-            "is_enabled": True,
-            "calls_per_minute_limit": 2,
-        })
+        client.put(
+            "/api/v1/mcp-guard/config",
+            json={
+                "is_enabled": True,
+                "calls_per_minute_limit": 2,
+            },
+        )
         assert client.post("/api/v1/mcp-guard/check").json()["allowed"] is True
         assert client.post("/api/v1/mcp-guard/check").json()["allowed"] is True
         result = client.post("/api/v1/mcp-guard/check").json()
@@ -229,6 +240,7 @@ class TestGracefulShutdown:
         """AC-10: POST /service/graceful-shutdown returns 202 with admin.
         Mock _shutdown_process to prevent real SIGINT from killing pytest."""
         from unittest.mock import patch
+
         client, token = authed_client
         with patch("zorivest_api.routes.service._shutdown_process"):
             resp = client.post(
@@ -254,16 +266,19 @@ class TestSystemTags:
     def test_log_router_tag(self) -> None:
         """AC-12: Log router uses tag 'system'."""
         from zorivest_api.routes.logs import log_router
+
         assert "system" in (log_router.tags or [])
 
     def test_guard_router_tag(self) -> None:
         """AC-12: Guard router uses tag 'mcp-guard'."""
         from zorivest_api.routes.mcp_guard import guard_router
+
         assert "mcp-guard" in (guard_router.tags or [])
 
     def test_service_router_tag(self) -> None:
         """AC-12: Service router uses tag 'service'."""
         from zorivest_api.routes.service import service_router
+
         assert "service" in (service_router.tags or [])
 
 

@@ -34,7 +34,10 @@ class MetricCardSection(BaseModel):
     title: str = Field(..., min_length=1, max_length=128)
     query: str = Field(..., description="SQL query returning single value")
     label: str = Field(..., description="Display label for the metric")
-    format: str = Field(default="auto", description="Display format: 'currency', 'percent', 'number', 'auto'")
+    format: str = Field(
+        default="auto",
+        description="Display format: 'currency', 'percent', 'number', 'auto'",
+    )
 
 
 class ChartSection(BaseModel):

@@ -26,40 +26,44 @@ from cryptography.fernet import Fernet, InvalidToken
 
 # --- Configuration ---
 
-KDF_TIME_COST = 2         # Argon2id iterations
-KDF_MEMORY_COST = 19456   # 19 MiB — OWASP minimum
+KDF_TIME_COST = 2  # Argon2id iterations
+KDF_MEMORY_COST = 19456  # 19 MiB — OWASP minimum
 KDF_PARALLELISM = 1
-KDF_HASH_LEN = 32         # 256-bit key
-SALT_LEN = 16             # 128-bit salt
-DEK_LEN = 32              # 256-bit DEK for SQLCipher
+KDF_HASH_LEN = 32  # 256-bit key
+SALT_LEN = 16  # 128-bit salt
+DEK_LEN = 32  # 256-bit DEK for SQLCipher
 API_KEY_PREFIX = "zrv_sk_"
-API_KEY_RANDOM_LEN = 40   # Random part of API key
+API_KEY_RANDOM_LEN = 40  # Random part of API key
 
 
 @dataclass
 class WrappedKeyEntry:
     """A single wrapped DEK entry in the key vault."""
+
     key_id: str
-    key_type: str           # "passphrase" or "api_key"
-    kdf_salt: str           # hex-encoded salt
-    wrapped_dek: str        # Fernet token (base64)
+    key_type: str  # "passphrase" or "api_key"
+    kdf_salt: str  # hex-encoded salt
+    wrapped_dek: str  # Fernet token (base64)
     role: str = "read-write"
     scopes: list[str] = field(default_factory=lambda: ["mcp:read", "mcp:tools"])
-    key_hash: str = ""      # SHA-256 of API key (for lookup, not security)
+    key_hash: str = ""  # SHA-256 of API key (for lookup, not security)
     created_at: str = ""
 
 
 @dataclass
 class BootstrapConfig:
     """The bootstrap.json structure with key vault support."""
+
     db_path: str = "zorivest_poc.db"
-    kdf: dict = field(default_factory=lambda: {
-        "algorithm": "argon2id",
-        "time_cost": KDF_TIME_COST,
-        "memory_cost": KDF_MEMORY_COST,
-        "parallelism": KDF_PARALLELISM,
-        "hash_len": KDF_HASH_LEN,
-    })
+    kdf: dict = field(
+        default_factory=lambda: {
+            "algorithm": "argon2id",
+            "time_cost": KDF_TIME_COST,
+            "memory_cost": KDF_MEMORY_COST,
+            "parallelism": KDF_PARALLELISM,
+            "hash_len": KDF_HASH_LEN,
+        }
+    )
     wrapped_keys: list[dict] = field(default_factory=list)
 
 
@@ -94,9 +98,7 @@ class KeyVault:
     def _save(self, config: Optional[BootstrapConfig] = None) -> None:
         """Persist bootstrap config to disk."""
         config = config or self.config
-        self.bootstrap_path.write_text(
-            json.dumps(asdict(config), indent=2)
-        )
+        self.bootstrap_path.write_text(json.dumps(asdict(config), indent=2))
 
     # --- Core cryptographic operations ---
 
@@ -157,15 +159,16 @@ class KeyVault:
         self._save()
         return dek
 
-    def generate_api_key(self, dek: bytes, role: str = "read-write",
-                         scopes: Optional[list[str]] = None) -> str:
+    def generate_api_key(
+        self, dek: bytes, role: str = "read-write", scopes: Optional[list[str]] = None
+    ) -> str:
         """Generate a new API key and wrap the DEK with it.
 
         Returns the raw API key (shown once to user).
         The DEK must already be available (from a prior passphrase unlock).
         """
         # Generate random API key
-        random_part = ''.join(
+        random_part = "".join(
             secrets.choice(string.ascii_letters + string.digits)
             for _ in range(API_KEY_RANDOM_LEN)
         )
@@ -216,7 +219,7 @@ class KeyVault:
                     return self.unwrap_dek(entry["wrapped_dek"], kek)
                 except InvalidToken:
                     raise ValueError("Invalid API key")
-        raise ValueError(f"No matching API key entry found in key vault")
+        raise ValueError("No matching API key entry found in key vault")
 
     def revoke_api_key(self, key_id: str) -> bool:
         """Remove a wrapped key entry by key_id."""

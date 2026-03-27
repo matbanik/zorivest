@@ -12,7 +12,10 @@ from __future__ import annotations
 import pytest
 
 from zorivest_infra.database.models import Base
-from zorivest_infra.database.unit_of_work import SqlAlchemyUnitOfWork, create_engine_with_wal
+from zorivest_infra.database.unit_of_work import (
+    SqlAlchemyUnitOfWork,
+    create_engine_with_wal,
+)
 from zorivest_core.services.watchlist_service import WatchlistService
 
 
@@ -43,6 +46,7 @@ class TestCreate:
 
     def test_create_sets_timestamps(self, service: WatchlistService) -> None:
         from datetime import datetime
+
         wl = service.create("Test")
         assert wl.created_at is not None
         assert wl.updated_at is not None
@@ -145,7 +149,9 @@ class TestAddTicker:
         item = service.add_ticker(wl.id, "aapl")
         assert item.ticker == "AAPL"
 
-    def test_add_to_nonexistent_watchlist_raises(self, service: WatchlistService) -> None:
+    def test_add_to_nonexistent_watchlist_raises(
+        self, service: WatchlistService
+    ) -> None:
         with pytest.raises(ValueError, match="not found"):
             service.add_ticker(999, "SPY")
 
@@ -158,7 +164,9 @@ class TestRemoveTicker:
         items = service.get_items(wl.id)
         assert len(items) == 0
 
-    def test_remove_from_nonexistent_watchlist_raises(self, service: WatchlistService) -> None:
+    def test_remove_from_nonexistent_watchlist_raises(
+        self, service: WatchlistService
+    ) -> None:
         with pytest.raises(ValueError, match="not found"):
             service.remove_ticker(999, "SPY")
 
@@ -173,7 +181,9 @@ class TestGetItems:
         tickers = {i.ticker for i in items}
         assert tickers == {"AAPL", "MSFT"}
 
-    def test_get_items_nonexistent_watchlist_raises(self, service: WatchlistService) -> None:
+    def test_get_items_nonexistent_watchlist_raises(
+        self, service: WatchlistService
+    ) -> None:
         with pytest.raises(ValueError, match="not found"):
             service.get_items(999)
 
@@ -226,9 +236,12 @@ class TestCascadeDelete:
 
         # Prove the ORM cascade actually removed item rows from the DB
         from sqlalchemy import text
+
         with engine.connect() as conn:
             count = conn.execute(
                 text("SELECT COUNT(*) FROM watchlist_items WHERE watchlist_id = :wid"),
                 {"wid": wl_a.id},
             ).scalar()
-        assert count == 0, f"Expected 0 orphaned items after cascade delete, found {count}"
+        assert count == 0, (
+            f"Expected 0 orphaned items after cascade delete, found {count}"
+        )

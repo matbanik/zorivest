@@ -83,9 +83,7 @@ class IBKRFlexQueryAdapter:
             return ImportResult(
                 status=ImportStatus.FAILED,
                 broker=BrokerType.IBKR,
-                errors=[
-                    ImportErr(field="xml", message="Empty XML document")
-                ],
+                errors=[ImportErr(field="xml", message="Empty XML document")],
             )
         trade_elements = root.findall(".//Trade")
 
@@ -159,7 +157,9 @@ class IBKRFlexQueryAdapter:
         price = self._parse_decimal(attrib.get("tradePrice", "0"), "tradePrice")
 
         # Commission is reported as negative by IBKR, we store positive
-        raw_commission = self._parse_decimal(attrib.get("ibCommission", "0"), "ibCommission")
+        raw_commission = self._parse_decimal(
+            attrib.get("ibCommission", "0"), "ibCommission"
+        )
         commission = abs(raw_commission)
 
         # Side mapping
@@ -237,9 +237,11 @@ class IBKRFlexQueryAdapter:
                     # Convert strike: "00200000" → 200, "00200500" → 200.5
                     try:
                         strike_val = int(strike_raw) / 1000
-                        strike = (str(int(strike_val))
-                                  if strike_val == int(strike_val)
-                                  else str(strike_val))
+                        strike = (
+                            str(int(strike_val))
+                            if strike_val == int(strike_val)
+                            else str(strike_val)
+                        )
                     except ValueError:
                         strike = strike_raw
 
@@ -282,4 +284,6 @@ class IBKRFlexQueryAdapter:
         try:
             return Decimal(value)
         except InvalidOperation as exc:
-            raise ValueError(f"Cannot parse {field_name} as Decimal: {value!r}") from exc
+            raise ValueError(
+                f"Cannot parse {field_name} as Decimal: {value!r}"
+            ) from exc

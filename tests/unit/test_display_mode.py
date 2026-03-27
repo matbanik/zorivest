@@ -212,9 +212,7 @@ class TestTruthTable:
 
     def test_row4_all_hidden_percent_on(self) -> None:
         """$ hidden, % hidden, % mode on → '•••••• (••%)'."""
-        mode = DisplayMode(
-            hide_dollars=True, hide_percentages=True, percent_mode=True
-        )
+        mode = DisplayMode(hide_dollars=True, hide_percentages=True, percent_mode=True)
         result = format_dollar(
             Decimal("437903"), mode, total_portfolio=Decimal("518000")
         )
@@ -244,9 +242,7 @@ class TestDivisionByZero:
 
     def test_zero_total_portfolio(self) -> None:
         mode = DisplayMode(percent_mode=True)
-        result = format_dollar(
-            Decimal("437903"), mode, total_portfolio=Decimal("0")
-        )
+        result = format_dollar(Decimal("437903"), mode, total_portfolio=Decimal("0"))
         assert result == "$437,903 (N/A%)"
 
 
@@ -275,8 +271,8 @@ class TestModuleImports:
             "import decimal",
         )
         for line in import_lines:
-            assert any(
-                line.startswith(prefix) for prefix in allowed_prefixes
-            ), f"Unexpected import: {line}"
+            assert any(line.startswith(prefix) for prefix in allowed_prefixes), (
+                f"Unexpected import: {line}"
+            )
         # Value: verify at least 2 import lines were checked
         assert len(import_lines) >= 2, f"Only {len(import_lines)} import lines found"

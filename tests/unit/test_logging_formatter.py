@@ -6,8 +6,6 @@ import json
 import logging
 
 
-
-
 from zorivest_infra.logging.formatters import JsonFormatter
 
 
@@ -62,8 +60,14 @@ class TestJsonFormatter:
         output = self.formatter.format(record)
         parsed = json.loads(output)
         required_fields = {
-            "timestamp", "level", "logger", "thread",
-            "module", "funcName", "lineno", "message",
+            "timestamp",
+            "level",
+            "logger",
+            "thread",
+            "module",
+            "funcName",
+            "lineno",
+            "message",
         }
         assert required_fields.issubset(parsed.keys())
 
@@ -103,6 +107,7 @@ class TestJsonFormatter:
             raise ValueError("test error")
         except ValueError:
             import sys
+
             exc_info = sys.exc_info()
 
         record = _make_record(exc_info=exc_info)

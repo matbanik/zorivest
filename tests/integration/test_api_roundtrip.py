@@ -43,7 +43,9 @@ class TestHealthRoundTrip:
         assert isinstance(data["database"], dict), (
             f"health.database should be dict, got {type(data['database']).__name__}: {data['database']}"
         )
-        assert "unlocked" in data["database"], "health.database missing 'unlocked' field"
+        assert "unlocked" in data["database"], (
+            "health.database missing 'unlocked' field"
+        )
         assert isinstance(data["database"]["unlocked"], bool)
 
     def test_health_has_required_fields(self, client: TestClient) -> None:
@@ -64,7 +66,6 @@ class TestHealthRoundTrip:
 
 
 class TestVersionRoundTrip:
-
     def test_version_returns_200(self, client: TestClient) -> None:
         r = client.get("/api/v1/version/")
         assert r.status_code == 200
@@ -103,7 +104,9 @@ class TestTradeCrudRoundTrip:
         """The 'notes' field is on UpdateTradeRequest but not on Trade.
         The service layer filters it out. This test would have caught the crash."""
         client.post("/api/v1/trades", json=self.SAMPLE_TRADE)
-        r = client.put("/api/v1/trades/RT-001", json={"notes": "test", "commission": 2.0})
+        r = client.put(
+            "/api/v1/trades/RT-001", json={"notes": "test", "commission": 2.0}
+        )
         assert r.status_code == 200, (
             f"Update with notes field should not crash. Got {r.status_code}: {r.text}"
         )
@@ -132,7 +135,11 @@ class TestTradeCrudRoundTrip:
 
     def test_create_trade_with_notes_persists(self, client: TestClient) -> None:
         """Notes sent during create should be returned on subsequent GET."""
-        trade_with_notes = {**self.SAMPLE_TRADE, "exec_id": "RT-NOTES-1", "notes": "My trade journal entry"}
+        trade_with_notes = {
+            **self.SAMPLE_TRADE,
+            "exec_id": "RT-NOTES-1",
+            "notes": "My trade journal entry",
+        }
         r = client.post("/api/v1/trades", json=trade_with_notes)
         assert r.status_code == 201
         data = r.json()
@@ -158,7 +165,6 @@ class TestTradeCrudRoundTrip:
 
 
 class TestGuardRoundTrip:
-
     def test_guard_status_returns_200(self, client: TestClient) -> None:
         r = client.get("/api/v1/mcp-guard/status")
         assert r.status_code == 200

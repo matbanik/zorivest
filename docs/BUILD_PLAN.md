@@ -62,10 +62,10 @@ Domain → Infrastructure → Services → REST API → MCP Server → GUI → D
 | 3 — Service Layer | ✅ Completed | 2026-03-08 |
 | 4 — REST API | ✅ Completed | 2026-03-09 |
 | 5 — MCP Server | ✅ Completed | 2026-03-10 |
-| 6 — GUI | 🟡 In Progress | 2026-03-14 |
+| 6 — GUI | 🟡 In Progress (P0 complete, P2 items remain) | 2026-03-25 |
 | 7 — Distribution | ⚪ Not Started | — |
-| 8 — Market Data | 🟡 In Progress | 2026-03-11 |
-| 9 — Scheduling | 🟡 In Progress | 2026-03-15 |
+| 8 — Market Data | ✅ Completed | 2026-03-23 |
+| 9 — Scheduling | ✅ Completed (P2.5a integration done) | 2026-03-24 |
 | 10 — Service Daemon | ⚪ Not Started | — |
 
 ---
@@ -91,11 +91,12 @@ Domain → Infrastructure → Services → REST API → MCP Server → GUI → D
 | Icon | Meaning |
 |------|---------|
 | ⬜ | pending — not started |
+| ⏸ | deferred — dependencies met but intentionally postponed |
 | 🔵 | in_progress — Opus implementing |
 | 🟡 | ready_for_review — awaiting Codex validation |
 | 🔴 | changes_required — Codex found issues |
 | ✅ | approved — both agents satisfied |
-| 🚫 | blocked — escalated to human |
+| 🚫 | closed — won't fix (human decision, ADR documented) |
 
 ---
 
@@ -255,12 +256,12 @@ Domain → Infrastructure → Services → REST API → MCP Server → GUI → D
 | MEU-67 | `trade-plan-linking` | 32 | [03](build-plan/03-service-layer.md) | TradePlan ↔ Trade linking (plan → execution) | ✅ |
 | MEU-68 | `watchlist` | 33 | [03](build-plan/03-service-layer.md) | Watchlist entity + service | ✅ |
 | MEU-69 | `plan-watchlist-mcp` | 34 | [05d](build-plan/05d-mcp-trade-planning.md) | TradePlan + Watchlist MCP tools | ✅ |
-| MEU-70 | `gui-planning` | 35 | [06c](build-plan/06c-gui-planning.md) | Planning GUI (plan cards, watchlists) | ⬜ |
-| MEU-70a | `watchlist-visual-redesign` | 35.1 | [06i](build-plan/06i-gui-watchlist-visual.md) | Watchlist visual redesign (Level 1: dark palette, price columns, tabular figures, gain/loss arrows) + [PLAN-NOSIZE] full-stack `position_size`/`shares` field · Depends on: MEU-65, MEU-70 | ⏯ |
+| MEU-70 | `gui-planning` | 35 | [06c](build-plan/06c-gui-planning.md) | Planning GUI (plan cards, watchlists) | ✅ |
+| MEU-70a | `watchlist-visual-redesign` | 35.1 | [06i](build-plan/06i-gui-watchlist-visual.md) | Watchlist visual redesign (Level 1: dark palette, price columns, tabular figures, gain/loss arrows) + [PLAN-NOSIZE] full-stack `position_size`/`shares` field · Depends on: MEU-65 ✅, MEU-70 ✅ | ⬜ |
 | MEU-70b | `planning-ux-polish` | 35.2 | [06c §ux](build-plan/06c-gui-planning.md) | Trade Planner UX polish: segmented status buttons (no dropdown), conditional Link-to-Trade grayout, picker selection label feedback, editable `shares_planned` field · Frontend-only | ✅ |
-| MEU-71 | `account-entity-api` | 35a.0 | [06d](build-plan/06d-gui-accounts.md) | Account entity + service + REST API; migrate `TradePlan.account` + `Trade.account` from free-form string to FK; Alembic migration | ⏸ |
-| MEU-71a | `account-gui` | 35a.1 | [06d](build-plan/06d-gui-accounts.md) | Account Management GUI (list, add, edit, balance display); accounts dropdown in Trade Planner form | ⏸ |
-| MEU-71b | `calculator-account-integration` | 35a.2 | [06h](build-plan/06h-gui-calculator.md) | Position Calculator pulls account balance from selected account for risk % calculation · Depends on MEU-71 + MEU-71a | ⏸ |
+| MEU-71 | `account-entity-api` | 35a.0 | [06d](build-plan/06d-gui-accounts.md) | Account entity + service + REST API; FK constraints already exist at infra layer (no Alembic migration needed); balance history + portfolio total endpoints | ⏸ |
+| MEU-71a | `account-gui` | 35a.1 | [06d](build-plan/06d-gui-accounts.md) | Account Management GUI (list, add, edit, balance display); accounts dropdown in Trade Planner form · Depends on MEU-71 | ⏸ |
+| MEU-71b | `calculator-account-integration` | 35a.2 | [06h](build-plan/06h-gui-calculator.md) | Position Calculator pulls account balance from selected account for risk % calculation · Depends on MEU-71 | ⏸ |
 | MEU-72 | `gui-scheduling` | 35b | [06e](build-plan/06e-gui-scheduling.md) | Scheduling GUI | ⬜ |
 | MEU-73 | `gui-email-settings` | 35c | [06f §email](build-plan/06f-gui-settings.md) | Email Provider Settings GUI | ✅ |
 | MEU-74 | `gui-backup-restore` | 35d | [06f §backup](build-plan/06f-gui-settings.md) | Backup & Restore Settings GUI · **E2E Wave 3**: `backup-restore` tests (+2 = 16) | ⬜ |
@@ -494,18 +495,18 @@ Domain → Infrastructure → Services → REST API → MCP Server → GUI → D
 | P0 — Phase 2/2A | MEU-12 → MEU-21 | 10 | 10 |
 | P0 — Phase 3/4 | MEU-22 → MEU-30 | 9 | 9 |
 | P0 — Phase 5 | MEU-31 → MEU-42 | 12 | 12 |
-| P0 — Phase 6 | MEU-43 → MEU-51 | 10 | 7 |
+| P0 — Phase 6 | MEU-43 → MEU-51 | 10 | 10 |
 | P1 | MEU-52 → MEU-55 | 4 | 4 |
-| P1.5 — Phase 8 | MEU-56 → MEU-65 | 10 | 10 |
-| P2 | MEU-66 → MEU-76 | 12 | 4 |
+| P1.5 — Phase 8 | MEU-56 → MEU-65a | 11 | 11 |
+| P2 | MEU-66 → MEU-76 | 15 | 7 |
 | P2.5 — Phase 9 | MEU-77 → MEU-90 | 14 | 14 |
-| P2.5a — Integration | MEU-90a → MEU-90d | 4 | 3 |
+| P2.5a — Integration | MEU-90a → MEU-90d | 4 | 3 + 1 🚫 |
 | P2.6 — Phase 10 | MEU-91 → MEU-95 | 5 | 0 |
 | P2.75 — Expansion | MEU-96 → MEU-122 | 27 | 2 |
 | P3 — Tax | MEU-123 → MEU-156 | 34 | 0 |
 | Phase 7 | MEU-157 | 1 | 0 |
 | Research | MEU-158 → MEU-170 | 13 | 0 |
-| **Total** | | **179** | **88** |
+| **Total** | | **183** | **96 + 1 🚫** |
 
 ---
 

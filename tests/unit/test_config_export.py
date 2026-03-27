@@ -79,14 +79,14 @@ def service(small_registry: dict[str, SettingSpec]) -> ConfigExportService:
 class TestBuildExport:
     """Tests for build_export()."""
 
-    def test_export_has_required_keys(
-        self, service: ConfigExportService
-    ) -> None:
+    def test_export_has_required_keys(self, service: ConfigExportService) -> None:
         """AC-21.1: Export dict has config_version, app_version, created_at, settings."""
-        result = service.build_export(resolved_values={
-            "dialog.confirm_delete": True,
-            "ui.theme": "dark",
-        })
+        result = service.build_export(
+            resolved_values={
+                "dialog.confirm_delete": True,
+                "ui.theme": "dark",
+            }
+        )
 
         assert "config_version" in result
         assert "app_version" in result
@@ -98,12 +98,14 @@ class TestBuildExport:
         self, service: ConfigExportService
     ) -> None:
         """AC-21.1: Only exportable, non-sensitive keys appear in settings."""
-        result = service.build_export(resolved_values={
-            "dialog.confirm_delete": True,
-            "ui.theme": "dark",
-            "ui.activePage": "/trades",
-            "api.key": "sk-secret",
-        })
+        result = service.build_export(
+            resolved_values={
+                "dialog.confirm_delete": True,
+                "ui.theme": "dark",
+                "ui.activePage": "/trades",
+                "api.key": "sk-secret",
+            }
+        )
 
         exported_keys = set(result["settings"].keys())
         assert "dialog.confirm_delete" in exported_keys
@@ -118,23 +120,23 @@ class TestBuildExport:
         self, service: ConfigExportService
     ) -> None:
         """AC-21.2: SECRET settings never exported."""
-        result = service.build_export(resolved_values={
-            "api.key": "sk-secret-value",
-        })
+        result = service.build_export(
+            resolved_values={
+                "api.key": "sk-secret-value",
+            }
+        )
         assert "api.key" not in result["settings"]
 
-    def test_export_excludes_sensitive(
-        self, service: ConfigExportService
-    ) -> None:
+    def test_export_excludes_sensitive(self, service: ConfigExportService) -> None:
         """AC-21.2: SENSITIVE settings never exported."""
-        result = service.build_export(resolved_values={
-            "ui.activePage": "/trades",
-        })
+        result = service.build_export(
+            resolved_values={
+                "ui.activePage": "/trades",
+            }
+        )
         assert "ui.activePage" not in result["settings"]
 
-    def test_export_excludes_non_exportable(
-        self, service: ConfigExportService
-    ) -> None:
+    def test_export_excludes_non_exportable(self, service: ConfigExportService) -> None:
         """AC-21.3: exportable=False settings excluded even if non-sensitive."""
         # Create a spec that's non-sensitive but not exportable
         registry = {
@@ -170,12 +172,12 @@ class TestBuildExport:
 class TestValidateImport:
     """Tests for validate_import()."""
 
-    def test_accepted_keys(
-        self, service: ConfigExportService
-    ) -> None:
+    def test_accepted_keys(self, service: ConfigExportService) -> None:
         """AC-21.4: Portable keys in import data are accepted."""
         result = service.validate_import(
-            import_data={"settings": {"dialog.confirm_delete": True, "ui.theme": "light"}}
+            import_data={
+                "settings": {"dialog.confirm_delete": True, "ui.theme": "light"}
+            }
         )
         assert "dialog.confirm_delete" in result.accepted
         assert "ui.theme" in result.accepted
@@ -184,9 +186,7 @@ class TestValidateImport:
         assert len(result.rejected) == 0
         assert len(result.unknown) == 0
 
-    def test_rejected_keys(
-        self, service: ConfigExportService
-    ) -> None:
+    def test_rejected_keys(self, service: ConfigExportService) -> None:
         """AC-21.5: Non-portable keys are rejected."""
         result = service.validate_import(
             import_data={"settings": {"ui.activePage": "/", "api.key": "hack"}}
@@ -195,9 +195,7 @@ class TestValidateImport:
         assert "api.key" in result.rejected
         assert len(result.accepted) == 0
 
-    def test_unknown_keys(
-        self, service: ConfigExportService
-    ) -> None:
+    def test_unknown_keys(self, service: ConfigExportService) -> None:
         """AC-21.4: Keys not in registry are classified as unknown."""
         result = service.validate_import(
             import_data={"settings": {"nonexistent.setting": 42}}
@@ -206,16 +204,16 @@ class TestValidateImport:
         assert len(result.accepted) == 0
         assert len(result.rejected) == 0
 
-    def test_mixed_categories(
-        self, service: ConfigExportService
-    ) -> None:
+    def test_mixed_categories(self, service: ConfigExportService) -> None:
         """AC-21.4: Mix of accepted, rejected, unknown in one import."""
         result = service.validate_import(
-            import_data={"settings": {
-                "ui.theme": "light",          # accepted
-                "api.key": "secret",          # rejected
-                "unknown.key": "val",         # unknown
-            }}
+            import_data={
+                "settings": {
+                    "ui.theme": "light",  # accepted
+                    "api.key": "secret",  # rejected
+                    "unknown.key": "val",  # unknown
+                }
+            }
         )
         assert "ui.theme" in result.accepted
         assert "api.key" in result.rejected
@@ -225,14 +223,14 @@ class TestValidateImport:
         assert len(result.rejected) == 1
         assert len(result.unknown) == 1
 
-    def test_round_trip(
-        self, service: ConfigExportService
-    ) -> None:
+    def test_round_trip(self, service: ConfigExportService) -> None:
         """Round-trip: validate_import(build_export(...)) returns non-empty accepted."""
-        export = service.build_export(resolved_values={
-            "dialog.confirm_delete": True,
-            "ui.theme": "dark",
-        })
+        export = service.build_export(
+            resolved_values={
+                "dialog.confirm_delete": True,
+                "ui.theme": "dark",
+            }
+        )
         result = service.validate_import(import_data=export)
         assert len(result.accepted) >= 2
         assert "dialog.confirm_delete" in result.accepted
@@ -261,22 +259,20 @@ class TestPortableSymmetry:
         assert service._is_portable("ui.activePage") is False
         # Value: verify the spec exists but is sensitive
         from zorivest_core.domain.settings import Sensitivity
+
         spec = service._registry["ui.activePage"]
         assert spec.sensitivity == Sensitivity.SENSITIVE
 
-    def test_is_portable_false_for_secret(
-        self, service: ConfigExportService
-    ) -> None:
+    def test_is_portable_false_for_secret(self, service: ConfigExportService) -> None:
         """SECRET settings are not portable."""
         assert service._is_portable("api.key") is False
         # Value: verify the spec exists but is secret
         from zorivest_core.domain.settings import Sensitivity
+
         spec = service._registry["api.key"]
         assert spec.sensitivity == Sensitivity.SECRET
 
-    def test_is_portable_false_for_unknown(
-        self, service: ConfigExportService
-    ) -> None:
+    def test_is_portable_false_for_unknown(self, service: ConfigExportService) -> None:
         """Unknown keys are not portable."""
         assert service._is_portable("does.not.exist") is False
         # Value: verify the key is truly not in registry

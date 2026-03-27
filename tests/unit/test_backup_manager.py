@@ -141,7 +141,9 @@ class TestGFSConstants:
 class TestSnapshot:
     """SQLite Online Backup API snapshot."""
 
-    def test_create_snapshot(self, manager: BackupManager, sample_db: Path, backup_dir: Path) -> None:
+    def test_create_snapshot(
+        self, manager: BackupManager, sample_db: Path, backup_dir: Path
+    ) -> None:
         snap = manager._create_snapshot("settings", sample_db)
         assert snap.exists()
         assert snap.suffix == ".db"
@@ -193,7 +195,9 @@ class TestCreateBackup:
         assert result.status == BackupStatus.FAILED
         assert "No database files" in (result.error or "")
 
-    def test_snapshot_files_cleaned_up(self, manager: BackupManager, backup_dir: Path) -> None:
+    def test_snapshot_files_cleaned_up(
+        self, manager: BackupManager, backup_dir: Path
+    ) -> None:
         manager.create_backup()
         snapshots = list(backup_dir.glob("*.snapshot.db"))
         assert len(snapshots) == 0  # Cleaned up after packaging
@@ -284,29 +288,29 @@ class TestGFSRotation:
         # Create 20 stubs across 5 months with known timestamps
         timestamps = [
             # 5 recent (daily tier) — all in March 2026, week 10
-            base - timedelta(hours=1),     # [0] Mar 7 23:00
-            base - timedelta(hours=25),    # [1] Mar 6 23:00
-            base - timedelta(hours=49),    # [2] Mar 5 23:00
-            base - timedelta(hours=73),    # [3] Mar 4 23:00
-            base - timedelta(hours=97),    # [4] Mar 3 23:00
+            base - timedelta(hours=1),  # [0] Mar 7 23:00
+            base - timedelta(hours=25),  # [1] Mar 6 23:00
+            base - timedelta(hours=49),  # [2] Mar 5 23:00
+            base - timedelta(hours=73),  # [3] Mar 4 23:00
+            base - timedelta(hours=97),  # [4] Mar 3 23:00
             # 4 weekly tier — each in a different prior week
-            base - timedelta(days=8),      # [5] Feb 28 (week 9)
-            base - timedelta(days=15),     # [6] Feb 21 (week 8)
-            base - timedelta(days=22),     # [7] Feb 14 (week 7)
-            base - timedelta(days=29),     # [8] Feb 7 (week 6) — EXCLUDED (weekly limit=4)
+            base - timedelta(days=8),  # [5] Feb 28 (week 9)
+            base - timedelta(days=15),  # [6] Feb 21 (week 8)
+            base - timedelta(days=22),  # [7] Feb 14 (week 7)
+            base - timedelta(days=29),  # [8] Feb 7 (week 6) — EXCLUDED (weekly limit=4)
             # 3 monthly tier — each in a different prior month
-            base - timedelta(days=40),     # [9] Jan 27 — kept by monthly tier
-            base - timedelta(days=70),     # [10] Dec 28 — EXCLUDED (monthly limit=3)
-            base - timedelta(days=100),    # [11] Nov 28 — EXCLUDED (monthly limit=3)
+            base - timedelta(days=40),  # [9] Jan 27 — kept by monthly tier
+            base - timedelta(days=70),  # [10] Dec 28 — EXCLUDED (monthly limit=3)
+            base - timedelta(days=100),  # [11] Nov 28 — EXCLUDED (monthly limit=3)
             # 8 extras — duplicate week/month buckets, all removed
-            base - timedelta(days=9),      # [12] Feb 27 (same week 9 as [5])
-            base - timedelta(days=10),     # [13] Feb 26 (same week 9)
-            base - timedelta(days=16),     # [14] Feb 20 (same week 8 as [6])
-            base - timedelta(days=23),     # [15] Feb 13 (same week 7 as [7])
-            base - timedelta(days=41),     # [16] Jan 26 (same month as [9])
-            base - timedelta(days=71),     # [17] Dec 27 (same month as [10])
-            base - timedelta(days=101),    # [18] Nov 27 (same month as [11])
-            base - timedelta(days=130),    # [19] Oct 29 — beyond all tiers
+            base - timedelta(days=9),  # [12] Feb 27 (same week 9 as [5])
+            base - timedelta(days=10),  # [13] Feb 26 (same week 9)
+            base - timedelta(days=16),  # [14] Feb 20 (same week 8 as [6])
+            base - timedelta(days=23),  # [15] Feb 13 (same week 7 as [7])
+            base - timedelta(days=41),  # [16] Jan 26 (same month as [9])
+            base - timedelta(days=71),  # [17] Dec 27 (same month as [10])
+            base - timedelta(days=101),  # [18] Nov 27 (same month as [11])
+            base - timedelta(days=130),  # [19] Oct 29 — beyond all tiers
         ]
 
         stubs = []
@@ -333,17 +337,25 @@ class TestGFSRotation:
         assert stubs[5] in remaining, "Weekly stub [5] (W09) must be kept"
         assert stubs[6] in remaining, "Weekly stub [6] (W08) must be kept"
         assert stubs[7] in remaining, "Weekly stub [7] (W07) must be kept"
-        assert stubs[8] not in remaining, "Weekly stub [8] (W06) must be excluded — limit=4"
+        assert stubs[8] not in remaining, (
+            "Weekly stub [8] (W06) must be excluded — limit=4"
+        )
 
         # === MONTHLY TIER: 3 distinct months kept (Mar via [0], Feb via [5], Jan via [9]) ===
         # Stubs [10] (Dec) and [11] (Nov) must be excluded — monthly limit is 3
         assert stubs[9] in remaining, "Monthly stub [9] (Jan) must be kept"
-        assert stubs[10] not in remaining, "Monthly stub [10] (Dec) must be excluded — limit=3"
-        assert stubs[11] not in remaining, "Monthly stub [11] (Nov) must be excluded — limit=3"
+        assert stubs[10] not in remaining, (
+            "Monthly stub [10] (Dec) must be excluded — limit=3"
+        )
+        assert stubs[11] not in remaining, (
+            "Monthly stub [11] (Nov) must be excluded — limit=3"
+        )
 
         # === DUPLICATES: all same-bucket extras must be removed ===
         for i in range(12, 20):
-            assert stubs[i] not in remaining, f"Duplicate/beyond stub [{i}] must be removed"
+            assert stubs[i] not in remaining, (
+                f"Duplicate/beyond stub [{i}] must be removed"
+            )
 
         # === TOTAL: exactly 9 retained, 11 rotated ===
         expected_kept = {stubs[i] for i in [0, 1, 2, 3, 4, 5, 6, 7, 9]}
@@ -360,7 +372,9 @@ class TestGFSRotation:
 class TestBackupSecurity:
     """Security and integrity tests for backup."""
 
-    def test_wrong_password_fails_verification(self, sample_db: Path, backup_dir: Path) -> None:
+    def test_wrong_password_fails_verification(
+        self, sample_db: Path, backup_dir: Path
+    ) -> None:
         """Backup encrypted with one passphrase cannot be decrypted with another."""
         mgr = BackupManager(
             db_paths={"settings": sample_db},
@@ -378,6 +392,7 @@ class TestBackupSecurity:
             passphrase="wrong-passphrase",
         )
         import base64
+
         salt = base64.b64decode(result.manifest.kdf.salt_b64)
         wrong_key = wrong_mgr._derive_key(salt)
 
@@ -435,7 +450,9 @@ class TestBackupSecurity:
         assert result.manifest.kdf.memory_kib == 65536
         assert result.manifest.kdf.parallelism == 4
 
-    def test_verify_backup_checks_file_presence(self, backup_dir: Path, sample_db: Path) -> None:
+    def test_verify_backup_checks_file_presence(
+        self, backup_dir: Path, sample_db: Path
+    ) -> None:
         """Verification fails if a listed file is missing from the ZIP."""
         import base64
 
@@ -456,22 +473,27 @@ class TestBackupSecurity:
         key = mgr._derive_key(salt)
 
         from zorivest_infra.backup.backup_types import FileEntry
+
         tampered_manifest = BackupManifest(
             created_at=result.manifest.created_at,
             platform=result.manifest.platform,
             kdf=result.manifest.kdf,
-            files=result.manifest.files + [FileEntry(path="ghost.db", sha256="deadbeef", size_bytes=0)],
+            files=result.manifest.files
+            + [FileEntry(path="ghost.db", sha256="deadbeef", size_bytes=0)],
         )
 
         # Write a tampered ZIP with the bad manifest
         tampered_path = backup_dir / "tampered.zvbak"
         with pyzipper.AESZipFile(
-            str(tampered_path), "w",
+            str(tampered_path),
+            "w",
             compression=pyzipper.ZIP_DEFLATED,
             encryption=pyzipper.WZ_AES,
         ) as zf:
             zf.setpassword(key)
-            zf.writestr("manifest.json", json.dumps(tampered_manifest.to_dict(), indent=2))
+            zf.writestr(
+                "manifest.json", json.dumps(tampered_manifest.to_dict(), indent=2)
+            )
             # Copy real snapshot files but NOT ghost.db
             with pyzipper.AESZipFile(str(result.backup_path), "r") as orig:
                 orig.setpassword(key)

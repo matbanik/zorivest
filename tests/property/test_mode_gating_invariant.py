@@ -20,6 +20,7 @@ from zorivest_api.dependencies import require_unlocked_db, get_guard_service
 
 # ── Stub guard service ──────────────────────────────────────────────────
 
+
 class StubGuardService:
     """In-memory guard service for testing lock/unlock/check cycle."""
 

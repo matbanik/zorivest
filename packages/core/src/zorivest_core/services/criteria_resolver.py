@@ -116,9 +116,7 @@ class CriteriaResolver:
         as the first two columns of the first row.
         """
         if self._db_connection is None:
-            raise ValueError(
-                "db_connection required for db_query criteria resolution"
-            )
+            raise ValueError("db_connection required for db_query criteria resolution")
 
         sql = spec.get("sql", "")
         if not sql:

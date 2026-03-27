@@ -27,9 +27,13 @@ class TestAttachImage:
 
     def test_attach_image_success(self) -> None:
         trade = Trade(
-            exec_id="E001", time=datetime(2025, 1, 15),
-            instrument="AAPL", action=TradeAction.BOT,
-            quantity=100.0, price=150.0, account_id="ACC001",
+            exec_id="E001",
+            time=datetime(2025, 1, 15),
+            instrument="AAPL",
+            action=TradeAction.BOT,
+            quantity=100.0,
+            price=150.0,
+            account_id="ACC001",
         )
         uow = _make_uow()
         uow.trades.get.return_value = trade

@@ -21,6 +21,7 @@ auth_router = APIRouter(prefix="/api/v1/auth", tags=["auth"])
 
 # ── Schemas ─────────────────────────────────────────────────────────────
 
+
 class UnlockRequest(BaseModel):
     api_key: str
 
@@ -32,8 +33,11 @@ class KeyCreateRequest(BaseModel):
 
 # ── Routes ──────────────────────────────────────────────────────────────
 
+
 @auth_router.post("/unlock")
-async def unlock(body: UnlockRequest, request: Request, service=Depends(get_auth_service)):
+async def unlock(
+    body: UnlockRequest, request: Request, service=Depends(get_auth_service)
+):
     """Unlock database via envelope-encryption flow."""
     try:
         result = service.unlock(body.api_key)

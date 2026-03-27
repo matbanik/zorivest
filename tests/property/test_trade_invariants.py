@@ -24,6 +24,7 @@ from zorivest_infra.database.repositories import SqlAlchemyTradeRepository
 
 # ── Fixtures ────────────────────────────────────────────────────────────
 
+
 @pytest.fixture(scope="module")
 def engine():
     """In-memory SQLite engine for trade invariant tests."""

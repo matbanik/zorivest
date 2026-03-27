@@ -215,8 +215,16 @@ class TestTriggerConfig:
         assert t.misfire_grace_time == 3600
 
     def test_misfire_grace_range(self) -> None:
-        assert TriggerConfig(**_minimal_trigger(misfire_grace_time=60)).misfire_grace_time == 60
-        assert TriggerConfig(**_minimal_trigger(misfire_grace_time=86400)).misfire_grace_time == 86400
+        assert (
+            TriggerConfig(**_minimal_trigger(misfire_grace_time=60)).misfire_grace_time
+            == 60
+        )
+        assert (
+            TriggerConfig(
+                **_minimal_trigger(misfire_grace_time=86400)
+            ).misfire_grace_time
+            == 86400
+        )
 
     def test_misfire_grace_too_low(self) -> None:
         with pytest.raises(PydanticValidationError):

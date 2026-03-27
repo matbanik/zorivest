@@ -23,18 +23,18 @@ from .redaction import RedactionFilter
 
 # Feature registry: maps feature name → logger prefix
 FEATURES: dict[str, str] = {
-    "trades":      "zorivest.trades",
-    "accounts":    "zorivest.accounts",
-    "marketdata":  "zorivest.marketdata",
-    "tax":         "zorivest.tax",
-    "scheduler":   "zorivest.scheduler",
-    "db":          "zorivest.db",
-    "calculator":  "zorivest.calculator",
-    "images":      "zorivest.images",
-    "api":         "zorivest.api",
-    "frontend":    "zorivest.frontend",
-    "app":         "zorivest.app",
-    "uvicorn":     "uvicorn",
+    "trades": "zorivest.trades",
+    "accounts": "zorivest.accounts",
+    "marketdata": "zorivest.marketdata",
+    "tax": "zorivest.tax",
+    "scheduler": "zorivest.scheduler",
+    "db": "zorivest.db",
+    "calculator": "zorivest.calculator",
+    "images": "zorivest.images",
+    "api": "zorivest.api",
+    "frontend": "zorivest.frontend",
+    "app": "zorivest.app",
+    "uvicorn": "uvicorn",
 }
 
 DEFAULT_LOG_LEVEL = "INFO"
@@ -92,19 +92,15 @@ class LoggingManager:
         self._queue = queue.Queue(-1)  # Unbounded
 
         # Global rotation policy (applies to all feature files)
-        rotation_mb = int(settings.get(
-            "logging.rotation_mb", str(DEFAULT_ROTATION_MB)
-        ))
-        backup_count = int(settings.get(
-            "logging.backup_count", str(DEFAULT_BACKUP_COUNT)
-        ))
+        rotation_mb = int(settings.get("logging.rotation_mb", str(DEFAULT_ROTATION_MB)))
+        backup_count = int(
+            settings.get("logging.backup_count", str(DEFAULT_BACKUP_COUNT))
+        )
 
         # Create per-feature handlers
         handlers: list[logging.Handler] = []
         for feature, logger_prefix in FEATURES.items():
-            level_str = settings.get(
-                f"logging.{feature}.level", DEFAULT_LOG_LEVEL
-            )
+            level_str = settings.get(f"logging.{feature}.level", DEFAULT_LOG_LEVEL)
 
             handler = logging.handlers.RotatingFileHandler(
                 filename=self._log_dir / f"{feature}.jsonl",  # type: ignore[operator]
@@ -148,7 +144,7 @@ class LoggingManager:
 
         logging.getLogger("zorivest.app").info(
             "Full queue-based logging configured",
-            extra={"phase": "configured", "features": list(FEATURES.keys())}
+            extra={"phase": "configured", "features": list(FEATURES.keys())},
         )
 
     def update_feature_level(self, feature: str, level: str) -> None:

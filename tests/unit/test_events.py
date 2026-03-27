@@ -211,10 +211,21 @@ class TestEventsModuleImports:
         import zorivest_core.domain.events as mod
 
         public = {n for n in dir(mod) if not n.startswith("_")}
-        expected = {"DomainEvent", "TradeCreated", "BalanceUpdated",
-                    "ImageAttached", "PlanCreated",
-                    "dataclass", "field", "datetime", "Decimal", "uuid4",
-                    "ConvictionLevel", "ImageOwnerType", "TradeAction",
-                    "annotations"}
+        expected = {
+            "DomainEvent",
+            "TradeCreated",
+            "BalanceUpdated",
+            "ImageAttached",
+            "PlanCreated",
+            "dataclass",
+            "field",
+            "datetime",
+            "Decimal",
+            "uuid4",
+            "ConvictionLevel",
+            "ImageOwnerType",
+            "TradeAction",
+            "annotations",
+        }
         unexpected = public - expected
         assert not unexpected, f"Unexpected exports: {unexpected}"

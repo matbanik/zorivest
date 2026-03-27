@@ -50,9 +50,7 @@ class RefResolver:
                 try:
                     value = value[int(part)]
                 except (ValueError, IndexError):
-                    raise KeyError(
-                        f"Ref path '{ref_path}': invalid index '{part}'"
-                    )
+                    raise KeyError(f"Ref path '{ref_path}': invalid index '{part}'")
             else:
                 raise KeyError(
                     f"Ref path '{ref_path}': cannot traverse "

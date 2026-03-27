@@ -49,6 +49,7 @@ async def service_status(
     cpu_percent = 0.0
     try:
         import psutil
+
         process = psutil.Process(os.getpid())
         memory_mb = process.memory_info().rss / (1024 * 1024)
         cpu_percent = process.cpu_percent(interval=0.1)

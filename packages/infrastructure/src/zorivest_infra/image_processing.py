@@ -19,15 +19,15 @@ from PIL import Image
 
 # Supported formats: magic-byte prefix → MIME type
 _MAGIC_MAP: list[tuple[bytes, str]] = [
-    (b"\x89PNG\r\n\x1a\n", "image/png"),        # PNG
-    (b"\xff\xd8\xff", "image/jpeg"),             # JPEG
-    (b"GIF87a", "image/gif"),                    # GIF87a
-    (b"GIF89a", "image/gif"),                    # GIF89a
-    (b"RIFF", "image/webp"),                     # WebP (RIFF container)
+    (b"\x89PNG\r\n\x1a\n", "image/png"),  # PNG
+    (b"\xff\xd8\xff", "image/jpeg"),  # JPEG
+    (b"GIF87a", "image/gif"),  # GIF87a
+    (b"GIF89a", "image/gif"),  # GIF89a
+    (b"RIFF", "image/webp"),  # WebP (RIFF container)
 ]
 
 MAX_IMAGE_SIZE = 10 * 1024 * 1024  # 10 MB
-THUMBNAIL_MAX = 200                # px
+THUMBNAIL_MAX = 200  # px
 WEBP_QUALITY = 85
 THUMBNAIL_QUALITY = 80
 
@@ -48,9 +48,7 @@ def validate_image(data: bytes) -> tuple[str, int, int]:
         ValueError: If the image exceeds 10MB or has an unsupported format.
     """
     if len(data) > MAX_IMAGE_SIZE:
-        raise ValueError(
-            f"Image size {len(data)} bytes exceeds 10 MB limit"
-        )
+        raise ValueError(f"Image size {len(data)} bytes exceeds 10 MB limit")
 
     mime = _detect_mime(data)
     if mime is None:
@@ -87,8 +85,10 @@ def standardize_to_webp(data: bytes) -> bytes:
     img = Image.open(io.BytesIO(data))
 
     # Handle mode conversion
-    if img.mode == "RGBA" or (img.mode == "PA") or (
-        img.mode == "P" and "transparency" in img.info
+    if (
+        img.mode == "RGBA"
+        or (img.mode == "PA")
+        or (img.mode == "P" and "transparency" in img.info)
     ):
         img = img.convert("RGBA")
     elif img.mode not in ("RGB", "RGBA"):
@@ -134,6 +134,6 @@ def _detect_mime(data: bytes) -> str | None:
         MIME type string or None if unrecognized.
     """
     for magic, mime in _MAGIC_MAP:
-        if data[:len(magic)] == magic:
+        if data[: len(magic)] == magic:
             return mime
     return None

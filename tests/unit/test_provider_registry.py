@@ -24,27 +24,31 @@ from zorivest_infra.market_data.provider_registry import (
 
 # ── MEU-59 canonical API-key providers (spec §8.2c) ──
 
-EXPECTED_NAMES = sorted([
-    "Alpha Vantage",
-    "Polygon.io",
-    "Finnhub",
-    "Financial Modeling Prep",
-    "EODHD",
-    "Nasdaq Data Link",
-    "SEC API",
-    "API Ninjas",
-    "Benzinga",
-    "OpenFIGI",
-    "Alpaca",
-    "Tradier",
-])
+EXPECTED_NAMES = sorted(
+    [
+        "Alpha Vantage",
+        "Polygon.io",
+        "Finnhub",
+        "Financial Modeling Prep",
+        "EODHD",
+        "Nasdaq Data Link",
+        "SEC API",
+        "API Ninjas",
+        "Benzinga",
+        "OpenFIGI",
+        "Alpaca",
+        "Tradier",
+    ]
+)
 
 # ── MEU-65 free providers (GUI-layer, no API key required) ──
 
-FREE_PROVIDER_NAMES = sorted([
-    "TradingView",
-    "Yahoo Finance",
-])
+FREE_PROVIDER_NAMES = sorted(
+    [
+        "TradingView",
+        "Yahoo Finance",
+    ]
+)
 
 # ── Expected auth methods per API-key provider (spec §8.2c + §8.7) ──
 

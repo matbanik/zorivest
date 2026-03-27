@@ -173,7 +173,15 @@ class TestSQNInvariants:
     @settings(max_examples=200)
     def test_grade_is_valid_van_tharp(self, pnls: list[float]) -> None:
         """Grade is always one of the Van Tharp categories."""
-        valid_grades = {"Poor", "Average", "Good", "Excellent", "Superb", "Holy Grail", "Unicorn"}
+        valid_grades = {
+            "Poor",
+            "Average",
+            "Good",
+            "Excellent",
+            "Superb",
+            "Holy Grail",
+            "Unicorn",
+        }
         trades = [make_trade(p) for p in pnls]
         result = calculate_sqn(trades)
         assert result.grade in valid_grades
@@ -186,7 +194,10 @@ class TestSQNInvariants:
         result = calculate_sqn(trades)
         assert result.trade_count == len(pnls)
 
-    @given(pnl=st.integers(min_value=-10000, max_value=10000), n=st.integers(min_value=2, max_value=50))
+    @given(
+        pnl=st.integers(min_value=-10000, max_value=10000),
+        n=st.integers(min_value=2, max_value=50),
+    )
     @settings(max_examples=100)
     def test_identical_trades_zero_std(self, pnl: int, n: int) -> None:
         """All identical PnL → std_r=0 → SQN=0."""

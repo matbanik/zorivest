@@ -115,12 +115,15 @@ class TestUpdateFieldRoundTrips:
 
     def test_update_multiple_fields_at_once(self, client: TestClient) -> None:
         self._seed(client)
-        r = client.put("/api/v1/trades/SEAM-001", json={
-            "action": "SLD",
-            "quantity": 50,
-            "price": 510.00,
-            "notes": "closed half",
-        })
+        r = client.put(
+            "/api/v1/trades/SEAM-001",
+            json={
+                "action": "SLD",
+                "quantity": 50,
+                "price": 510.00,
+                "notes": "closed half",
+            },
+        )
         assert r.status_code == 200
         data = r.json()
         assert data["action"] == "SLD"
@@ -169,9 +172,7 @@ class TestResponseFormats:
         self._seed(client)
         r = client.delete("/api/v1/trades/SEAM-001")
         assert r.status_code == 204
-        assert r.content == b"", (
-            f"DELETE should return empty body, got: {r.content!r}"
-        )
+        assert r.content == b"", f"DELETE should return empty body, got: {r.content!r}"
 
     def test_list_returns_items_array(self, client: TestClient) -> None:
         self._seed(client)
@@ -214,8 +215,16 @@ class TestGuiApiFieldAlignment:
 
     # Fields the GUI Trade interface expects (from TradesTable.tsx)
     GUI_TRADE_FIELDS = {
-        "exec_id", "instrument", "action", "quantity", "price",
-        "account_id", "commission", "realized_pnl", "notes", "time",
+        "exec_id",
+        "instrument",
+        "action",
+        "quantity",
+        "price",
+        "account_id",
+        "commission",
+        "realized_pnl",
+        "notes",
+        "time",
     }
 
     # GUI expects image_count but it's computed, not from TradeResponse
@@ -236,8 +245,16 @@ class TestGuiApiFieldAlignment:
         create_fields = set(CreateTradeRequest.model_fields.keys())
         # GUI sends these on create
         gui_create_fields = {
-            "exec_id", "time", "instrument", "action", "quantity",
-            "price", "account_id", "commission", "realized_pnl", "notes",
+            "exec_id",
+            "time",
+            "instrument",
+            "action",
+            "quantity",
+            "price",
+            "account_id",
+            "commission",
+            "realized_pnl",
+            "notes",
         }
         missing = gui_create_fields - create_fields
         assert not missing, (

@@ -30,6 +30,9 @@ async def list_round_trips(
     - limit/offset: pagination
     """
     return service.list_round_trips(
-        account_id=account_id, status=status, ticker=ticker,
-        limit=limit, offset=offset,
+        account_id=account_id,
+        status=status,
+        ticker=ticker,
+        limit=limit,
+        offset=offset,
     )

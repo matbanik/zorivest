@@ -12,13 +12,32 @@ import traceback
 from datetime import datetime, timezone
 
 # Stdlib LogRecord attributes to exclude from extras
-_RESERVED_ATTRS = frozenset({
-    "name", "msg", "args", "created", "relativeCreated", "exc_info",
-    "exc_text", "stack_info", "lineno", "funcName", "pathname",
-    "filename", "module", "thread", "threadName", "process",
-    "processName", "levelname", "levelno", "msecs", "message",
-    "taskName",
-})
+_RESERVED_ATTRS = frozenset(
+    {
+        "name",
+        "msg",
+        "args",
+        "created",
+        "relativeCreated",
+        "exc_info",
+        "exc_text",
+        "stack_info",
+        "lineno",
+        "funcName",
+        "pathname",
+        "filename",
+        "module",
+        "thread",
+        "threadName",
+        "process",
+        "processName",
+        "levelname",
+        "levelno",
+        "msecs",
+        "message",
+        "taskName",
+    }
+)
 
 
 class JsonFormatter(logging.Formatter):

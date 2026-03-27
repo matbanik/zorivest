@@ -42,6 +42,7 @@ class TestAnalyticsRouterTag:
     def test_analytics_tag(self) -> None:
         """AC-1: Analytics router has tag 'analytics'."""
         from zorivest_api.routes.analytics import analytics_router
+
         assert "analytics" in (analytics_router.tags or [])
 
 
@@ -49,19 +50,24 @@ class TestAnalyticsRouterTag:
 
 
 class TestAnalyticsEndpoints:
-    @pytest.mark.parametrize("path,method", [
-        ("/api/v1/analytics/expectancy", "GET"),
-        ("/api/v1/analytics/drawdown", "GET"),
-        ("/api/v1/analytics/execution-quality", "GET"),
-        ("/api/v1/analytics/pfof-report?account_id=DU123", "GET"),
-        ("/api/v1/analytics/strategy-breakdown", "GET"),
-        ("/api/v1/analytics/sqn", "GET"),
-        ("/api/v1/analytics/cost-of-free", "GET"),
-        ("/api/v1/analytics/ai-review", "POST"),
-        ("/api/v1/analytics/excursion/test123", "POST"),
-        ("/api/v1/analytics/options-strategy", "POST"),
-    ])
-    def test_endpoint_returns_200(self, client: TestClient, path: str, method: str) -> None:
+    @pytest.mark.parametrize(
+        "path,method",
+        [
+            ("/api/v1/analytics/expectancy", "GET"),
+            ("/api/v1/analytics/drawdown", "GET"),
+            ("/api/v1/analytics/execution-quality", "GET"),
+            ("/api/v1/analytics/pfof-report?account_id=DU123", "GET"),
+            ("/api/v1/analytics/strategy-breakdown", "GET"),
+            ("/api/v1/analytics/sqn", "GET"),
+            ("/api/v1/analytics/cost-of-free", "GET"),
+            ("/api/v1/analytics/ai-review", "POST"),
+            ("/api/v1/analytics/excursion/test123", "POST"),
+            ("/api/v1/analytics/options-strategy", "POST"),
+        ],
+    )
+    def test_endpoint_returns_200(
+        self, client: TestClient, path: str, method: str
+    ) -> None:
         """AC-2: Each analytics endpoint returns 200 (not 404/405)."""
         if method == "GET":
             resp = client.get(path)
@@ -79,7 +85,9 @@ class TestAnalyticsEndpoints:
 class TestMistakesRoutes:
     def test_track_mistake_201(self, client: TestClient) -> None:
         """AC-3: POST /mistakes/ returns 201."""
-        resp = client.post("/api/v1/mistakes", json={"trade_id": "t1", "category": "fomo"})
+        resp = client.post(
+            "/api/v1/mistakes", json={"trade_id": "t1", "category": "fomo"}
+        )
         assert resp.status_code == 201
         # Value: verify response body is valid JSON
         data = resp.json()
@@ -111,13 +119,16 @@ class TestFeesRoute:
 class TestCalculatorRoute:
     def test_position_size_200(self, client: TestClient) -> None:
         """AC-5: POST /calculator/position-size returns 200 with result."""
-        resp = client.post("/api/v1/calculator/position-size", json={
-            "balance": 100000,
-            "risk_pct": 1.0,
-            "entry_price": 50.0,
-            "stop_loss": 48.0,
-            "target_price": 55.0,
-        })
+        resp = client.post(
+            "/api/v1/calculator/position-size",
+            json={
+                "balance": 100000,
+                "risk_pct": 1.0,
+                "entry_price": 50.0,
+                "stop_loss": 48.0,
+                "target_price": 55.0,
+            },
+        )
         assert resp.status_code == 200
         data = resp.json()
         assert data["shares"] > 0
@@ -131,14 +142,18 @@ class TestCalculatorDomain:
     def test_calculator_uses_real_domain(self, client: TestClient) -> None:
         """AC-6: Calculator result matches domain calculator output."""
         from zorivest_core.domain.calculator import calculate_position_size
+
         expected = calculate_position_size(100000, 1.0, 50.0, 48.0, 55.0)
-        resp = client.post("/api/v1/calculator/position-size", json={
-            "balance": 100000,
-            "risk_pct": 1.0,
-            "entry_price": 50.0,
-            "stop_loss": 48.0,
-            "target_price": 55.0,
-        })
+        resp = client.post(
+            "/api/v1/calculator/position-size",
+            json={
+                "balance": 100000,
+                "risk_pct": 1.0,
+                "entry_price": 50.0,
+                "stop_loss": 48.0,
+                "target_price": 55.0,
+            },
+        )
         data = resp.json()
         assert data["shares"] == expected.share_size
         assert data["reward_risk_ratio"] == expected.reward_risk_ratio
@@ -177,13 +192,16 @@ class TestModeGating:
 class TestCalculatorNoAuth:
     def test_calculator_no_unlock_needed(self, locked_client: TestClient) -> None:
         """AC-8: Calculator works without unlock (pure calculation)."""
-        resp = locked_client.post("/api/v1/calculator/position-size", json={
-            "balance": 50000,
-            "risk_pct": 2.0,
-            "entry_price": 100.0,
-            "stop_loss": 95.0,
-            "target_price": 110.0,
-        })
+        resp = locked_client.post(
+            "/api/v1/calculator/position-size",
+            json={
+                "balance": 50000,
+                "risk_pct": 2.0,
+                "entry_price": 100.0,
+                "stop_loss": 95.0,
+                "target_price": 110.0,
+            },
+        )
         assert resp.status_code == 200
         # Value: verify calculator returned computed fields
         data = resp.json()
@@ -236,13 +254,16 @@ class TestAnalyticsIntegration:
         """AC-10: Calculator works without any state setup."""
         app = create_app()
         with TestClient(app, raise_server_exceptions=False) as client:
-            resp = client.post("/api/v1/calculator/position-size", json={
-                "balance": 10000,
-                "risk_pct": 1.0,
-                "entry_price": 10.0,
-                "stop_loss": 9.0,
-                "target_price": 12.0,
-            })
+            resp = client.post(
+                "/api/v1/calculator/position-size",
+                json={
+                    "balance": 10000,
+                    "risk_pct": 1.0,
+                    "entry_price": 10.0,
+                    "stop_loss": 9.0,
+                    "target_price": 12.0,
+                },
+            )
             assert resp.status_code == 200
             # Value: verify calculator fields in response
             data = resp.json()

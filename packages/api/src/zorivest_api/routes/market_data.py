@@ -18,9 +18,7 @@ from zorivest_api.dependencies import (
 )
 from zorivest_core.services.market_data_service import MarketDataError
 
-market_data_router = APIRouter(
-    prefix="/api/v1/market-data", tags=["market-data"]
-)
+market_data_router = APIRouter(prefix="/api/v1/market-data", tags=["market-data"])
 
 
 # ── Request schemas ─────────────────────────────────────────────────────
@@ -39,9 +37,7 @@ class ProviderConfigRequest(BaseModel):
 # ── Quote & News endpoints ──────────────────────────────────────────────
 
 
-@market_data_router.get(
-    "/quote", dependencies=[Depends(require_unlocked_db)]
-)
+@market_data_router.get("/quote", dependencies=[Depends(require_unlocked_db)])
 async def get_quote(
     ticker: str = Query(..., description="Stock ticker symbol"),
     service: Any = Depends(get_market_data_service),
@@ -53,9 +49,7 @@ async def get_quote(
         raise HTTPException(503, detail=str(e))
 
 
-@market_data_router.get(
-    "/news", dependencies=[Depends(require_unlocked_db)]
-)
+@market_data_router.get("/news", dependencies=[Depends(require_unlocked_db)])
 async def get_news(
     ticker: Optional[str] = Query(None, description="Optional ticker filter"),
     count: int = Query(5, ge=1, le=50, description="Number of articles"),
@@ -68,9 +62,7 @@ async def get_news(
         raise HTTPException(503, detail=str(e))
 
 
-@market_data_router.get(
-    "/search", dependencies=[Depends(require_unlocked_db)]
-)
+@market_data_router.get("/search", dependencies=[Depends(require_unlocked_db)])
 async def search_ticker(
     query: str = Query(..., description="Search query for symbols"),
     service: Any = Depends(get_market_data_service),
@@ -82,9 +74,7 @@ async def search_ticker(
         raise HTTPException(503, detail=str(e))
 
 
-@market_data_router.get(
-    "/sec-filings", dependencies=[Depends(require_unlocked_db)]
-)
+@market_data_router.get("/sec-filings", dependencies=[Depends(require_unlocked_db)])
 async def get_sec_filings(
     ticker: str = Query(..., description="Stock ticker symbol"),
     service: Any = Depends(get_market_data_service),
@@ -99,9 +89,7 @@ async def get_sec_filings(
 # ── Provider management endpoints ───────────────────────────────────────
 
 
-@market_data_router.get(
-    "/providers", dependencies=[Depends(require_unlocked_db)]
-)
+@market_data_router.get("/providers", dependencies=[Depends(require_unlocked_db)])
 async def list_providers(
     service: Any = Depends(get_provider_connection_service),
 ) -> Any:

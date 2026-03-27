@@ -100,7 +100,9 @@ class TestTableCreation:
         for cls in model_classes:
             assert issubclass(cls, Base), f"{cls.__name__} must inherit from Base"
             # Value: verify each model has __tablename__
-            assert hasattr(cls, "__tablename__"), f"{cls.__name__} missing __tablename__"
+            assert hasattr(cls, "__tablename__"), (
+                f"{cls.__name__} missing __tablename__"
+            )
             assert isinstance(cls.__tablename__, str)
         assert len(model_classes) == 9
 
@@ -140,12 +142,20 @@ class TestPolicyModel:
     def test_policy_name_unique(self, session):
         now = datetime.now(timezone.utc)
         p1 = PolicyModel(
-            id=_uid(), name="dup-name", schema_version=1,
-            policy_json="{}", content_hash="a", created_at=now,
+            id=_uid(),
+            name="dup-name",
+            schema_version=1,
+            policy_json="{}",
+            content_hash="a",
+            created_at=now,
         )
         p2 = PolicyModel(
-            id=_uid(), name="dup-name", schema_version=1,
-            policy_json="{}", content_hash="b", created_at=now,
+            id=_uid(),
+            name="dup-name",
+            schema_version=1,
+            policy_json="{}",
+            content_hash="b",
+            created_at=now,
         )
         session.add(p1)
         session.commit()
@@ -163,8 +173,11 @@ class TestRelationships:
     def _create_policy(self, session) -> PolicyModel:
         pid = _uid()
         policy = PolicyModel(
-            id=pid, name=f"policy-{pid[:8]}", schema_version=1,
-            policy_json="{}", content_hash="hash",
+            id=pid,
+            name=f"policy-{pid[:8]}",
+            schema_version=1,
+            policy_json="{}",
+            content_hash="hash",
             created_at=datetime.now(timezone.utc),
         )
         session.add(policy)
@@ -174,8 +187,11 @@ class TestRelationships:
     def test_run_policy_relationship(self, session):
         policy = self._create_policy(session)
         run = PipelineRunModel(
-            id=_uid(), policy_id=policy.id, status="pending",
-            trigger_type="manual", content_hash="h1",
+            id=_uid(),
+            policy_id=policy.id,
+            status="pending",
+            trigger_type="manual",
+            content_hash="h1",
         )
         session.add(run)
         session.commit()
@@ -190,15 +206,21 @@ class TestRelationships:
     def test_step_run_relationship(self, session):
         policy = self._create_policy(session)
         run = PipelineRunModel(
-            id=_uid(), policy_id=policy.id, status="running",
-            trigger_type="scheduled", content_hash="h2",
+            id=_uid(),
+            policy_id=policy.id,
+            status="running",
+            trigger_type="scheduled",
+            content_hash="h2",
         )
         session.add(run)
         session.flush()
 
         step = PipelineStepModel(
-            id=_uid(), run_id=run.id, step_id="fetch_data",
-            step_type="fetch", status="pending",
+            id=_uid(),
+            run_id=run.id,
+            step_id="fetch_data",
+            step_type="fetch",
+            status="pending",
         )
         session.add(step)
         session.commit()
@@ -214,8 +236,11 @@ class TestRelationships:
     def test_run_fk_constraint(self, session):
         """FK to non-existent policy should fail."""
         run = PipelineRunModel(
-            id=_uid(), policy_id="nonexistent", status="pending",
-            trigger_type="manual", content_hash="h",
+            id=_uid(),
+            policy_id="nonexistent",
+            status="pending",
+            trigger_type="manual",
+            content_hash="h",
         )
         session.add(run)
         with pytest.raises(IntegrityError):
@@ -230,11 +255,16 @@ class TestPipelineStateModel:
 
     def _create_policy(self, session) -> str:
         pid = _uid()
-        session.add(PolicyModel(
-            id=pid, name=f"pol-{pid[:8]}", schema_version=1,
-            policy_json="{}", content_hash="h",
-            created_at=datetime.now(timezone.utc),
-        ))
+        session.add(
+            PolicyModel(
+                id=pid,
+                name=f"pol-{pid[:8]}",
+                schema_version=1,
+                policy_json="{}",
+                content_hash="h",
+                created_at=datetime.now(timezone.utc),
+            )
+        )
         session.flush()
         return pid
 
@@ -242,8 +272,11 @@ class TestPipelineStateModel:
         now = datetime.now(timezone.utc)
         pid = self._create_policy(session)
         common = dict(
-            policy_id=pid, provider_id="ibkr", data_type="quotes",
-            entity_key="AAPL", updated_at=now,
+            policy_id=pid,
+            provider_id="ibkr",
+            data_type="quotes",
+            entity_key="AAPL",
+            updated_at=now,
         )
         s1 = PipelineStateModel(id=_uid(), **common)
         s2 = PipelineStateModel(id=_uid(), **common)
@@ -262,12 +295,20 @@ class TestPipelineStateModel:
         now = datetime.now(timezone.utc)
         pid = self._create_policy(session)
         s1 = PipelineStateModel(
-            id=_uid(), policy_id=pid, provider_id="ibkr",
-            data_type="quotes", entity_key="AAPL", updated_at=now,
+            id=_uid(),
+            policy_id=pid,
+            provider_id="ibkr",
+            data_type="quotes",
+            entity_key="AAPL",
+            updated_at=now,
         )
         s2 = PipelineStateModel(
-            id=_uid(), policy_id=pid, provider_id="ibkr",
-            data_type="quotes", entity_key="MSFT", updated_at=now,
+            id=_uid(),
+            policy_id=pid,
+            provider_id="ibkr",
+            data_type="quotes",
+            entity_key="MSFT",
+            updated_at=now,
         )
         session.add_all([s1, s2])
         session.commit()  # Should not raise
@@ -290,8 +331,13 @@ class TestFetchCacheModel:
     def test_unique_constraint(self, session):
         now = datetime.now(timezone.utc)
         common = dict(
-            provider="ibkr", data_type="quotes", entity_key="AAPL",
-            payload_json="{}", content_hash="h", fetched_at=now, ttl_seconds=3600,
+            provider="ibkr",
+            data_type="quotes",
+            entity_key="AAPL",
+            payload_json="{}",
+            content_hash="h",
+            fetched_at=now,
+            ttl_seconds=3600,
         )
         c1 = FetchCacheModel(id=_uid(), **common)
         c2 = FetchCacheModel(id=_uid(), **common)
@@ -311,8 +357,10 @@ class TestAuditLogModel:
     def test_autoincrement_pk(self, session):
         now = datetime.now(timezone.utc)
         a1 = AuditLogModel(
-            actor="scheduler", action="pipeline.run",
-            resource_type="pipeline_run", resource_id=_uid(),
+            actor="scheduler",
+            action="pipeline.run",
+            resource_type="pipeline_run",
+            resource_id=_uid(),
             created_at=now,
         )
         session.add(a1)
@@ -329,7 +377,9 @@ class TestReportModels:
 
     def _create_report(self, session) -> ReportModel:
         report = ReportModel(
-            id=_uid(), name="Daily P&L", version=1,
+            id=_uid(),
+            name="Daily P&L",
+            version=1,
             spec_json='{"query": "SELECT ..."}',
             format="pdf",
             created_at=datetime.now(timezone.utc),
@@ -341,7 +391,9 @@ class TestReportModels:
     def test_report_version_relationship(self, session):
         report = self._create_report(session)
         version = ReportVersionModel(
-            id=_uid(), report_id=report.id, version=1,
+            id=_uid(),
+            report_id=report.id,
+            version=1,
             spec_json='{"old": true}',
             created_at=datetime.now(timezone.utc),
         )
@@ -356,9 +408,12 @@ class TestReportModels:
     def test_report_delivery_relationship(self, session):
         report = self._create_report(session)
         delivery = ReportDeliveryModel(
-            id=_uid(), report_id=report.id,
-            channel="email", recipient="user@example.com",
-            status="pending", dedup_key=_uid(),
+            id=_uid(),
+            report_id=report.id,
+            channel="email",
+            recipient="user@example.com",
+            status="pending",
+            dedup_key=_uid(),
         )
         session.add(delivery)
         session.commit()
@@ -373,12 +428,18 @@ class TestReportModels:
         report = self._create_report(session)
         dk = _uid()
         d1 = ReportDeliveryModel(
-            id=_uid(), report_id=report.id,
-            channel="email", recipient="a@b.com", dedup_key=dk,
+            id=_uid(),
+            report_id=report.id,
+            channel="email",
+            recipient="a@b.com",
+            dedup_key=dk,
         )
         d2 = ReportDeliveryModel(
-            id=_uid(), report_id=report.id,
-            channel="email", recipient="c@d.com", dedup_key=dk,
+            id=_uid(),
+            report_id=report.id,
+            channel="email",
+            recipient="c@d.com",
+            dedup_key=dk,
         )
         session.add(d1)
         session.commit()
@@ -394,12 +455,17 @@ class TestReportModels:
     def test_cascade_delete(self, session):
         report = self._create_report(session)
         version = ReportVersionModel(
-            id=_uid(), report_id=report.id, version=1,
-            spec_json="{}", created_at=datetime.now(timezone.utc),
+            id=_uid(),
+            report_id=report.id,
+            version=1,
+            spec_json="{}",
+            created_at=datetime.now(timezone.utc),
         )
         delivery = ReportDeliveryModel(
-            id=_uid(), report_id=report.id,
-            channel="local_file", recipient="/tmp/report.pdf",
+            id=_uid(),
+            report_id=report.id,
+            channel="local_file",
+            recipient="/tmp/report.pdf",
             dedup_key=_uid(),
         )
         session.add_all([version, delivery])
@@ -421,18 +487,22 @@ class TestReportVersioningTrigger:
 
     def test_report_versioning_trigger(self, session):
         report = ReportModel(
-            id=_uid(), name="Weekly Summary", version=1,
-            spec_json='{"v1": true}', snapshot_json='{"data": 1}',
-            snapshot_hash="hash1", format="html",
+            id=_uid(),
+            name="Weekly Summary",
+            version=1,
+            spec_json='{"v1": true}',
+            snapshot_json='{"data": 1}',
+            snapshot_hash="hash1",
+            format="html",
             created_at=datetime.now(timezone.utc),
         )
         session.add(report)
         session.commit()
 
         # Verify no versions yet
-        versions = session.query(ReportVersionModel).filter_by(
-            report_id=report.id
-        ).all()
+        versions = (
+            session.query(ReportVersionModel).filter_by(report_id=report.id).all()
+        )
         assert len(versions) == 0
 
         # Update the report → trigger should fire
@@ -443,9 +513,9 @@ class TestReportVersioningTrigger:
         session.commit()
 
         # Trigger should have inserted old version
-        versions = session.query(ReportVersionModel).filter_by(
-            report_id=report.id
-        ).all()
+        versions = (
+            session.query(ReportVersionModel).filter_by(report_id=report.id).all()
+        )
         assert len(versions) == 1
         v = versions[0]
         assert v.version == 1
@@ -463,8 +533,10 @@ class TestAuditAppendOnlyTriggers:
     def test_audit_no_update_trigger(self, session):
         now = datetime.now(timezone.utc)
         entry = AuditLogModel(
-            actor="test", action="policy.create",
-            resource_type="policy", resource_id=_uid(),
+            actor="test",
+            action="policy.create",
+            resource_type="policy",
+            resource_id=_uid(),
             created_at=now,
         )
         session.add(entry)
@@ -477,8 +549,10 @@ class TestAuditAppendOnlyTriggers:
     def test_audit_no_delete_trigger(self, session):
         now = datetime.now(timezone.utc)
         entry = AuditLogModel(
-            actor="test", action="pipeline.run",
-            resource_type="pipeline_run", resource_id=_uid(),
+            actor="test",
+            action="pipeline.run",
+            resource_type="pipeline_run",
+            resource_id=_uid(),
             created_at=now,
         )
         session.add(entry)

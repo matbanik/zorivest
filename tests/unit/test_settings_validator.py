@@ -112,7 +112,9 @@ class TestSecurityValidation:
         assert any("SQL injection" in e for e in result.errors)
 
     def test_script_injection_rejected(self) -> None:
-        result = self.validator.validate("ui.activePage", '<script>alert("xss")</script>')
+        result = self.validator.validate(
+            "ui.activePage", '<script>alert("xss")</script>'
+        )
         assert not result.valid
         assert len(result.errors) >= 1
         assert result.key == "ui.activePage"
@@ -144,11 +146,15 @@ class TestBulkValidation:
         self.validator = SettingsValidator(SETTINGS_REGISTRY)
 
     def test_bulk_all_valid(self) -> None:
-        errors = self.validator.validate_bulk({"ui.theme": "dark", "logging.rotation_mb": "10"})
+        errors = self.validator.validate_bulk(
+            {"ui.theme": "dark", "logging.rotation_mb": "10"}
+        )
         assert errors == {}
 
     def test_bulk_some_invalid(self) -> None:
-        errors = self.validator.validate_bulk({"ui.theme": "neon", "logging.rotation_mb": "10"})
+        errors = self.validator.validate_bulk(
+            {"ui.theme": "neon", "logging.rotation_mb": "10"}
+        )
         assert "ui.theme" in errors
         assert len(errors["ui.theme"]) >= 1
         assert "logging.rotation_mb" not in errors

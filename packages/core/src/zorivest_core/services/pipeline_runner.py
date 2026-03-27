@@ -107,8 +107,12 @@ class PipelineRunner:
 
         # Persist run record
         await self._create_run_record(
-            run_id, policy_id or policy.name,
-            trigger_type, dry_run, actor, content_hash,
+            run_id,
+            policy_id or policy.name,
+            trigger_type,
+            dry_run,
+            actor,
+            content_hash,
         )
 
         run_start = time.monotonic()
@@ -124,7 +128,8 @@ class PipelineRunner:
                         skipping = False
                     else:
                         prior_output = await self._load_prior_output(
-                            run_id, step_def.id,
+                            run_id,
+                            step_def.id,
                         )
                         if prior_output is not None:
                             context.outputs[step_def.id] = prior_output
@@ -135,9 +140,7 @@ class PipelineRunner:
                 if step_result.status == PipelineStatus.FAILED:
                     if step_def.on_error == StepErrorMode.FAIL_PIPELINE:
                         final_status = PipelineStatus.FAILED
-                        run_error = (
-                            f"Step '{step_def.id}' failed: {step_result.error}"
-                        )
+                        run_error = f"Step '{step_def.id}' failed: {step_result.error}"
                         run_log.error(
                             "pipeline_failed",
                             step=step_def.id,
@@ -221,9 +224,7 @@ class PipelineRunner:
                 "step_dry_run_skipped",
                 reason="side_effects=True in dry-run mode",
             )
-            result = StepResult(
-                status=PipelineStatus.SKIPPED, output={"dry_run": True}
-            )
+            result = StepResult(status=PipelineStatus.SKIPPED, output={"dry_run": True})
             await self._persist_step(run_id, step_def, result, attempt=0)
             return result
 
@@ -231,9 +232,7 @@ class PipelineRunner:
         resolved_params = self.ref_resolver.resolve(step_def.params, context)
 
         # 5. Execute with retry
-        last_result = StepResult(
-            status=PipelineStatus.FAILED, error="No attempts made"
-        )
+        last_result = StepResult(status=PipelineStatus.FAILED, error="No attempts made")
         max_attempts = (
             step_def.retry.max_attempts
             if step_def.on_error == StepErrorMode.RETRY_THEN_FAIL
@@ -244,13 +243,9 @@ class PipelineRunner:
             start = time.monotonic()
             try:
                 async with asyncio.timeout(step_def.timeout):
-                    last_result = await step_impl.execute(
-                        resolved_params, context
-                    )
+                    last_result = await step_impl.execute(resolved_params, context)
                     last_result.started_at = datetime.now(timezone.utc)
-                    last_result.duration_ms = int(
-                        (time.monotonic() - start) * 1000
-                    )
+                    last_result.duration_ms = int((time.monotonic() - start) * 1000)
                     last_result.completed_at = datetime.now(timezone.utc)
             except asyncio.TimeoutError:
                 last_result = StepResult(
@@ -277,7 +272,7 @@ class PipelineRunner:
             elif attempt < max_attempts:
                 import random
 
-                wait = step_def.retry.backoff_factor ** attempt
+                wait = step_def.retry.backoff_factor**attempt
                 if step_def.retry.jitter:
                     wait *= 0.5 + random.random()  # noqa: S311
                 log.warning(
@@ -353,13 +348,14 @@ class PipelineRunner:
         if self.uow is None:
             return
         self.uow.pipeline_runs.update_status(
-            run_id, status=status.value, error=error, duration_ms=duration_ms,
+            run_id,
+            status=status.value,
+            error=error,
+            duration_ms=duration_ms,
         )
         self.uow.commit()
 
-    async def _load_prior_output(
-        self, run_id: str, step_id: str
-    ) -> dict | None:
+    async def _load_prior_output(self, run_id: str, step_id: str) -> dict | None:
         """Load a prior successful step output for resume."""
         if self.uow is None:
             return None
@@ -426,9 +422,7 @@ class PipelineRunner:
                 last_step=last_step.step_id if last_step else None,
                 side_effects=has_side_effects,
             )
-            recovered.append(
-                {"run_id": run.id, "side_effects": has_side_effects}
-            )
+            recovered.append({"run_id": run.id, "side_effects": has_side_effects})
 
         if recovered:
             self.uow.commit()

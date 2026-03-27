@@ -27,6 +27,7 @@ pytestmark = pytest.mark.unit
 @pytest.fixture(autouse=True)
 def _register_test_step():
     """Register a dummy 'fetch' step type so validate_policy() passes."""
+
     class _DummyParams:
         @classmethod
         def model_json_schema(cls):
@@ -80,7 +81,9 @@ class FakePolicyStore:
             items = [p for p in items if p.get("enabled")]
         return items
 
-    async def update(self, policy_id: str, data: dict[str, Any]) -> dict[str, Any] | None:
+    async def update(
+        self, policy_id: str, data: dict[str, Any]
+    ) -> dict[str, Any] | None:
         if policy_id not in self._data:
             return None
         self._data[policy_id].update(data)
@@ -101,7 +104,9 @@ class FakeRunStore:
     async def get_by_id(self, run_id: str) -> dict[str, Any] | None:
         return next((r for r in self._data if r.get("run_id") == run_id), None)
 
-    async def list_for_policy(self, policy_id: str, limit: int = 20) -> list[dict[str, Any]]:
+    async def list_for_policy(
+        self, policy_id: str, limit: int = 20
+    ) -> list[dict[str, Any]]:
         return [r for r in self._data if r.get("policy_id") == policy_id][:limit]
 
     async def list_recent(self, limit: int = 20) -> list[dict[str, Any]]:
@@ -125,13 +130,19 @@ class FakeAuditLogger:
         self.entries: list[dict[str, Any]] = []
 
     async def log(
-        self, action: str, resource_type: str, resource_id: str,
+        self,
+        action: str,
+        resource_type: str,
+        resource_id: str,
         details: dict[str, Any] | None = None,
     ) -> None:
-        self.entries.append({
-            "action": action, "resource_type": resource_type,
-            "resource_id": resource_id,
-        })
+        self.entries.append(
+            {
+                "action": action,
+                "resource_type": resource_type,
+                "resource_id": resource_id,
+            }
+        )
 
 
 def _sample_policy_json(**overrides: Any) -> dict[str, Any]:
@@ -177,7 +188,9 @@ def _make_service(
     audit_logger = FakeAuditLogger()
     scheduler_service = MagicMock()
     scheduler_service.get_status.return_value = {
-        "running": True, "job_count": 0, "jobs": [],
+        "running": True,
+        "job_count": 0,
+        "jobs": [],
     }
     pipeline_runner = MagicMock()
     # Make the runner.run() return an awaitable with success result
@@ -321,12 +334,15 @@ class TestTriggerRun:
         await svc.approve_policy(pid)
         # Update the guardrails policy lookup to know about this
         # The PipelineGuardrails._policies needs the approval data
-        svc._guardrails._policies = FakePolicyLookup({
-            pid: FakeApprovalPolicy(
-                id=pid, approved=True,
-                approved_hash=store._data[pid]["content_hash"],
-            )
-        })
+        svc._guardrails._policies = FakePolicyLookup(
+            {
+                pid: FakeApprovalPolicy(
+                    id=pid,
+                    approved=True,
+                    approved_hash=store._data[pid]["content_hash"],
+                )
+            }
+        )
         run_result = await svc.trigger_run(pid)
         assert run_result.run is not None
         assert run_result.error is None
@@ -339,9 +355,9 @@ class TestTriggerRun:
         result = await svc.create_policy(_sample_policy_json())
         pid = result.policy["id"]
         # Policy is not approved — guardrails should block
-        svc._guardrails._policies = FakePolicyLookup({
-            pid: FakeApprovalPolicy(id=pid, approved=False)
-        })
+        svc._guardrails._policies = FakePolicyLookup(
+            {pid: FakeApprovalPolicy(id=pid, approved=False)}
+        )
         run_result = await svc.trigger_run(pid)
         assert run_result.error is not None
         assert "approval" in run_result.error.lower()
@@ -380,7 +396,8 @@ class TestPatchSchedule:
 
         # Patch with a different cron — changes content hash
         patched = await svc.patch_schedule(
-            policy_id=pid, cron_expression="30 12 * * *",
+            policy_id=pid,
+            cron_expression="30 12 * * *",
         )
         assert patched is not None
         assert patched["approved"] is False

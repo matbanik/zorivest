@@ -46,8 +46,18 @@ class TestFeaturesRegistry:
 
     def test_all_expected_features_present(self) -> None:
         expected = {
-            "trades", "accounts", "marketdata", "tax", "scheduler",
-            "db", "calculator", "images", "api", "frontend", "app", "uvicorn",
+            "trades",
+            "accounts",
+            "marketdata",
+            "tax",
+            "scheduler",
+            "db",
+            "calculator",
+            "images",
+            "api",
+            "frontend",
+            "app",
+            "uvicorn",
         }
         assert set(FEATURES.keys()) == expected
 
@@ -106,7 +116,9 @@ class TestGetLogDirectory:
 class TestBootstrap:
     """AC-5, AC-6: Bootstrap phase creates bootstrap.jsonl file."""
 
-    def test_creates_bootstrap_file(self, tmp_path: Path, monkeypatch: pytest.MonkeyPatch) -> None:
+    def test_creates_bootstrap_file(
+        self, tmp_path: Path, monkeypatch: pytest.MonkeyPatch
+    ) -> None:
         """AC-5: bootstrap() creates bootstrap.jsonl in log directory."""
         monkeypatch.setattr(
             "zorivest_infra.logging.config.get_log_directory", lambda: tmp_path
@@ -122,7 +134,9 @@ class TestBootstrap:
                 root.removeHandler(h)
                 h.close()
 
-    def test_bootstrap_log_written(self, tmp_path: Path, monkeypatch: pytest.MonkeyPatch) -> None:
+    def test_bootstrap_log_written(
+        self, tmp_path: Path, monkeypatch: pytest.MonkeyPatch
+    ) -> None:
         """AC-6: After bootstrap(), logging to zorivest.app writes to bootstrap.jsonl."""
         monkeypatch.setattr(
             "zorivest_infra.logging.config.get_log_directory", lambda: tmp_path
@@ -132,7 +146,10 @@ class TestBootstrap:
             manager.bootstrap()
             logging.getLogger("zorivest.app").info("test bootstrap message")
             content = (tmp_path / "bootstrap.jsonl").read_text()
-            assert "test bootstrap message" in content or "Bootstrap logging started" in content
+            assert (
+                "test bootstrap message" in content
+                or "Bootstrap logging started" in content
+            )
             # Value: verify the content is valid JSONL
             lines = [line for line in content.strip().split("\n") if line.strip()]
             assert len(lines) >= 1
@@ -154,7 +171,10 @@ class TestConfigureFromSettings:
     """Full queue-based logging configuration."""
 
     def _create_manager(
-        self, tmp_path: Path, monkeypatch: pytest.MonkeyPatch, settings: dict[str, str] | None = None
+        self,
+        tmp_path: Path,
+        monkeypatch: pytest.MonkeyPatch,
+        settings: dict[str, str] | None = None,
     ) -> LoggingManager:
         monkeypatch.setattr(
             "zorivest_infra.logging.config.get_log_directory", lambda: tmp_path
@@ -164,7 +184,9 @@ class TestConfigureFromSettings:
         manager.configure_from_settings(settings or {})
         return manager
 
-    def test_creates_feature_files(self, tmp_path: Path, monkeypatch: pytest.MonkeyPatch) -> None:
+    def test_creates_feature_files(
+        self, tmp_path: Path, monkeypatch: pytest.MonkeyPatch
+    ) -> None:
         """AC-7: configure_from_settings creates per-feature JSONL files when logged to."""
         manager = self._create_manager(tmp_path, monkeypatch)
         try:
@@ -183,7 +205,9 @@ class TestConfigureFromSettings:
                 root.removeHandler(h)
                 h.close()
 
-    def test_feature_routing(self, tmp_path: Path, monkeypatch: pytest.MonkeyPatch) -> None:
+    def test_feature_routing(
+        self, tmp_path: Path, monkeypatch: pytest.MonkeyPatch
+    ) -> None:
         """AC-8: zorivest.trades logs appear in trades.jsonl, not in other files."""
         manager = self._create_manager(tmp_path, monkeypatch)
         try:
@@ -208,7 +232,9 @@ class TestConfigureFromSettings:
                 root.removeHandler(h)
                 h.close()
 
-    def test_catchall_routing(self, tmp_path: Path, monkeypatch: pytest.MonkeyPatch) -> None:
+    def test_catchall_routing(
+        self, tmp_path: Path, monkeypatch: pytest.MonkeyPatch
+    ) -> None:
         """AC-9: some.random.logger logs appear in misc.jsonl."""
         manager = self._create_manager(tmp_path, monkeypatch)
         try:
@@ -226,10 +252,13 @@ class TestConfigureFromSettings:
                 root.removeHandler(h)
                 h.close()
 
-    def test_settings_level_respected(self, tmp_path: Path, monkeypatch: pytest.MonkeyPatch) -> None:
+    def test_settings_level_respected(
+        self, tmp_path: Path, monkeypatch: pytest.MonkeyPatch
+    ) -> None:
         """AC-13: Settings key logging.trades.level=WARNING is respected."""
         manager = self._create_manager(
-            tmp_path, monkeypatch,
+            tmp_path,
+            monkeypatch,
             settings={"logging.trades.level": "WARNING"},
         )
         try:
@@ -268,7 +297,9 @@ class TestConfigureFromSettings:
 class TestUpdateFeatureLevel:
     """AC-10: Runtime level change without restart."""
 
-    def test_update_gates_messages(self, tmp_path: Path, monkeypatch: pytest.MonkeyPatch) -> None:
+    def test_update_gates_messages(
+        self, tmp_path: Path, monkeypatch: pytest.MonkeyPatch
+    ) -> None:
         """AC-10: update_feature_level('trades', 'WARNING') gates INFO messages."""
         monkeypatch.setattr(
             "zorivest_infra.logging.config.get_log_directory", lambda: tmp_path
@@ -317,7 +348,9 @@ class TestUpdateFeatureLevel:
 class TestShutdown:
     """AC-11: Graceful shutdown."""
 
-    def test_shutdown_stops_listener(self, tmp_path: Path, monkeypatch: pytest.MonkeyPatch) -> None:
+    def test_shutdown_stops_listener(
+        self, tmp_path: Path, monkeypatch: pytest.MonkeyPatch
+    ) -> None:
         """AC-11: shutdown() stops the QueueListener cleanly."""
         monkeypatch.setattr(
             "zorivest_infra.logging.config.get_log_directory", lambda: tmp_path
@@ -347,7 +380,9 @@ class TestShutdown:
 class TestThreadSafety:
     """AC-12: Concurrent logging produces valid JSONL."""
 
-    def test_concurrent_logging(self, tmp_path: Path, monkeypatch: pytest.MonkeyPatch) -> None:
+    def test_concurrent_logging(
+        self, tmp_path: Path, monkeypatch: pytest.MonkeyPatch
+    ) -> None:
         """AC-12: 3 threads logging simultaneously produce valid JSONL."""
         monkeypatch.setattr(
             "zorivest_infra.logging.config.get_log_directory", lambda: tmp_path
@@ -357,6 +392,7 @@ class TestThreadSafety:
         manager.configure_from_settings({})
 
         try:
+
             def log_from_thread(feature_prefix: str, count: int) -> None:
                 logger = logging.getLogger(feature_prefix)
                 for i in range(count):

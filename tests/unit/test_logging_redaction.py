@@ -5,7 +5,6 @@ from __future__ import annotations
 import logging
 
 
-
 from zorivest_infra.logging.redaction import RedactionFilter
 
 
@@ -37,7 +36,9 @@ class TestRedactionRegexPatterns:
 
     def test_url_query_param_redaction(self) -> None:
         """AC-1: URL query param apikey=SECRET redacted to apikey=[REDACTED]."""
-        record = _make_record(msg="Fetching https://api.example.com?apikey=MY_SECRET_KEY&format=json")
+        record = _make_record(
+            msg="Fetching https://api.example.com?apikey=MY_SECRET_KEY&format=json"
+        )
         self.f.filter(record)
         assert "MY_SECRET_KEY" not in record.msg
         assert "apikey=[REDACTED]" in record.msg
@@ -45,7 +46,9 @@ class TestRedactionRegexPatterns:
 
     def test_bearer_token_redaction(self) -> None:
         """AC-2: Bearer token redacted."""
-        record = _make_record(msg="Authorization: Bearer eyJhbGciOiJIUzI1NiJ9.payload.sig")
+        record = _make_record(
+            msg="Authorization: Bearer eyJhbGciOiJIUzI1NiJ9.payload.sig"
+        )
         self.f.filter(record)
         assert "eyJ" not in record.msg
         assert "Bearer [REDACTED]" in record.msg
@@ -59,7 +62,9 @@ class TestRedactionRegexPatterns:
 
     def test_jwt_redaction(self) -> None:
         """AC-4: JWT eyJhbGci... redacted to [JWT_REDACTED]."""
-        record = _make_record(msg="Token: eyJhbGciOiJIUzI1NiJ9.eyJzdWIiOiJ0ZXN0In0.signature123")
+        record = _make_record(
+            msg="Token: eyJhbGciOiJIUzI1NiJ9.eyJzdWIiOiJ0ZXN0In0.signature123"
+        )
         self.f.filter(record)
         assert "eyJhbGci" not in record.msg
         assert "[JWT_REDACTED]" in record.msg
@@ -73,7 +78,9 @@ class TestRedactionRegexPatterns:
 
     def test_connection_string_redaction(self) -> None:
         """AC-6: Connection string credentials redacted."""
-        record = _make_record(msg="Connecting to postgresql://admin:s3cret@db.host:5432/mydb")
+        record = _make_record(
+            msg="Connecting to postgresql://admin:s3cret@db.host:5432/mydb"
+        )
         self.f.filter(record)
         assert "admin" not in record.msg
         assert "s3cret" not in record.msg

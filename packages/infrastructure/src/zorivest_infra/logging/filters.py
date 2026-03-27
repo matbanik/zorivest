@@ -33,7 +33,4 @@ class CatchallFilter(logging.Filter):
         self.known_prefixes = known_prefixes
 
     def filter(self, record: logging.LogRecord) -> bool:
-        return not any(
-            record.name.startswith(prefix)
-            for prefix in self.known_prefixes
-        )
+        return not any(record.name.startswith(prefix) for prefix in self.known_prefixes)

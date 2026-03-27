@@ -42,6 +42,7 @@ def client(mock_services):
 
     # Inject mock services via dependency overrides
     from zorivest_api import dependencies as deps
+
     app.dependency_overrides[deps.get_trade_service] = lambda: trade_svc
     app.dependency_overrides[deps.get_image_service] = lambda: image_svc
 
@@ -81,21 +82,25 @@ def _sample_image(image_id: int = 1) -> ImageAttachment:
 
 # ── Trade CRUD ──────────────────────────────────────────────────────────
 
+
 class TestCreateTrade:
     def test_create_trade_201(self, client) -> None:
         """AC-1: POST /trades creates trade and returns 201."""
         http, trade_svc, _ = client
         trade_svc.create_trade.return_value = _sample_trade()
 
-        resp = http.post("/api/v1/trades", json={
-            "exec_id": "E001",
-            "time": "2025-01-15T10:30:00",
-            "instrument": "AAPL",
-            "action": "BOT",
-            "quantity": 100.0,
-            "price": 150.50,
-            "account_id": "ACC001",
-        })
+        resp = http.post(
+            "/api/v1/trades",
+            json={
+                "exec_id": "E001",
+                "time": "2025-01-15T10:30:00",
+                "instrument": "AAPL",
+                "action": "BOT",
+                "quantity": 100.0,
+                "price": 150.50,
+                "account_id": "ACC001",
+            },
+        )
 
         assert resp.status_code == 201
         data = resp.json()
@@ -127,8 +132,9 @@ class TestListTrades:
         assert "items" in data
         trade_svc.list_trades.assert_called_once()
         call_kwargs = trade_svc.list_trades.call_args
-        assert call_kwargs.kwargs.get("account_id") == "ACC001" or \
-               (call_kwargs.args and "ACC001" in str(call_kwargs))
+        assert call_kwargs.kwargs.get("account_id") == "ACC001" or (
+            call_kwargs.args and "ACC001" in str(call_kwargs)
+        )
 
     def test_list_trades_with_sort(self, client) -> None:
         """AC-3: GET /trades supports sort param."""
@@ -201,6 +207,7 @@ class TestDeleteTrade:
 
 # ── Trade images ────────────────────────────────────────────────────────
 
+
 class TestTradeImages:
     def test_list_trade_images(self, client) -> None:
         """AC-8: GET /trades/{exec_id}/images returns image list."""
@@ -214,6 +221,7 @@ class TestTradeImages:
 
 
 # ── Global image routes ─────────────────────────────────────────────────
+
 
 class TestGlobalImages:
     def test_get_image_metadata(self, client) -> None:
@@ -246,10 +254,14 @@ class TestGlobalImages:
         assert resp.status_code == 200
         # Value: verify non-empty image body
         assert len(resp.content) > 0
-        assert resp.headers.get("content-type") in ("image/webp", "application/octet-stream")
+        assert resp.headers.get("content-type") in (
+            "image/webp",
+            "application/octet-stream",
+        )
 
 
 # ── Round-trips ─────────────────────────────────────────────────────────
+
 
 class TestRoundTrips:
     def test_list_round_trips(self, client) -> None:
@@ -283,6 +295,7 @@ class TestRoundTrips:
 
 
 # ── Image upload ────────────────────────────────────────────────────────
+
 
 class TestImageUpload:
     def test_upload_trade_image_201(self, client) -> None:

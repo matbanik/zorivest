@@ -337,9 +337,7 @@ class TestConfigureProvider:
     def test_dual_key_alpaca(self) -> None:
         async def _run() -> None:
             svc, uow, _ = _make_service()
-            await svc.configure_provider(
-                "Alpaca", api_key="key", api_secret="secret"
-            )
+            await svc.configure_provider("Alpaca", api_key="key", api_secret="secret")
             model = uow.market_provider_settings.get("Alpaca")
             assert model is not None
             assert model.encrypted_api_key == "ENC:key"
@@ -380,6 +378,7 @@ class TestConfigureProvider:
     def test_unknown_provider_raises(self) -> None:
         async def _run() -> None:
             import pytest as _pt
+
             svc, _, _ = _make_service()
             with _pt.raises(KeyError, match="Unknown"):
                 await svc.configure_provider("Unknown", api_key="k")
@@ -409,9 +408,7 @@ class TestAlphaVantageValidation:
         async def _run() -> None:
             uow = MockUoW()
             _configure_provider_in_uow(uow, "Alpha Vantage")
-            http = MockHttpClient(
-                MockResponse(200, _json={"Time Series (Daily)": {}})
-            )
+            http = MockHttpClient(MockResponse(200, _json={"Time Series (Daily)": {}}))
             svc, _, _ = _make_service(uow=uow, http=http)
             success, _ = await svc.test_connection("Alpha Vantage")
             assert success is True
@@ -525,9 +522,7 @@ class TestNasdaqValidation:
         async def _run() -> None:
             uow = MockUoW()
             _configure_provider_in_uow(uow, "Nasdaq Data Link")
-            http = MockHttpClient(
-                MockResponse(200, _json={"datatable": {"data": []}})
-            )
+            http = MockHttpClient(MockResponse(200, _json={"datatable": {"data": []}}))
             svc, _, _ = _make_service(uow=uow, http=http)
             success, _ = await svc.test_connection("Nasdaq Data Link")
             assert success is True
@@ -542,9 +537,7 @@ class TestSECValidation:
         async def _run() -> None:
             uow = MockUoW()
             _configure_provider_in_uow(uow, "SEC API")
-            http = MockHttpClient(
-                MockResponse(200, _json=[{"cik": "0001234"}])
-            )
+            http = MockHttpClient(MockResponse(200, _json=[{"cik": "0001234"}]))
             svc, _, _ = _make_service(uow=uow, http=http)
             success, _ = await svc.test_connection("SEC API")
             assert success is True
@@ -775,9 +768,7 @@ class TestRateLimiterIntegration:
             _configure_provider_in_uow(uow, "Finnhub")
             http = MockHttpClient(MockResponse(200, _json={"c": 150.0}))
             rl = MockRateLimiter()
-            svc, _, _ = _make_service(
-                uow=uow, http=http, rate_limiters={"Finnhub": rl}
-            )
+            svc, _, _ = _make_service(uow=uow, http=http, rate_limiters={"Finnhub": rl})
             await svc.test_connection("Finnhub")
             assert rl.call_count == 1
 

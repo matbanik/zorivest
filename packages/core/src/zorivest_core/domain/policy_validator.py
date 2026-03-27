@@ -32,7 +32,14 @@ class ValidationError:
 
 # SQL keywords that must never appear in report queries
 SQL_BLOCKLIST = {
-    "DROP", "DELETE", "UPDATE", "INSERT", "ALTER", "ATTACH", "PRAGMA", "CREATE"
+    "DROP",
+    "DELETE",
+    "UPDATE",
+    "INSERT",
+    "ALTER",
+    "ATTACH",
+    "PRAGMA",
+    "CREATE",
 }
 
 
@@ -169,7 +176,9 @@ def _check_refs(
             else:
                 _check_refs(value, step_id, seen_ids, errors)
         elif isinstance(value, list):
-            _check_refs_list(value, step_id, seen_ids, errors, f"steps[{step_id}].params.{key}")
+            _check_refs_list(
+                value, step_id, seen_ids, errors, f"steps[{step_id}].params.{key}"
+            )
 
 
 def _check_refs_list(
@@ -215,9 +224,7 @@ def _check_refs_list(
             _check_refs_list(item, step_id, seen_ids, errors, f"{path}[{_i}]")
 
 
-def _check_sql_blocklist(
-    doc: PolicyDocument, errors: list[ValidationError]
-) -> None:
+def _check_sql_blocklist(doc: PolicyDocument, errors: list[ValidationError]) -> None:
     """Recursively scan all string values in step params for SQL injection patterns.
 
     Note: This is defense-in-depth. The primary protection is SQLite's
@@ -227,9 +234,7 @@ def _check_sql_blocklist(
         _scan_value_for_sql(step.params, f"steps[{step.id}].params", errors)
 
 
-def _scan_value_for_sql(
-    value: Any, path: str, errors: list[ValidationError]
-) -> None:
+def _scan_value_for_sql(value: Any, path: str, errors: list[ValidationError]) -> None:
     """Recursively scan a value tree for blocked SQL keywords."""
     if isinstance(value, str):
         tokens = set(re.split(r"[^A-Za-z]+", value.upper()))

@@ -126,7 +126,9 @@ class ThinkorSwimCSVParser(CSVParserBase):
                 commission = Decimal("0")
 
             # Multiplier
-            multiplier = Decimal("100") if asset_class == AssetClass.OPTION else Decimal("1")
+            multiplier = (
+                Decimal("100") if asset_class == AssetClass.OPTION else Decimal("1")
+            )
 
             executions.append(
                 RawExecution(

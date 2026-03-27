@@ -251,9 +251,7 @@ class TestImportSurface:
             if isinstance(node, ast.Import):
                 for alias in node.names:
                     top = alias.name.split(".")[0]
-                    assert top in allowed_modules, (
-                        f"Forbidden import: {alias.name}"
-                    )
+                    assert top in allowed_modules, f"Forbidden import: {alias.name}"
                     import_count += 1
             elif isinstance(node, ast.ImportFrom):
                 if node.module is not None:

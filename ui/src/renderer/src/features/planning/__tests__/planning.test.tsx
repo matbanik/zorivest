@@ -411,7 +411,10 @@ describe('MEU-48: PositionCalculatorModal', () => {
 
     it('should compute shares correctly (AC-15)', () => {
         render(<PositionCalculatorModal isOpen={true} onClose={vi.fn()} />)
-        // Default: $100k, 1% risk = $1000 risk
+        // Explicitly set account size (no longer relies on hardcoded default)
+        fireEvent.change(screen.getByTestId('calc-account-select'), { target: { value: '' } })  // Manual
+        fireEvent.change(screen.getByTestId('calc-account-size'), { target: { value: '100000' } })
+        // $100k, 1% risk = $1000 risk
         // Entry 100, Stop 98 → risk/share = $2 → shares = floor(1000/2) = 500
         fireEvent.change(screen.getByTestId('calc-entry-price'), { target: { value: '100' } })
         fireEvent.change(screen.getByTestId('calc-stop-price'), { target: { value: '98' } })
@@ -430,6 +433,9 @@ describe('MEU-48: PositionCalculatorModal', () => {
 
     it('should show oversize warning when position > 100% (AC-15)', () => {
         render(<PositionCalculatorModal isOpen={true} onClose={vi.fn()} />)
+        // Explicitly set account size
+        fireEvent.change(screen.getByTestId('calc-account-select'), { target: { value: '' } })  // Manual
+        fireEvent.change(screen.getByTestId('calc-account-size'), { target: { value: '100000' } })
         // $100k account, 1% risk, entry=1000, stop=999 → risk/share=$1 → shares=1000 → position=$1M (1000%)
         fireEvent.change(screen.getByTestId('calc-entry-price'), { target: { value: '1000' } })
         fireEvent.change(screen.getByTestId('calc-stop-price'), { target: { value: '999' } })
@@ -515,6 +521,9 @@ describe('MEU-70 T1: C2 — Copy-to-clipboard on shares', () => {
         Object.assign(navigator, { clipboard: { writeText } })
 
         render(<PositionCalculatorModal isOpen={true} onClose={vi.fn()} />)
+        // Explicitly set account size
+        fireEvent.change(screen.getByTestId('calc-account-select'), { target: { value: '' } })  // Manual
+        fireEvent.change(screen.getByTestId('calc-account-size'), { target: { value: '100000' } })
         fireEvent.change(screen.getByTestId('calc-entry-price'), { target: { value: '100' } })
         fireEvent.change(screen.getByTestId('calc-stop-price'), { target: { value: '98' } })
         fireEvent.change(screen.getByTestId('calc-target-price'), { target: { value: '106' } })
@@ -945,5 +954,167 @@ describe('Recheck R1-R5: persistence and contract regressions', () => {
         expect(capturedDetail).not.toBeNull()
         expect(capturedDetail).toHaveProperty('ticker')
         expect(typeof (capturedDetail as unknown as Record<string, unknown>).ticker).toBe('string')
+    })
+})
+
+// ─── MEU-71b: Calculator Account Integration ──────────────────────────────
+
+describe('MEU-71b: Calculator Account Dropdown', () => {
+    const MOCK_ACCOUNTS_ENRICHED = [
+        {
+            account_id: 'ACC001',
+            name: 'Main Trading',
+            account_type: 'broker',
+            latest_balance: 50000.0,
+            latest_balance_date: '2025-03-15T00:00:00',
+        },
+        {
+            account_id: 'ACC002',
+            name: 'IRA',
+            account_type: 'retirement',
+            latest_balance: 25000.0,
+            latest_balance_date: '2025-03-10T00:00:00',
+        },
+    ]
+
+    beforeEach(() => {
+        vi.clearAllMocks()
+        mockApiFetch.mockImplementation((url: string) => {
+            if (url.includes('/api/v1/accounts')) return Promise.resolve(MOCK_ACCOUNTS_ENRICHED)
+            return Promise.resolve({})
+        })
+    })
+
+    it('AC-1: renders account dropdown with Manual, All Accounts, and individual accounts; defaults to All Accounts', async () => {
+        render(<PositionCalculatorModal isOpen={true} onClose={vi.fn()} />, { wrapper: createWrapper() })
+
+        await waitFor(() => {
+            const select = screen.getByTestId('calc-account-select') as HTMLSelectElement
+            expect(select).toBeInTheDocument()
+            // "Manual" + "All Accounts" + 2 individual accounts = 4 options
+            expect(select.options.length).toBe(4)
+            // Default should be "All Accounts" per 06h L80
+            expect(select.value).toBe('__ALL__')
+        })
+    })
+
+    it('AC-1b: calculator opens with portfolio total pre-filled in account size', async () => {
+        render(<PositionCalculatorModal isOpen={true} onClose={vi.fn()} />, { wrapper: createWrapper() })
+
+        await waitFor(() => {
+            const sizeInput = screen.getByTestId('calc-account-size') as HTMLInputElement
+            // 50000 + 25000 = 75000 (portfolio total from default All Accounts)
+            expect(parseFloat(sizeInput.value)).toBe(75000)
+        })
+    })
+
+    it('AC-2: selecting account auto-fills balance from latest_balance', async () => {
+        render(<PositionCalculatorModal isOpen={true} onClose={vi.fn()} />, { wrapper: createWrapper() })
+
+        // Wait for accounts to load (default __ALL__ fills portfolio total)
+        await waitFor(() => {
+            const sizeInput = screen.getByTestId('calc-account-size') as HTMLInputElement
+            expect(parseFloat(sizeInput.value)).toBe(75000)
+        })
+
+        fireEvent.change(screen.getByTestId('calc-account-select'), { target: { value: 'ACC001' } })
+
+        await waitFor(() => {
+            const sizeInput = screen.getByTestId('calc-account-size') as HTMLInputElement
+            expect(parseFloat(sizeInput.value)).toBe(50000)
+        })
+    })
+
+    it('AC-3: switching from individual account to All Accounts fills portfolio total', async () => {
+        render(<PositionCalculatorModal isOpen={true} onClose={vi.fn()} />, { wrapper: createWrapper() })
+
+        // Wait for accounts to load (default __ALL__ fills portfolio total)
+        await waitFor(() => {
+            const sizeInput = screen.getByTestId('calc-account-size') as HTMLInputElement
+            expect(parseFloat(sizeInput.value)).toBe(75000)
+        })
+
+        // First select individual account → balance changes to 50000
+        fireEvent.change(screen.getByTestId('calc-account-select'), { target: { value: 'ACC001' } })
+        await waitFor(() => {
+            expect((screen.getByTestId('calc-account-size') as HTMLInputElement).value).toBe('50000')
+        })
+
+        // Switch back to All Accounts → should restore portfolio total 75000
+        fireEvent.change(screen.getByTestId('calc-account-select'), { target: { value: '__ALL__' } })
+        await waitFor(() => {
+            const sizeInput = screen.getByTestId('calc-account-size') as HTMLInputElement
+            expect(parseFloat(sizeInput.value)).toBe(75000)
+        })
+    })
+
+    it('AC-3b: zero-total portfolio defaults to 0 account size', async () => {
+        // Override mock to return accounts with zero balances
+        mockApiFetch.mockImplementation((url: string) => {
+            if (url.includes('/api/v1/accounts')) {
+                return Promise.resolve([
+                    { account_id: 'ZERO1', name: 'Empty', account_type: 'broker', latest_balance: 0, latest_balance_date: null },
+                ])
+            }
+            return Promise.resolve({})
+        })
+
+        render(<PositionCalculatorModal isOpen={true} onClose={vi.fn()} />, { wrapper: createWrapper() })
+
+        // Default is __ALL__, portfolio total = 0, so account size should be 0
+        await waitFor(() => {
+            const sizeInput = screen.getByTestId('calc-account-size') as HTMLInputElement
+            expect(parseFloat(sizeInput.value)).toBe(0)
+        })
+
+        // Verify the selector shows All Accounts as default
+        const select = screen.getByTestId('calc-account-select') as HTMLSelectElement
+        expect(select.value).toBe('__ALL__')
+    })
+
+    it('AC-4: user can manually override balance after auto-fill', async () => {
+        render(<PositionCalculatorModal isOpen={true} onClose={vi.fn()} />, { wrapper: createWrapper() })
+
+        // Wait for accounts to load (default __ALL__ fills portfolio total)
+        await waitFor(() => {
+            const sizeInput = screen.getByTestId('calc-account-size') as HTMLInputElement
+            expect(parseFloat(sizeInput.value)).toBe(75000)
+        })
+
+        // Select account to auto-fill
+        fireEvent.change(screen.getByTestId('calc-account-select'), { target: { value: 'ACC001' } })
+
+        await waitFor(() => {
+            expect((screen.getByTestId('calc-account-size') as HTMLInputElement).value).toBe('50000')
+        })
+
+        // Manual override
+        fireEvent.change(screen.getByTestId('calc-account-size'), { target: { value: '60000' } })
+        expect((screen.getByTestId('calc-account-size') as HTMLInputElement).value).toBe('60000')
+    })
+
+    it('AC-5: changing account reverts balance to API value', async () => {
+        render(<PositionCalculatorModal isOpen={true} onClose={vi.fn()} />, { wrapper: createWrapper() })
+
+        // Wait for accounts to load (default __ALL__ fills portfolio total)
+        await waitFor(() => {
+            const sizeInput = screen.getByTestId('calc-account-size') as HTMLInputElement
+            expect(parseFloat(sizeInput.value)).toBe(75000)
+        })
+
+        // Select ACC001 → 50000
+        fireEvent.change(screen.getByTestId('calc-account-select'), { target: { value: 'ACC001' } })
+        await waitFor(() => {
+            expect((screen.getByTestId('calc-account-size') as HTMLInputElement).value).toBe('50000')
+        })
+
+        // Manual override to 60000
+        fireEvent.change(screen.getByTestId('calc-account-size'), { target: { value: '60000' } })
+
+        // Change to ACC002 → should revert to 25000 (not keep 60000)
+        fireEvent.change(screen.getByTestId('calc-account-select'), { target: { value: 'ACC002' } })
+        await waitFor(() => {
+            expect((screen.getByTestId('calc-account-size') as HTMLInputElement).value).toBe('25000')
+        })
     })
 })

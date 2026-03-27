@@ -29,7 +29,9 @@ def client() -> Generator[TestClient, None, None]:
 
 class TestCreateWatchlist:
     def test_create_201(self, client: TestClient) -> None:
-        resp = client.post(BASE + "/", json={"name": "Tech", "description": "Tech stocks"})
+        resp = client.post(
+            BASE + "/", json={"name": "Tech", "description": "Tech stocks"}
+        )
         assert resp.status_code == 201
         data = resp.json()
         assert data["name"] == "Tech"

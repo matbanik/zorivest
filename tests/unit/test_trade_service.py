@@ -108,14 +108,22 @@ class TestMatchRoundTrips:
     def test_match_round_trips(self) -> None:
         """AC-12.4: groups executions via list_for_account and saves to round_trips."""
         t1 = Trade(
-            exec_id="E001", time=datetime(2025, 1, 15),
-            instrument="AAPL", action=TradeAction.BOT,
-            quantity=100.0, price=150.0, account_id="ACC001",
+            exec_id="E001",
+            time=datetime(2025, 1, 15),
+            instrument="AAPL",
+            action=TradeAction.BOT,
+            quantity=100.0,
+            price=150.0,
+            account_id="ACC001",
         )
         t2 = Trade(
-            exec_id="E002", time=datetime(2025, 1, 16),
-            instrument="AAPL", action=TradeAction.SLD,
-            quantity=100.0, price=155.0, account_id="ACC001",
+            exec_id="E002",
+            time=datetime(2025, 1, 16),
+            instrument="AAPL",
+            action=TradeAction.SLD,
+            quantity=100.0,
+            price=155.0,
+            account_id="ACC001",
         )
         uow = _make_uow()
         uow.trades.list_for_account.return_value = [t1, t2]

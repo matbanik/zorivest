@@ -76,9 +76,13 @@ class TestServiceGet:
     def test_get_from_cache(self) -> None:
         uow = FakeUoW()
         cache = SettingsCache(ttl_seconds=300)
-        cache.populate({
-            "ui.theme": ResolvedSetting(key="ui.theme", value="dark", source="user", value_type="str")
-        })
+        cache.populate(
+            {
+                "ui.theme": ResolvedSetting(
+                    key="ui.theme", value="dark", source="user", value_type="str"
+                )
+            }
+        )
         service = SettingsService(uow=uow, cache=cache)
         result = service.get("ui.theme")
         assert result is not None
@@ -122,9 +126,13 @@ class TestServiceBulkUpsert:
     def test_upsert_invalidates_cache(self) -> None:
         uow = FakeUoW()
         cache = SettingsCache(ttl_seconds=300)
-        cache.populate({
-            "ui.theme": ResolvedSetting(key="ui.theme", value="dark", source="user", value_type="str")
-        })
+        cache.populate(
+            {
+                "ui.theme": ResolvedSetting(
+                    key="ui.theme", value="dark", source="user", value_type="str"
+                )
+            }
+        )
         service = SettingsService(uow=uow, cache=cache)
         service.bulk_upsert({"ui.theme": "light"})
         assert cache.get("ui.theme") is None  # Cache was invalidated
@@ -137,9 +145,13 @@ class TestServiceResetToDefault:
         uow = FakeUoW()
         uow.settings._data["ui.theme"] = FakeRow(key="ui.theme", value="light")
         cache = SettingsCache(ttl_seconds=300)
-        cache.populate({
-            "ui.theme": ResolvedSetting(key="ui.theme", value="light", source="user", value_type="str")
-        })
+        cache.populate(
+            {
+                "ui.theme": ResolvedSetting(
+                    key="ui.theme", value="light", source="user", value_type="str"
+                )
+            }
+        )
         service = SettingsService(uow=uow, cache=cache)
         service.reset_to_default("ui.theme")
         assert uow.settings.get("ui.theme") is None
@@ -154,7 +166,9 @@ class TestServiceGetAllResolved:
         uow = FakeUoW()
         cache = SettingsCache(ttl_seconds=300)
         data = {
-            "ui.theme": ResolvedSetting(key="ui.theme", value="dark", source="user", value_type="str"),
+            "ui.theme": ResolvedSetting(
+                key="ui.theme", value="dark", source="user", value_type="str"
+            ),
         }
         cache.populate(data)
         service = SettingsService(uow=uow, cache=cache)

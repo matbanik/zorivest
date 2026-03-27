@@ -31,7 +31,9 @@ TYPESCRIPT_DIRS = ("mcp-server/", "ui/")
 SCAN_DIRS = ("packages/", "src/", "tests/")
 
 PLACEHOLDER_PATTERN = r"TODO|FIXME|NotImplementedError"
-DEFERRAL_PATTERN = r"pass\s+#\s*placeholder|\.\.\.\s+#\s*placeholder|raise\s+NotImplementedError"
+DEFERRAL_PATTERN = (
+    r"pass\s+#\s*placeholder|\.\.\.\s+#\s*placeholder|raise\s+NotImplementedError"
+)
 
 HANDOFF_DIR = ".agent/context/handoffs/"
 HANDOFF_EVIDENCE_PATTERNS = [
@@ -205,7 +207,10 @@ def _scan_check(
         if not filtered:
             # All matches were excluded — pass
             return CheckResult(
-                name=name, passed=True, blocking=blocking, duration_s=duration,
+                name=name,
+                passed=True,
+                blocking=blocking,
+                duration_s=duration,
                 message=f"All matches excluded by '{exclude_comment}'",
             )
 
@@ -327,7 +332,6 @@ def run_quality_gate(
     """
     gate = GateResult()
     has_python = Path(PYTHON_PKG_DIR).exists()
-    has_ts = any(Path(d).exists() for d in TYPESCRIPT_DIRS)
     scan_dirs = [d for d in SCAN_DIRS if Path(d).exists()]
     scope_files = files if scope == "meu" and files else None
 
@@ -346,8 +350,7 @@ def run_quality_gate(
         check = _timed_check(
             "Python Type Check (pyright)",
             ["uv", "run", "pyright", target],
-            scope_files=[f for f in (scope_files or []) if f.endswith(".py")]
-            or None,
+            scope_files=[f for f in (scope_files or []) if f.endswith(".py")] or None,
         )
         gate.checks.append(check)
         if not json_output:
@@ -367,8 +370,7 @@ def run_quality_gate(
         check = _timed_check(
             "Python Lint (ruff)",
             ["uv", "run", "ruff", "check", PYTHON_PKG_DIR],
-            scope_files=[f for f in (scope_files or []) if f.endswith(".py")]
-            or None,
+            scope_files=[f for f in (scope_files or []) if f.endswith(".py")] or None,
         )
         gate.checks.append(check)
         if not json_output:
@@ -401,7 +403,9 @@ def run_quality_gate(
             print(_color("  [3/8] Python Unit Tests: SKIPPED", GRAY))
 
     # TypeScript type check — run per-directory from each TS project root
-    ts_dirs_with_tsconfig = [d for d in TYPESCRIPT_DIRS if (Path(d) / "tsconfig.json").exists()]
+    ts_dirs_with_tsconfig = [
+        d for d in TYPESCRIPT_DIRS if (Path(d) / "tsconfig.json").exists()
+    ]
     if ts_dirs_with_tsconfig:
         # Run tsc from within the TS project directory
         ts_cwd = ts_dirs_with_tsconfig[0]
@@ -459,9 +463,7 @@ def run_quality_gate(
             status = _color("PASS", GREEN) if check.passed else _color("FAIL", RED)
             print(f"  [5/8] {check.name}: {status} ({check.duration_s:.1f}s)")
     else:
-        gate.checks.append(
-            CheckResult("TypeScript Lint", True, True, 0, skipped=True)
-        )
+        gate.checks.append(CheckResult("TypeScript Lint", True, True, 0, skipped=True))
         if not json_output:
             print(_color("  [5/8] TypeScript Lint: SKIPPED", GRAY))
 
@@ -498,7 +500,9 @@ def run_quality_gate(
     # Anti-placeholder scan
     if scan_dirs:
         check = _scan_check(
-            "Anti-Placeholder Scan", PLACEHOLDER_PATTERN, scan_dirs,
+            "Anti-Placeholder Scan",
+            PLACEHOLDER_PATTERN,
+            scan_dirs,
             exclude_comment="# noqa: placeholder",
         )
         gate.checks.append(check)

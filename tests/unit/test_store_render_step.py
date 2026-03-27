@@ -66,7 +66,9 @@ def test_AC_SR3_report_spec_validates_sections():
         sections=[
             DataTableSection(title="Table", query="SELECT 1"),
             MetricCardSection(title="Metric", query="SELECT COUNT(*)", label="Total"),
-            ChartSection(title="Chart", chart_type="candlestick", query="SELECT * FROM prices"),
+            ChartSection(
+                title="Chart", chart_type="candlestick", query="SELECT * FROM prices"
+            ),
         ],
     )
 
@@ -223,7 +225,7 @@ def test_AC_SR11_render_candlestick_keys():
     if result["png_data_uri"]:  # Non-empty when kaleido is installed
         assert result["png_data_uri"].startswith("data:image/png;base64,")
         # Verify the base64 payload is non-trivial (> 100 chars for a real PNG)
-        payload = result["png_data_uri"][len("data:image/png;base64,"):]
+        payload = result["png_data_uri"][len("data:image/png;base64,") :]
         assert len(payload) > 100, f"PNG payload too small: {len(payload)} chars"
     # Value: verify HTML contains valid plotly content markers
     assert "plotly" in result["html"].lower() or "<div" in result["html"]
@@ -236,7 +238,10 @@ def test_AC_SR11_render_candlestick_keys():
 
 def test_AC_SR12_render_pdf_creates_directory(tmp_path):
     """render_pdf creates output directory if missing and produces a valid PDF."""
-    pytest.importorskip("playwright", reason="Playwright not installed — requires: pip install playwright && playwright install chromium")
+    pytest.importorskip(
+        "playwright",
+        reason="Playwright not installed — requires: pip install playwright && playwright install chromium",
+    )
     from zorivest_infra.rendering.pdf_renderer import render_pdf
 
     output_dir = tmp_path / "reports" / "nested"
@@ -321,7 +326,7 @@ def test_AC_SR15_report_repo_snapshot_fields():
         repo = ReportRepository(session)
         report_id = repo.create(
             name="Snapshot Test",
-            spec_json='{}',
+            spec_json="{}",
             snapshot_json='{"snapshot": true}',
             snapshot_hash="deadbeef",
         )
@@ -371,7 +376,9 @@ async def test_AC_SR16_store_report_step_execute_snapshot():
     assert all(c in "0123456789abcdef" for c in result.output["snapshot_hash"])
     # Verify hash is deterministic: empty snapshots
     expected_snapshots = {}
-    expected_json = json.dumps(expected_snapshots, sort_keys=True, separators=(",", ":"), default=str)
+    expected_json = json.dumps(
+        expected_snapshots, sort_keys=True, separators=(",", ":"), default=str
+    )
     expected_hash = hashlib.sha256(expected_json.encode()).hexdigest()
     assert result.output["snapshot_hash"] == expected_hash
     assert result.output["report_id"] == "rpt-1"
@@ -417,6 +424,7 @@ async def test_AC_SR16b_store_report_step_executes_sandboxed_sql():
     assert result.status.value == "success"
     # Parse snapshot_json to verify actual query results
     import json
+
     snapshots = json.loads(result.output["snapshot_json"])
     assert "positions" in snapshots
     rows = snapshots["positions"]["rows"]
@@ -466,7 +474,9 @@ async def test_AC_SR16c_store_report_persists_via_repository():
     # spec_json must be the authored spec, not snapshot
     spec_json_received = call_kwargs["spec_json"]
     parsed_spec = json.loads(spec_json_received)
-    assert parsed_spec == spec, f"spec_json should be the authored spec, got {parsed_spec}"
+    assert parsed_spec == spec, (
+        f"spec_json should be the authored spec, got {parsed_spec}"
+    )
     assert "snapshot_json" in call_kwargs
     assert "snapshot_hash" in call_kwargs
     # Verify spec_json != snapshot_json (they track different things)
@@ -569,7 +579,9 @@ async def test_AC_SR17c_render_step_html_only_no_pdf():
     assert result.output["html"] is not None
     assert result.output["pdf_path"] is None
     # Value: verify HTML has valid structure
-    assert "<!DOCTYPE html>" in result.output["html"] or "<html" in result.output["html"]
+    assert (
+        "<!DOCTYPE html>" in result.output["html"] or "<html" in result.output["html"]
+    )
 
 
 # ---------------------------------------------------------------------------
@@ -604,11 +616,13 @@ def test_AC_CR1_criteria_resolver_per_field_with_static():
     from zorivest_core.services.criteria_resolver import CriteriaResolver
 
     resolver = CriteriaResolver()
-    result = resolver.resolve({
-        "start_date": {"type": "relative", "expr": "-30d"},
-        "symbol": "AAPL",
-        "exchange": "NYSE",
-    })
+    result = resolver.resolve(
+        {
+            "start_date": {"type": "relative", "expr": "-30d"},
+            "symbol": "AAPL",
+            "exchange": "NYSE",
+        }
+    )
 
     # Static fields pass through unchanged
     assert result["symbol"] == "AAPL"

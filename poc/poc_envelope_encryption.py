@@ -19,7 +19,6 @@ Tests:
 12. Verify passphrase still works after revocation
 """
 
-import os
 import sys
 import tempfile
 from pathlib import Path
@@ -33,6 +32,7 @@ from key_vault import KeyVault
 
 # --- Helpers ---
 
+
 def open_db(db_path: str, dek: bytes) -> sqlcipher3.Connection:
     """Open a SQLCipher database with the given DEK."""
     conn = sqlcipher3.connect(db_path)
@@ -44,9 +44,9 @@ def open_db(db_path: str, dek: bytes) -> sqlcipher3.Connection:
 
 def print_header(msg: str) -> None:
     """Print a styled test header."""
-    print(f"\n{'='*60}")
+    print(f"\n{'=' * 60}")
     print(f"  {msg}")
-    print(f"{'='*60}")
+    print(f"{'=' * 60}")
 
 
 def print_pass(msg: str) -> None:
@@ -58,6 +58,7 @@ def print_fail(msg: str) -> None:
 
 
 # --- Main PoC ---
+
 
 def main():
     # Use a temp directory so we don't pollute the project
@@ -93,12 +94,12 @@ def main():
         conn.execute(
             "INSERT INTO trades (exec_id, instrument, action, quantity, price) "
             "VALUES (?, ?, ?, ?, ?)",
-            ("T001", "AAPL", "BOT", 100, 189.50)
+            ("T001", "AAPL", "BOT", 100, 189.50),
         )
         conn.execute(
             "INSERT INTO trades (exec_id, instrument, action, quantity, price) "
             "VALUES (?, ?, ?, ?, ?)",
-            ("T002", "MSFT", "SLD", 50, 415.25)
+            ("T002", "MSFT", "SLD", 50, 415.25),
         )
         conn.commit()
 
@@ -120,7 +121,9 @@ def main():
         assert len(rows) == 2
         assert rows[0][1] == "T001"
         assert rows[1][1] == "T002"
-        print_pass(f"Read {len(rows)} trades: {rows[0][2]} ({rows[0][3]}), {rows[1][2]} ({rows[1][3]})")
+        print_pass(
+            f"Read {len(rows)} trades: {rows[0][2]} ({rows[0][3]}), {rows[1][2]} ({rows[1][3]})"
+        )
         results.append(("2. Passphrase READ", True))
         conn.close()
 
@@ -143,9 +146,12 @@ def main():
 
         # Verify bootstrap.json now has 2 entries
         import json
+
         bootstrap = json.loads(bootstrap_path.read_text())
         assert len(bootstrap["wrapped_keys"]) == 2
-        print_pass(f"bootstrap.json has {len(bootstrap['wrapped_keys'])} wrapped key entries")
+        print_pass(
+            f"bootstrap.json has {len(bootstrap['wrapped_keys'])} wrapped key entries"
+        )
 
         # ─────────────────────────────────────────────────────────
         # TEST 4: READ using API key (independent of passphrase!)
@@ -172,10 +178,7 @@ def main():
 
         dek_api = vault2.unlock_with_api_key(api_key)
         conn = open_db(db_path, dek_api)
-        conn.execute(
-            "UPDATE trades SET price = ? WHERE exec_id = ?",
-            (195.00, "T001")
-        )
+        conn.execute("UPDATE trades SET price = ? WHERE exec_id = ?", (195.00, "T001"))
         conn.commit()
         row = conn.execute("SELECT price FROM trades WHERE exec_id = 'T001'").fetchone()
         assert row[0] == 195.00, f"Expected 195.00, got {row[0]}"
@@ -219,7 +222,9 @@ def main():
         conn = open_db(db_path, dek_api2)
         count = conn.execute("SELECT count(*) FROM trades").fetchone()[0]
         assert count == 1
-        remaining = conn.execute("SELECT exec_id, instrument, price FROM trades").fetchone()
+        remaining = conn.execute(
+            "SELECT exec_id, instrument, price FROM trades"
+        ).fetchone()
         print_pass(f"API key confirms 1 trade remaining: {remaining}")
         results.append(("8. Cross-credential DELETE visibility", True))
         conn.close()
@@ -233,7 +238,7 @@ def main():
         conn.execute(
             "INSERT INTO trades (exec_id, instrument, action, quantity, price) "
             "VALUES (?, ?, ?, ?, ?)",
-            ("T003", "GOOG", "BOT", 25, 178.30)
+            ("T003", "GOOG", "BOT", 25, 178.30),
         )
         conn.commit()
         count = conn.execute("SELECT count(*) FROM trades").fetchone()[0]
@@ -249,7 +254,9 @@ def main():
 
         vault5 = KeyVault(bootstrap_path)
         # Find the API key entry
-        api_entry = [e for e in vault5.config.wrapped_keys if e["key_type"] == "api_key"][0]
+        api_entry = [
+            e for e in vault5.config.wrapped_keys if e["key_type"] == "api_key"
+        ][0]
         revoked = vault5.revoke_api_key(api_entry["key_id"])
         assert revoked, "Revocation failed"
         print_pass(f"Revoked key: {api_entry['key_id']}")
@@ -271,7 +278,9 @@ def main():
         conn = open_db(db_path, dek_final)
         count = conn.execute("SELECT count(*) FROM trades").fetchone()[0]
         assert count == 2
-        all_trades = conn.execute("SELECT exec_id, instrument, action, price FROM trades ORDER BY id").fetchall()
+        all_trades = conn.execute(
+            "SELECT exec_id, instrument, action, price FROM trades ORDER BY id"
+        ).fetchall()
         for t in all_trades:
             print(f"    Trade: {t[0]} | {t[1]} | {t[2]} | ${t[3]:.2f}")
         print_pass(f"Passphrase reads {count} trades after API key revocation")

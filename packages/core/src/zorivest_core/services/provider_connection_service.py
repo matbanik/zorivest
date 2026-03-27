@@ -80,9 +80,7 @@ def _register_validator(
 def _validate_alphavantage(data: Any) -> bool:
     """AC-7: Success when 'Global Quote' OR 'Time Series' key exists."""
     if isinstance(data, dict):
-        return "Global Quote" in data or any(
-            k.startswith("Time Series") for k in data
-        )
+        return "Global Quote" in data or any(k.startswith("Time Series") for k in data)
     return False
 
 
@@ -244,9 +242,7 @@ class ProviderConnectionService:
                         else config.default_rate_limit
                     ),
                     timeout=setting.timeout if setting and setting.timeout else 30,
-                    last_test_status=(
-                        setting.last_test_status if setting else None
-                    ),
+                    last_test_status=(setting.last_test_status if setting else None),
                     signup_url=config.signup_url or None,
                 )
             )
@@ -468,8 +464,6 @@ class ProviderConnectionService:
                 uow.commit()
 
         return success, message
-
-
 
     def _interpret_response(
         self, name: str, response: Any, config: ProviderConfig

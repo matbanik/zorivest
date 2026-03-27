@@ -35,7 +35,9 @@ class RawExecution(BaseModel):
     fees: Decimal = Decimal("0")  # Non-commission fees (routing, exchange, etc.)
     currency: str = "USD"  # ISO 4217 — original trade currency
     base_currency: str = "USD"  # Account base currency
-    base_amount: Decimal | None = None  # price × qty in base currency (via fxRateToBase)
+    base_amount: Decimal | None = (
+        None  # price × qty in base currency (via fxRateToBase)
+    )
     contract_multiplier: Decimal = Decimal("1")
     order_id: str | None = None  # Broker's order reference
     raw_data: dict[str, str] = Field(default_factory=dict)  # Preserved original fields

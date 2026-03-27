@@ -168,9 +168,7 @@ async def delete_policy(
     await service.delete_policy(policy_id)
 
 
-@scheduling_router.post(
-    "/policies/{policy_id}/approve", response_model=PolicyResponse
-)
+@scheduling_router.post("/policies/{policy_id}/approve", response_model=PolicyResponse)
 async def approve_policy(
     policy_id: str,
     service: Any = Depends(get_scheduling_service),
@@ -203,9 +201,7 @@ async def trigger_pipeline(
 # ── Run History ─────────────────────────────────────────────────────────
 
 
-@scheduling_router.get(
-    "/policies/{policy_id}/runs", response_model=list[RunResponse]
-)
+@scheduling_router.get("/policies/{policy_id}/runs", response_model=list[RunResponse])
 async def get_policy_runs(
     policy_id: str,
     limit: int = Query(20, ge=1, le=100),
@@ -248,9 +244,7 @@ async def get_run_steps(
 # ── Scheduler Status ───────────────────────────────────────────────────
 
 
-@scheduling_router.get(
-    "/scheduler/status", response_model=SchedulerStatusResponse
-)
+@scheduling_router.get("/scheduler/status", response_model=SchedulerStatusResponse)
 async def get_scheduler_status(
     service: Any = Depends(get_scheduling_service),
 ) -> dict[str, Any]:
@@ -269,10 +263,14 @@ async def get_step_types() -> list[dict[str, Any]]:
     results: list[dict[str, Any]] = []
     for s in get_all_steps():
         params_cls = getattr(s, "Params", None)
-        results.append({
-            "type": s.type_name,
-            "params_schema": params_cls.model_json_schema() if params_cls is not None else {},
-        })
+        results.append(
+            {
+                "type": s.type_name,
+                "params_schema": params_cls.model_json_schema()
+                if params_cls is not None
+                else {},
+            }
+        )
     return results
 
 
@@ -288,9 +286,7 @@ async def patch_policy_schedule(
     service: Any = Depends(get_scheduling_service),
 ) -> Any:
     """Patch schedule fields without round-tripping the full policy document."""
-    result = await service.patch_schedule(
-        policy_id, cron_expression, enabled, timezone
-    )
+    result = await service.patch_schedule(policy_id, cron_expression, enabled, timezone)
     if result is None:
         raise HTTPException(404, detail="Policy not found")
     return result

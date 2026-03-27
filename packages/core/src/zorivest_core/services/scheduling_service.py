@@ -38,7 +38,9 @@ class PolicyStore(Protocol):
     async def create(self, data: dict[str, Any]) -> dict[str, Any]: ...
     async def get_by_id(self, policy_id: str) -> dict[str, Any] | None: ...
     async def list_all(self, enabled_only: bool = False) -> list[dict[str, Any]]: ...
-    async def update(self, policy_id: str, data: dict[str, Any]) -> dict[str, Any] | None: ...
+    async def update(
+        self, policy_id: str, data: dict[str, Any]
+    ) -> dict[str, Any] | None: ...
     async def delete(self, policy_id: str) -> None: ...
 
 
@@ -47,9 +49,13 @@ class RunStore(Protocol):
 
     async def create(self, data: dict[str, Any]) -> dict[str, Any]: ...
     async def get_by_id(self, run_id: str) -> dict[str, Any] | None: ...
-    async def list_for_policy(self, policy_id: str, limit: int = 20) -> list[dict[str, Any]]: ...
+    async def list_for_policy(
+        self, policy_id: str, limit: int = 20
+    ) -> list[dict[str, Any]]: ...
     async def list_recent(self, limit: int = 20) -> list[dict[str, Any]]: ...
-    async def update(self, run_id: str, data: dict[str, Any]) -> dict[str, Any] | None: ...
+    async def update(
+        self, run_id: str, data: dict[str, Any]
+    ) -> dict[str, Any] | None: ...
 
 
 class StepStore(Protocol):
@@ -61,7 +67,13 @@ class StepStore(Protocol):
 class AuditLogger(Protocol):
     """Audit log port."""
 
-    async def log(self, action: str, resource_type: str, resource_id: str, details: dict[str, Any] | None = None) -> None: ...
+    async def log(
+        self,
+        action: str,
+        resource_type: str,
+        resource_id: str,
+        details: dict[str, Any] | None = None,
+    ) -> None: ...
 
 
 # ---------------------------------------------------------------------------
@@ -264,7 +276,8 @@ class SchedulingService:
 
         # Check approval
         ok, msg = await self._guardrails.check_policy_approved(
-            policy_id, content_hash,
+            policy_id,
+            content_hash,
         )
         if not ok:
             return RunResult(error=msg)
@@ -313,18 +326,23 @@ class SchedulingService:
 
             completed_at = datetime.now(timezone.utc)
             duration_ms = int((completed_at - now).total_seconds() * 1000)
-            await self._runs.update(run_id, {
-                "status": final_status,
-                "completed_at": completed_at,
-                "duration_ms": duration_ms,
-                "error": run_error,
-            })
-            result.update({
-                "status": final_status,
-                "completed_at": completed_at,
-                "duration_ms": duration_ms,
-                "error": run_error,
-            })
+            await self._runs.update(
+                run_id,
+                {
+                    "status": final_status,
+                    "completed_at": completed_at,
+                    "duration_ms": duration_ms,
+                    "error": run_error,
+                },
+            )
+            result.update(
+                {
+                    "status": final_status,
+                    "completed_at": completed_at,
+                    "duration_ms": duration_ms,
+                    "error": run_error,
+                }
+            )
 
         return RunResult(run=result)
 
@@ -400,7 +418,11 @@ class SchedulingService:
         result = await self._policies.update(policy_id, update_data)
 
         # Reschedule only if still approved and enabled
-        if policy.get("approved") and new_hash == old_hash and trigger.get("enabled", True):
+        if (
+            policy.get("approved")
+            and new_hash == old_hash
+            and trigger.get("enabled", True)
+        ):
             self._scheduler.schedule_policy(
                 policy_name=policy.get("name", ""),
                 policy_id=policy_id,

@@ -48,9 +48,7 @@ async def fetch_with_cache(
         }
 
     # New or updated content
-    content = (
-        response.content if hasattr(response, "content") else response.read()
-    )
+    content = response.content if hasattr(response, "content") else response.read()
     return {
         "content": content,
         "cache_status": "miss",

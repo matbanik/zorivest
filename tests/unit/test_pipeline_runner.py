@@ -141,9 +141,7 @@ def _run(runner, policy, **kwargs):
 class TestSequentialExecution:
     def test_two_steps_run_sequentially(self):
         runner = _runner()
-        with patch(
-            "zorivest_core.services.pipeline_runner.get_step"
-        ) as mock_get:
+        with patch("zorivest_core.services.pipeline_runner.get_step") as mock_get:
             mock_get.return_value = FakeSuccessStep
             policy = _policy(_step("step_a"), _step("step_b"))
             result = _run(runner, policy, trigger_type="manual", policy_id="pid1")
@@ -164,9 +162,7 @@ class TestSequentialExecution:
 class TestSkipConditions:
     def test_skip_if_condition_met(self):
         runner = _runner()
-        with patch(
-            "zorivest_core.services.pipeline_runner.get_step"
-        ) as mock_get:
+        with patch("zorivest_core.services.pipeline_runner.get_step") as mock_get:
             mock_get.return_value = FakeSuccessStep
             policy = _policy(
                 _step("step_a"),
@@ -189,11 +185,14 @@ class TestSkipConditions:
 class TestDryRun:
     def test_dry_run_skips_side_effect_steps(self):
         runner = _runner()
-        with patch(
-            "zorivest_core.services.pipeline_runner.get_step"
-        ) as mock_get:
+        with patch("zorivest_core.services.pipeline_runner.get_step") as mock_get:
+
             def _get(name):
-                return FakeSideEffectStep if name == "fake_side_effect" else FakeSuccessStep
+                return (
+                    FakeSideEffectStep
+                    if name == "fake_side_effect"
+                    else FakeSuccessStep
+                )
 
             mock_get.side_effect = _get
             policy = _policy(
@@ -224,9 +223,8 @@ class TestFailPipeline:
                 call_order.append("fail")
                 return await super().execute(params, context)
 
-        with patch(
-            "zorivest_core.services.pipeline_runner.get_step"
-        ) as mock_get:
+        with patch("zorivest_core.services.pipeline_runner.get_step") as mock_get:
+
             def _get(name):
                 return TrackFail if name == "fake_fail" else TrackSuccess
 
@@ -249,16 +247,17 @@ class TestFailPipeline:
 class TestLogAndContinue:
     def test_log_and_continue_proceeds(self):
         runner = _runner()
-        with patch(
-            "zorivest_core.services.pipeline_runner.get_step"
-        ) as mock_get:
+        with patch("zorivest_core.services.pipeline_runner.get_step") as mock_get:
+
             def _get(name):
                 return FakeFailStep if name == "fake_fail" else FakeSuccessStep
 
             mock_get.side_effect = _get
             policy = _policy(
                 _step("step_a"),
-                _step("step_b", type="fake_fail", on_error=StepErrorMode.LOG_AND_CONTINUE),
+                _step(
+                    "step_b", type="fake_fail", on_error=StepErrorMode.LOG_AND_CONTINUE
+                ),
                 _step("step_c"),
             )
             result = _run(runner, policy, trigger_type="manual", policy_id="pid1")
@@ -283,9 +282,7 @@ class TestRetryThenFail:
             async def execute(self, params, context):
                 return await retry_step.execute(params, context)
 
-        with patch(
-            "zorivest_core.services.pipeline_runner.get_step"
-        ) as mock_get:
+        with patch("zorivest_core.services.pipeline_runner.get_step") as mock_get:
             mock_get.return_value = RetryStepCls
             policy = _policy(
                 _step(
@@ -302,9 +299,7 @@ class TestRetryThenFail:
 
     def test_retry_exhausted_fails_pipeline(self):
         runner = _runner()
-        with patch(
-            "zorivest_core.services.pipeline_runner.get_step"
-        ) as mock_get:
+        with patch("zorivest_core.services.pipeline_runner.get_step") as mock_get:
             mock_get.return_value = FakeFailStep
             policy = _policy(
                 _step(
@@ -331,9 +326,7 @@ class TestRefResolution:
                 resolved_params.update(params)
                 return await super().execute(params, context)
 
-        with patch(
-            "zorivest_core.services.pipeline_runner.get_step"
-        ) as mock_get:
+        with patch("zorivest_core.services.pipeline_runner.get_step") as mock_get:
             mock_get.return_value = CapturingStep
             policy = _policy(
                 _step("step_a", params={"data": "hello"}),
@@ -351,14 +344,18 @@ class TestRefResolution:
 class TestReturnStructure:
     def test_return_dict_keys(self):
         runner = _runner()
-        with patch(
-            "zorivest_core.services.pipeline_runner.get_step"
-        ) as mock_get:
+        with patch("zorivest_core.services.pipeline_runner.get_step") as mock_get:
             mock_get.return_value = FakeSuccessStep
             policy = _policy(_step("step_a"))
             result = _run(runner, policy, trigger_type="scheduled", policy_id="pid1")
 
-            assert set(result.keys()) == {"run_id", "status", "duration_ms", "error", "steps"}
+            assert set(result.keys()) == {
+                "run_id",
+                "status",
+                "duration_ms",
+                "error",
+                "steps",
+            }
             assert isinstance(result["run_id"], str)
             assert isinstance(result["duration_ms"], int)
             assert result["error"] is None
@@ -370,9 +367,7 @@ class TestReturnStructure:
 class TestUnknownStepType:
     def test_unknown_step_type_fails(self):
         runner = _runner()
-        with patch(
-            "zorivest_core.services.pipeline_runner.get_step"
-        ) as mock_get:
+        with patch("zorivest_core.services.pipeline_runner.get_step") as mock_get:
             mock_get.return_value = None
             policy = _policy(_step("bad_step", type="nonexistent"))
             result = _run(runner, policy, trigger_type="manual", policy_id="pid1")
@@ -395,9 +390,7 @@ class TestResumeFrom:
                 executed_steps.append(params.get("id", "unknown"))
                 return await super().execute(params, context)
 
-        with patch(
-            "zorivest_core.services.pipeline_runner.get_step"
-        ) as mock_get:
+        with patch("zorivest_core.services.pipeline_runner.get_step") as mock_get:
             mock_get.return_value = TrackingStep
             policy = _policy(
                 _step("step_a", params={"id": "a"}),
@@ -405,8 +398,10 @@ class TestResumeFrom:
                 _step("step_c", params={"id": "c"}),
             )
             result = _run(
-                runner, policy,
-                trigger_type="manual", policy_id="pid1",
+                runner,
+                policy,
+                trigger_type="manual",
+                policy_id="pid1",
                 resume_from="step_c",
             )
 
@@ -420,6 +415,7 @@ class TestResumeFrom:
 
 class FakeSlowStep:
     """Step that takes too long."""
+
     type_name = "fake_slow"
     side_effects = False
 
@@ -431,9 +427,7 @@ class FakeSlowStep:
 class TestTimeoutHandling:
     def test_step_timeout_fails_pipeline(self):
         runner = _runner()
-        with patch(
-            "zorivest_core.services.pipeline_runner.get_step"
-        ) as mock_get:
+        with patch("zorivest_core.services.pipeline_runner.get_step") as mock_get:
             mock_get.return_value = FakeSlowStep
             policy = _policy(
                 _step("slow_step", type="fake_slow"),
@@ -457,9 +451,7 @@ class TestCancellationHandling:
             async def execute(self, params, context):
                 raise asyncio.CancelledError()
 
-        with patch(
-            "zorivest_core.services.pipeline_runner.get_step"
-        ) as mock_get:
+        with patch("zorivest_core.services.pipeline_runner.get_step") as mock_get:
             mock_get.return_value = CancellingStep
             policy = _policy(_step("cancel_step"))
             result = _run(runner, policy, trigger_type="manual", policy_id="pid1")
@@ -504,10 +496,14 @@ class TestPersistenceWithUoW:
     def _seed_policy(self, uow) -> str:
         """Insert a policy row so PipelineRunModel FK is satisfied."""
         import uuid
+
         pid = str(uuid.uuid4())
         uow.policies.create(
-            id=pid, name="test-policy", schema_version=1,
-            policy_json='{"steps":[]}', content_hash="h1",
+            id=pid,
+            name="test-policy",
+            schema_version=1,
+            policy_json='{"steps":[]}',
+            content_hash="h1",
             created_by="test",
         )
         uow.commit()
@@ -524,15 +520,15 @@ class TestPersistenceWithUoW:
                 condition_evaluator=ConditionEvaluator(),
             )
 
-            with patch(
-                "zorivest_core.services.pipeline_runner.get_step"
-            ) as mock_get:
+            with patch("zorivest_core.services.pipeline_runner.get_step") as mock_get:
                 mock_get.return_value = FakeSuccessStep
                 policy = _policy(_step("step_a"), name="test-policy")
                 result = asyncio.run(
                     runner.run(
-                        policy, trigger_type="manual",
-                        policy_id=pid, actor="test",
+                        policy,
+                        trigger_type="manual",
+                        policy_id=pid,
+                        actor="test",
                     )
                 )
 
@@ -545,6 +541,7 @@ class TestPersistenceWithUoW:
 
             # Verify pipeline_steps row was created
             from zorivest_infra.database.models import PipelineStepModel
+
             steps = (
                 uow._session.query(PipelineStepModel)
                 .filter_by(run_id=result["run_id"])

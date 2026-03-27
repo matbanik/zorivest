@@ -37,9 +37,7 @@ def mock_market_data_service() -> AsyncMock:
         ticker="AAPL", price=181.18, provider="Alpha Vantage"
     )
     svc.get_news.return_value = [
-        MarketNewsItem(
-            title="Test News", source="Reuters", provider="Finnhub"
-        )
+        MarketNewsItem(title="Test News", source="Reuters", provider="Finnhub")
     ]
     svc.search_ticker.return_value = [
         TickerSearchResult(
@@ -79,7 +77,9 @@ def client(
     app = create_app()
     app.dependency_overrides[require_unlocked_db] = lambda: None
     app.dependency_overrides[get_market_data_service] = lambda: mock_market_data_service
-    app.dependency_overrides[get_provider_connection_service] = lambda: mock_provider_service
+    app.dependency_overrides[get_provider_connection_service] = lambda: (
+        mock_provider_service
+    )
     with TestClient(app, raise_server_exceptions=False) as c:
         yield c
 
@@ -124,7 +124,9 @@ class TestGetQuote:
     def test_service_error_returns_503(
         self, client: TestClient, mock_market_data_service: AsyncMock
     ) -> None:
-        mock_market_data_service.get_quote.side_effect = MarketDataError("All providers failed")
+        mock_market_data_service.get_quote.side_effect = MarketDataError(
+            "All providers failed"
+        )
         resp = client.get("/api/v1/market-data/quote?ticker=AAPL")
         assert resp.status_code == 503
         # Value: verify error detail

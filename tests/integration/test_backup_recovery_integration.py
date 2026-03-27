@@ -33,12 +33,8 @@ def db_dir(tmp_path: Path) -> Path:
 
     conn = sqlite3.connect(str(db_path))
     conn.execute("CREATE TABLE accounts (id TEXT PRIMARY KEY, name TEXT, balance REAL)")
-    conn.execute(
-        "INSERT INTO accounts VALUES ('acc-1', 'Savings', 12345.67)"
-    )
-    conn.execute(
-        "INSERT INTO accounts VALUES ('acc-2', 'Checking', 9876.54)"
-    )
+    conn.execute("INSERT INTO accounts VALUES ('acc-1', 'Savings', 12345.67)")
+    conn.execute("INSERT INTO accounts VALUES ('acc-2', 'Checking', 9876.54)")
     conn.commit()
     conn.close()
 
@@ -60,9 +56,7 @@ def backup_dir(db_dir: Path) -> Path:
 
 
 @pytest.fixture()
-def backup_manager(
-    db_paths: dict[str, Path], backup_dir: Path
-) -> BackupManager:
+def backup_manager(db_paths: dict[str, Path], backup_dir: Path) -> BackupManager:
     """Create a BackupManager."""
     return BackupManager(
         db_paths=db_paths,

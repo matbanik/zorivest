@@ -20,18 +20,44 @@ from sqlalchemy.orm import Session
 # Key: table_name → set of allowed column names.
 TABLE_ALLOWLIST: dict[str, set[str]] = {
     "market_ohlcv": {
-        "ticker", "open", "high", "low", "close", "volume",
-        "vwap", "trade_count", "timestamp", "provider", "data_type",
+        "ticker",
+        "open",
+        "high",
+        "low",
+        "close",
+        "volume",
+        "vwap",
+        "trade_count",
+        "timestamp",
+        "provider",
+        "data_type",
     },
     "market_quotes": {
-        "ticker", "bid", "ask", "last", "volume", "timestamp", "provider",
+        "ticker",
+        "bid",
+        "ask",
+        "last",
+        "volume",
+        "timestamp",
+        "provider",
     },
     "market_news": {
-        "ticker", "headline", "summary", "source", "url", "published_at",
-        "sentiment", "provider",
+        "ticker",
+        "headline",
+        "summary",
+        "source",
+        "url",
+        "published_at",
+        "sentiment",
+        "provider",
     },
     "market_fundamentals": {
-        "ticker", "metric", "value", "period", "provider", "fetched_at",
+        "ticker",
+        "metric",
+        "value",
+        "period",
+        "provider",
+        "fetched_at",
     },
 }
 
@@ -73,7 +99,9 @@ def write_append(
 
     columns = list(records[0].keys())
     if not validate_columns(table_name, columns):
-        invalid = [c for c in columns if c not in TABLE_ALLOWLIST.get(table_name, set())]
+        invalid = [
+            c for c in columns if c not in TABLE_ALLOWLIST.get(table_name, set())
+        ]
         raise ValueError(f"Columns not allowed for '{table_name}': {invalid}")
 
     placeholders = ", ".join(f":{col}" for col in columns)

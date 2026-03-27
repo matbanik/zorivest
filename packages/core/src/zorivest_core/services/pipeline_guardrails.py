@@ -97,8 +97,7 @@ class PipelineGuardrails:
         count = await self._count_audit_actions("report.send", hours=24)
         if count >= self.limits.max_emails_per_day:
             return False, (
-                f"Daily email limit reached "
-                f"({self.limits.max_emails_per_day})"
+                f"Daily email limit reached ({self.limits.max_emails_per_day})"
             )
         return True, ""
 
@@ -127,9 +126,7 @@ class PipelineGuardrails:
             else getattr(policy, "approved_hash", None)
         )
         if approved_hash != content_hash:
-            return False, (
-                "Policy modified since approval \u2014 re-approval required"
-            )
+            return False, ("Policy modified since approval \u2014 re-approval required")
         return True, ""
 
     async def _count_audit_actions(self, action: str, hours: int) -> int:

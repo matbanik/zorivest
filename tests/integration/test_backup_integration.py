@@ -24,10 +24,16 @@ def real_db(tmp_path: Path) -> Path:
     """Create a realistic SQLite database with multiple tables and data."""
     db_path = tmp_path / "zorivest_settings.db"
     conn = sqlite3.connect(str(db_path))
-    conn.execute("CREATE TABLE settings (key TEXT PRIMARY KEY, value TEXT, updated_at TEXT)")
+    conn.execute(
+        "CREATE TABLE settings (key TEXT PRIMARY KEY, value TEXT, updated_at TEXT)"
+    )
     conn.execute("INSERT INTO settings VALUES ('ui.theme', 'dark', '2026-01-01')")
-    conn.execute("INSERT INTO settings VALUES ('data.sync_interval_minutes', '15', '2026-01-01')")
-    conn.execute("CREATE TABLE app_defaults (key TEXT PRIMARY KEY, value TEXT, category TEXT)")
+    conn.execute(
+        "INSERT INTO settings VALUES ('data.sync_interval_minutes', '15', '2026-01-01')"
+    )
+    conn.execute(
+        "CREATE TABLE app_defaults (key TEXT PRIMARY KEY, value TEXT, category TEXT)"
+    )
     conn.execute("INSERT INTO app_defaults VALUES ('ui.theme', 'dark', 'ui')")
     conn.commit()
     conn.close()
@@ -98,7 +104,9 @@ class TestFullBackupCycle:
                 snap_path = backup_dir / "verify_snap.db"
                 snap_path.write_bytes(file_data)
                 conn = sqlite3.connect(str(snap_path))
-                rows = conn.execute("SELECT key, value FROM settings ORDER BY key").fetchall()
+                rows = conn.execute(
+                    "SELECT key, value FROM settings ORDER BY key"
+                ).fetchall()
                 conn.close()
                 snap_path.unlink()
                 assert ("data.sync_interval_minutes", "15") in rows
@@ -113,7 +121,9 @@ class TestFullBackupCycle:
         assert len(backups) == 1
         assert backups[0] == result.backup_path
 
-    def test_wrong_passphrase_cannot_read(self, real_db: Path, backup_dir: Path) -> None:
+    def test_wrong_passphrase_cannot_read(
+        self, real_db: Path, backup_dir: Path
+    ) -> None:
         """Backup created with one passphrase cannot be read with another."""
         mgr = BackupManager(
             db_paths={"settings": real_db},
@@ -128,6 +138,7 @@ class TestFullBackupCycle:
             db_paths={}, backup_dir=backup_dir, passphrase="wrong-passphrase"
         )
         import base64
+
         salt = base64.b64decode(result.manifest.kdf.salt_b64)
         wrong_key = wrong_mgr._derive_key(salt)
 

@@ -115,9 +115,14 @@ class SchedulerService:
         logger.info("scheduler_shutdown")
 
     def schedule_policy(
-        self, policy_name: str, policy_id: str, cron_expression: str,
-        timezone: str = "UTC", coalesce: bool = True,
-        max_instances: int = 1, misfire_grace_time: int = 3600,
+        self,
+        policy_name: str,
+        policy_id: str,
+        cron_expression: str,
+        timezone: str = "UTC",
+        coalesce: bool = True,
+        max_instances: int = 1,
+        misfire_grace_time: int = 3600,
     ) -> None:
         """Add or update a scheduled job for a policy."""
         job_id = f"policy_{policy_id}"
@@ -135,16 +140,23 @@ class SchedulerService:
 
             parts = cron_expression.split()
             trigger = CronTrigger(
-                minute=parts[0], hour=parts[1], day=parts[2],
-                month=parts[3], day_of_week=parts[4], timezone=timezone,
+                minute=parts[0],
+                hour=parts[1],
+                day=parts[2],
+                month=parts[3],
+                day_of_week=parts[4],
+                timezone=timezone,
             )
             # Use module-level function ref (picklable) instead of bound method.
             # APScheduler resolves the "module:function" string at call time.
             self._scheduler.add_job(
                 func=f"{__name__}:_execute_policy_callback",
                 trigger=trigger,
-                id=job_id, name=policy_name, args=[policy_id],
-                replace_existing=True, coalesce=coalesce,
+                id=job_id,
+                name=policy_name,
+                args=[policy_id],
+                replace_existing=True,
+                coalesce=coalesce,
                 max_instances=max_instances,
                 misfire_grace_time=misfire_grace_time,
             )
@@ -214,10 +226,21 @@ class SchedulerService:
             return
 
         # Deserialize: repo returns dict/model with policy_json field
-        policy_json = policy.get("policy_json", policy) if isinstance(policy, dict) else getattr(policy, "policy_json", policy)
+        policy_json = (
+            policy.get("policy_json", policy)
+            if isinstance(policy, dict)
+            else getattr(policy, "policy_json", policy)
+        )
         from zorivest_core.domain.pipeline import PolicyDocument
-        doc = PolicyDocument(**policy_json) if isinstance(policy_json, dict) else policy_json
+
+        doc = (
+            PolicyDocument(**policy_json)
+            if isinstance(policy_json, dict)
+            else policy_json
+        )
 
         await self.pipeline_runner.run(
-            policy=doc, trigger_type="scheduled", policy_id=policy_id,
+            policy=doc,
+            trigger_type="scheduled",
+            policy_id=policy_id,
         )

@@ -87,9 +87,7 @@ def derive_key(passphrase: str, salt: bytes | None = None) -> bytes:
 # ---------------------------------------------------------------------------
 
 
-def create_encrypted_connection(
-    db_path: str, passphrase: str
-) -> sqlite3.Connection:
+def create_encrypted_connection(db_path: str, passphrase: str) -> sqlite3.Connection:
     """Create an encrypted SQLite connection.
 
     When ``sqlcipher3`` is available the database file is encrypted at rest

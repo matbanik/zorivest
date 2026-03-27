@@ -87,7 +87,9 @@ async def get_watchlist(
     """Get a watchlist by ID with items."""
     wl = service.get(watchlist_id)
     if wl is None:
-        raise HTTPException(status_code=404, detail=f"Watchlist {watchlist_id} not found")
+        raise HTTPException(
+            status_code=404, detail=f"Watchlist {watchlist_id} not found"
+        )
     return _to_response(wl, service)
 
 

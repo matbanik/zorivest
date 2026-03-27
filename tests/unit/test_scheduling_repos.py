@@ -148,8 +148,11 @@ class TestPipelineRunRepository:
     def test_create_and_get(self, session):
         _, run_repo, pid = self._setup(session)
         rid = run_repo.create(
-            id=_uid(), policy_id=pid, status="running",
-            trigger_type="manual", content_hash="h1",
+            id=_uid(),
+            policy_id=pid,
+            status="running",
+            trigger_type="manual",
+            content_hash="h1",
         )
         session.commit()
 
@@ -161,14 +164,20 @@ class TestPipelineRunRepository:
         _, run_repo, pid = self._setup(session)
         # Create a running run with started_at in the past
         run_repo.create(
-            id=_uid(), policy_id=pid, status="running",
-            trigger_type="scheduled", content_hash="h",
+            id=_uid(),
+            policy_id=pid,
+            status="running",
+            trigger_type="scheduled",
+            content_hash="h",
             started_at=_now() - timedelta(hours=2),
         )
         # Create a normal running run
         run_repo.create(
-            id=_uid(), policy_id=pid, status="pending",
-            trigger_type="manual", content_hash="h2",
+            id=_uid(),
+            policy_id=pid,
+            status="pending",
+            trigger_type="manual",
+            content_hash="h2",
         )
         session.commit()
 
@@ -180,8 +189,11 @@ class TestPipelineRunRepository:
         _, run_repo, pid = self._setup(session)
         for i in range(3):
             run_repo.create(
-                id=_uid(), policy_id=pid, status="success",
-                trigger_type="scheduled", content_hash=f"h{i}",
+                id=_uid(),
+                policy_id=pid,
+                status="success",
+                trigger_type="scheduled",
+                content_hash=f"h{i}",
             )
         session.commit()
 
@@ -191,8 +203,11 @@ class TestPipelineRunRepository:
     def test_update_status(self, session):
         _, run_repo, pid = self._setup(session)
         rid = run_repo.create(
-            id=_uid(), policy_id=pid, status="running",
-            trigger_type="manual", content_hash="h",
+            id=_uid(),
+            policy_id=pid,
+            status="running",
+            trigger_type="manual",
+            content_hash="h",
         )
         session.commit()
 
@@ -207,8 +222,11 @@ class TestPipelineRunRepository:
         _, run_repo, pid = self._setup(session)
         for i in range(3):
             run_repo.create(
-                id=_uid(), policy_id=pid, status="success",
-                trigger_type="scheduled", content_hash=f"h{i}",
+                id=_uid(),
+                policy_id=pid,
+                status="success",
+                trigger_type="scheduled",
+                content_hash=f"h{i}",
             )
         session.commit()
 
@@ -223,8 +241,11 @@ class TestReportRepository:
     def test_create_and_get(self, session):
         repo = ReportRepository(session)
         rid = repo.create(
-            id=_uid(), name="Daily P&L", version=1,
-            spec_json='{"q": "SELECT 1"}', format="pdf",
+            id=_uid(),
+            name="Daily P&L",
+            version=1,
+            spec_json='{"q": "SELECT 1"}',
+            format="pdf",
         )
         session.commit()
 
@@ -235,8 +256,11 @@ class TestReportRepository:
     def test_get_versions_empty(self, session):
         repo = ReportRepository(session)
         rid = repo.create(
-            id=_uid(), name="Report", version=1,
-            spec_json="{}", format="html",
+            id=_uid(),
+            name="Report",
+            version=1,
+            spec_json="{}",
+            format="html",
         )
         session.commit()
 
@@ -251,8 +275,11 @@ class TestFetchCacheRepository:
     def test_upsert_insert(self, session):
         repo = FetchCacheRepository(session)
         repo.upsert(
-            provider="ibkr", data_type="quotes", entity_key="AAPL",
-            payload_json='{"price": 150}', content_hash="h1",
+            provider="ibkr",
+            data_type="quotes",
+            entity_key="AAPL",
+            payload_json='{"price": 150}',
+            content_hash="h1",
             ttl_seconds=3600,
         )
         session.commit()
@@ -264,15 +291,21 @@ class TestFetchCacheRepository:
     def test_upsert_update(self, session):
         repo = FetchCacheRepository(session)
         repo.upsert(
-            provider="ibkr", data_type="quotes", entity_key="AAPL",
-            payload_json='{"price": 150}', content_hash="h1",
+            provider="ibkr",
+            data_type="quotes",
+            entity_key="AAPL",
+            payload_json='{"price": 150}',
+            content_hash="h1",
             ttl_seconds=3600,
         )
         session.commit()
 
         repo.upsert(
-            provider="ibkr", data_type="quotes", entity_key="AAPL",
-            payload_json='{"price": 155}', content_hash="h2",
+            provider="ibkr",
+            data_type="quotes",
+            entity_key="AAPL",
+            payload_json='{"price": 155}',
+            content_hash="h2",
             ttl_seconds=3600,
         )
         session.commit()
@@ -301,12 +334,16 @@ class TestAuditLogRepository:
     def test_append_and_list(self, session):
         repo = AuditLogRepository(session)
         repo.append(
-            actor="scheduler", action="pipeline.run",
-            resource_type="pipeline_run", resource_id=_uid(),
+            actor="scheduler",
+            action="pipeline.run",
+            resource_type="pipeline_run",
+            resource_id=_uid(),
         )
         repo.append(
-            actor="mcp:agent", action="policy.create",
-            resource_type="policy", resource_id=_uid(),
+            actor="mcp:agent",
+            action="policy.create",
+            resource_type="policy",
+            resource_id=_uid(),
         )
         session.commit()
 
@@ -322,20 +359,34 @@ class TestSessionPattern:
     def test_all_repos_accept_session(self, session):
         """AC-8: All repos follow __init__(session) pattern."""
         for cls in [
-            PolicyRepository, PipelineRunRepository, ReportRepository,
-            FetchCacheRepository, AuditLogRepository,
+            PolicyRepository,
+            PipelineRunRepository,
+            ReportRepository,
+            FetchCacheRepository,
+            AuditLogRepository,
         ]:
             repo = cls(session)
             assert repo._session is session
         # Value: verify all 5 repo types were iterated
-        assert len([PolicyRepository, PipelineRunRepository, ReportRepository,
-                    FetchCacheRepository, AuditLogRepository]) == 5
+        assert (
+            len(
+                [
+                    PolicyRepository,
+                    PipelineRunRepository,
+                    ReportRepository,
+                    FetchCacheRepository,
+                    AuditLogRepository,
+                ]
+            )
+            == 5
+        )
 
 
 class TestUnitOfWorkExtension:
     def test_uow_has_scheduling_repos(self, engine):
         """AC-9: UoW creates scheduling repo attributes."""
         from zorivest_infra.database.unit_of_work import SqlAlchemyUnitOfWork
+
         uow = SqlAlchemyUnitOfWork(engine)
         with uow:
             assert hasattr(uow, "policies")

@@ -77,7 +77,9 @@ class TestStrEnumSubclass:
                 # Value: verify each member has a string value
                 assert len(obj) > 0, f"{name} has no members"
                 for member in obj:
-                    assert isinstance(member.value, str), f"{name}.{member.name} value is not str"
+                    assert isinstance(member.value, str), (
+                        f"{name}.{member.name} value is not str"
+                    )
                 checked_count += 1
         # Value: verify we checked a meaningful number of enums
         assert checked_count >= 17, f"Only checked {checked_count} enums"

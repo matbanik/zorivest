@@ -84,9 +84,14 @@ class TestCategories:
             )
             # Value: verify category matches key prefix
             key_prefix = key.split(".")[0]
-            assert key_prefix in ("dialog", "logging", "display", "backup", "ui", "notification"), (
-                f"Setting '{key}' prefix '{key_prefix}' unexpected"
-            )
+            assert key_prefix in (
+                "dialog",
+                "logging",
+                "display",
+                "backup",
+                "ui",
+                "notification",
+            ), f"Setting '{key}' prefix '{key_prefix}' unexpected"
 
     def test_all_categories_represented(self) -> None:
         """All 6 expected categories appear at least once."""

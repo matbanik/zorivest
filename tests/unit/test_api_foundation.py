@@ -32,10 +32,12 @@ def client(app):
 
 # ── AC-1: App factory returns FastAPI with 7 tags ───────────────────────
 
+
 class TestAppFactory:
     def test_create_app_returns_fastapi(self) -> None:
         """AC-1: create_app() returns FastAPI instance."""
         from fastapi import FastAPI
+
         app = create_app()
         assert isinstance(app, FastAPI)
         # Value: verify app has title and routes
@@ -46,10 +48,13 @@ class TestAppFactory:
         """AC-1: App has 7 tags in openapi_tags."""
         app = create_app()
         tags = app.openapi_tags or []
-        assert len(tags) == 10, f"Expected 10 tags, got {len(tags)}: {[t['name'] for t in tags]}"
+        assert len(tags) == 10, (
+            f"Expected 10 tags, got {len(tags)}: {[t['name'] for t in tags]}"
+        )
 
 
 # ── AC-4: Request-ID header ─────────────────────────────────────────────
+
 
 class TestRequestIdMiddleware:
     def test_response_has_request_id_header(self, client: TestClient) -> None:
@@ -70,6 +75,7 @@ class TestRequestIdMiddleware:
 
 # ── AC-3: CORS ──────────────────────────────────────────────────────────
 
+
 class TestCors:
     def test_cors_allows_localhost(self, client: TestClient) -> None:
         """AC-3: CORS allows localhost origins."""
@@ -80,7 +86,9 @@ class TestCors:
                 "Access-Control-Request-Method": "GET",
             },
         )
-        assert resp.headers.get("access-control-allow-origin") == "http://localhost:3000"
+        assert (
+            resp.headers.get("access-control-allow-origin") == "http://localhost:3000"
+        )
 
     def test_cors_allows_localhost_default_port(self, client: TestClient) -> None:
         """AC-3: CORS allows localhost without port."""
@@ -106,6 +114,7 @@ class TestCors:
 
 
 # ── AC-7: Health endpoint ───────────────────────────────────────────────
+
 
 class TestHealthEndpoint:
     def test_health_returns_200(self, client: TestClient) -> None:
@@ -141,6 +150,7 @@ class TestHealthEndpoint:
 
 # ── AC-8: Version endpoint ──────────────────────────────────────────────
 
+
 class TestVersionEndpoint:
     def test_version_returns_200(self, client: TestClient) -> None:
         """AC-8: GET /api/v1/version/ returns 200."""
@@ -162,6 +172,7 @@ class TestVersionEndpoint:
 
 # ── AC-5: ErrorEnvelope ─────────────────────────────────────────────────
 
+
 class TestErrorEnvelope:
     def test_404_returns_error_envelope(self, client: TestClient) -> None:
         """AC-5: Unhandled HTTP errors return ErrorEnvelope format."""
@@ -174,6 +185,7 @@ class TestErrorEnvelope:
 
     def test_unhandled_exception_returns_500_envelope(self, app) -> None:
         """AC-5b: Unhandled exceptions are caught by general Exception handler."""
+
         @app.get("/api/v1/test-crash")
         async def crash_route():
             raise RuntimeError("kaboom")
@@ -187,6 +199,7 @@ class TestErrorEnvelope:
 
 
 # ── AC-9, AC-10: Schema validation ──────────────────────────────────────
+
 
 class TestSchemas:
     def test_paginated_response_fields(self) -> None:
@@ -211,6 +224,7 @@ class TestSchemas:
 
 # ── AC-6: Mode-gating ───────────────────────────────────────────────────
 
+
 class TestModeGating:
     def test_mode_gating_403_when_locked(self, app) -> None:
         """AC-6: require_unlocked_db raises 403 when DB is locked."""
@@ -232,6 +246,7 @@ class TestModeGating:
 
 
 # ── Integration: app-state wiring ─────────────────────────────────────────────
+
 
 class TestAppStateWiring:
     """Verify services are wired in lifespan without dependency_overrides."""
@@ -297,4 +312,6 @@ class TestAppStateWiring:
             # These should NOT be 500 "Service not configured"
             for path in ["/api/v1/trades", "/api/v1/accounts", "/api/v1/round-trips"]:
                 resp = client.get(path)
-                assert resp.status_code == 200, f"{path} returned {resp.status_code}: {resp.text}"
+                assert resp.status_code == 200, (
+                    f"{path} returned {resp.status_code}: {resp.text}"
+                )

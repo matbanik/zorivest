@@ -146,6 +146,7 @@ class TestSnakeCaseValues:
     @pytest.mark.parametrize("enum_cls", [PipelineStatus, StepErrorMode, DataType])
     def test_values_are_snake_case(self, enum_cls: type[StrEnum]) -> None:
         import re
+
         pattern = re.compile(r"^[a-z][a-z0-9_]*$")
         for member in enum_cls:
             assert pattern.match(member.value), (

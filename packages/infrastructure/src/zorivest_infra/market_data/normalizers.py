@@ -50,9 +50,7 @@ def normalize_polygon_quote(data: dict[str, Any]) -> MarketQuote:
     r = results[0]
     ts = r.get("t")
     timestamp = (
-        datetime.fromtimestamp(ts / 1000, tz=timezone.utc)
-        if ts is not None
-        else None
+        datetime.fromtimestamp(ts / 1000, tz=timezone.utc) if ts is not None else None
     )
     return MarketQuote(
         ticker=r.get("T", ""),
@@ -66,19 +64,13 @@ def normalize_polygon_quote(data: dict[str, Any]) -> MarketQuote:
     )
 
 
-def normalize_finnhub_quote(
-    data: dict[str, Any], *, ticker: str = ""
-) -> MarketQuote:
+def normalize_finnhub_quote(data: dict[str, Any], *, ticker: str = "") -> MarketQuote:
     """Convert Finnhub /quote response → MarketQuote.
 
     Finnhub responses don't include the ticker, so it must be passed in.
     """
     ts = data.get("t")
-    timestamp = (
-        datetime.fromtimestamp(ts, tz=timezone.utc)
-        if ts is not None
-        else None
-    )
+    timestamp = datetime.fromtimestamp(ts, tz=timezone.utc) if ts is not None else None
     return MarketQuote(
         ticker=ticker,
         price=float(data.get("c", 0)),
@@ -96,11 +88,7 @@ def normalize_finnhub_quote(
 def normalize_eodhd_quote(data: dict[str, Any]) -> MarketQuote:
     """Convert EODHD real-time endpoint → MarketQuote."""
     ts = data.get("timestamp")
-    timestamp = (
-        datetime.fromtimestamp(ts, tz=timezone.utc)
-        if ts is not None
-        else None
-    )
+    timestamp = datetime.fromtimestamp(ts, tz=timezone.utc) if ts is not None else None
     return MarketQuote(
         ticker=data.get("code", ""),
         price=float(data.get("close", 0)),
@@ -122,11 +110,7 @@ def normalize_api_ninjas_quote(data: dict[str, Any]) -> MarketQuote:
     API Ninjas returns minimal data: ticker, price, name, exchange, updated.
     """
     ts = data.get("updated")
-    timestamp = (
-        datetime.fromtimestamp(ts, tz=timezone.utc)
-        if ts is not None
-        else None
-    )
+    timestamp = datetime.fromtimestamp(ts, tz=timezone.utc) if ts is not None else None
     return MarketQuote(
         ticker=data.get("ticker", ""),
         price=float(data.get("price", 0)),
@@ -213,9 +197,7 @@ def normalize_benzinga_news(
         published_at = None
         if created:
             try:
-                published_at = datetime.fromisoformat(
-                    created.replace("Z", "+00:00")
-                )
+                published_at = datetime.fromisoformat(created.replace("Z", "+00:00"))
             except (ValueError, TypeError):
                 published_at = None
 
@@ -244,9 +226,7 @@ def normalize_finnhub_news(
     for item in data:
         ts = item.get("datetime")
         published_at = (
-            datetime.fromtimestamp(ts, tz=timezone.utc)
-            if ts is not None
-            else None
+            datetime.fromtimestamp(ts, tz=timezone.utc) if ts is not None else None
         )
 
         related = item.get("related", "")

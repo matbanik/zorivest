@@ -79,9 +79,7 @@ class SkipCondition(BaseModel):
 class PolicyStep(BaseModel):
     """A single step in a pipeline policy."""
 
-    id: str = Field(
-        ..., min_length=1, max_length=64, pattern=r"^[a-z][a-z0-9_]*$"
-    )
+    id: str = Field(..., min_length=1, max_length=64, pattern=r"^[a-z][a-z0-9_]*$")
     type: str = Field(
         ..., description="Registered step type name, e.g. 'fetch', 'transform'"
     )
@@ -208,9 +206,7 @@ class FetchResult:
     content: bytes
     content_hash: str = dc_field(init=False)
     cache_status: str = "miss"  # miss | hit | revalidated
-    fetched_at: datetime = dc_field(
-        default_factory=lambda: datetime.now(timezone.utc)
-    )
+    fetched_at: datetime = dc_field(default_factory=lambda: datetime.now(timezone.utc))
 
     def __post_init__(self) -> None:
         self.content_hash = hashlib.sha256(self.content).hexdigest()
@@ -223,9 +219,9 @@ class FetchResult:
 
 # TTL in seconds per data type — how long fetched data stays fresh.
 FRESHNESS_TTL: dict[str, int] = {
-    "quote": 60,           # 1 minute — real-time quotes
-    "ohlcv": 3600,         # 1 hour — daily bars
-    "news": 1800,          # 30 minutes — news feed
+    "quote": 60,  # 1 minute — real-time quotes
+    "ohlcv": 3600,  # 1 hour — daily bars
+    "news": 1800,  # 30 minutes — news feed
     "fundamentals": 86400,  # 24 hours — changes infrequently
 }
 

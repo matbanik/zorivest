@@ -76,6 +76,7 @@ def _sample_image(image_id: int = 1) -> ImageAttachment:
 
 # ── TradeService extensions ─────────────────────────────────────────────
 
+
 class TestListTrades:
     """MEU-Prep: TradeService.list_trades."""
 
@@ -90,7 +91,11 @@ class TestListTrades:
 
         assert len(result) == 2
         uow.trades.list_filtered.assert_called_once_with(
-            limit=100, offset=0, account_id=None, sort="-time", search=None,
+            limit=100,
+            offset=0,
+            account_id=None,
+            sort="-time",
+            search=None,
         )
 
     def test_list_trades_with_filters(self) -> None:
@@ -103,7 +108,11 @@ class TestListTrades:
 
         assert len(result) == 1
         uow.trades.list_filtered.assert_called_once_with(
-            limit=10, offset=5, account_id="ACC001", sort="time", search=None,
+            limit=10,
+            offset=5,
+            account_id="ACC001",
+            sort="time",
+            search=None,
         )
 
 
@@ -151,6 +160,7 @@ class TestDeleteTrade:
 
 # ── AccountService extensions ───────────────────────────────────────────
 
+
 class TestUpdateAccount:
     """MEU-Prep: AccountService.update_account."""
 
@@ -161,7 +171,9 @@ class TestUpdateAccount:
         uow.accounts.get.return_value = account
 
         svc = AccountService(uow)
-        result = svc.update_account("ACC001", name="Updated Name", institution="Fidelity")
+        result = svc.update_account(
+            "ACC001", name="Updated Name", institution="Fidelity"
+        )
 
         assert result.name == "Updated Name"
         assert result.institution == "Fidelity"
@@ -194,6 +206,7 @@ class TestDeleteAccount:
 
 
 # ── ImageService extensions ─────────────────────────────────────────────
+
 
 class TestGetImage:
     """MEU-Prep: ImageService.get_image."""
@@ -253,6 +266,7 @@ class TestGetImagesForOwner:
 
 # ── Version module ──────────────────────────────────────────────────────
 
+
 class TestVersionModule:
     """MEU-Prep: zorivest_core.version."""
 
@@ -271,4 +285,6 @@ class TestVersionModule:
         from zorivest_core.version import get_version_context
 
         context = get_version_context()
-        assert context in {"frozen", "installed", "dev"}, f"Unexpected context: {context}"
+        assert context in {"frozen", "installed", "dev"}, (
+            f"Unexpected context: {context}"
+        )

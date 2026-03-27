@@ -566,10 +566,21 @@ class TestModuleImports:
         import zorivest_core.application.commands as mod
 
         public = {n for n in dir(mod) if not n.startswith("_")}
-        expected = {"CreateTrade", "AttachImage", "CreateAccount", "UpdateBalance",
-                    "dataclass", "field", "datetime", "Decimal",
-                    "AccountType", "BalanceSource", "ImageOwnerType", "TradeAction",
-                    "annotations"}
+        expected = {
+            "CreateTrade",
+            "AttachImage",
+            "CreateAccount",
+            "UpdateBalance",
+            "dataclass",
+            "field",
+            "datetime",
+            "Decimal",
+            "AccountType",
+            "BalanceSource",
+            "ImageOwnerType",
+            "TradeAction",
+            "annotations",
+        }
         unexpected = public - expected
         assert not unexpected, f"Unexpected exports: {unexpected}"
 
@@ -590,9 +601,17 @@ class TestModuleImports:
         import zorivest_core.application.queries as mod
 
         public = {n for n in dir(mod) if not n.startswith("_")}
-        expected = {"GetTrade", "ListTrades", "GetAccount", "ListAccounts",
-                    "GetImage", "ListImages",
-                    "dataclass", "ImageOwnerType", "annotations"}
+        expected = {
+            "GetTrade",
+            "ListTrades",
+            "GetAccount",
+            "ListAccounts",
+            "GetImage",
+            "ListImages",
+            "dataclass",
+            "ImageOwnerType",
+            "annotations",
+        }
         unexpected = public - expected
         assert not unexpected, f"Unexpected exports: {unexpected}"
 
@@ -611,10 +630,19 @@ class TestModuleImports:
         import zorivest_core.application.dtos as mod
 
         public = {n for n in dir(mod) if not n.startswith("_")}
-        expected = {"TradeDTO", "AccountDTO", "BalanceSnapshotDTO",
-                    "ImageAttachmentDTO",
-                    "dataclass", "datetime", "Decimal",
-                    "AccountType", "BalanceSource", "ImageOwnerType", "TradeAction",
-                    "annotations"}
+        expected = {
+            "TradeDTO",
+            "AccountDTO",
+            "BalanceSnapshotDTO",
+            "ImageAttachmentDTO",
+            "dataclass",
+            "datetime",
+            "Decimal",
+            "AccountType",
+            "BalanceSource",
+            "ImageOwnerType",
+            "TradeAction",
+            "annotations",
+        }
         unexpected = public - expected
         assert not unexpected, f"Unexpected exports: {unexpected}"

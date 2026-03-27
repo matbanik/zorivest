@@ -15,12 +15,16 @@ class TestThreeTierResolution:
         self.resolver = SettingsResolver()
 
     def test_user_value_wins(self) -> None:
-        result = self.resolver.resolve("ui.theme", user_value="light", default_value="dark")
+        result = self.resolver.resolve(
+            "ui.theme", user_value="light", default_value="dark"
+        )
         assert result.value == "light"
         assert result.source == "user"
 
     def test_default_value_when_no_user(self) -> None:
-        result = self.resolver.resolve("ui.theme", user_value=None, default_value="dark")
+        result = self.resolver.resolve(
+            "ui.theme", user_value=None, default_value="dark"
+        )
         assert result.value == "dark"
         assert result.source == "default"
 
@@ -49,7 +53,9 @@ class TestTypeParsing:
     def test_parse_int(self) -> None:
         assert SettingsResolver._parse("42", "int") == 42
         # Value: verify through public resolve() — int type is applied
-        result = SettingsResolver().resolve("logging.rotation_mb", user_value="42", default_value=None)
+        result = SettingsResolver().resolve(
+            "logging.rotation_mb", user_value="42", default_value=None
+        )
         assert result.value == 42
 
     def test_parse_float(self) -> None:

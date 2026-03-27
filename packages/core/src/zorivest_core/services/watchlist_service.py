@@ -107,7 +107,10 @@ class WatchlistService:
     # ── Item management ─────────────────────────────────────────────────
 
     def add_ticker(
-        self, watchlist_id: int, ticker: str, notes: str = "",
+        self,
+        watchlist_id: int,
+        ticker: str,
+        notes: str = "",
     ) -> WatchlistItem:
         """Add a ticker to a watchlist.
 

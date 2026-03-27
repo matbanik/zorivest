@@ -61,11 +61,11 @@ class TradeReport:
     """
 
     id: int
-    trade_id: str               # FK → Trade.exec_id (unique)
-    setup_quality: int          # 1-5 rating
-    execution_quality: int      # 1-5 rating
+    trade_id: str  # FK → Trade.exec_id (unique)
+    setup_quality: int  # 1-5 rating
+    execution_quality: int  # 1-5 rating
     followed_plan: bool
-    emotional_state: str        # EmotionalState value
+    emotional_state: str  # EmotionalState value
     created_at: datetime
     lessons_learned: str = ""
     tags: list[str] = field(default_factory=list)
@@ -119,24 +119,24 @@ class TradePlan:
 
     id: int
     ticker: str
-    direction: TradeAction         # BOT = bullish, SLD = bearish
+    direction: TradeAction  # BOT = bullish, SLD = bearish
     conviction: ConvictionLevel
     strategy_name: str
-    strategy_description: str      # Rich text — the thesis
+    strategy_description: str  # Rich text — the thesis
     entry_price: float
     stop_loss: float
     target_price: float
-    entry_conditions: str          # Technical indicators / triggers
-    exit_conditions: str           # When to close regardless
-    timeframe: str                 # e.g., "intraday", "swing 2-5 days"
-    risk_reward_ratio: float       # Computed from entry/stop/target
+    entry_conditions: str  # Technical indicators / triggers
+    exit_conditions: str  # When to close regardless
+    timeframe: str  # e.g., "intraday", "swing 2-5 days"
+    risk_reward_ratio: float  # Computed from entry/stop/target
     status: PlanStatus
     created_at: datetime
     updated_at: datetime
-    linked_trade_id: Optional[str] = None   # FK → Trade, nullable
+    linked_trade_id: Optional[str] = None  # FK → Trade, nullable
     images: list[ImageAttachment] = field(default_factory=list)
-    account_id: Optional[str] = None        # FK → Account, nullable
-    executed_at: Optional[datetime] = None   # T5: when status → executed
+    account_id: Optional[str] = None  # FK → Account, nullable
+    executed_at: Optional[datetime] = None  # T5: when status → executed
     cancelled_at: Optional[datetime] = None  # T5: when status → cancelled
 
     @staticmethod

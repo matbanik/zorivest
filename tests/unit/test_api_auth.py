@@ -25,12 +25,14 @@ def auth_client():
     app.state.start_time = __import__("time").time()
 
     from zorivest_api import dependencies as deps
+
     app.dependency_overrides[deps.get_auth_service] = lambda: auth_svc
 
     return TestClient(app), auth_svc
 
 
 # ── Unlock/Lock/Status ──────────────────────────────────────────────────
+
 
 class TestUnlock:
     def test_unlock_with_valid_key_returns_token(self, auth_client) -> None:
@@ -54,6 +56,7 @@ class TestUnlock:
         """AC-2: POST /auth/unlock with invalid key returns 401."""
         http, svc = auth_client
         from zorivest_api.auth.auth_service import InvalidKeyError
+
         svc.unlock.side_effect = InvalidKeyError("Invalid API key")
 
         resp = http.post("/api/v1/auth/unlock", json={"api_key": "bad-key"})
@@ -66,6 +69,7 @@ class TestUnlock:
         """AC-3: POST /auth/unlock with revoked key returns 403."""
         http, svc = auth_client
         from zorivest_api.auth.auth_service import RevokedKeyError
+
         svc.unlock.side_effect = RevokedKeyError("Key has been revoked")
 
         resp = http.post("/api/v1/auth/unlock", json={"api_key": "revoked-key"})
@@ -78,6 +82,7 @@ class TestUnlock:
         """AC-4: POST /auth/unlock when already unlocked returns 423."""
         http, svc = auth_client
         from zorivest_api.auth.auth_service import AlreadyUnlockedError
+
         svc.unlock.side_effect = AlreadyUnlockedError("Already unlocked")
 
         resp = http.post("/api/v1/auth/unlock", json={"api_key": "valid"})
@@ -113,6 +118,7 @@ class TestAuthStatus:
 
 # ── API Key Management ──────────────────────────────────────────────────
 
+
 class TestApiKeyManagement:
     def test_create_api_key_201(self, auth_client) -> None:
         """AC-7: POST /auth/keys creates key and returns raw key once."""
@@ -133,7 +139,12 @@ class TestApiKeyManagement:
         """AC-8: GET /auth/keys returns masked keys (never plaintext)."""
         http, svc = auth_client
         svc.list_keys.return_value = [
-            {"key_id": "key_001", "name": "My Key", "role": "admin", "masked_key": "zrv_***456"},
+            {
+                "key_id": "key_001",
+                "name": "My Key",
+                "role": "admin",
+                "masked_key": "zrv_***456",
+            },
         ]
 
         resp = http.get("/api/v1/auth/keys")
@@ -155,6 +166,7 @@ class TestApiKeyManagement:
 
 # ── Confirmation Tokens ─────────────────────────────────────────────────
 
+
 class TestConfirmationTokens:
     def test_create_confirmation_token_201(self, auth_client) -> None:
         """AC-10: POST /confirmation-tokens returns ctk_ token for valid action."""
@@ -164,7 +176,9 @@ class TestConfirmationTokens:
             "expires_in_seconds": 60,
         }
 
-        resp = http.post("/api/v1/confirmation-tokens", json={"action": "delete_account"})
+        resp = http.post(
+            "/api/v1/confirmation-tokens", json={"action": "delete_account"}
+        )
         assert resp.status_code == 201
         data = resp.json()
         assert data["token"].startswith("ctk_")
@@ -174,9 +188,12 @@ class TestConfirmationTokens:
         """AC-11: POST /confirmation-tokens rejects unknown actions."""
         http, svc = auth_client
         from zorivest_api.auth.auth_service import InvalidActionError
+
         svc.create_confirmation_token.side_effect = InvalidActionError("Unknown action")
 
-        resp = http.post("/api/v1/confirmation-tokens", json={"action": "invalid_action"})
+        resp = http.post(
+            "/api/v1/confirmation-tokens", json={"action": "invalid_action"}
+        )
         assert resp.status_code == 400
         # Value: verify error detail
         data = resp.json()

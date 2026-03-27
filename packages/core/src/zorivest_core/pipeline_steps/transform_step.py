@@ -61,7 +61,10 @@ class TransformStep(RegisteredStep):
 
         import pandas as pd
 
-        from zorivest_core.services.validation_gate import check_quality, validate_dataframe
+        from zorivest_core.services.validation_gate import (
+            check_quality,
+            validate_dataframe,
+        )
 
         p = self.Params(**params)
 
@@ -115,7 +118,10 @@ class TransformStep(RegisteredStep):
 
         # 5. Write to target table via hook method
         records_written = self._write_data(
-            valid_df, p.target_table, p.write_disposition, context,
+            valid_df,
+            p.target_table,
+            p.write_disposition,
+            context,
         )
 
         return StepResult(
@@ -145,11 +151,15 @@ class TransformStep(RegisteredStep):
 
         if provider and data_type:
             try:
-                from zorivest_infra.market_data.field_mappings import apply_field_mapping
+                from zorivest_infra.market_data.field_mappings import (
+                    apply_field_mapping,
+                )
 
                 return [
                     apply_field_mapping(
-                        record=r, provider=provider, data_type=data_type,
+                        record=r,
+                        provider=provider,
+                        data_type=data_type,
                     )
                     for r in records
                 ]
@@ -171,9 +181,7 @@ class TransformStep(RegisteredStep):
         """
         db_writer = context.outputs.get("db_writer")
         if db_writer is None:
-            raise ValueError(
-                "db_writer required in context.outputs for TransformStep"
-            )
+            raise ValueError("db_writer required in context.outputs for TransformStep")
         return db_writer.write(
             df=df,
             table=target_table,

@@ -37,9 +37,7 @@ class FetchStep(RegisteredStep):
         batch_size: int = Field(
             default=100, ge=1, le=500, description="Max records per fetch batch"
         )
-        use_cache: bool = Field(
-            default=True, description="Check cache before fetching"
-        )
+        use_cache: bool = Field(default=True, description="Check cache before fetching")
 
     async def execute(self, params: dict, context: StepContext) -> StepResult:
         """Execute the fetch step.

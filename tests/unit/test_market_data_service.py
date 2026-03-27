@@ -366,10 +366,26 @@ class TestSearchTickerYahooFallback:
             200,
             {
                 "quotes": [
-                    {"symbol": "AAPL", "shortname": "Apple Inc.", "quoteType": "EQUITY"},
-                    {"symbol": "AAPL=F", "shortname": "AAPL Futures", "quoteType": "FUTURE"},
-                    {"symbol": "USD/JPY", "shortname": "USD/JPY", "quoteType": "CURRENCY"},
-                    {"symbol": "BTC-USD", "shortname": "Bitcoin", "quoteType": "CRYPTOCURRENCY"},
+                    {
+                        "symbol": "AAPL",
+                        "shortname": "Apple Inc.",
+                        "quoteType": "EQUITY",
+                    },
+                    {
+                        "symbol": "AAPL=F",
+                        "shortname": "AAPL Futures",
+                        "quoteType": "FUTURE",
+                    },
+                    {
+                        "symbol": "USD/JPY",
+                        "shortname": "USD/JPY",
+                        "quoteType": "CURRENCY",
+                    },
+                    {
+                        "symbol": "BTC-USD",
+                        "shortname": "Bitcoin",
+                        "quoteType": "CRYPTOCURRENCY",
+                    },
                 ]
             },
         )
@@ -420,7 +436,9 @@ class TestSearchTickerYahooFallback:
             return fmp_response
 
         fake_settings_repo = MagicMock()
-        fake_settings_repo.list_all.return_value = [_make_setting("Financial Modeling Prep")]
+        fake_settings_repo.list_all.return_value = [
+            _make_setting("Financial Modeling Prep")
+        ]
         fake_uow = MagicMock()
         fake_uow.__enter__ = MagicMock(return_value=fake_uow)
         fake_uow.__exit__ = MagicMock(return_value=False)

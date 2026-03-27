@@ -63,11 +63,7 @@ class PolicyRepository:
         return self._session.get(PolicyModel, policy_id)
 
     def get_by_name(self, name: str) -> PolicyModel | None:
-        return (
-            self._session.query(PolicyModel)
-            .filter_by(name=name)
-            .first()
-        )
+        return self._session.query(PolicyModel).filter_by(name=name).first()
 
     def list_all(
         self, *, enabled_only: bool = False, limit: int = 100
@@ -139,7 +135,11 @@ class PipelineRunRepository:
         )
 
     def update_status(
-        self, run_id: str, *, status: str, error: str | None = None,
+        self,
+        run_id: str,
+        *,
+        status: str,
+        error: str | None = None,
         duration_ms: int | None = None,
     ) -> None:
         model = self.get_by_id(run_id)
@@ -265,9 +265,7 @@ class FetchCacheRepository:
             )
             self._session.add(model)
 
-    def invalidate(
-        self, provider: str, data_type: str | None = None
-    ) -> int:
+    def invalidate(self, provider: str, data_type: str | None = None) -> int:
         """Remove cached entries. Returns count deleted."""
         q = self._session.query(FetchCacheModel).filter_by(provider=provider)
         if data_type is not None:
@@ -374,11 +372,7 @@ class DeliveryRepository:
 
     def get_by_dedup_key(self, key: str) -> ReportDeliveryModel | None:
         """Look up delivery by dedup key for idempotency check."""
-        return (
-            self._session.query(ReportDeliveryModel)
-            .filter_by(dedup_key=key)
-            .first()
-        )
+        return self._session.query(ReportDeliveryModel).filter_by(dedup_key=key).first()
 
     def create(
         self,

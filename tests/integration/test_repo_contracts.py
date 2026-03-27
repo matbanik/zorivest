@@ -18,10 +18,12 @@ from __future__ import annotations
 from datetime import datetime
 
 import pytest
+from sqlalchemy.exc import IntegrityError
 from sqlalchemy.orm import Session
 
 from zorivest_core.domain.entities import (
     Account,
+    BalanceSnapshot,
     ImageAttachment,
     Trade,
     TradePlan,
@@ -35,6 +37,7 @@ from zorivest_core.domain.enums import (
 from zorivest_core.domain.market_provider_settings import MarketProviderSettings
 from zorivest_infra.database.repositories import (
     SqlAlchemyAccountRepository,
+    SqlAlchemyBalanceSnapshotRepository,
     SqlAlchemyImageRepository,
     SqlAlchemyTradePlanRepository,
     SqlAlchemyTradeReportRepository,
@@ -202,8 +205,8 @@ class TestTradeRepoContract:
             time=datetime(2026, 3, 15, 10, 30, 0),
             instrument="AAPL",
             action=TradeAction.SLD,  # Changed
-            quantity=200.0,          # Changed
-            price=155.00,            # Changed
+            quantity=200.0,  # Changed
+            price=155.00,  # Changed
             account_id="ACC001",
         )
         self.repo.update(updated)
@@ -233,6 +236,39 @@ class TestTradeRepoContract:
         self.repo.save(_trade("E010"))
         self.session.flush()
         assert self.repo.exists("E010")
+
+    def test_fk_rejects_orphan_account_id(self) -> None:
+        """AC-7: Trade with non-existent account_id raises IntegrityError.
+
+        SQLite PRAGMA foreign_keys must be set at connection time, before
+        any transaction. We create a dedicated engine with FK enforcement
+        enabled from the start, bypassing the shared test fixture.
+        """
+        from sqlalchemy import create_engine, event as sa_event
+        from zorivest_infra.database.models import Base as _Base
+
+        fk_engine = create_engine(
+            "sqlite://", echo=False, connect_args={"check_same_thread": False}
+        )
+
+        @sa_event.listens_for(fk_engine, "connect")
+        def _enable_fk(dbapi_conn, _rec):  # type: ignore[no-untyped-def]
+            dbapi_conn.execute("PRAGMA foreign_keys = ON")
+
+        _Base.metadata.create_all(fk_engine)
+
+        with fk_engine.connect() as conn:
+            session = Session(bind=conn)
+            # Create the parent account first (ACC001 exists for other trades)
+            # Intentionally do NOT create NONEXISTENT_ACCOUNT
+            repo = SqlAlchemyTradeRepository(session)
+            orphan_trade = _trade("E999", account_id="NONEXISTENT_ACCOUNT")
+            repo.save(orphan_trade)
+            with pytest.raises(IntegrityError):
+                session.flush()
+            session.rollback()
+            session.close()
+        fk_engine.dispose()
 
 
 # ── Account Repository Contract ─────────────────────────────────────────
@@ -298,6 +334,109 @@ class TestAccountRepoContract:
         assert found.account_type == AccountType.BANK
 
 
+# ── BalanceSnapshot Repository Contract (MEU-71) ────────────────────────
+
+
+class TestBalanceSnapshotRepoContract:
+    """Contract tests for SqlAlchemyBalanceSnapshotRepository (MEU-71 AC-4, AC-7)."""
+
+    @pytest.fixture(autouse=True)
+    def _setup(self, db_session: Session, _with_account: None) -> None:
+        self.session = db_session
+        self.repo = SqlAlchemyBalanceSnapshotRepository(db_session)
+
+    def _snap(
+        self, account_id: str = "ACC001", month: int = 1, balance: float = 50000.0
+    ) -> BalanceSnapshot:
+        from decimal import Decimal
+
+        return BalanceSnapshot(
+            id=0,
+            account_id=account_id,
+            datetime=datetime(2025, month, 15),
+            balance=Decimal(str(balance)),
+        )
+
+    def test_save_and_list_roundtrip(self) -> None:
+        """AC-4: save + list_for_account preserves data."""
+        self.repo.save(self._snap(month=1, balance=50000.0))
+        self.repo.save(self._snap(month=2, balance=52000.0))
+        self.session.flush()
+
+        snapshots = self.repo.list_for_account("ACC001")
+        assert len(snapshots) == 2
+        # Newest first
+        assert float(snapshots[0].balance) == 52000.0
+        assert float(snapshots[1].balance) == 50000.0
+
+    def test_get_latest_returns_most_recent(self) -> None:
+        """AC-4: get_latest returns the most recent snapshot."""
+        self.repo.save(self._snap(month=1, balance=50000.0))
+        self.repo.save(self._snap(month=3, balance=55000.0))
+        self.repo.save(self._snap(month=2, balance=52000.0))
+        self.session.flush()
+
+        latest = self.repo.get_latest("ACC001")
+        assert latest is not None
+        assert float(latest.balance) == 55000.0
+
+    def test_get_latest_returns_none_when_empty(self) -> None:
+        """AC-4: get_latest returns None for account with no snapshots."""
+        latest = self.repo.get_latest("ACC001")
+        assert latest is None
+
+    def test_list_for_account_pagination(self) -> None:
+        """AC-7: list_for_account respects limit/offset."""
+        for month in range(1, 6):
+            self.repo.save(self._snap(month=month, balance=50000.0 + month * 1000))
+        self.session.flush()
+
+        page1 = self.repo.list_for_account("ACC001", limit=2, offset=0)
+        assert len(page1) == 2
+        # Newest first — months 5, 4
+        assert float(page1[0].balance) == 55000.0
+        assert float(page1[1].balance) == 54000.0
+
+        page2 = self.repo.list_for_account("ACC001", limit=2, offset=2)
+        assert len(page2) == 2
+        # Months 3, 2
+        assert float(page2[0].balance) == 53000.0
+        assert float(page2[1].balance) == 52000.0
+
+    def test_count_for_account(self) -> None:
+        """AC-7: count_for_account returns total count."""
+        for month in range(1, 4):
+            self.repo.save(self._snap(month=month))
+        self.session.flush()
+
+        assert self.repo.count_for_account("ACC001") == 3
+        assert self.repo.count_for_account("NONEXISTENT") == 0
+
+    def test_list_for_account_isolates_accounts(self) -> None:
+        """AC-7: snapshots are isolated per account."""
+        # Add second account
+        acct_repo = SqlAlchemyAccountRepository(self.session)
+        acct_repo.save(
+            Account(
+                account_id="ACC002",
+                name="Other",
+                account_type=AccountType.BANK,
+            )
+        )
+        self.session.flush()
+
+        self.repo.save(self._snap(account_id="ACC001", month=1))
+        self.repo.save(self._snap(account_id="ACC002", month=2))
+        self.session.flush()
+
+        acc1 = self.repo.list_for_account("ACC001")
+        acc2 = self.repo.list_for_account("ACC002")
+        assert len(acc1) == 1
+        assert len(acc2) == 1
+        assert acc1[0].account_id == "ACC001"
+        assert acc2[0].account_id == "ACC002"
+
+
 # ── TradePlan Repository Contract ───────────────────────────────────────
 
 
@@ -355,6 +494,7 @@ class TestTradePlanRepoContract:
         self.session.flush()
 
         from dataclasses import replace
+
         updated = replace(plan, status="active", conviction="max")
         self.repo.update(updated)
         self.session.flush()

@@ -4,12 +4,12 @@ from enum import StrEnum
 
 
 class AccountType(StrEnum):
-    BROKER = "broker"           # Brokerage account (Interactive Brokers, etc.)
-    BANK = "bank"               # Checking/savings
-    REVOLVING = "revolving"     # Credit cards, lines of credit
-    INSTALLMENT = "installment" # Loans (mortgage, auto, student)
-    IRA = "ira"                 # Individual Retirement Account
-    K401 = "401k"               # Employer-sponsored retirement
+    BROKER = "broker"  # Brokerage account (Interactive Brokers, etc.)
+    BANK = "bank"  # Checking/savings
+    REVOLVING = "revolving"  # Credit cards, lines of credit
+    INSTALLMENT = "installment"  # Loans (mortgage, auto, student)
+    IRA = "ira"  # Individual Retirement Account
+    K401 = "401k"  # Employer-sponsored retirement
 
 
 class TradeAction(StrEnum):
@@ -40,9 +40,10 @@ class ImageOwnerType(StrEnum):
 
 class DisplayModeFlag(StrEnum):
     """GUI display privacy toggles — stored in user settings."""
-    HIDE_DOLLARS = "hide_dollars"            # Privacy mode — hide all $ amounts
-    HIDE_PERCENTAGES = "hide_percentages"    # Privacy mode — hide all % values
-    PERCENT_MODE = "percent_mode"            # Show % of total portfolio alongside $
+
+    HIDE_DOLLARS = "hide_dollars"  # Privacy mode — hide all $ amounts
+    HIDE_PERCENTAGES = "hide_percentages"  # Privacy mode — hide all % values
+    PERCENT_MODE = "percent_mode"  # Show % of total portfolio alongside $
 
 
 # ── Build Plan Expansion enums ──────────────────────────────────────────
@@ -131,12 +132,11 @@ class BalanceSource(StrEnum):  # §26
 class AuthMethod(StrEnum):
     """How the API key is passed to the market data provider."""
 
-    NONE = "none"                   # No authentication required (free providers)
+    NONE = "none"  # No authentication required (free providers)
     QUERY_PARAM = "query_param"
     BEARER_HEADER = "bearer_header"
     CUSTOM_HEADER = "custom_header"
     RAW_HEADER = "raw_header"
-
 
 
 # ── MEU-52: Trade report enums ──────────────────────────────────────────
@@ -144,6 +144,7 @@ class AuthMethod(StrEnum):
 
 class QualityGrade(StrEnum):
     """Trade quality rating — maps to int 1-5 for storage."""
+
     A = "A"  # Excellent (5)
     B = "B"  # Good (4)
     C = "C"  # Average (3)
@@ -156,15 +157,16 @@ class EmotionalState(StrEnum):
 
     Superset of MCP spec (05c L585-587) + GUI spec (06b L332).
     """
-    CALM = "calm"              # MCP + GUI
-    ANXIOUS = "anxious"        # MCP + GUI (implied)
-    FEARFUL = "fearful"        # MCP + GUI
-    GREEDY = "greedy"          # MCP + GUI
+
+    CALM = "calm"  # MCP + GUI
+    ANXIOUS = "anxious"  # MCP + GUI (implied)
+    FEARFUL = "fearful"  # MCP + GUI
+    GREEDY = "greedy"  # MCP + GUI
     FRUSTRATED = "frustrated"  # MCP
-    CONFIDENT = "confident"    # MCP + GUI
-    NEUTRAL = "neutral"        # MCP
-    IMPULSIVE = "impulsive"    # GUI
-    HESITANT = "hesitant"      # GUI
+    CONFIDENT = "confident"  # MCP + GUI
+    NEUTRAL = "neutral"  # MCP
+    IMPULSIVE = "impulsive"  # GUI
+    HESITANT = "hesitant"  # GUI
 
 
 # Grade ↔ int conversion (used by API/MCP layers)
@@ -177,6 +179,7 @@ QUALITY_GRADE_MAP: dict[int, str] = {v: k for k, v in QUALITY_INT_MAP.items()}
 
 class PipelineStatus(StrEnum):  # §9.1a
     """Overall execution status of a pipeline run."""
+
     PENDING = "pending"
     RUNNING = "running"
     SUCCESS = "success"
@@ -187,6 +190,7 @@ class PipelineStatus(StrEnum):  # §9.1a
 
 class StepErrorMode(StrEnum):  # §9.1b
     """How to handle step failures within a pipeline."""
+
     FAIL_PIPELINE = "fail_pipeline"
     LOG_AND_CONTINUE = "log_and_continue"
     RETRY_THEN_FAIL = "retry_then_fail"
@@ -194,6 +198,7 @@ class StepErrorMode(StrEnum):  # §9.1b
 
 class DataType(StrEnum):  # §9.4a (FetchStep.Params.data_type)
     """Market data types for fetch pipeline steps."""
+
     QUOTE = "quote"
     OHLCV = "ohlcv"
     NEWS = "news"
@@ -205,6 +210,7 @@ class DataType(StrEnum):  # §9.4a (FetchStep.Params.data_type)
 
 class BrokerType(StrEnum):  # §1 IBroker Interface Pattern
     """Registered broker identifiers for trade import."""
+
     IBKR = "ibkr"
     THINKORSWIM = "thinkorswim"
     NINJATRADER = "ninjatrader"
@@ -220,6 +226,7 @@ class BrokerType(StrEnum):  # §1 IBroker Interface Pattern
 
 class AssetClass(StrEnum):  # §1 IBroker Interface Pattern
     """Instrument classification for trade imports."""
+
     EQUITY = "EQUITY"
     OPTION = "OPTION"
     FUTURE = "FUTURE"
@@ -231,6 +238,7 @@ class AssetClass(StrEnum):  # §1 IBroker Interface Pattern
 
 class ImportStatus(StrEnum):  # ADR-0003
     """Import job result status — graceful degradation pattern."""
-    SUCCESS = "SUCCESS"    # All rows parsed successfully
-    PARTIAL = "PARTIAL"    # Some rows errored, others parsed
-    FAILED = "FAILED"      # No rows could be parsed
+
+    SUCCESS = "SUCCESS"  # All rows parsed successfully
+    PARTIAL = "PARTIAL"  # Some rows errored, others parsed
+    FAILED = "FAILED"  # No rows could be parsed

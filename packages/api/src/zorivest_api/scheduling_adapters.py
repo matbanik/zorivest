@@ -50,15 +50,29 @@ class PolicyStoreAdapter:
     - ``policy_json``: dict → JSON string on write, JSON string → dict on read
     """
 
-    _CREATE_KEYS = frozenset({
-        "id", "name", "schema_version", "policy_json",
-        "content_hash", "created_by", "enabled",
-    })
-    _UPDATE_KEYS = frozenset({
-        "name", "schema_version", "policy_json",
-        "content_hash", "enabled", "approved",
-        "approved_hash", "approved_at",
-    })
+    _CREATE_KEYS = frozenset(
+        {
+            "id",
+            "name",
+            "schema_version",
+            "policy_json",
+            "content_hash",
+            "created_by",
+            "enabled",
+        }
+    )
+    _UPDATE_KEYS = frozenset(
+        {
+            "name",
+            "schema_version",
+            "policy_json",
+            "content_hash",
+            "enabled",
+            "approved",
+            "approved_hash",
+            "approved_at",
+        }
+    )
 
     def __init__(self, uow: SqlAlchemyUnitOfWork) -> None:
         self._uow = uow
@@ -77,9 +91,7 @@ class PolicyStoreAdapter:
         model = self._uow.policies.get_by_id(policy_id)
         return _policy_model_to_dict(model) if model else None
 
-    async def list_all(
-        self, enabled_only: bool = False
-    ) -> list[dict[str, Any]]:
+    async def list_all(self, enabled_only: bool = False) -> list[dict[str, Any]]:
         models = self._uow.policies.list_all(enabled_only=enabled_only)
         return [_policy_model_to_dict(m) for m in models]
 
@@ -120,10 +132,18 @@ class RunStoreAdapter:
     - id → run_id (key remapped in all outputs)
     """
 
-    _CREATE_KEYS = frozenset({
-        "id", "policy_id", "status", "trigger_type",
-        "content_hash", "dry_run", "created_by", "started_at",
-    })
+    _CREATE_KEYS = frozenset(
+        {
+            "id",
+            "policy_id",
+            "status",
+            "trigger_type",
+            "content_hash",
+            "dry_run",
+            "created_by",
+            "started_at",
+        }
+    )
 
     def __init__(self, uow: SqlAlchemyUnitOfWork) -> None:
         self._uow = uow
@@ -147,18 +167,14 @@ class RunStoreAdapter:
         self, policy_id: str, limit: int = 20
     ) -> list[dict[str, Any]]:
         # Method renamed: list_for_policy → list_by_policy
-        models = self._uow.pipeline_runs.list_by_policy(
-            policy_id, limit=limit
-        )
+        models = self._uow.pipeline_runs.list_by_policy(policy_id, limit=limit)
         return [_run_model_to_dict(m) for m in models]
 
     async def list_recent(self, limit: int = 20) -> list[dict[str, Any]]:
         models = self._uow.pipeline_runs.list_recent(limit=limit)
         return [_run_model_to_dict(m) for m in models]
 
-    async def update(
-        self, run_id: str, data: dict[str, Any]
-    ) -> dict[str, Any] | None:
+    async def update(self, run_id: str, data: dict[str, Any]) -> dict[str, Any] | None:
         # Shape split: extract status/error/duration_ms from dict
         self._uow.pipeline_runs.update_status(
             run_id,
@@ -201,9 +217,7 @@ class AuditCounterAdapter:
         )
         self._uow.commit()
 
-    async def count_actions_since(
-        self, action: str, since: datetime
-    ) -> int:
+    async def count_actions_since(self, action: str, since: datetime) -> int:
         return (
             self._uow._session.query(AuditLogModel)  # noqa: SLF001  # pyright: ignore[reportOptionalMemberAccess]
             .filter(

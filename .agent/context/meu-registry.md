@@ -204,3 +204,5 @@ P2.75 (broker adapters): MEU-96 → MEU-99
 | MEU-90c | `sqlcipher-native-deps` | 49.2 | Resolve sqlcipher3 availability on Windows; clear 15 skipped encryption tests | 🚫 closed — won't fix locally; CI covered by `crypto-tests` job (ADR-001 A+B, human decision) |
 | MEU-90d | `rendering-deps` | 49.3 | Install + validate Playwright + kaleido rendering extras; clear 1 skipped RenderStep test | ✅ 2026-03-24 |
 | MEU-73 | `gui-email-settings` | 35c | Email Provider Settings GUI — full stack (backend model/repo/service/route, frontend page/route/nav, 16 tests) | ✅ 2026-03-25 |
+| MEU-71 | `account-api-completion` | 35a | Account API enrichment: `get_latest`/`list_for_account` on BalanceSnapshotRepo, `AccountService` portfolio total, enriched `AccountResponse` + balance history endpoint, FK enforcement (27 tests) | ✅ 2026-03-26 |
+| MEU-71b | `calculator-accounts` | 81a | Calculator Account Integration: `useAccounts` hook, account dropdown with All Accounts default + auto-fill, manual override, zero-total support (12 tests) | ✅ 2026-03-26 |

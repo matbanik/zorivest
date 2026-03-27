@@ -67,6 +67,7 @@ HUB_MAX_LINES = 150
 
 # ─── Data Structures ─────────────────────────────────────────────────────
 
+
 @dataclass
 class Issue:
     severity: str  # ERROR, WARNING
@@ -96,27 +97,34 @@ class ValidationResult:
 
 # ─── Validators ───────────────────────────────────────────────────────────
 
+
 def check_file_completeness(result: ValidationResult) -> None:
     """Check that all expected files exist."""
     for filename in EXPECTED_FILES:
         filepath = BUILD_PLAN_DIR / filename
         if not filepath.exists():
-            result.issues.append(Issue(
-                severity="ERROR",
-                check="file_completeness",
-                file=filename,
-                message=f"Expected file missing: {filepath}",
-            ))
+            result.issues.append(
+                Issue(
+                    severity="ERROR",
+                    check="file_completeness",
+                    file=filename,
+                    message=f"Expected file missing: {filepath}",
+                )
+            )
 
     if not HUB_FILE.exists():
-        result.issues.append(Issue(
-            severity="ERROR",
-            check="file_completeness",
-            file="BUILD_PLAN.md",
-            message=f"Hub file missing: {HUB_FILE}",
-        ))
+        result.issues.append(
+            Issue(
+                severity="ERROR",
+                check="file_completeness",
+                file="BUILD_PLAN.md",
+                message=f"Hub file missing: {HUB_FILE}",
+            )
+        )
 
-    existing = [f.name for f in BUILD_PLAN_DIR.glob("*.md")] if BUILD_PLAN_DIR.exists() else []
+    existing = (
+        [f.name for f in BUILD_PLAN_DIR.glob("*.md")] if BUILD_PLAN_DIR.exists() else []
+    )
     result.stats["expected_files"] = len(EXPECTED_FILES)
     result.stats["existing_files"] = len(existing)
     result.stats["missing_files"] = len(EXPECTED_FILES) - len(
@@ -137,14 +145,16 @@ def check_hub_links(result: ValidationResult) -> None:
         link_text, target = match.group(1), match.group(2)
         target_path = DOCS_DIR / "build-plan" / target
         if not target_path.exists():
-            line_num = content[:match.start()].count("\n") + 1
-            result.issues.append(Issue(
-                severity="ERROR",
-                check="hub_links",
-                file="BUILD_PLAN.md",
-                message=f"Broken link to '{target}' (text: '{link_text}')",
-                line=line_num,
-            ))
+            line_num = content[: match.start()].count("\n") + 1
+            result.issues.append(
+                Issue(
+                    severity="ERROR",
+                    check="hub_links",
+                    file="BUILD_PLAN.md",
+                    message=f"Broken link to '{target}' (text: '{link_text}')",
+                    line=line_num,
+                )
+            )
 
 
 def check_hub_size(result: ValidationResult) -> None:
@@ -157,24 +167,28 @@ def check_hub_size(result: ValidationResult) -> None:
     result.stats["hub_lines"] = line_count
 
     if line_count > HUB_MAX_LINES:
-        result.issues.append(Issue(
-            severity="WARNING",
-            check="hub_size",
-            file="BUILD_PLAN.md",
-            message=f"Hub file has {line_count} lines (max recommended: {HUB_MAX_LINES}). "
-                    "It may still contain monolithic content.",
-        ))
+        result.issues.append(
+            Issue(
+                severity="WARNING",
+                check="hub_size",
+                file="BUILD_PLAN.md",
+                message=f"Hub file has {line_count} lines (max recommended: {HUB_MAX_LINES}). "
+                "It may still contain monolithic content.",
+            )
+        )
 
     # Check for code blocks — hub should have minimal code
     code_blocks = content.count("```")
     if code_blocks > 6:  # Allow a few for the dependency diagram
-        result.issues.append(Issue(
-            severity="WARNING",
-            check="hub_size",
-            file="BUILD_PLAN.md",
-            message=f"Hub file has {code_blocks // 2} code blocks. "
-                    "Code should be in phase files, not the hub.",
-        ))
+        result.issues.append(
+            Issue(
+                severity="WARNING",
+                check="hub_size",
+                file="BUILD_PLAN.md",
+                message=f"Hub file has {code_blocks // 2} code blocks. "
+                "Code should be in phase files, not the hub.",
+            )
+        )
 
 
 def check_cross_references(result: ValidationResult) -> None:
@@ -202,26 +216,30 @@ def check_cross_references(result: ValidationResult) -> None:
                 # Handle multi-parent paths (../../_inspiration/..., ../BUILD_PLAN.md, etc.)
                 resolved = (BUILD_PLAN_DIR / target_path_str).resolve()
                 if not resolved.exists():
-                    line_num = content[:match.start()].count("\n") + 1
-                    result.issues.append(Issue(
+                    line_num = content[: match.start()].count("\n") + 1
+                    result.issues.append(
+                        Issue(
+                            severity="ERROR",
+                            check="cross_references",
+                            file=md_file.name,
+                            message=f"Broken link to '{target}' (text: '{link_text}')",
+                            line=line_num,
+                        )
+                    )
+                continue
+
+            # Check sibling file references
+            if target_path_str not in existing_files:
+                line_num = content[: match.start()].count("\n") + 1
+                result.issues.append(
+                    Issue(
                         severity="ERROR",
                         check="cross_references",
                         file=md_file.name,
                         message=f"Broken link to '{target}' (text: '{link_text}')",
                         line=line_num,
-                    ))
-                continue
-
-            # Check sibling file references
-            if target_path_str not in existing_files:
-                line_num = content[:match.start()].count("\n") + 1
-                result.issues.append(Issue(
-                    severity="ERROR",
-                    check="cross_references",
-                    file=md_file.name,
-                    message=f"Broken link to '{target}' (text: '{link_text}')",
-                    line=line_num,
-                ))
+                    )
+                )
 
 
 def check_phase_numbering(result: ValidationResult) -> None:
@@ -248,13 +266,15 @@ def check_phase_numbering(result: ValidationResult) -> None:
         if h1_match:
             content_num = int(h1_match.group(1))
             if content_num != file_num:
-                result.issues.append(Issue(
-                    severity="ERROR",
-                    check="phase_numbering",
-                    file=filename,
-                    message=f"File number ({file_num:02d}) doesn't match "
-                            f"heading Phase {content_num}",
-                ))
+                result.issues.append(
+                    Issue(
+                        severity="ERROR",
+                        check="phase_numbering",
+                        file=filename,
+                        message=f"File number ({file_num:02d}) doesn't match "
+                        f"heading Phase {content_num}",
+                    )
+                )
 
 
 def check_required_sections(result: ValidationResult) -> None:
@@ -267,12 +287,14 @@ def check_required_sections(result: ValidationResult) -> None:
         content = filepath.read_text(encoding="utf-8")
         for section in REQUIRED_PHASE_SECTIONS:
             if section not in content:
-                result.issues.append(Issue(
-                    severity="WARNING",
-                    check="required_sections",
-                    file=filename,
-                    message=f"Missing required section: '{section}'",
-                ))
+                result.issues.append(
+                    Issue(
+                        severity="WARNING",
+                        check="required_sections",
+                        file=filename,
+                        message=f"Missing required section: '{section}'",
+                    )
+                )
 
 
 def check_build_order_numbering(result: ValidationResult) -> None:
@@ -298,12 +320,14 @@ def check_build_order_numbering(result: ValidationResult) -> None:
     seen = set()
     for order in found_orders:
         if order in seen:
-            result.issues.append(Issue(
-                severity="ERROR",
-                check="build_order",
-                file="build-priority-matrix.md",
-                message=f"Duplicate build order number: {order}",
-            ))
+            result.issues.append(
+                Issue(
+                    severity="ERROR",
+                    check="build_order",
+                    file="build-priority-matrix.md",
+                    message=f"Duplicate build order number: {order}",
+                )
+            )
         seen.add(order)
 
     # Check that numeric orders (excluding suffixed like 3a, 3b, 3c) are sequential
@@ -313,14 +337,18 @@ def check_build_order_numbering(result: ValidationResult) -> None:
         for i in range(1, expected_max + 1):
             if i not in numeric_orders:
                 # Check if it has a suffix variant
-                suffixed = [o for o in found_orders if o.startswith(str(i)) and not o.isdigit()]
+                suffixed = [
+                    o for o in found_orders if o.startswith(str(i)) and not o.isdigit()
+                ]
                 if not suffixed:
-                    result.issues.append(Issue(
-                        severity="WARNING",
-                        check="build_order",
-                        file="build-priority-matrix.md",
-                        message=f"Missing build order number: {i}",
-                    ))
+                    result.issues.append(
+                        Issue(
+                            severity="WARNING",
+                            check="build_order",
+                            file="build-priority-matrix.md",
+                            message=f"Missing build order number: {i}",
+                        )
+                    )
 
     result.stats["max_build_order"] = max(numeric_orders) if numeric_orders else 0
 
@@ -337,15 +365,18 @@ def check_prerequisite_chain(result: ValidationResult) -> None:
         content = filepath.read_text(encoding="utf-8")
         match = prereq_pattern.search(content)
         if not match:
-            result.issues.append(Issue(
-                severity="WARNING",
-                check="prerequisites",
-                file=filename,
-                message="No prerequisites line found in header",
-            ))
+            result.issues.append(
+                Issue(
+                    severity="WARNING",
+                    check="prerequisites",
+                    file=filename,
+                    message="No prerequisites line found in header",
+                )
+            )
 
 
 # ─── Runner ───────────────────────────────────────────────────────────────
+
 
 def run_validation(verbose: bool = False) -> ValidationResult:
     """Run all validation checks and return results."""
@@ -421,25 +452,29 @@ def format_text_report(result: ValidationResult) -> str:
 
 def format_json_report(result: ValidationResult) -> str:
     """Format validation results as JSON for CI integration."""
-    return json.dumps({
-        "passed": result.passed,
-        "error_count": len(result.errors),
-        "warning_count": len(result.warnings),
-        "stats": result.stats,
-        "issues": [
-            {
-                "severity": i.severity,
-                "check": i.check,
-                "file": i.file,
-                "message": i.message,
-                "line": i.line,
-            }
-            for i in result.issues
-        ],
-    }, indent=2)
+    return json.dumps(
+        {
+            "passed": result.passed,
+            "error_count": len(result.errors),
+            "warning_count": len(result.warnings),
+            "stats": result.stats,
+            "issues": [
+                {
+                    "severity": i.severity,
+                    "check": i.check,
+                    "file": i.file,
+                    "message": i.message,
+                    "line": i.line,
+                }
+                for i in result.issues
+            ],
+        },
+        indent=2,
+    )
 
 
 # ─── CLI ──────────────────────────────────────────────────────────────────
+
 
 def main():
     # Ensure UTF-8 output on Windows (emoji-safe on cp1252 consoles)
@@ -450,10 +485,15 @@ def main():
     parser = argparse.ArgumentParser(
         description="Validate Zorivest build plan structure and cross-references."
     )
-    parser.add_argument("-v", "--verbose", action="store_true",
-                        help="Show detailed output for each check")
-    parser.add_argument("--json", action="store_true",
-                        help="Output results as JSON (for CI)")
+    parser.add_argument(
+        "-v",
+        "--verbose",
+        action="store_true",
+        help="Show detailed output for each check",
+    )
+    parser.add_argument(
+        "--json", action="store_true", help="Output results as JSON (for CI)"
+    )
     args = parser.parse_args()
 
     if args.verbose:

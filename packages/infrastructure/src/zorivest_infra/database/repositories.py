@@ -364,14 +364,40 @@ class SqlAlchemyBalanceSnapshotRepository:
         )
         self._session.add(m)
 
-    def list_for_account(self, account_id: str) -> list[BalanceSnapshot]:
+    def get_latest(self, account_id: str) -> BalanceSnapshot | None:
+        """Return the most recent balance snapshot for an account, or None."""
+        row = (
+            self._session.query(BalanceSnapshotModel)
+            .filter(BalanceSnapshotModel.account_id == account_id)
+            .order_by(BalanceSnapshotModel.datetime.desc())
+            .first()
+        )
+        return _model_to_snapshot(row) if row else None
+
+    def list_for_account(
+        self,
+        account_id: str,
+        limit: int = 100,
+        offset: int = 0,
+    ) -> list[BalanceSnapshot]:
+        """Return balance snapshots for an account with pagination, newest first."""
         rows = (
             self._session.query(BalanceSnapshotModel)
             .filter(BalanceSnapshotModel.account_id == account_id)
             .order_by(BalanceSnapshotModel.datetime.desc())
+            .offset(offset)
+            .limit(limit)
             .all()
         )
         return [_model_to_snapshot(r) for r in rows]
+
+    def count_for_account(self, account_id: str) -> int:
+        """Return total count of balance snapshots for an account."""
+        return (
+            self._session.query(BalanceSnapshotModel)
+            .filter(BalanceSnapshotModel.account_id == account_id)
+            .count()
+        )
 
 
 class SqlAlchemyRoundTripRepository:

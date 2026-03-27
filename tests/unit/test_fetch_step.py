@@ -85,10 +85,12 @@ def test_AC_F4_criteria_resolver_relative_dates():
     from zorivest_core.services.criteria_resolver import CriteriaResolver
 
     resolver = CriteriaResolver()
-    result = resolver.resolve({
-        "date_range": {"type": "relative", "expr": "-30d"},
-        "symbol": "AAPL",
-    })
+    result = resolver.resolve(
+        {
+            "date_range": {"type": "relative", "expr": "-30d"},
+            "symbol": "AAPL",
+        }
+    )
 
     # Static field should pass through unchanged
     assert result["symbol"] == "AAPL"
@@ -155,6 +157,7 @@ def test_AC_F6_fetch_result_cache_status_default():
     assert result.cache_status == "miss"
     # Value: verify content_hash is computed for the data
     import hashlib
+
     assert result.content_hash == hashlib.sha256(b"data").hexdigest()
 
 
@@ -284,11 +287,15 @@ async def test_AC_F11_fetch_step_cache_hit():
     cached_content = b"cached_ohlcv_data"
 
     # Mock the cache and provider
-    with patch.object(step, "_check_cache", return_value={
-        "content": cached_content,
-        "cache_status": "hit",
-        "etag": "etag-1",
-    }):
+    with patch.object(
+        step,
+        "_check_cache",
+        return_value={
+            "content": cached_content,
+            "cache_status": "hit",
+            "etag": "etag-1",
+        },
+    ):
         result = await step.execute(
             params={
                 "provider": "ibkr",
@@ -421,6 +428,7 @@ def test_AC_F15_step_registration_via_import():
 
     # Clear registry first to test fresh import
     import zorivest_core.pipeline_steps  # noqa: F401
+
     step_cls = get_step("fetch")
     assert step_cls is not None
     assert step_cls.type_name == "fetch"
@@ -574,6 +582,7 @@ async def test_AC_F18_fetch_step_db_query_criteria_with_connection():
     assert "start_date" in dates
     assert "end_date" in dates
     from datetime import datetime
+
     assert isinstance(dates["start_date"], datetime)
     assert dates["start_date"].year == 2026
     assert dates["start_date"].month == 1

@@ -191,7 +191,12 @@ class TestMarketDataPort:
             )
             if not name.startswith("_")
         }
-        assert public_methods == {"get_quote", "get_news", "search_ticker", "get_sec_filings"}
+        assert public_methods == {
+            "get_quote",
+            "get_news",
+            "search_ticker",
+            "get_sec_filings",
+        }
 
     def test_market_data_port_has_get_quote(self) -> None:
         from zorivest_core.application.ports import MarketDataPort
@@ -200,7 +205,9 @@ class TestMarketDataPort:
         sig = inspect.signature(MarketDataPort.get_quote)
         params = list(sig.parameters.keys())
         # Value: verify exact parameter names
-        assert params == ["self", "ticker"], f"Expected ['self', 'ticker'], got {params}"
+        assert params == ["self", "ticker"], (
+            f"Expected ['self', 'ticker'], got {params}"
+        )
 
     def test_market_data_port_has_get_news(self) -> None:
         from zorivest_core.application.ports import MarketDataPort
@@ -229,17 +236,22 @@ class TestMarketDataPort:
         sig = inspect.signature(MarketDataPort.get_sec_filings)
         params = list(sig.parameters.keys())
         # Value: verify exact parameter names
-        assert params == ["self", "ticker"], f"Expected ['self', 'ticker'], got {params}"
+        assert params == ["self", "ticker"], (
+            f"Expected ['self', 'ticker'], got {params}"
+        )
 
     def test_market_data_port_methods_are_async(self) -> None:
         """All 4 methods should be coroutine functions."""
         from zorivest_core.application.ports import MarketDataPort
 
-        for method_name in ("get_quote", "get_news", "search_ticker", "get_sec_filings"):
+        for method_name in (
+            "get_quote",
+            "get_news",
+            "search_ticker",
+            "get_sec_filings",
+        ):
             method = getattr(MarketDataPort, method_name)
-            assert inspect.iscoroutinefunction(method), (
-                f"{method_name} should be async"
-            )
+            assert inspect.iscoroutinefunction(method), f"{method_name} should be async"
 
     def test_market_data_port_return_annotations(self) -> None:
         """Return annotations must reference actual DTO types, not Any."""

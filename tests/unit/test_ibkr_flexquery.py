@@ -127,9 +127,7 @@ class TestSymbolNormalization:
 
     def test_fractional_strike_preserved(self):
         """Regression: fractional strikes must not be truncated by integer division."""
-        result = IBKRFlexQueryAdapter._normalize_symbol(
-            "AAPL  260320C00200500", "OPT"
-        )
+        result = IBKRFlexQueryAdapter._normalize_symbol("AAPL  260320C00200500", "OPT")
         assert result == "AAPL 260320 C 200.5"
 
 
@@ -176,7 +174,9 @@ class TestErrorHandling:
         result = adapter.parse_file(flexquery_malformed_xml_file)
         assert result.status == ImportStatus.PARTIAL
 
-    def test_malformed_row_valid_trades_still_parsed(self, flexquery_malformed_xml_file):
+    def test_malformed_row_valid_trades_still_parsed(
+        self, flexquery_malformed_xml_file
+    ):
         adapter = IBKRFlexQueryAdapter()
         result = adapter.parse_file(flexquery_malformed_xml_file)
         # One valid AAPL trade + one malformed → 1 parsed
@@ -255,7 +255,11 @@ class TestRawDataPreservation:
         assert isinstance(trade.raw_data, dict)
         assert len(trade.raw_data) > 0
         # Value: verify expected IBKR fields are in raw_data
-        assert "symbol" in trade.raw_data or "Symbol" in trade.raw_data or any(k for k in trade.raw_data)
+        assert (
+            "symbol" in trade.raw_data
+            or "Symbol" in trade.raw_data
+            or any(k for k in trade.raw_data)
+        )
 
     def test_raw_data_preserves_order_ref(self, flexquery_xml_file):
         adapter = IBKRFlexQueryAdapter()

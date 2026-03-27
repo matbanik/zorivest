@@ -29,17 +29,27 @@ class SendStep(RegisteredStep):
     class Params(BaseModel):
         """SendStep parameter schema — validated before execute()."""
 
-        channel: str = Field(..., description="Delivery channel: 'email' or 'local_file'")
+        channel: str = Field(
+            ..., description="Delivery channel: 'email' or 'local_file'"
+        )
         recipients: list[str] = Field(
             ..., max_length=5, description="List of recipients (max 5)"
         )
         subject: str = Field(default="", description="Email subject line")
         body_template: str = Field(default="", description="HTML body template name")
         # Ref-resolved fields from prior pipeline steps (Local Canon §9.3a)
-        report_id: Optional[str] = Field(default=None, description="Report ID from store_report step")
-        snapshot_hash: Optional[str] = Field(default=None, description="Snapshot hash from store_report step")
-        pdf_path: Optional[str] = Field(default=None, description="PDF path from render step")
-        html_body: Optional[str] = Field(default=None, description="HTML body from render step")
+        report_id: Optional[str] = Field(
+            default=None, description="Report ID from store_report step"
+        )
+        snapshot_hash: Optional[str] = Field(
+            default=None, description="Snapshot hash from store_report step"
+        )
+        pdf_path: Optional[str] = Field(
+            default=None, description="PDF path from render step"
+        )
+        html_body: Optional[str] = Field(
+            default=None, description="HTML body from render step"
+        )
 
     async def execute(self, params: dict, context: StepContext) -> StepResult:
         """Execute the send step.
@@ -83,8 +93,11 @@ class SendStep(RegisteredStep):
             from zorivest_infra.email.delivery_tracker import compute_dedup_key
             from zorivest_infra.email.email_sender import send_report_email
         except ImportError:
-            return {"sent": 0, "failed": len(params.recipients),
-                    "deliveries": [{"error": "zorivest_infra.email not available"}]}
+            return {
+                "sent": 0,
+                "failed": len(params.recipients),
+                "deliveries": [{"error": "zorivest_infra.email not available"}],
+            }
 
         delivery_repo = context.outputs.get("delivery_repository")
         sent = 0
@@ -110,15 +123,19 @@ class SendStep(RegisteredStep):
             if delivery_repo is not None:
                 existing = delivery_repo.get_by_dedup_key(dedup_key)
                 if existing is not None:
-                    deliveries.append({
-                        "recipient": recipient,
-                        "status": "skipped",
-                        "reason": "duplicate",
-                    })
+                    deliveries.append(
+                        {
+                            "recipient": recipient,
+                            "status": "skipped",
+                            "reason": "duplicate",
+                        }
+                    )
                     continue
 
             # Send email
-            html_body = params.html_body or params.body_template or "<p>Report attached</p>"
+            html_body = (
+                params.html_body or params.body_template or "<p>Report attached</p>"
+            )
             success, msg = await send_report_email(
                 smtp_host=smtp_host,
                 smtp_port=smtp_port,
@@ -143,15 +160,17 @@ class SendStep(RegisteredStep):
                 deliveries.append({"recipient": recipient, "status": "sent"})
             else:
                 failed += 1
-                deliveries.append({
-                    "recipient": recipient, "status": "failed", "error": msg,
-                })
+                deliveries.append(
+                    {
+                        "recipient": recipient,
+                        "status": "failed",
+                        "error": msg,
+                    }
+                )
 
         return {"sent": sent, "failed": failed, "deliveries": deliveries}
 
-    async def _save_local(
-        self, params: Params, context: StepContext
-    ) -> dict[str, Any]:
+    async def _save_local(self, params: Params, context: StepContext) -> dict[str, Any]:
         """Copy rendered output to local file paths."""
         sent = 0
         failed = 0
@@ -172,8 +191,12 @@ class SendStep(RegisteredStep):
                 deliveries.append({"recipient": dest_path, "status": "sent"})
             except Exception as exc:
                 failed += 1
-                deliveries.append({
-                    "recipient": dest_path, "status": "failed", "error": str(exc),
-                })
+                deliveries.append(
+                    {
+                        "recipient": dest_path,
+                        "status": "failed",
+                        "error": str(exc),
+                    }
+                )
 
         return {"sent": sent, "failed": failed, "deliveries": deliveries}

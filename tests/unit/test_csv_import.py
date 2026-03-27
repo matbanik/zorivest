@@ -5,7 +5,6 @@ Tests written FIRST per TDD protocol. Covers CSVParserBase, TOS parser,
 NinjaTrader parser, and ImportService auto-detection routing.
 """
 
-
 import pytest
 
 from zorivest_core.domain.enums import AssetClass, BrokerType, ImportStatus, TradeAction
@@ -39,7 +38,10 @@ class TestCSVParserBaseEncoding:
         # chardet may detect as ISO-8859-1 or Windows-1252
         assert encoding is not None
         # Value: verify it's a recognized Latin-family encoding
-        assert any(name in encoding.lower() for name in ("iso-8859", "windows-1252", "latin", "8859"))
+        assert any(
+            name in encoding.lower()
+            for name in ("iso-8859", "windows-1252", "latin", "8859")
+        )
 
     def test_strip_bom(self):
         parser = ThinkorSwimCSVParser()
@@ -60,8 +62,20 @@ class TestThinkorSwimParser:
 
     def test_detect_tos_headers(self):
         parser = ThinkorSwimCSVParser()
-        tos_headers = ["Exec Time", "Spread", "Side", "Qty", "Pos Effect",
-                       "Symbol", "Exp", "Strike", "Type", "Price", "Net Price", "Order Type"]
+        tos_headers = [
+            "Exec Time",
+            "Spread",
+            "Side",
+            "Qty",
+            "Pos Effect",
+            "Symbol",
+            "Exp",
+            "Strike",
+            "Type",
+            "Price",
+            "Net Price",
+            "Order Type",
+        ]
         assert parser.detect(tos_headers) is True
 
     def test_reject_non_tos_headers(self):
@@ -91,7 +105,9 @@ class TestThinkorSwimParser:
     def test_stock_trade_fields(self, tos_csv_file):
         parser = ThinkorSwimCSVParser()
         result = parser.parse_file(tos_csv_file)
-        stock_trades = [t for t in result.executions if t.asset_class == AssetClass.EQUITY]
+        stock_trades = [
+            t for t in result.executions if t.asset_class == AssetClass.EQUITY
+        ]
         assert len(stock_trades) >= 1
         trade = stock_trades[0]
         assert trade.symbol == "AAPL"
@@ -101,7 +117,9 @@ class TestThinkorSwimParser:
     def test_option_trade_symbol_normalized(self, tos_csv_file):
         parser = ThinkorSwimCSVParser()
         result = parser.parse_file(tos_csv_file)
-        option_trades = [t for t in result.executions if t.asset_class == AssetClass.OPTION]
+        option_trades = [
+            t for t in result.executions if t.asset_class == AssetClass.OPTION
+        ]
         if option_trades:
             assert "AAPL" in option_trades[0].symbol
 
@@ -135,8 +153,16 @@ class TestNinjaTraderParser:
 
     def test_detect_ninjatrader_headers(self):
         parser = NinjaTraderCSVParser()
-        nt_headers = ["Trade-#", "Instrument", "Account", "Strategy",
-                      "Market pos.", "Quantity", "Entry price", "Exit price"]
+        nt_headers = [
+            "Trade-#",
+            "Instrument",
+            "Account",
+            "Strategy",
+            "Market pos.",
+            "Quantity",
+            "Entry price",
+            "Exit price",
+        ]
         assert parser.detect(nt_headers) is True
 
     def test_reject_non_ninjatrader_headers(self):
@@ -203,29 +229,35 @@ class TestImportServiceRouting:
 
     def test_import_xml_routes_to_ibkr(self, flexquery_xml_file):
         from zorivest_infra.broker_adapters.ibkr_flexquery import IBKRFlexQueryAdapter
+
         service = ImportService(adapters=[IBKRFlexQueryAdapter()])
         result = service.import_file(flexquery_xml_file)
         assert result.broker == BrokerType.IBKR
         assert result.status == ImportStatus.SUCCESS
 
     def test_import_csv_auto_detects_tos(self, tos_csv_file):
-        service = ImportService(adapters=[
-            ThinkorSwimCSVParser(),
-            NinjaTraderCSVParser(),
-        ])
+        service = ImportService(
+            adapters=[
+                ThinkorSwimCSVParser(),
+                NinjaTraderCSVParser(),
+            ]
+        )
         result = service.import_file(tos_csv_file)
         assert result.broker == BrokerType.THINKORSWIM
 
     def test_import_csv_auto_detects_ninjatrader(self, ninjatrader_csv_file):
-        service = ImportService(adapters=[
-            ThinkorSwimCSVParser(),
-            NinjaTraderCSVParser(),
-        ])
+        service = ImportService(
+            adapters=[
+                ThinkorSwimCSVParser(),
+                NinjaTraderCSVParser(),
+            ]
+        )
         result = service.import_file(ninjatrader_csv_file)
         assert result.broker == BrokerType.NINJATRADER
 
     def test_broker_hint_overrides_detection(self, flexquery_xml_file):
         from zorivest_infra.broker_adapters.ibkr_flexquery import IBKRFlexQueryAdapter
+
         service = ImportService(adapters=[IBKRFlexQueryAdapter()])
         result = service.import_file(flexquery_xml_file, broker_hint=BrokerType.IBKR)
         assert result.broker == BrokerType.IBKR
@@ -233,28 +265,34 @@ class TestImportServiceRouting:
     def test_unknown_csv_raises_error(self, tmp_path):
         f = tmp_path / "unknown.csv"
         f.write_text("col_a,col_b,col_c\n1,2,3\n", encoding="utf-8")
-        service = ImportService(adapters=[
-            ThinkorSwimCSVParser(),
-            NinjaTraderCSVParser(),
-        ])
+        service = ImportService(
+            adapters=[
+                ThinkorSwimCSVParser(),
+                NinjaTraderCSVParser(),
+            ]
+        )
         with pytest.raises(UnknownBrokerFormat, match="col_a"):
             service.import_file(f)
 
     def test_auto_detect_csv_broker(self, tos_csv_file):
-        service = ImportService(adapters=[
-            ThinkorSwimCSVParser(),
-            NinjaTraderCSVParser(),
-        ])
+        service = ImportService(
+            adapters=[
+                ThinkorSwimCSVParser(),
+                NinjaTraderCSVParser(),
+            ]
+        )
         broker = service.auto_detect_csv_broker(tos_csv_file)
         assert broker == BrokerType.THINKORSWIM
 
     def test_unknown_format_auto_detect(self, tmp_path):
         f = tmp_path / "random.csv"
         f.write_text("x,y,z\n1,2,3\n", encoding="utf-8")
-        service = ImportService(adapters=[
-            ThinkorSwimCSVParser(),
-            NinjaTraderCSVParser(),
-        ])
+        service = ImportService(
+            adapters=[
+                ThinkorSwimCSVParser(),
+                NinjaTraderCSVParser(),
+            ]
+        )
         with pytest.raises(UnknownBrokerFormat):
             service.auto_detect_csv_broker(f)
 
@@ -297,10 +335,12 @@ class TestEdgeCases:
             "3/10/2026 9:31:00 AM,3/10/2026 10:00:00 AM,500.00,500.00,4.12,50.00,600.00\n"
         )
         f.write_text(content, encoding="utf-8-sig")
-        service = ImportService(adapters=[
-            ThinkorSwimCSVParser(),
-            NinjaTraderCSVParser(),
-        ])
+        service = ImportService(
+            adapters=[
+                ThinkorSwimCSVParser(),
+                NinjaTraderCSVParser(),
+            ]
+        )
         result = service.import_file(f)
         assert result.broker == BrokerType.NINJATRADER
         assert result.parsed_rows >= 1

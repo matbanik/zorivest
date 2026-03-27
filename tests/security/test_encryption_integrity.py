@@ -163,9 +163,7 @@ class TestPragmaIntegrity:
         assert result[0] == "ok"
         conn.close()
 
-    def test_pragma_integrity_check_fails_wrong_key(
-        self, encrypted_db: Path
-    ) -> None:
+    def test_pragma_integrity_check_fails_wrong_key(self, encrypted_db: Path) -> None:
         """Wrong key → cannot even read sqlite_master."""
         conn = _open_encrypted(str(encrypted_db), WRONG_PASSPHRASE)
         with pytest.raises(Exception):  # noqa: B017 — DatabaseError varies
@@ -263,9 +261,7 @@ class TestEncryptedWAL:
 class TestBackupEncryption:
     """Backup copies of encrypted DBs remain encrypted."""
 
-    def test_backup_file_encrypted(
-        self, encrypted_db: Path, tmp_dir: Path
-    ) -> None:
+    def test_backup_file_encrypted(self, encrypted_db: Path, tmp_dir: Path) -> None:
         """File-level copy of encrypted DB is also unreadable as plaintext."""
         backup_path = tmp_dir / "backup.db"
         shutil.copy2(encrypted_db, backup_path)
@@ -274,9 +270,7 @@ class TestBackupEncryption:
         assert b"AAPL" not in raw
         assert b"MSFT" not in raw
 
-    def test_backup_restore_roundtrip(
-        self, encrypted_db: Path, tmp_dir: Path
-    ) -> None:
+    def test_backup_restore_roundtrip(self, encrypted_db: Path, tmp_dir: Path) -> None:
         """Backup → restore with same key → data intact."""
         backup_path = tmp_dir / "backup.db"
         shutil.copy2(encrypted_db, backup_path)

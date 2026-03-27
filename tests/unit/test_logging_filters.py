@@ -5,8 +5,6 @@ from __future__ import annotations
 import logging
 
 
-
-
 from zorivest_infra.logging.filters import CatchallFilter, FeatureFilter
 
 

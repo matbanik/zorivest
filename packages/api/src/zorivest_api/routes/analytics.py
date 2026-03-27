@@ -11,7 +11,11 @@ from typing import Any
 
 from fastapi import APIRouter, Depends
 
-from zorivest_api.dependencies import get_analytics_service, get_review_service, require_unlocked_db
+from zorivest_api.dependencies import (
+    get_analytics_service,
+    get_review_service,
+    require_unlocked_db,
+)
 
 analytics_router = APIRouter(
     prefix="/api/v1/analytics",

@@ -110,13 +110,15 @@ def test_AC_T5_validate_valid_ohlcv():
     """validate_dataframe passes all-valid OHLCV data through."""
     from zorivest_core.services.validation_gate import validate_dataframe
 
-    df = pd.DataFrame({
-        "open": [100.0, 101.0],
-        "high": [105.0, 106.0],
-        "low": [99.0, 100.0],
-        "close": [103.0, 104.0],
-        "volume": [1000000, 1100000],
-    })
+    df = pd.DataFrame(
+        {
+            "open": [100.0, 101.0],
+            "high": [105.0, 106.0],
+            "low": [99.0, 100.0],
+            "close": [103.0, 104.0],
+            "volume": [1000000, 1100000],
+        }
+    )
 
     valid, quarantined = validate_dataframe(df, schema_name="ohlcv")
 
@@ -133,13 +135,15 @@ def test_AC_T6_validate_quarantines_invalid():
     """validate_dataframe quarantines records with negative prices."""
     from zorivest_core.services.validation_gate import validate_dataframe
 
-    df = pd.DataFrame({
-        "open": [100.0, -5.0],    # Second row has negative open
-        "high": [105.0, 106.0],
-        "low": [99.0, 100.0],
-        "close": [103.0, 104.0],
-        "volume": [1000000, 1100000],
-    })
+    df = pd.DataFrame(
+        {
+            "open": [100.0, -5.0],  # Second row has negative open
+            "high": [105.0, 106.0],
+            "low": [99.0, 100.0],
+            "close": [103.0, 104.0],
+            "volume": [1000000, 1100000],
+        }
+    )
 
     valid, quarantined = validate_dataframe(df, schema_name="ohlcv")
 
@@ -205,7 +209,10 @@ def test_AC_T9_validate_columns_rejects_unknown():
     )
 
     # Valid OHLCV columns
-    assert validate_columns("market_ohlcv", ["open", "high", "low", "close", "volume"]) is True
+    assert (
+        validate_columns("market_ohlcv", ["open", "high", "low", "close", "volume"])
+        is True
+    )
 
     # Invalid column
     assert validate_columns("market_ohlcv", ["open", "DROP TABLE"]) is False
@@ -236,7 +243,9 @@ def test_AC_T10_micros_precision_edge_cases():
     assert from_micros(to_micros(0.000001)) == pytest.approx(0.000001, abs=1e-6)
 
     # Large value
-    assert from_micros(to_micros(999999.999999)) == pytest.approx(999999.999999, abs=1e-6)
+    assert from_micros(to_micros(999999.999999)) == pytest.approx(
+        999999.999999, abs=1e-6
+    )
 
 
 # ---------------------------------------------------------------------------
@@ -299,8 +308,22 @@ def test_AC_T13_live_uow_write_append():
 
     with Session(engine) as session:
         records = [
-            {"ticker": "AAPL", "open": 100, "high": 105, "low": 99, "close": 103, "volume": 1000000},
-            {"ticker": "GOOG", "open": 200, "high": 210, "low": 198, "close": 205, "volume": 500000},
+            {
+                "ticker": "AAPL",
+                "open": 100,
+                "high": 105,
+                "low": 99,
+                "close": 103,
+                "volume": 1000000,
+            },
+            {
+                "ticker": "GOOG",
+                "open": 200,
+                "high": 210,
+                "low": 198,
+                "close": 205,
+                "volume": 500000,
+            },
         ]
 
         write_append(session=session, table_name="market_ohlcv", records=records)
@@ -364,8 +387,12 @@ async def test_AC_T14b_transform_step_execute_quality_gate_rejects():
 
     step = TransformStep()
     # 1 valid + 9 invalid (negative prices) → quality 10% < 80% threshold
-    records = [{"open": 100.0, "high": 110.0, "low": 95.0, "close": 105.0, "volume": 1000}]
-    records += [{"open": -1.0, "high": -1.0, "low": -1.0, "close": -1.0, "volume": 0}] * 9
+    records = [
+        {"open": 100.0, "high": 110.0, "low": 95.0, "close": 105.0, "volume": 1000}
+    ]
+    records += [
+        {"open": -1.0, "high": -1.0, "low": -1.0, "close": -1.0, "volume": 0}
+    ] * 9
     context = StepContext(
         run_id="run-1",
         policy_id="pol-1",

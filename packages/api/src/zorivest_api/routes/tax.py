@@ -36,7 +36,9 @@ class SimulateTaxRequest(BaseModel):
 class EstimateTaxRequest(BaseModel):
     tax_year: int
     account_id: Optional[str] = None
-    filing_status: Literal["single", "married_joint", "married_separate", "head_of_household"] = "single"
+    filing_status: Literal[
+        "single", "married_joint", "married_separate", "head_of_household"
+    ] = "single"
     include_unrealized: bool = False
 
 

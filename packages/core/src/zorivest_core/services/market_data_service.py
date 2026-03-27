@@ -79,7 +79,8 @@ class MarketDataService:
         provider_registry: dict[str, ProviderConfig],
         quote_normalizers: dict[str, Callable[..., MarketQuote]] | None = None,
         news_normalizers: dict[str, Callable[..., list[MarketNewsItem]]] | None = None,
-        search_normalizers: dict[str, Callable[..., list[TickerSearchResult]]] | None = None,
+        search_normalizers: dict[str, Callable[..., list[TickerSearchResult]]]
+        | None = None,
         sec_normalizer: Callable[..., list[SecFiling]] | None = None,
     ) -> None:
         self._uow = uow
@@ -121,7 +122,9 @@ class MarketDataService:
                 logger.warning("Provider %s failed for quote %s: %s", name, ticker, exc)
                 continue
 
-        raise MarketDataError(f"All providers failed for quote '{ticker}'. Last error: {last_error}")
+        raise MarketDataError(
+            f"All providers failed for quote '{ticker}'. Last error: {last_error}"
+        )
 
     async def get_news(
         self, ticker: str | None = None, count: int = 5
@@ -148,7 +151,9 @@ class MarketDataService:
                 logger.warning("Provider %s failed for news: %s", name, exc)
                 continue
 
-        raise MarketDataError(f"All providers failed for news. Last error: {last_error}")
+        raise MarketDataError(
+            f"All providers failed for news. Last error: {last_error}"
+        )
 
     async def search_ticker(self, query: str) -> list[TickerSearchResult]:
         """Search for tickers across providers.
@@ -163,7 +168,9 @@ class MarketDataService:
             if yahoo_results:
                 return yahoo_results
         except Exception as exc:
-            logger.debug("Yahoo Finance search failed, falling back to providers: %s", exc)
+            logger.debug(
+                "Yahoo Finance search failed, falling back to providers: %s", exc
+            )
 
         # Fall through to configured API-key providers
         providers = self._get_enabled_providers(self._search_normalizers)
@@ -182,7 +189,9 @@ class MarketDataService:
                 logger.warning("Provider %s failed for search: %s", name, exc)
                 continue
 
-        raise MarketDataError(f"All providers failed for search '{query}'. Last error: {last_error}")
+        raise MarketDataError(
+            f"All providers failed for search '{query}'. Last error: {last_error}"
+        )
 
     async def _yahoo_search(self, query: str) -> list[TickerSearchResult]:
         """Search Yahoo Finance (no API key required) — MEU-91 zero-config fallback.
@@ -190,14 +199,24 @@ class MarketDataService:
         URL: https://query1.finance.yahoo.com/v1/finance/search?q={query}&quotesCount=6&newsCount=0
         Filters out non-equity quote types (FUTURE, CURRENCY, CRYPTOCURRENCY, INDEX).
         """
-        _EXCLUDED_TYPES = {"FUTURE", "CURRENCY", "CRYPTOCURRENCY", "INDEX", "MUTUALFUND"}
+        _EXCLUDED_TYPES = {
+            "FUTURE",
+            "CURRENCY",
+            "CRYPTOCURRENCY",
+            "INDEX",
+            "MUTUALFUND",
+        }
         url = (
             f"https://query1.finance.yahoo.com/v1/finance/search"
             f"?q={query}&quotesCount=6&newsCount=0&enableFuzzyQuery=false"
         )
-        response = await self._http.get(url, headers={"User-Agent": "Mozilla/5.0"}, timeout=10)
+        response = await self._http.get(
+            url, headers={"User-Agent": "Mozilla/5.0"}, timeout=10
+        )
         if response.status_code != 200:
-            raise MarketDataError(f"Yahoo Finance search returned {response.status_code}")
+            raise MarketDataError(
+                f"Yahoo Finance search returned {response.status_code}"
+            )
         quotes = response.json().get("quotes", [])
         return [
             TickerSearchResult(
@@ -220,7 +239,11 @@ class MarketDataService:
         settings = self._get_all_settings()
         sec_setting = settings.get("SEC API")
 
-        if not sec_setting or not sec_setting.is_enabled or not sec_setting.encrypted_api_key:
+        if (
+            not sec_setting
+            or not sec_setting.is_enabled
+            or not sec_setting.encrypted_api_key
+        ):
             raise MarketDataError(
                 "SEC API not configured — add an API key at https://sec-api.io/"
             )
@@ -236,8 +259,7 @@ class MarketDataService:
 
         url = f"{config.base_url}/mapping/ticker/{ticker}"
         headers = {
-            k: v.format(api_key=api_key)
-            for k, v in config.headers_template.items()
+            k: v.format(api_key=api_key) for k, v in config.headers_template.items()
         }
 
         try:
@@ -246,9 +268,7 @@ class MarketDataService:
             raise MarketDataError(f"SEC API request failed: {exc}") from exc
 
         if response.status_code != 200:
-            raise MarketDataError(
-                f"SEC API returned status {response.status_code}"
-            )
+            raise MarketDataError(f"SEC API returned status {response.status_code}")
 
         data = response.json()
         if not isinstance(data, list):
@@ -279,18 +299,12 @@ class MarketDataService:
 
         for name in sorted(normalizers):
             setting = settings.get(name)
-            if (
-                setting
-                and setting.is_enabled
-                and setting.encrypted_api_key
-            ):
+            if setting and setting.is_enabled and setting.encrypted_api_key:
                 result.append((name, setting))
 
         return result
 
-    async def _fetch_quote_data(
-        self, name: str, ticker: str, setting: Any
-    ) -> Any:
+    async def _fetch_quote_data(self, name: str, ticker: str, setting: Any) -> Any:
         """Fetch quote data from a provider."""
         api_key = self._encryption.decrypt(setting.encrypted_api_key)
         config = self._registry[name]
@@ -314,8 +328,7 @@ class MarketDataService:
             raise MarketDataError(f"No quote URL template for provider: {name}")
 
         headers = {
-            k: v.format(api_key=api_key)
-            for k, v in config.headers_template.items()
+            k: v.format(api_key=api_key) for k, v in config.headers_template.items()
         }
 
         response = await self._http.get(url, headers, setting.timeout or 30)
@@ -352,8 +365,7 @@ class MarketDataService:
             raise MarketDataError(f"No news URL template for provider: {name}")
 
         headers = {
-            k: v.format(api_key=api_key)
-            for k, v in config.headers_template.items()
+            k: v.format(api_key=api_key) for k, v in config.headers_template.items()
         }
 
         response = await self._http.get(url, headers, setting.timeout or 30)
@@ -365,9 +377,7 @@ class MarketDataService:
 
         return response.json()
 
-    async def _fetch_search_data(
-        self, name: str, query: str, setting: Any
-    ) -> Any:
+    async def _fetch_search_data(self, name: str, query: str, setting: Any) -> Any:
         """Fetch search data from a provider."""
         api_key = self._encryption.decrypt(setting.encrypted_api_key)
         config = self._registry[name]
@@ -384,8 +394,7 @@ class MarketDataService:
             raise MarketDataError(f"No search URL template for provider: {name}")
 
         headers = {
-            k: v.format(api_key=api_key)
-            for k, v in config.headers_template.items()
+            k: v.format(api_key=api_key) for k, v in config.headers_template.items()
         }
 
         response = await self._http.get(url, headers, setting.timeout or 30)

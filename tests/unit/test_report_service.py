@@ -56,14 +56,20 @@ class TestReportServiceCreate:
         uow = _make_uow()
         # Simulate trade exists
         uow.trades.get.return_value = MagicMock(exec_id="T001")
-        uow.trade_reports.get_for_trade.side_effect = [None, TradeReport(
-            id=42, trade_id="T001", setup_quality=4,
-            execution_quality=3, followed_plan=True,
-            emotional_state="confident",
-            created_at=datetime(2025, 7, 15),
-            lessons_learned="Good timing",
-            tags=["spy", "options"],
-        )]
+        uow.trade_reports.get_for_trade.side_effect = [
+            None,
+            TradeReport(
+                id=42,
+                trade_id="T001",
+                setup_quality=4,
+                execution_quality=3,
+                followed_plan=True,
+                emotional_state="confident",
+                created_at=datetime(2025, 7, 15),
+                lessons_learned="Good timing",
+                tags=["spy", "options"],
+            ),
+        ]
 
         svc = ReportService(uow)
         result = svc.create("T001", _report_data())
@@ -105,8 +111,11 @@ class TestReportServiceGetForTrade:
 
         uow = _make_uow()
         expected = TradeReport(
-            id=1, trade_id="T001", setup_quality=4,
-            execution_quality=3, followed_plan=True,
+            id=1,
+            trade_id="T001",
+            setup_quality=4,
+            execution_quality=3,
+            followed_plan=True,
             emotional_state="neutral",
             created_at=datetime(2025, 7, 15),
         )
@@ -138,8 +147,11 @@ class TestReportServiceUpdate:
 
         uow = _make_uow()
         existing = TradeReport(
-            id=1, trade_id="T001", setup_quality=3,
-            execution_quality=3, followed_plan=False,
+            id=1,
+            trade_id="T001",
+            setup_quality=3,
+            execution_quality=3,
+            followed_plan=False,
             emotional_state="anxious",
             created_at=datetime(2025, 7, 15),
         )
@@ -174,8 +186,11 @@ class TestReportServiceDelete:
 
         uow = _make_uow()
         existing = TradeReport(
-            id=42, trade_id="T001", setup_quality=3,
-            execution_quality=3, followed_plan=True,
+            id=42,
+            trade_id="T001",
+            setup_quality=3,
+            execution_quality=3,
+            followed_plan=True,
             emotional_state="neutral",
             created_at=datetime(2025, 7, 15),
         )
@@ -230,12 +245,22 @@ class TestPlanServiceCreate:
 
         uow = _make_uow()
         uow.trade_plans.get.return_value = TradePlan(
-            id=1, ticker="AAPL", direction="BOT", conviction="high",
-            strategy_name="Gap & Go", strategy_description="Long after gap up",
-            entry_price=200.0, stop_loss=195.0, target_price=215.0,
-            entry_conditions="Gap > 2%", exit_conditions="Target hit or EOD",
-            timeframe="intraday", risk_reward_ratio=3.0, status="draft",
-            created_at=datetime(2026, 3, 12), updated_at=datetime(2026, 3, 12),
+            id=1,
+            ticker="AAPL",
+            direction="BOT",
+            conviction="high",
+            strategy_name="Gap & Go",
+            strategy_description="Long after gap up",
+            entry_price=200.0,
+            stop_loss=195.0,
+            target_price=215.0,
+            entry_conditions="Gap > 2%",
+            exit_conditions="Target hit or EOD",
+            timeframe="intraday",
+            risk_reward_ratio=3.0,
+            status="draft",
+            created_at=datetime(2026, 3, 12),
+            updated_at=datetime(2026, 3, 12),
         )
 
         svc = ReportService(uow)
@@ -259,12 +284,22 @@ class TestPlanServiceGet:
 
         uow = _make_uow()
         expected = TradePlan(
-            id=1, ticker="SPY", direction="SLD", conviction="medium",
-            strategy_name="Breakdown", strategy_description="Short below support",
-            entry_price=600.0, stop_loss=605.0, target_price=585.0,
-            entry_conditions="Break below VWAP", exit_conditions="Cover at target",
-            timeframe="intraday", risk_reward_ratio=3.0, status="active",
-            created_at=datetime(2026, 3, 12), updated_at=datetime(2026, 3, 12),
+            id=1,
+            ticker="SPY",
+            direction="SLD",
+            conviction="medium",
+            strategy_name="Breakdown",
+            strategy_description="Short below support",
+            entry_price=600.0,
+            stop_loss=605.0,
+            target_price=585.0,
+            entry_conditions="Break below VWAP",
+            exit_conditions="Cover at target",
+            timeframe="intraday",
+            risk_reward_ratio=3.0,
+            status="active",
+            created_at=datetime(2026, 3, 12),
+            updated_at=datetime(2026, 3, 12),
         )
         uow.trade_plans.get.return_value = expected
 
@@ -312,12 +347,22 @@ class TestPlanServiceUpdate:
 
         uow = _make_uow()
         existing = TradePlan(
-            id=1, ticker="AAPL", direction="BOT", conviction="high",
-            strategy_name="Gap & Go", strategy_description="Long gap",
-            entry_price=200.0, stop_loss=195.0, target_price=215.0,
-            entry_conditions="Gap > 2%", exit_conditions="Target or EOD",
-            timeframe="intraday", risk_reward_ratio=3.0, status="draft",
-            created_at=datetime(2026, 3, 12), updated_at=datetime(2026, 3, 12),
+            id=1,
+            ticker="AAPL",
+            direction="BOT",
+            conviction="high",
+            strategy_name="Gap & Go",
+            strategy_description="Long gap",
+            entry_price=200.0,
+            stop_loss=195.0,
+            target_price=215.0,
+            entry_conditions="Gap > 2%",
+            exit_conditions="Target or EOD",
+            timeframe="intraday",
+            risk_reward_ratio=3.0,
+            status="draft",
+            created_at=datetime(2026, 3, 12),
+            updated_at=datetime(2026, 3, 12),
         )
         uow.trade_plans.get.return_value = existing
 
@@ -352,12 +397,22 @@ class TestPlanServiceLink:
 
         uow = _make_uow()
         existing = TradePlan(
-            id=1, ticker="AAPL", direction="BOT", conviction="high",
-            strategy_name="Gap & Go", strategy_description="Long gap",
-            entry_price=200.0, stop_loss=195.0, target_price=215.0,
-            entry_conditions="Gap > 2%", exit_conditions="Target or EOD",
-            timeframe="intraday", risk_reward_ratio=3.0, status="active",
-            created_at=datetime(2026, 3, 12), updated_at=datetime(2026, 3, 12),
+            id=1,
+            ticker="AAPL",
+            direction="BOT",
+            conviction="high",
+            strategy_name="Gap & Go",
+            strategy_description="Long gap",
+            entry_price=200.0,
+            stop_loss=195.0,
+            target_price=215.0,
+            entry_conditions="Gap > 2%",
+            exit_conditions="Target or EOD",
+            timeframe="intraday",
+            risk_reward_ratio=3.0,
+            status="active",
+            created_at=datetime(2026, 3, 12),
+            updated_at=datetime(2026, 3, 12),
         )
         uow.trade_plans.get.return_value = existing
         uow.trades.get.return_value = MagicMock(exec_id="T001")
@@ -386,12 +441,22 @@ class TestPlanServiceLink:
 
         uow = _make_uow()
         uow.trade_plans.get.return_value = TradePlan(
-            id=1, ticker="AAPL", direction="BOT", conviction="high",
-            strategy_name="Gap & Go", strategy_description="Long gap",
-            entry_price=200.0, stop_loss=195.0, target_price=215.0,
-            entry_conditions="Gap > 2%", exit_conditions="Target or EOD",
-            timeframe="intraday", risk_reward_ratio=3.0, status="active",
-            created_at=datetime(2026, 3, 12), updated_at=datetime(2026, 3, 12),
+            id=1,
+            ticker="AAPL",
+            direction="BOT",
+            conviction="high",
+            strategy_name="Gap & Go",
+            strategy_description="Long gap",
+            entry_price=200.0,
+            stop_loss=195.0,
+            target_price=215.0,
+            entry_conditions="Gap > 2%",
+            exit_conditions="Target or EOD",
+            timeframe="intraday",
+            risk_reward_ratio=3.0,
+            status="active",
+            created_at=datetime(2026, 3, 12),
+            updated_at=datetime(2026, 3, 12),
         )
         uow.trades.get.return_value = None
 
@@ -410,25 +475,37 @@ class TestPlanServiceDedup:
         uow = _make_uow()
         # Simulate an existing active plan for AAPL/BOT
         existing = TradePlan(
-            id=1, ticker="AAPL", direction="BOT", conviction="high",
-            strategy_name="Gap & Go", strategy_description="Long gap",
-            entry_price=200.0, stop_loss=195.0, target_price=215.0,
-            entry_conditions="Gap > 2%", exit_conditions="EOD",
-            timeframe="intraday", risk_reward_ratio=3.0, status="active",
-            created_at=datetime(2026, 3, 12), updated_at=datetime(2026, 3, 12),
+            id=1,
+            ticker="AAPL",
+            direction="BOT",
+            conviction="high",
+            strategy_name="Gap & Go",
+            strategy_description="Long gap",
+            entry_price=200.0,
+            stop_loss=195.0,
+            target_price=215.0,
+            entry_conditions="Gap > 2%",
+            exit_conditions="EOD",
+            timeframe="intraday",
+            risk_reward_ratio=3.0,
+            status="active",
+            created_at=datetime(2026, 3, 12),
+            updated_at=datetime(2026, 3, 12),
         )
         uow.trade_plans.list_all.return_value = [existing]
 
         svc = ReportService(uow)
         with pytest.raises(ValueError, match="Duplicate active plan"):
-            svc.create_plan({
-                "ticker": "AAPL",
-                "direction": "BOT",
-                "strategy_name": "Gap & Go",
-                "entry_price": 200.0,
-                "stop_loss": 195.0,
-                "target_price": 215.0,
-            })
+            svc.create_plan(
+                {
+                    "ticker": "AAPL",
+                    "direction": "BOT",
+                    "strategy_name": "Gap & Go",
+                    "entry_price": 200.0,
+                    "stop_loss": 195.0,
+                    "target_price": 215.0,
+                }
+            )
 
 
 class TestPlanServiceDelete:
@@ -440,12 +517,22 @@ class TestPlanServiceDelete:
 
         uow = _make_uow()
         uow.trade_plans.get.return_value = TradePlan(
-            id=1, ticker="AAPL", direction="BOT", conviction="high",
-            strategy_name="Gap & Go", strategy_description="Long gap",
-            entry_price=200.0, stop_loss=195.0, target_price=215.0,
-            entry_conditions="Gap > 2%", exit_conditions="EOD",
-            timeframe="intraday", risk_reward_ratio=3.0, status="draft",
-            created_at=datetime(2026, 3, 12), updated_at=datetime(2026, 3, 12),
+            id=1,
+            ticker="AAPL",
+            direction="BOT",
+            conviction="high",
+            strategy_name="Gap & Go",
+            strategy_description="Long gap",
+            entry_price=200.0,
+            stop_loss=195.0,
+            target_price=215.0,
+            entry_conditions="Gap > 2%",
+            exit_conditions="EOD",
+            timeframe="intraday",
+            risk_reward_ratio=3.0,
+            status="draft",
+            created_at=datetime(2026, 3, 12),
+            updated_at=datetime(2026, 3, 12),
         )
         svc = ReportService(uow)
         svc.delete_plan(1)

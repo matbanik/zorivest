@@ -15,6 +15,28 @@ Review continuity is required:
 - keep one rolling review handoff file per execution plan folder for project-level implementation critique/recheck passes
 - append dated updates to that same file; do not create `-recheck`, `-final`, `-approved`, or similarly fragmented follow-up files for the same target
 
+## Write Scope (Non-Negotiable)
+
+This is a review-only workflow.
+
+Allowed file writes:
+
+- `.agent/context/handoffs/{plan-folder-name}-plan-critical-review.md`
+- `.agent/context/handoffs/{plan-folder-name}-implementation-critical-review.md`
+- optional `pomera_notes` session memory
+
+Forbidden file writes:
+
+- all product code
+- tests
+- docs outside the canonical review handoff
+- plan files
+- existing work handoffs under review
+
+If a finding suggests a fix, record it in the canonical review handoff and stop. Do not patch the repo. Use `/planning-corrections` for fixes.
+
+These write-scope rules apply equally to plan-review mode and implementation-review mode. The only difference is which canonical review handoff path is permitted.
+
 The agent automatically discovers what to review when no paths are provided. Auto-discovery starts from `docs/execution/plans/` first, then uses correlated handoffs to decide whether the newest plan should be reviewed as a pre-implementation plan or as an implementation artifact set. For implementation reviews it expands from the seed handoff to the full correlated project handoff set when one project produced multiple MEU handoffs. For plan reviews it selects the newest unstarted execution plan folder and reviews it for accuracy and consistency before implementation begins.
 
 This is the workflow for prompts like:
@@ -408,7 +430,7 @@ Common weakness patterns to flag:
 
 ---
 
-## Step 5: Write or Update the Canonical Review Handoff (Reviewer)
+## Step 5: Write or Update the Canonical Review Handoff (Required Exit Gate)
 
 Write to the canonical review file derived from the correlated plan folder:
 
@@ -416,6 +438,8 @@ Write to the canonical review file derived from the correlated plan folder:
 - **Implementation review mode**: `.agent/context/handoffs/{plan-folder-name}-implementation-critical-review.md`
 
 If that file already exists, append a new dated review update section. Do not fork the same review thread into additional `-recheck`, `-approved`, `-final`, or `-corrections` files.
+
+The workflow is incomplete until the canonical review handoff exists and is readable at the correct path for the detected review mode.
 
 Use `.agent/context/handoffs/TEMPLATE.md`, but for review-only tasks:
 
@@ -431,6 +455,18 @@ Use `.agent/context/handoffs/TEMPLATE.md`, but for review-only tasks:
 4. Explicit verdict (`approved` or `changes_required`)
 5. Concrete follow-up actions
 6. If this is not the first pass, a dated update heading so the other agent can read one file and see the full review history in order
+
+---
+
+## Pre-Edit Guard
+
+Before any file edit:
+
+1. derive review mode (`plan` or `implementation`)
+2. derive the canonical review handoff path for that mode
+3. verify the intended edit target exactly matches that canonical handoff path
+
+If the target path is anything else, abort the edit and continue in findings-only mode.
 
 ---
 
@@ -461,6 +497,18 @@ If `.agent/context/current-focus.md` already has unrelated user edits in progres
 11. **One rolling review file per target.** For the same execution plan folder, keep plan-review updates in the same `-plan-critical-review.md` file and implementation-review updates in the same `-implementation-critical-review.md` file.
 12. **When test files are in review scope, audit every test for assertion strength (IR-5).** A test suite where all tests pass is not evidence of quality — tests that trivially pass with weak assertions (try/except safety nets, key-only checks, private-method patching) must be flagged. Report the per-test rating table in the review handoff.
 13. **A weak or misleading test is `Medium` minimum when it can allow broken behavior to pass green.** Documentation-only discrepancies are `Low` by default unless they materially misstate runtime behavior, test coverage, or unresolved risk.
+14. **Do not return a final response until the canonical review handoff has been created or updated successfully.** Missing the handoff is a workflow failure.
+15. **Do not modify any file unless the Pre-Edit Guard resolves to the canonical review handoff path.** If the derived target is a product file, stop and record the finding instead.
+
+---
+
+## Done Checklist
+
+- [ ] No product files were modified
+- [ ] Canonical review handoff was created or updated
+- [ ] Review mode was correctly identified (`plan` vs `implementation`)
+- [ ] Verdict is explicit (`approved` or `changes_required`)
+- [ ] Final user response includes the canonical review handoff path
 
 ---
 

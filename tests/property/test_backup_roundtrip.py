@@ -103,6 +103,7 @@ class TestBackupRestoreRoundtrip:
             )
             restore_result = recovery.restore_backup(result.backup_path)
             from zorivest_infra.backup.backup_recovery_types import RestoreStatus
+
             assert restore_result.status == RestoreStatus.SUCCESS
 
             # Verify data integrity

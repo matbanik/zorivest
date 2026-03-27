@@ -120,7 +120,22 @@ class BalanceSnapshotRepository(Protocol):
 
     def save(self, snapshot: BalanceSnapshot) -> None: ...
 
-    def list_for_account(self, account_id: str) -> list[BalanceSnapshot]: ...
+    def get_latest(self, account_id: str) -> BalanceSnapshot | None:
+        """Return the most recent balance snapshot for an account, or None."""
+        ...
+
+    def list_for_account(
+        self,
+        account_id: str,
+        limit: int = 100,
+        offset: int = 0,
+    ) -> list[BalanceSnapshot]:
+        """Return balance snapshots for an account with pagination, newest first."""
+        ...
+
+    def count_for_account(self, account_id: str) -> int:
+        """Return total count of balance snapshots for an account."""
+        ...
 
 
 class RoundTripRepository(Protocol):

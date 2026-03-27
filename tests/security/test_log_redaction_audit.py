@@ -20,7 +20,9 @@ PACKAGES_ROOT = Path(__file__).resolve().parents[2] / "packages"
 # Patterns that indicate sensitive data being logged without redaction
 SENSITIVE_PATTERNS: list[re.Pattern[str]] = [
     # Direct key/token/secret/password in f-strings or format calls
-    re.compile(r"""(?:api[_-]?key|token|secret|password|passphrase|credential)""", re.I),
+    re.compile(
+        r"""(?:api[_-]?key|token|secret|password|passphrase|credential)""", re.I
+    ),
 ]
 
 # Allowlist: known safe redaction wrappers
@@ -38,8 +40,7 @@ def _find_python_files() -> list[Path]:
     return sorted(
         p
         for p in PACKAGES_ROOT.rglob("*.py")
-        if "test" not in p.name.lower()
-        and "__pycache__" not in str(p)
+        if "test" not in p.name.lower() and "__pycache__" not in str(p)
     )
 
 
@@ -64,7 +65,8 @@ def _extract_logging_calls(filepath: Path) -> list[tuple[int, str]]:
             # Match logger.info(), logger.debug(), etc.
             if (
                 isinstance(func, ast.Attribute)
-                and func.attr in {"debug", "info", "warning", "error", "critical", "exception"}
+                and func.attr
+                in {"debug", "info", "warning", "error", "critical", "exception"}
                 and isinstance(func.value, ast.Name)
                 and func.value.id in {"logger", "log", "logging"}
             ):

@@ -248,10 +248,10 @@ class TestCalculateExpectancy:
     def test_mixed_trades_expectancy(self) -> None:
         """AC-10, AC-11, AC-12: Mixed trades produce correct metrics."""
         trades = [
-            _make_trade(200.0, "T1"),   # win
-            _make_trade(300.0, "T2"),   # win
+            _make_trade(200.0, "T1"),  # win
+            _make_trade(300.0, "T2"),  # win
             _make_trade(-100.0, "T3"),  # loss
-            _make_trade(-50.0, "T4"),   # loss
+            _make_trade(-50.0, "T4"),  # loss
         ]
         result = calculate_expectancy(trades)
         assert result.trade_count == 4
@@ -269,7 +269,7 @@ class TestCalculateExpectancy:
         """AC-10: Trades with realized_pnl=0 are neither wins nor losses."""
         trades = [
             _make_trade(100.0, "T1"),
-            _make_trade(0.0, "T2"),      # breakeven
+            _make_trade(0.0, "T2"),  # breakeven
             _make_trade(-50.0, "T3"),
         ]
         result = calculate_expectancy(trades)
@@ -357,18 +357,21 @@ class TestAnalyticsModuleImports:
         import zorivest_core.domain.analytics.results as mod
 
         expected_names = [
-            "ExpectancyResult", "SQNResult", "StrategyResult",
-            "DrawdownResult", "ExcursionResult", "QualityResult",
-            "PFOFResult", "CostResult",
+            "ExpectancyResult",
+            "SQNResult",
+            "StrategyResult",
+            "DrawdownResult",
+            "ExcursionResult",
+            "QualityResult",
+            "PFOFResult",
+            "CostResult",
         ]
         for name in expected_names:
             assert hasattr(mod, name), f"Missing: {name}"
             cls = getattr(mod, name)
             assert isinstance(cls, type), f"{name} is not a class"
             # Value: verify each is a dataclass with fields
-            assert hasattr(cls, "__dataclass_fields__"), (
-                f"{name} is not a dataclass"
-            )
+            assert hasattr(cls, "__dataclass_fields__"), f"{name} is not a dataclass"
             assert len(cls.__dataclass_fields__) >= 2, (
                 f"{name} has fewer than 2 fields: {list(cls.__dataclass_fields__)}"
             )
@@ -378,10 +381,19 @@ class TestAnalyticsModuleImports:
         import zorivest_core.domain.analytics.results as mod
 
         public = {n for n in dir(mod) if not n.startswith("_")}
-        expected = {"ExpectancyResult", "SQNResult", "StrategyResult",
-                    "DrawdownResult", "ExcursionResult", "QualityResult",
-                    "PFOFResult", "CostResult",
-                    "dataclass", "Decimal", "annotations"}
+        expected = {
+            "ExpectancyResult",
+            "SQNResult",
+            "StrategyResult",
+            "DrawdownResult",
+            "ExcursionResult",
+            "QualityResult",
+            "PFOFResult",
+            "CostResult",
+            "dataclass",
+            "Decimal",
+            "annotations",
+        }
         unexpected = public - expected
         assert not unexpected, f"Unexpected exports: {unexpected}"
 

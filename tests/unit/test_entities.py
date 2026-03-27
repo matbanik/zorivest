@@ -284,9 +284,7 @@ class TestImportSurface:
             if isinstance(node, ast.Import):
                 for alias in node.names:
                     top = alias.name.split(".")[0]
-                    assert top in allowed_modules, (
-                        f"Forbidden import: {alias.name}"
-                    )
+                    assert top in allowed_modules, f"Forbidden import: {alias.name}"
                     import_count += 1
             elif isinstance(node, ast.ImportFrom):
                 if node.module is not None:
@@ -314,11 +312,14 @@ class TestModuleIntegrity:
             if obj.__module__ == mod.__name__
         ]
         expected = {
-            "Trade", "Account", "BalanceSnapshot", "ImageAttachment",
-            "TradeReport",      # MEU-52
-            "TradePlan",        # MEU-66
-            "Watchlist",        # MEU-68
-            "WatchlistItem",    # MEU-68
+            "Trade",
+            "Account",
+            "BalanceSnapshot",
+            "ImageAttachment",
+            "TradeReport",  # MEU-52
+            "TradePlan",  # MEU-66
+            "Watchlist",  # MEU-68
+            "WatchlistItem",  # MEU-68
         }
         assert set(class_names) == expected, (
             f"Expected {expected}, got {set(class_names)}"
@@ -441,8 +442,15 @@ class TestEmotionalState:
         from zorivest_core.domain.enums import EmotionalState
 
         expected = {
-            "calm", "anxious", "fearful", "greedy", "frustrated",
-            "confident", "neutral", "impulsive", "hesitant",
+            "calm",
+            "anxious",
+            "fearful",
+            "greedy",
+            "frustrated",
+            "confident",
+            "neutral",
+            "impulsive",
+            "hesitant",
         }
         actual = {e.value for e in EmotionalState}
         assert actual == expected
@@ -495,7 +503,9 @@ class TestTradePlan:
 
     def test_trade_plan_construction_with_all_fields(self) -> None:
         from zorivest_core.domain.enums import (
-            ConvictionLevel, PlanStatus, TradeAction,
+            ConvictionLevel,
+            PlanStatus,
+            TradeAction,
         )
 
         plan = _make_trade_plan()
@@ -537,7 +547,9 @@ class TestTradePlanRiskReward:
         from zorivest_core.domain.entities import TradePlan
 
         rr = TradePlan.compute_risk_reward(
-            entry_price=200.0, stop_loss=195.0, target_price=215.0,
+            entry_price=200.0,
+            stop_loss=195.0,
+            target_price=215.0,
         )
         # (215 - 200) / (200 - 195) = 15 / 5 = 3.0
         assert rr == pytest.approx(3.0)
@@ -546,7 +558,9 @@ class TestTradePlanRiskReward:
         from zorivest_core.domain.entities import TradePlan
 
         rr = TradePlan.compute_risk_reward(
-            entry_price=200.0, stop_loss=205.0, target_price=185.0,
+            entry_price=200.0,
+            stop_loss=205.0,
+            target_price=185.0,
         )
         # abs(185 - 200) / abs(200 - 205) = 15 / 5 = 3.0
         assert rr == pytest.approx(3.0)
@@ -555,7 +569,9 @@ class TestTradePlanRiskReward:
         from zorivest_core.domain.entities import TradePlan
 
         rr = TradePlan.compute_risk_reward(
-            entry_price=200.0, stop_loss=200.0, target_price=210.0,
+            entry_price=200.0,
+            stop_loss=200.0,
+            target_price=210.0,
         )
         assert rr == 0.0
 

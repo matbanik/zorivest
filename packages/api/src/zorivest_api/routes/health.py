@@ -18,11 +18,13 @@ health_router = APIRouter(tags=["system"])
 
 class DatabaseStatus(BaseModel):
     """Database status sub-object."""
+
     unlocked: bool
 
 
 class HealthResponse(BaseModel):
     """Canonical 04g health response."""
+
     status: str
     version: str
     uptime_seconds: int

@@ -57,13 +57,19 @@ class StoreReportStep(RegisteredStep):
 
         # 2. Compute snapshot hash
         snapshot_json = json.dumps(
-            snapshots, sort_keys=True, separators=(",", ":"), default=str,
+            snapshots,
+            sort_keys=True,
+            separators=(",", ":"),
+            default=str,
         )
         snapshot_hash = hashlib.sha256(snapshot_json.encode()).hexdigest()
 
         # 3. Serialize the authored report spec (distinct from snapshot)
         spec_json = json.dumps(
-            p.spec, sort_keys=True, separators=(",", ":"), default=str,
+            p.spec,
+            sort_keys=True,
+            separators=(",", ":"),
+            default=str,
         )
 
         # 4. Persist report via repository hook
@@ -128,7 +134,6 @@ class StoreReportStep(RegisteredStep):
                 snapshots[name] = {"sql": sql, "rows": []}
 
         return snapshots
-
 
     def _persist_report(
         self,

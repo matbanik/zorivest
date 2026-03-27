@@ -2112,7 +2112,7 @@
   "paths": {
     "/api/v1/accounts": {
       "get": {
-        "description": "List all accounts.",
+        "description": "List all accounts.\n\nReturns a bare Account[] array for backward compatibility with\n19 existing GUI consumers.",
         "operationId": "list_accounts_api_v1_accounts_get",
         "responses": {
           "200": {
@@ -2204,7 +2204,7 @@
         ]
       },
       "get": {
-        "description": "Get a single account.",
+        "description": "Get a single account (enriched with latest balance).",
         "operationId": "get_account_api_v1_accounts__account_id__get",
         "parameters": [
           {
@@ -2293,6 +2293,68 @@
       }
     },
     "/api/v1/accounts/{account_id}/balances": {
+      "get": {
+        "description": "List balance history for an account with pagination (P1 wrapper).\n\nReturns paginated response with items + total count.",
+        "operationId": "list_balance_history_api_v1_accounts__account_id__balances_get",
+        "parameters": [
+          {
+            "in": "path",
+            "name": "account_id",
+            "required": true,
+            "schema": {
+              "title": "Account Id",
+              "type": "string"
+            }
+          },
+          {
+            "in": "query",
+            "name": "limit",
+            "required": false,
+            "schema": {
+              "default": 100,
+              "maximum": 1000,
+              "minimum": 1,
+              "title": "Limit",
+              "type": "integer"
+            }
+          },
+          {
+            "in": "query",
+            "name": "offset",
+            "required": false,
+            "schema": {
+              "default": 0,
+              "minimum": 0,
+              "title": "Offset",
+              "type": "integer"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "schema": {}
+              }
+            },
+            "description": "Successful Response"
+          },
+          "422": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HTTPValidationError"
+                }
+              }
+            },
+            "description": "Validation Error"
+          }
+        },
+        "summary": "List Balance History",
+        "tags": [
+          "accounts"
+        ]
+      },
       "post": {
         "description": "Record a balance snapshot for the account.",
         "operationId": "record_balance_api_v1_accounts__account_id__balances_post",

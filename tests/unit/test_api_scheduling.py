@@ -73,33 +73,36 @@ def mock_scheduling_svc():
     svc = MagicMock()
 
     # Async methods need AsyncMock
-    svc.create_policy = AsyncMock(return_value=MockPolicyResult(
-        policy=_sample_policy_response()
-    ))
+    svc.create_policy = AsyncMock(
+        return_value=MockPolicyResult(policy=_sample_policy_response())
+    )
     svc.list_policies = AsyncMock(return_value=[_sample_policy_response()])
     svc.get_policy = AsyncMock(return_value=_sample_policy_response())
-    svc.update_policy = AsyncMock(return_value=MockPolicyResult(
-        policy=_sample_policy_response(name="Updated")
-    ))
-    svc.delete_policy = AsyncMock(return_value=None)
-    svc.approve_policy = AsyncMock(
-        return_value=_sample_policy_response(approved=True)
+    svc.update_policy = AsyncMock(
+        return_value=MockPolicyResult(policy=_sample_policy_response(name="Updated"))
     )
-    svc.trigger_run = AsyncMock(return_value=MockRunResult(
-        run=_sample_run_response()
-    ))
+    svc.delete_policy = AsyncMock(return_value=None)
+    svc.approve_policy = AsyncMock(return_value=_sample_policy_response(approved=True))
+    svc.trigger_run = AsyncMock(return_value=MockRunResult(run=_sample_run_response()))
     svc.get_policy_runs = AsyncMock(return_value=[_sample_run_response()])
-    svc.get_run_detail = AsyncMock(return_value={
-        **_sample_run_response(), "steps": [],
-    })
+    svc.get_run_detail = AsyncMock(
+        return_value={
+            **_sample_run_response(),
+            "steps": [],
+        }
+    )
     svc.get_run_steps = AsyncMock(return_value=[])
     svc.list_runs = AsyncMock(return_value=[_sample_run_response()])
     svc.patch_schedule = AsyncMock(return_value=_sample_policy_response())
 
     # Sync method — NOT AsyncMock
-    svc.get_scheduler_status = MagicMock(return_value={
-        "running": True, "job_count": 0, "jobs": [],
-    })
+    svc.get_scheduler_status = MagicMock(
+        return_value={
+            "running": True,
+            "job_count": 0,
+            "jobs": [],
+        }
+    )
 
     return svc
 
@@ -146,7 +149,9 @@ class TestCreatePolicy:
         assert resp.json()["id"] == "test-id"
 
     def test_create_validation_error_returns_422(
-        self, client, mock_scheduling_svc,
+        self,
+        client,
+        mock_scheduling_svc,
     ) -> None:
         mock_scheduling_svc.create_policy.return_value = MockPolicyResult(
             errors=["Bad schema"]
@@ -199,7 +204,9 @@ class TestApprovePolicy:
         assert resp.json()["approved"] is True
 
     def test_approve_not_found_returns_404(
-        self, client, mock_scheduling_svc,
+        self,
+        client,
+        mock_scheduling_svc,
     ) -> None:
         mock_scheduling_svc.approve_policy.return_value = None
         resp = client.post("/api/v1/scheduling/policies/nonexistent/approve")
@@ -218,7 +225,9 @@ class TestTriggerPipeline:
         assert resp.status_code == 200
 
     def test_trigger_error_returns_400(
-        self, client, mock_scheduling_svc,
+        self,
+        client,
+        mock_scheduling_svc,
     ) -> None:
         mock_scheduling_svc.trigger_run.return_value = MockRunResult(
             error="Rate limit exceeded"
@@ -302,7 +311,9 @@ class TestPatchSchedule:
         assert resp.status_code == 200
 
     def test_patch_not_found_returns_404(
-        self, client, mock_scheduling_svc,
+        self,
+        client,
+        mock_scheduling_svc,
     ) -> None:
         mock_scheduling_svc.patch_schedule.return_value = None
         resp = client.patch(
@@ -346,7 +357,9 @@ class TestPowerEvent:
 class TestLiveWiring:
     """Prove scheduling routes resolve from real app state (no dep overrides)."""
 
-    def test_scheduling_routes_resolve_from_app_state(self, monkeypatch, tmp_path) -> None:
+    def test_scheduling_routes_resolve_from_app_state(
+        self, monkeypatch, tmp_path
+    ) -> None:
         """R3: Hit scheduler status without dependency overrides.
 
         This verifies that ``create_app()`` lifespan wires real scheduling
@@ -419,9 +432,7 @@ class TestLiveWiring:
                 ],
             }
             result = await svc.create_policy(valid_policy)
-            assert result.policy is not None, (
-                f"create_policy failed: {result.errors}"
-            )
+            assert result.policy is not None, f"create_policy failed: {result.errors}"
             policy_id = result.policy["id"]
 
             # 2. Approve the policy (required by guardrails)
@@ -444,6 +455,7 @@ class TestLiveWiring:
 
 
 # ── Live Execution Path (P1) ───────────────────────────────────────────
+
 
 class TestLiveExecution:
     """Prove PipelineRunner is wired (not None) in live app state."""
@@ -517,11 +529,13 @@ class TestLiveExecution:
                     "cron_expression": "0 9 * * *",
                     "enabled": True,
                 },
-                steps=[{  # type: ignore[list-item]
-                    "id": "fetch_test",
-                    "type": "fetch",
-                    "params": {"url": "https://example.com"},
-                }],
+                steps=[
+                    {  # type: ignore[list-item]
+                        "id": "fetch_test",
+                        "type": "fetch",
+                        "params": {"url": "https://example.com"},
+                    }
+                ],
             )
 
             result = await runner.run(

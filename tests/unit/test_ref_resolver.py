@@ -38,27 +38,21 @@ class TestRefResolver:
 
     # AC-1: resolve() returns new dict with refs replaced
     def test_resolve_simple_ref(self):
-        ctx = _make_context(
-            fetch_data={"quotes": [1, 2, 3], "count": 3}
-        )
+        ctx = _make_context(fetch_data={"quotes": [1, 2, 3], "count": 3})
         params = {"data": {"ref": "ctx.fetch_data"}}
         result = self.resolver.resolve(params, ctx)
         assert result["data"] == {"quotes": [1, 2, 3], "count": 3}
 
     # AC-2: Nested dict traversal
     def test_resolve_nested_path(self):
-        ctx = _make_context(
-            fetch_prices={"output": {"nested": {"key": "found"}}}
-        )
+        ctx = _make_context(fetch_prices={"output": {"nested": {"key": "found"}}})
         params = {"target": {"ref": "ctx.fetch_prices.output.nested.key"}}
         result = self.resolver.resolve(params, ctx)
         assert result["target"] == "found"
 
     # AC-3: List index traversal
     def test_resolve_list_index(self):
-        ctx = _make_context(
-            fetch_data={"items": ["a", "b", "c"]}
-        )
+        ctx = _make_context(fetch_data={"items": ["a", "b", "c"]})
         params = {"first": {"ref": "ctx.fetch_data.items.0"}}
         result = self.resolver.resolve(params, ctx)
         assert result["first"] == "a"
@@ -133,68 +127,104 @@ class TestConditionEvaluator:
         self.evaluator = ConditionEvaluator()
 
     def _cond(self, field: str, op: str, value=None) -> SkipCondition:
-        return SkipCondition(field=field, operator=SkipConditionOperator(op), value=value)
+        return SkipCondition(
+            field=field, operator=SkipConditionOperator(op), value=value
+        )
 
     # AC-7: All 10 operators
     def test_eq(self):
         ctx = _make_context(s1={"count": 5})
         assert self.evaluator.evaluate(self._cond("ctx.s1.count", "eq", 5), ctx) is True
-        assert self.evaluator.evaluate(self._cond("ctx.s1.count", "eq", 3), ctx) is False
+        assert (
+            self.evaluator.evaluate(self._cond("ctx.s1.count", "eq", 3), ctx) is False
+        )
 
     def test_ne(self):
         ctx = _make_context(s1={"count": 5})
         assert self.evaluator.evaluate(self._cond("ctx.s1.count", "ne", 3), ctx) is True
-        assert self.evaluator.evaluate(self._cond("ctx.s1.count", "ne", 5), ctx) is False
+        assert (
+            self.evaluator.evaluate(self._cond("ctx.s1.count", "ne", 5), ctx) is False
+        )
 
     def test_gt(self):
         ctx = _make_context(s1={"count": 5})
         assert self.evaluator.evaluate(self._cond("ctx.s1.count", "gt", 3), ctx) is True
-        assert self.evaluator.evaluate(self._cond("ctx.s1.count", "gt", 5), ctx) is False
+        assert (
+            self.evaluator.evaluate(self._cond("ctx.s1.count", "gt", 5), ctx) is False
+        )
 
     def test_lt(self):
         ctx = _make_context(s1={"count": 5})
-        assert self.evaluator.evaluate(self._cond("ctx.s1.count", "lt", 10), ctx) is True
-        assert self.evaluator.evaluate(self._cond("ctx.s1.count", "lt", 5), ctx) is False
+        assert (
+            self.evaluator.evaluate(self._cond("ctx.s1.count", "lt", 10), ctx) is True
+        )
+        assert (
+            self.evaluator.evaluate(self._cond("ctx.s1.count", "lt", 5), ctx) is False
+        )
 
     def test_ge(self):
         ctx = _make_context(s1={"count": 5})
         assert self.evaluator.evaluate(self._cond("ctx.s1.count", "ge", 5), ctx) is True
-        assert self.evaluator.evaluate(self._cond("ctx.s1.count", "ge", 6), ctx) is False
+        assert (
+            self.evaluator.evaluate(self._cond("ctx.s1.count", "ge", 6), ctx) is False
+        )
 
     def test_le(self):
         ctx = _make_context(s1={"count": 5})
         assert self.evaluator.evaluate(self._cond("ctx.s1.count", "le", 5), ctx) is True
-        assert self.evaluator.evaluate(self._cond("ctx.s1.count", "le", 4), ctx) is False
+        assert (
+            self.evaluator.evaluate(self._cond("ctx.s1.count", "le", 4), ctx) is False
+        )
 
     def test_in(self):
         ctx = _make_context(s1={"status": "active"})
-        assert self.evaluator.evaluate(
-            self._cond("ctx.s1.status", "in", ["active", "paused"]), ctx
-        ) is True
-        assert self.evaluator.evaluate(
-            self._cond("ctx.s1.status", "in", ["stopped"]), ctx
-        ) is False
+        assert (
+            self.evaluator.evaluate(
+                self._cond("ctx.s1.status", "in", ["active", "paused"]), ctx
+            )
+            is True
+        )
+        assert (
+            self.evaluator.evaluate(self._cond("ctx.s1.status", "in", ["stopped"]), ctx)
+            is False
+        )
 
     def test_not_in(self):
         ctx = _make_context(s1={"status": "active"})
-        assert self.evaluator.evaluate(
-            self._cond("ctx.s1.status", "not_in", ["stopped"]), ctx
-        ) is True
-        assert self.evaluator.evaluate(
-            self._cond("ctx.s1.status", "not_in", ["active"]), ctx
-        ) is False
+        assert (
+            self.evaluator.evaluate(
+                self._cond("ctx.s1.status", "not_in", ["stopped"]), ctx
+            )
+            is True
+        )
+        assert (
+            self.evaluator.evaluate(
+                self._cond("ctx.s1.status", "not_in", ["active"]), ctx
+            )
+            is False
+        )
 
     def test_is_null(self):
         ctx = _make_context(s1={"data": None})
-        assert self.evaluator.evaluate(self._cond("ctx.s1.data", "is_null"), ctx) is True
+        assert (
+            self.evaluator.evaluate(self._cond("ctx.s1.data", "is_null"), ctx) is True
+        )
         ctx2 = _make_context(s1={"data": "value"})
-        assert self.evaluator.evaluate(self._cond("ctx.s1.data", "is_null"), ctx2) is False
+        assert (
+            self.evaluator.evaluate(self._cond("ctx.s1.data", "is_null"), ctx2) is False
+        )
 
     def test_is_not_null(self):
         ctx = _make_context(s1={"data": "value"})
-        assert self.evaluator.evaluate(self._cond("ctx.s1.data", "is_not_null"), ctx) is True
+        assert (
+            self.evaluator.evaluate(self._cond("ctx.s1.data", "is_not_null"), ctx)
+            is True
+        )
         ctx2 = _make_context(s1={"data": None})
-        assert self.evaluator.evaluate(self._cond("ctx.s1.data", "is_not_null"), ctx2) is False
+        assert (
+            self.evaluator.evaluate(self._cond("ctx.s1.data", "is_not_null"), ctx2)
+            is False
+        )
 
     # AC-8: Returns True when condition is met (step should be skipped)
     def test_returns_true_when_met(self):
@@ -202,36 +232,48 @@ class TestConditionEvaluator:
         result = self.evaluator.evaluate(self._cond("ctx.s1.done", "eq", True), ctx)
         assert result is True
         # Value: also verify False case returns False
-        result_false = self.evaluator.evaluate(self._cond("ctx.s1.done", "eq", False), ctx)
+        result_false = self.evaluator.evaluate(
+            self._cond("ctx.s1.done", "eq", False), ctx
+        )
         assert result_false is False
 
     # AC-9: Missing field resolves to None
     def test_missing_field_resolves_to_none(self):
         ctx = _make_context(s1={"a": 1})
         # "missing_key" doesn't exist → resolves to None → is_null should be True
-        assert self.evaluator.evaluate(
-            self._cond("ctx.s1.missing_key", "is_null"), ctx
-        ) is True
+        assert (
+            self.evaluator.evaluate(self._cond("ctx.s1.missing_key", "is_null"), ctx)
+            is True
+        )
         # Value: also verify is_not_null returns False for missing field
-        assert self.evaluator.evaluate(
-            self._cond("ctx.s1.missing_key", "is_not_null"), ctx
-        ) is False
+        assert (
+            self.evaluator.evaluate(
+                self._cond("ctx.s1.missing_key", "is_not_null"), ctx
+            )
+            is False
+        )
 
     # AC-9: Missing step in context → gracefully None via _resolve_field
     def test_missing_step_resolves_to_none(self):
         ctx = _make_context()
         # ConditionEvaluator._resolve_field should handle missing step gracefully
         # by returning None (unlike RefResolver which raises)
-        assert self.evaluator.evaluate(
-            self._cond("ctx.nonexistent.field", "is_null"), ctx
-        ) is True
+        assert (
+            self.evaluator.evaluate(self._cond("ctx.nonexistent.field", "is_null"), ctx)
+            is True
+        )
         # Value: verify eq comparison with None also works
-        assert self.evaluator.evaluate(
-            self._cond("ctx.nonexistent.field", "eq", None), ctx
-        ) is True
+        assert (
+            self.evaluator.evaluate(
+                self._cond("ctx.nonexistent.field", "eq", None), ctx
+            )
+            is True
+        )
 
     # AC-10: Unknown operator raises ValueError
     def test_unknown_operator_raises_valueerror(self):
         # Can't create SkipCondition with invalid op via enum, test _compare directly
-        with pytest.raises(ValueError, match="Unknown operator|Unsupported operator|invalid_op"):
+        with pytest.raises(
+            ValueError, match="Unknown operator|Unsupported operator|invalid_op"
+        ):
             self.evaluator._compare(5, "invalid_op", 3)

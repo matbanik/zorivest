@@ -17,10 +17,10 @@ from typing import Any
 # SQLite action codes — only allow read operations.
 # Full list: https://www.sqlite.org/c3ref/c_alter_table.html
 _ALLOWED_ACTIONS = {
-    sqlite3.SQLITE_SELECT,    # 21 — SELECT statements
-    sqlite3.SQLITE_READ,      # 20 — Reading a column value
+    sqlite3.SQLITE_SELECT,  # 21 — SELECT statements
+    sqlite3.SQLITE_READ,  # 20 — Reading a column value
     sqlite3.SQLITE_FUNCTION,  # 31 — Calling a function
-    19,                       # SQLITE_PRAGMA — reading pragmas (e.g. query_only)
+    19,  # SQLITE_PRAGMA — reading pragmas (e.g. query_only)
 }
 
 

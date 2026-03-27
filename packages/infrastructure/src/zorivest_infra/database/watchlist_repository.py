@@ -70,10 +70,7 @@ class SqlAlchemyWatchlistRepository:
 
     def exists_by_name(self, name: str) -> bool:
         return (
-            self._session.query(WatchlistModel)
-            .filter_by(name=name)
-            .first()
-            is not None
+            self._session.query(WatchlistModel).filter_by(name=name).first() is not None
         )
 
     # ── Items ─────────────────────────────────────────────────────────

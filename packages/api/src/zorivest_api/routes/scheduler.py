@@ -25,7 +25,7 @@ class PowerEventRequest(BaseModel):
     """OS power event from Electron IPC."""
 
     event_type: str  # "suspend" | "resume"
-    timestamp: str   # ISO 8601
+    timestamp: str  # ISO 8601
 
 
 @scheduler_router.post("/power-event")

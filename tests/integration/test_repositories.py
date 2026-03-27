@@ -135,9 +135,13 @@ class TestTradeRepository:
         repo = SqlAlchemyTradeRepository(session)
         t1 = _make_trade("E001")
         t2 = Trade(
-            exec_id="E002", time=datetime(2025, 1, 16),
-            instrument="MSFT", action=TradeAction.BOT,
-            quantity=50.0, price=300.0, account_id="ACC002",
+            exec_id="E002",
+            time=datetime(2025, 1, 16),
+            instrument="MSFT",
+            action=TradeAction.BOT,
+            quantity=50.0,
+            price=300.0,
+            account_id="ACC002",
         )
         repo.save(t1)
         repo.save(t2)
@@ -324,9 +328,7 @@ class TestTradeReportRepository:
         assert found.emotional_state == "confident"
         assert found.lessons_learned == "Good entry timing"
 
-    def test_get_for_trade_returns_none_when_missing(
-        self, session: Session
-    ) -> None:
+    def test_get_for_trade_returns_none_when_missing(self, session: Session) -> None:
         self._setup_trade(session)
         repo = SqlAlchemyTradeReportRepository(session)
         assert repo.get_for_trade("NONEXISTENT") is None
@@ -441,12 +443,22 @@ class TestTradePlanRepository:
         repo = SqlAlchemyTradePlanRepository(session)
         for i in range(3):
             plan = TradePlan(
-                id=0, ticker=f"T{i}", direction="BOT", conviction="medium",
-                strategy_name="Test", strategy_description="",
-                entry_price=100.0, stop_loss=95.0, target_price=110.0,
-                entry_conditions="", exit_conditions="", timeframe="swing",
-                risk_reward_ratio=2.0, status="draft",
-                created_at=datetime(2026, 3, 12), updated_at=datetime(2026, 3, 12),
+                id=0,
+                ticker=f"T{i}",
+                direction="BOT",
+                conviction="medium",
+                strategy_name="Test",
+                strategy_description="",
+                entry_price=100.0,
+                stop_loss=95.0,
+                target_price=110.0,
+                entry_conditions="",
+                exit_conditions="",
+                timeframe="swing",
+                risk_reward_ratio=2.0,
+                status="draft",
+                created_at=datetime(2026, 3, 12),
+                updated_at=datetime(2026, 3, 12),
             )
             repo.save(plan)
         session.commit()
@@ -459,12 +471,22 @@ class TestTradePlanRepository:
 
         repo = SqlAlchemyTradePlanRepository(session)
         plan = TradePlan(
-            id=0, ticker="AAPL", direction="BOT", conviction="high",
-            strategy_name="Gap & Go", strategy_description="Long gap",
-            entry_price=200.0, stop_loss=195.0, target_price=215.0,
-            entry_conditions="Gap > 2%", exit_conditions="Target or EOD",
-            timeframe="intraday", risk_reward_ratio=3.0, status="draft",
-            created_at=datetime(2026, 3, 12), updated_at=datetime(2026, 3, 12),
+            id=0,
+            ticker="AAPL",
+            direction="BOT",
+            conviction="high",
+            strategy_name="Gap & Go",
+            strategy_description="Long gap",
+            entry_price=200.0,
+            stop_loss=195.0,
+            target_price=215.0,
+            entry_conditions="Gap > 2%",
+            exit_conditions="Target or EOD",
+            timeframe="intraday",
+            risk_reward_ratio=3.0,
+            status="draft",
+            created_at=datetime(2026, 3, 12),
+            updated_at=datetime(2026, 3, 12),
         )
         repo.save(plan)
         session.commit()
@@ -473,6 +495,7 @@ class TestTradePlanRepository:
         assert saved is not None
 
         from dataclasses import replace
+
         updated = replace(saved, status="active", conviction="max")
         repo.update(updated)
         session.commit()
@@ -487,12 +510,22 @@ class TestTradePlanRepository:
 
         repo = SqlAlchemyTradePlanRepository(session)
         plan = TradePlan(
-            id=0, ticker="SPY", direction="SLD", conviction="medium",
-            strategy_name="Breakdown", strategy_description="Short below support",
-            entry_price=600.0, stop_loss=605.0, target_price=585.0,
-            entry_conditions="Break VWAP", exit_conditions="Cover at target",
-            timeframe="intraday", risk_reward_ratio=3.0, status="draft",
-            created_at=datetime(2026, 3, 12), updated_at=datetime(2026, 3, 12),
+            id=0,
+            ticker="SPY",
+            direction="SLD",
+            conviction="medium",
+            strategy_name="Breakdown",
+            strategy_description="Short below support",
+            entry_price=600.0,
+            stop_loss=605.0,
+            target_price=585.0,
+            entry_conditions="Break VWAP",
+            exit_conditions="Cover at target",
+            timeframe="intraday",
+            risk_reward_ratio=3.0,
+            status="draft",
+            created_at=datetime(2026, 3, 12),
+            updated_at=datetime(2026, 3, 12),
         )
         repo.save(plan)
         session.commit()

@@ -42,6 +42,7 @@ class TestTaxRouterTag:
     def test_tax_tag(self) -> None:
         """AC-1: Tax router has tag 'tax'."""
         from zorivest_api.routes.tax import tax_router
+
         assert "tax" in (tax_router.tags or [])
 
 
@@ -49,21 +50,45 @@ class TestTaxRouterTag:
 
 
 class TestTaxEndpoints:
-    @pytest.mark.parametrize("path,method,body", [
-        ("/api/v1/tax/simulate", "POST", {"ticker": "SPY", "action": "sell", "quantity": 100, "price": 500.0, "account_id": "DU123"}),
-        ("/api/v1/tax/estimate", "POST", {"tax_year": 2026}),
-        ("/api/v1/tax/wash-sales", "POST", {"account_id": "DU123"}),
-        ("/api/v1/tax/lots?account_id=DU123", "GET", None),
-        ("/api/v1/tax/quarterly?quarter=Q1&tax_year=2026", "GET", None),
-        ("/api/v1/tax/quarterly/payment", "POST", {"quarter": "Q1", "tax_year": 2026, "payment_amount": 5000, "confirm": True}),
-        ("/api/v1/tax/harvest", "GET", None),
-        ("/api/v1/tax/ytd-summary?tax_year=2026", "GET", None),
-        ("/api/v1/tax/lots/lot1/close", "POST", None),
-        ("/api/v1/tax/lots/lot1/reassign", "PUT", {"method": "lifo"}),
-        ("/api/v1/tax/wash-sales/scan", "POST", None),
-        ("/api/v1/tax/audit", "POST", None),
-    ])
-    def test_endpoint_returns_200(self, client: TestClient, path: str, method: str, body) -> None:
+    @pytest.mark.parametrize(
+        "path,method,body",
+        [
+            (
+                "/api/v1/tax/simulate",
+                "POST",
+                {
+                    "ticker": "SPY",
+                    "action": "sell",
+                    "quantity": 100,
+                    "price": 500.0,
+                    "account_id": "DU123",
+                },
+            ),
+            ("/api/v1/tax/estimate", "POST", {"tax_year": 2026}),
+            ("/api/v1/tax/wash-sales", "POST", {"account_id": "DU123"}),
+            ("/api/v1/tax/lots?account_id=DU123", "GET", None),
+            ("/api/v1/tax/quarterly?quarter=Q1&tax_year=2026", "GET", None),
+            (
+                "/api/v1/tax/quarterly/payment",
+                "POST",
+                {
+                    "quarter": "Q1",
+                    "tax_year": 2026,
+                    "payment_amount": 5000,
+                    "confirm": True,
+                },
+            ),
+            ("/api/v1/tax/harvest", "GET", None),
+            ("/api/v1/tax/ytd-summary?tax_year=2026", "GET", None),
+            ("/api/v1/tax/lots/lot1/close", "POST", None),
+            ("/api/v1/tax/lots/lot1/reassign", "PUT", {"method": "lifo"}),
+            ("/api/v1/tax/wash-sales/scan", "POST", None),
+            ("/api/v1/tax/audit", "POST", None),
+        ],
+    )
+    def test_endpoint_returns_200(
+        self, client: TestClient, path: str, method: str, body
+    ) -> None:
         """AC-2: Each tax endpoint returns 200 (not 404/405/500)."""
         if method == "GET":
             resp = client.get(path)
@@ -83,12 +108,15 @@ class TestTaxEndpoints:
 class TestQuarterlyPayment:
     def test_confirm_false_returns_400(self, client: TestClient) -> None:
         """AC-3: POST /tax/quarterly/payment with confirm=false → 400."""
-        resp = client.post("/api/v1/tax/quarterly/payment", json={
-            "quarter": "Q1",
-            "tax_year": 2026,
-            "payment_amount": 5000,
-            "confirm": False,
-        })
+        resp = client.post(
+            "/api/v1/tax/quarterly/payment",
+            json={
+                "quarter": "Q1",
+                "tax_year": 2026,
+                "payment_amount": 5000,
+                "confirm": False,
+            },
+        )
         assert resp.status_code == 400
         # Value: verify error detail in response
         data = resp.json()
@@ -96,12 +124,15 @@ class TestQuarterlyPayment:
 
     def test_confirm_true_returns_200(self, client: TestClient) -> None:
         """AC-3: POST /tax/quarterly/payment with confirm=true → 200."""
-        resp = client.post("/api/v1/tax/quarterly/payment", json={
-            "quarter": "Q1",
-            "tax_year": 2026,
-            "payment_amount": 5000,
-            "confirm": True,
-        })
+        resp = client.post(
+            "/api/v1/tax/quarterly/payment",
+            json={
+                "quarter": "Q1",
+                "tax_year": 2026,
+                "payment_amount": 5000,
+                "confirm": True,
+            },
+        )
         assert resp.status_code == 200
         # Value: verify response body has payment data
         data = resp.json()
@@ -114,10 +145,16 @@ class TestQuarterlyPayment:
 class TestTaxModeGating:
     def test_simulate_locked_403(self, locked_client: TestClient) -> None:
         """AC-4: Tax routes return 403 when locked."""
-        resp = locked_client.post("/api/v1/tax/simulate", json={
-            "ticker": "SPY", "action": "sell", "quantity": 100,
-            "price": 500.0, "account_id": "DU123",
-        })
+        resp = locked_client.post(
+            "/api/v1/tax/simulate",
+            json={
+                "ticker": "SPY",
+                "action": "sell",
+                "quantity": 100,
+                "price": 500.0,
+                "account_id": "DU123",
+            },
+        )
         assert resp.status_code == 403
         # Value: verify error detail
         data = resp.json()
@@ -137,10 +174,16 @@ class TestTaxModeGating:
 class TestStubShapes:
     def test_simulate_shape(self, client: TestClient) -> None:
         """AC-5: Simulate returns estimated_tax and lots."""
-        resp = client.post("/api/v1/tax/simulate", json={
-            "ticker": "SPY", "action": "sell", "quantity": 100,
-            "price": 500.0, "account_id": "DU123",
-        })
+        resp = client.post(
+            "/api/v1/tax/simulate",
+            json={
+                "ticker": "SPY",
+                "action": "sell",
+                "quantity": 100,
+                "price": 500.0,
+                "account_id": "DU123",
+            },
+        )
         data = resp.json()
         assert "estimated_tax" in data
         assert "lots" in data

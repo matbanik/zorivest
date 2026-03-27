@@ -92,9 +92,7 @@ class CSVParserBase(ABC):
                 executions = self.parse_rows(rows)
             except Exception as exc:
                 logger.warning("Batch parse error in %s: %s", file_path, exc)
-                errors.append(
-                    ImportErr(field="parse", message=str(exc))
-                )
+                errors.append(ImportErr(field="parse", message=str(exc)))
 
             total = len(rows)
             parsed = len(executions)
@@ -121,9 +119,7 @@ class CSVParserBase(ABC):
             return ImportResult(
                 status=ImportStatus.FAILED,
                 broker=self.broker_type,
-                errors=[
-                    ImportErr(field="file", message=f"CSV read error: {exc}")
-                ],
+                errors=[ImportErr(field="file", message=f"CSV read error: {exc}")],
             )
 
     def _extract_data_lines(self, content: str) -> list[str]:

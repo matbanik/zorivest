@@ -157,18 +157,14 @@ class BackupRecoveryManager:
             conn = sqlite3.connect(str(db_path))
             try:
                 rows = conn.execute("PRAGMA integrity_check").fetchall()
-                errors = [
-                    row[0] for row in rows if row[0] != "ok"
-                ]
+                errors = [row[0] for row in rows if row[0] != "ok"]
 
                 if not errors:
                     logger.info("Database integrity check passed: %s", db_path)
                     return RepairResult(status=RepairStatus.HEALTHY)
 
                 # Integrity errors found — attempt repair via export/reimport
-                logger.warning(
-                    "Integrity errors in %s: %s", db_path, errors
-                )
+                logger.warning("Integrity errors in %s: %s", db_path, errors)
                 self._attempt_repair(conn, db_path)
 
                 return RepairResult(
@@ -284,9 +280,7 @@ class BackupRecoveryManager:
                     else:
                         # Fallback: place in first db_path's parent
                         first_db = next(iter(self._db_paths.values()))
-                        os.replace(
-                            str(staged), str(first_db.parent / filename)
-                        )
+                        os.replace(str(staged), str(first_db.parent / filename))
             finally:
                 # Step 7: Reopen connections (always, even on error)
                 if self.reopen_connections_hook:
@@ -308,9 +302,7 @@ class BackupRecoveryManager:
         finally:
             zf.close()
 
-    def _open_zvbak(
-        self, backup_path: Path
-    ) -> tuple[dict, pyzipper.AESZipFile]:
+    def _open_zvbak(self, backup_path: Path) -> tuple[dict, pyzipper.AESZipFile]:
         """Open an encrypted .zvbak file and return (manifest_dict, zip_handle).
 
         Strategy:
@@ -325,15 +317,13 @@ class BackupRecoveryManager:
         try:
             zf = pyzipper.AESZipFile(str(backup_path), "r")
         except Exception as e:
-            raise CorruptedBackupError(
-                f"Cannot open backup file: {e}"
-            ) from e
+            raise CorruptedBackupError(f"Cannot open backup file: {e}") from e
 
         try:
             # Strategy 1: Extract salt from ZIP comment (new format)
             comment = zf.comment or b""
             if comment.startswith(b"zvbak-salt:"):
-                salt_b64 = comment[len(b"zvbak-salt:"):]
+                salt_b64 = comment[len(b"zvbak-salt:") :]
                 salt = base64.b64decode(salt_b64)
                 key = self._derive_key(salt)
                 zf.setpassword(key)
@@ -342,9 +332,7 @@ class BackupRecoveryManager:
                     raw_manifest = zf.read("manifest.json")
                 except RuntimeError as e:
                     zf.close()
-                    raise InvalidPassphraseError(
-                        "Wrong passphrase for backup"
-                    ) from e
+                    raise InvalidPassphraseError("Wrong passphrase for backup") from e
 
                 manifest_data = json.loads(raw_manifest.decode("utf-8"))
 
@@ -400,9 +388,7 @@ class BackupRecoveryManager:
             raise
         except Exception as e:
             zf.close()
-            raise CorruptedBackupError(
-                f"Failed to read backup manifest: {e}"
-            ) from e
+            raise CorruptedBackupError(f"Failed to read backup manifest: {e}") from e
 
     def _find_target_for_file(self, filename: str) -> Path | None:
         """Find the target database path for a restored file.
@@ -600,9 +586,7 @@ class BackupRecoveryManager:
                 error=str(e),
             )
 
-    def _verify_legacy_db(
-        self, backup_path: Path, fmt: str
-    ) -> VerifyResult:
+    def _verify_legacy_db(self, backup_path: Path, fmt: str) -> VerifyResult:
         """Verify a legacy .db or .db.gz file."""
         warnings = [f"Legacy {fmt} format"]
         try:
