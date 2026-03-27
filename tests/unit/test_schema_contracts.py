@@ -46,6 +46,8 @@ def _schema_fields(schema_cls: type) -> set[str]:
 KNOWN_EXCEPTIONS: dict[str, set[str]] = {
     # ReportResponse has 'id', 'created_at', 'trade_id' which are DB-generated, not on the domain dataclass
     "ReportResponse": {"id", "created_at", "trade_id"},
+    # AccountResponse has balance fields enriched from BalanceSnapshot, not on Account entity
+    "AccountResponse": {"latest_balance", "latest_balance_date"},
 }
 
 
@@ -96,6 +98,7 @@ class TestTradeSchemaContracts:
                 "CreateTradeRequest": CreateTradeRequest,
                 "TradeResponse": TradeResponse,
                 "ReportResponse": ReportResponse,
+                "AccountResponse": AccountResponse,
             }.get(schema_name)
             if schema_cls is None:
                 continue
@@ -132,7 +135,8 @@ class TestAccountSchemaContracts:
     def test_account_response_fields_subset_of_domain(self) -> None:
         api_fields = _schema_fields(AccountResponse)
         domain_fields = _domain_fields(Account)
-        extra = api_fields - domain_fields
+        exceptions = KNOWN_EXCEPTIONS.get("AccountResponse", set())
+        extra = api_fields - domain_fields - exceptions
         assert extra == set(), f"AccountResponse has fields not in Account: {extra}"
 
 
