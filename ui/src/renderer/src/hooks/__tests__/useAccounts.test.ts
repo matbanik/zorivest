@@ -1,5 +1,7 @@
 import { describe, it, expect, vi, beforeEach } from 'vitest'
 import { renderHook, waitFor } from '@testing-library/react'
+import React from 'react'
+import { QueryClient, QueryClientProvider } from '@tanstack/react-query'
 
 // ── Mocks ──────────────────────────────────────────────────────────────────
 
@@ -16,25 +18,50 @@ const MOCK_ACCOUNTS: Account[] = [
     {
         account_id: 'ACC001',
         name: 'Main Trading',
-        account_type: 'broker',
+        account_type: 'BROKER',
+        institution: 'IB LLC',
+        currency: 'USD',
+        is_tax_advantaged: false,
+        notes: '',
         latest_balance: 50000.0,
         latest_balance_date: '2025-03-15T00:00:00',
     },
     {
         account_id: 'ACC002',
         name: 'IRA',
-        account_type: 'retirement',
+        account_type: 'RETIREMENT',
+        institution: 'Fidelity',
+        currency: 'USD',
+        is_tax_advantaged: true,
+        notes: '',
         latest_balance: 25000.0,
         latest_balance_date: '2025-03-10T00:00:00',
     },
     {
         account_id: 'ACC003',
         name: 'Paper',
-        account_type: 'paper',
+        account_type: 'BROKER',
+        institution: '',
+        currency: 'USD',
+        is_tax_advantaged: false,
+        notes: '',
         latest_balance: null,
         latest_balance_date: null,
     },
 ]
+
+// ── Helper ─────────────────────────────────────────────────────────────────
+
+function createWrapper() {
+    const client = new QueryClient({
+        defaultOptions: {
+            queries: { retry: false },
+        },
+    })
+    return function Wrapper({ children }: { children: React.ReactNode }) {
+        return React.createElement(QueryClientProvider, { client }, children)
+    }
+}
 
 // ── Tests ──────────────────────────────────────────────────────────────────
 
@@ -46,7 +73,9 @@ describe('MEU-71b: useAccounts', () => {
     it('AC-6: fetches accounts from GET /api/v1/accounts', async () => {
         mockApiFetch.mockResolvedValueOnce(MOCK_ACCOUNTS)
 
-        const { result } = renderHook(() => useAccounts())
+        const { result } = renderHook(() => useAccounts(), {
+            wrapper: createWrapper(),
+        })
 
         await waitFor(() => {
             expect(result.current.isLoading).toBe(false)
@@ -60,7 +89,9 @@ describe('MEU-71b: useAccounts', () => {
     it('AC-6: computes portfolioTotal from latest_balance fields', async () => {
         mockApiFetch.mockResolvedValueOnce(MOCK_ACCOUNTS)
 
-        const { result } = renderHook(() => useAccounts())
+        const { result } = renderHook(() => useAccounts(), {
+            wrapper: createWrapper(),
+        })
 
         await waitFor(() => {
             expect(result.current.isLoading).toBe(false)
@@ -73,7 +104,9 @@ describe('MEU-71b: useAccounts', () => {
     it('AC-6: returns zero portfolioTotal for empty accounts list', async () => {
         mockApiFetch.mockResolvedValueOnce([])
 
-        const { result } = renderHook(() => useAccounts())
+        const { result } = renderHook(() => useAccounts(), {
+            wrapper: createWrapper(),
+        })
 
         await waitFor(() => {
             expect(result.current.isLoading).toBe(false)
@@ -86,10 +119,12 @@ describe('MEU-71b: useAccounts', () => {
     it('AC-6: handles fetch error gracefully', async () => {
         mockApiFetch.mockRejectedValueOnce(new Error('API 500: Internal error'))
 
-        const { result } = renderHook(() => useAccounts())
+        const { result } = renderHook(() => useAccounts(), {
+            wrapper: createWrapper(),
+        })
 
         await waitFor(() => {
-            expect(result.current.isLoading).toBe(false)
+            expect(result.current.error).toBeTruthy()
         })
 
         expect(result.current.error).toBe('API 500: Internal error')
@@ -97,12 +132,15 @@ describe('MEU-71b: useAccounts', () => {
         expect(result.current.portfolioTotal).toBe(0)
     })
 
-    it('AC-6: starts in loading state', () => {
+    it('AC-6: starts with initial empty data', () => {
         mockApiFetch.mockReturnValue(new Promise(() => {})) // never resolves
 
-        const { result } = renderHook(() => useAccounts())
+        const { result } = renderHook(() => useAccounts(), {
+            wrapper: createWrapper(),
+        })
 
-        expect(result.current.isLoading).toBe(true)
+        // With TanStack Query + initialData: [], isLoading is false
+        // but accounts starts as the initialData []
         expect(result.current.accounts).toHaveLength(0)
     })
 })

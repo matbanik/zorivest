@@ -172,3 +172,70 @@ await expect(appPage.testId('trade-list')).toHaveScreenshot('trades-table-wide.p
 ```
 
 **Pattern rule:** All table components must use a shared `getAlignClass()` helper for both `<th>` and `<td>` — see `TradesTable.tsx` for the reference implementation.
+
+## Headless / CI / Sandbox Environments
+
+> [!WARNING]
+> **Electron requires a display server.** Running `npx playwright test` in environments without X11/Wayland (Docker containers, CI runners, Codex sandboxes) will fail with `Process failed to launch!` before any test code executes. See `[E2E-ELECTRONLAUNCH]` in `known-issues.md`.
+
+### Option 1: `xvfb-run` (Recommended)
+
+```bash
+# Install virtual framebuffer (Debian/Ubuntu)
+apt-get update && apt-get install -y xvfb
+
+# Run with virtual display
+cd ui
+xvfb-run --auto-servernum --server-args="-screen 0 1920x1080x24" \
+  npx playwright test tests/e2e/account-crud.test.ts --reporter=line
+```
+
+### Option 2: `--no-sandbox`
+
+Chromium's kernel sandbox requires `CLONE_NEWUSER`/`CLONE_NEWPID` namespaces, which are often disabled in containers.
+
+```bash
+cd ui
+ELECTRON_DISABLE_SANDBOX=1 npx playwright test --reporter=line
+```
+
+If the env var is not honored, modify `AppPage.ts:35-37`:
+
+```typescript
+this.app = await electron.launch({
+    executablePath,
+    args: ['--no-sandbox', MAIN_ENTRY],
+    // ...
+})
+```
+
+### Option 3: Combined
+
+```bash
+cd ui
+xvfb-run --auto-servernum -- env ELECTRON_DISABLE_SANDBOX=1 \
+  npx playwright test --reporter=line
+```
+
+### Diagnostics
+
+```bash
+# Verify Electron binary resolves
+node -e "console.log(require('electron'))"
+
+# Check Xvfb availability
+which Xvfb || which xvfb-run
+
+# Check kernel namespace support
+cat /proc/sys/user/max_user_namespaces
+```
+
+### Accepted Exception Path
+
+If none of the above work (e.g., locked-down sandbox without root access), the E2E verification gap should be accepted:
+
+1. Verify unit tests pass: `npx vitest run --reporter=verbose`
+2. Verify type safety: `npx tsc --noEmit`
+3. Verify build succeeds: `npm run build`
+4. Review the E2E test source code for completeness
+5. Note: "E2E verification deferred — environment lacks display server (see `[E2E-ELECTRONLAUNCH]`)"

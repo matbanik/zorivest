@@ -99,7 +99,7 @@ export function createStaticEntries(
             category: 'action',
             keywords: ['balance', 'wizard', 'update'],
             icon: ClipboardCheck,
-            action: () => { console.info('[command] Account Review — not yet implemented') },
+            action: () => { window.dispatchEvent(new CustomEvent('zorivest:start-review')) },
         },
 
         // ── Settings (5) — navigate to /settings sub-routes per spec ──

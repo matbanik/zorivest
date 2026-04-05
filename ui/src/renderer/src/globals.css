@@ -17,6 +17,9 @@
   --color-accent-red: #ff5555;
   --color-accent-yellow: #f1fa8c;
 
+  /* ── Colors: Semantic ── */
+  --color-error: #ff5555;
+
   /* ── Colors: Trading Semantic ── */
   --color-pnl-profit: #50fa7b;
   --color-pnl-loss: #ff5555;
@@ -82,6 +85,7 @@
   --color-status-filled: #16a34a;
   --color-status-canceled: #64748b;
   --color-status-rejected: #dc2626;
+  --color-error: #dc2626;
 }
 
 /* ── Reduced Motion ── */

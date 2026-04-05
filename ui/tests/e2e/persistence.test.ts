@@ -15,8 +15,8 @@ test('data persists across app restart', async () => {
     await app1.launch()
 
     // Record something observable (e.g., account count from API)
-    const before = await app1.apiGet<{ data: unknown[] }>('/accounts')
-    const accountCount = before.data.length
+    const before = await app1.apiGet<unknown[]>('/accounts')
+    const accountCount = before.length
 
     await app1.close()
 
@@ -27,10 +27,11 @@ test('data persists across app restart', async () => {
     const app2 = new AppPage()
     await app2.launch()
 
-    const after = await app2.apiGet<{ data: unknown[] }>('/accounts')
-    expect(after.data.length).toBe(accountCount)
+    const after = await app2.apiGet<unknown[]>('/accounts')
+    expect(after.length).toBe(accountCount)
 
     // UI should also show the same data
+    await app2.navigateTo('accounts')
     await app2.waitForTestId(ACCOUNTS.ROOT)
     const accountList = app2.testId(ACCOUNTS.ACCOUNT_LIST)
     await expect(accountList).toBeVisible()
@@ -39,15 +40,16 @@ test('data persists across app restart', async () => {
 })
 
 test('window position persists across restart', async () => {
-    // Session 1: Resize window
+    // Session 1: Resize window via Electron BrowserWindow API
     const app1 = new AppPage()
     await app1.launch()
 
-    const window = app1.app.windows()[0]
-    if (!window) throw new Error('No window found')
-
-    await window.setViewportSize({ width: 1200, height: 800 })
-    await app1.page.waitForTimeout(1_000) // Let debounced save fire
+    // Set bounds via Electron API (electron-store persists these, not Playwright viewport)
+    await app1.app.evaluate(({ BrowserWindow }) => {
+        const win = BrowserWindow.getAllWindows().find(w => !w.isDestroyed() && w.isVisible())
+        if (win) win.setBounds({ x: 100, y: 100, width: 1200, height: 800 })
+    })
+    await app1.page.waitForTimeout(1_500) // Let debounced save fire
 
     await app1.close()
     await new Promise((r) => setTimeout(r, 2_000))
@@ -56,10 +58,13 @@ test('window position persists across restart', async () => {
     const app2 = new AppPage()
     await app2.launch()
 
-    // The electron-store saves bounds — verify they're roughly correct
-    const size = await app2.page.viewportSize()
+    // Read restored bounds via Electron API
+    const bounds = await app2.app.evaluate(({ BrowserWindow }) => {
+        const win = BrowserWindow.getAllWindows().find(w => !w.isDestroyed() && w.isVisible())
+        return win ? win.getBounds() : null
+    })
     // Allow for title bar and frame differences
-    expect(size?.width).toBeGreaterThan(1000)
+    expect(bounds?.width).toBeGreaterThan(1000)
 
     await app2.close()
 })

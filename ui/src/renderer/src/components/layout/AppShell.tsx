@@ -6,7 +6,9 @@ import Header from './Header'
 import StatusFooter from './StatusFooter'
 import CommandPalette from '../CommandPalette'
 import PositionCalculatorModal from '../../features/planning/PositionCalculatorModal'
+import AccountReviewWizard from '../../features/accounts/AccountReviewWizard'
 import { StatusBarProvider } from '../../hooks/useStatusBar'
+import { AccountProvider } from '../../context/AccountContext'
 import { useRouteRestoration } from '../../hooks/useRouteRestoration'
 import { useTheme } from '../../hooks/useTheme'
 
@@ -26,6 +28,7 @@ interface AppShellProps {
 export default function AppShell({ children }: AppShellProps) {
     const [paletteOpen, setPaletteOpen] = useState(false)
     const [calculatorOpen, setCalculatorOpen] = useState(false)
+    const [reviewOpen, setReviewOpen] = useState(false)
     const navigate = useNavigate()
     const location = useLocation()
 
@@ -66,31 +69,44 @@ export default function AppShell({ children }: AppShellProps) {
         return () => window.removeEventListener('zorivest:open-calculator', handler)
     }, [])
 
+    // G11: Listen for Account Review wizard trigger
+    useEffect(() => {
+        const handler = () => setReviewOpen(true)
+        window.addEventListener('zorivest:start-review', handler)
+        return () => window.removeEventListener('zorivest:start-review', handler)
+    }, [])
+
     const handleOpenCalculator = useCallback(() => {
         setCalculatorOpen(true)
     }, [])
 
     return (
-        <StatusBarProvider>
-            <div className="flex h-screen bg-bg text-fg">
-                <SkipLink />
-                <NavRail />
-                <div className="flex flex-col flex-1 min-w-0">
-                    <Header onCommandPaletteToggle={() => setPaletteOpen(true)} />
-                    <main id="main-content" className="flex-1 overflow-auto p-4">
-                        {children}
-                    </main>
-                    <StatusFooter />
+        <AccountProvider>
+            <StatusBarProvider>
+                <div className="flex h-screen bg-bg text-fg">
+                    <SkipLink />
+                    <NavRail />
+                    <div className="flex flex-col flex-1 min-w-0">
+                        <Header onCommandPaletteToggle={() => setPaletteOpen(true)} />
+                        <main id="main-content" className="flex-1 overflow-auto p-4">
+                            {children}
+                        </main>
+                        <StatusFooter />
+                    </div>
+                    <CommandPalette
+                        open={paletteOpen}
+                        onClose={() => setPaletteOpen(false)}
+                    />
+                    <PositionCalculatorModal
+                        isOpen={calculatorOpen}
+                        onClose={() => setCalculatorOpen(false)}
+                    />
+                    <AccountReviewWizard
+                        isOpen={reviewOpen}
+                        onClose={() => setReviewOpen(false)}
+                    />
                 </div>
-                <CommandPalette
-                    open={paletteOpen}
-                    onClose={() => setPaletteOpen(false)}
-                />
-                <PositionCalculatorModal
-                    isOpen={calculatorOpen}
-                    onClose={() => setCalculatorOpen(false)}
-                />
-            </div>
-        </StatusBarProvider>
+            </StatusBarProvider>
+        </AccountProvider>
     )
 }

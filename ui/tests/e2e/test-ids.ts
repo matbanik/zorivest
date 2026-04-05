@@ -31,6 +31,31 @@ export const ACCOUNTS = {
     ROOT: 'accounts-page',
     ACCOUNT_LIST: 'account-list',
     ADD_BUTTON: 'add-account-btn',
+    DETAIL_PANEL: 'account-detail-panel',
+    // Form fields
+    FORM: {
+        NAME: 'account-name-input',
+        TYPE: 'account-type-select',
+        INSTITUTION: 'account-institution-input',
+        // DEFERRED: Multi-currency support — see AccountDetailPanel.tsx DEFERRED comment
+        // CURRENCY: 'account-currency-select',
+        TAX_ADVANTAGED: 'account-tax-advantaged-checkbox',
+        NOTES: 'account-notes-textarea',
+        SUBMIT: 'account-submit-btn',
+        DELETE: 'account-delete-btn',
+    },
+    // Balance controls
+    BALANCE: {
+        UPDATE_BTN: 'balance-update-btn',
+        INPUT: 'balance-input',
+        SAVE_BTN: 'balance-save-btn',
+        CANCEL_BTN: 'balance-cancel-btn',
+        LATEST: 'balance-latest-value',
+    },
+    // Table
+    TABLE: {
+        PORTFOLIO_PCT: 'account-portfolio-pct',
+    },
 } as const
 
 // ── Trades Page ─────────────────────────────────────────────────────────
