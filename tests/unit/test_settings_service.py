@@ -51,11 +51,27 @@ class FakeAppDefaultsRepo:
         return list(self._data.values())
 
 
+def _fake_uow() -> Any:
+    """Create a FakeUoW typed as Any to bypass pyright protocol invariance checks."""
+    return FakeUoW()
+
+
 class FakeUoW:
     def __init__(self) -> None:
         self.settings = FakeSettingsRepo()
         self.app_defaults = FakeAppDefaultsRepo()
         self._committed = False
+        # Protocol stubs — not used by SettingsService
+        self.trades: Any = None
+        self.images: Any = None
+        self.accounts: Any = None
+        self.balance_snapshots: Any = None
+        self.round_trips: Any = None
+        self.market_provider_settings: Any = None
+        self.trade_reports: Any = None
+        self.trade_plans: Any = None
+        self.watchlists: Any = None
+        self.email_provider: Any = None
 
     def commit(self) -> None:
         self._committed = True
@@ -74,7 +90,7 @@ class TestServiceGet:
     """get() uses cache first, then resolves from DB."""
 
     def test_get_from_cache(self) -> None:
-        uow = FakeUoW()
+        uow = _fake_uow()
         cache = SettingsCache(ttl_seconds=300)
         cache.populate(
             {
@@ -89,7 +105,7 @@ class TestServiceGet:
         assert result.value == "dark"
 
     def test_get_from_db_on_cache_miss(self) -> None:
-        uow = FakeUoW()
+        uow = _fake_uow()
         uow.app_defaults._data["ui.theme"] = FakeRow(key="ui.theme", value="dark")
         service = SettingsService(uow=uow, cache=SettingsCache(ttl_seconds=300))
         result = service.get("ui.theme")
@@ -98,7 +114,7 @@ class TestServiceGet:
         assert result.source == "default"
 
     def test_get_hardcoded_fallback(self) -> None:
-        uow = FakeUoW()
+        uow = _fake_uow()
         service = SettingsService(uow=uow, cache=SettingsCache(ttl_seconds=300))
         result = service.get("ui.theme")
         assert result is not None
@@ -110,7 +126,7 @@ class TestServiceBulkUpsert:
     """bulk_upsert validates then writes."""
 
     def test_valid_upsert_commits(self) -> None:
-        uow = FakeUoW()
+        uow = _fake_uow()
         service = SettingsService(uow=uow, cache=SettingsCache(ttl_seconds=300))
         result = service.bulk_upsert({"ui.theme": "light"})
         assert result["status"] == "updated"
@@ -118,13 +134,13 @@ class TestServiceBulkUpsert:
         assert uow._committed
 
     def test_invalid_upsert_raises(self) -> None:
-        uow = FakeUoW()
+        uow = _fake_uow()
         service = SettingsService(uow=uow, cache=SettingsCache(ttl_seconds=300))
         with pytest.raises(SettingsValidationError):
             service.bulk_upsert({"ui.theme": "neon"})
 
     def test_upsert_invalidates_cache(self) -> None:
-        uow = FakeUoW()
+        uow = _fake_uow()
         cache = SettingsCache(ttl_seconds=300)
         cache.populate(
             {
@@ -142,7 +158,7 @@ class TestServiceResetToDefault:
     """reset_to_default removes user override."""
 
     def test_reset_deletes_and_invalidates(self) -> None:
-        uow = FakeUoW()
+        uow = _fake_uow()
         uow.settings._data["ui.theme"] = FakeRow(key="ui.theme", value="light")
         cache = SettingsCache(ttl_seconds=300)
         cache.populate(
@@ -163,7 +179,7 @@ class TestServiceGetAllResolved:
     """get_all_resolved uses cache or resolves all from DB."""
 
     def test_get_all_from_cache(self) -> None:
-        uow = FakeUoW()
+        uow = _fake_uow()
         cache = SettingsCache(ttl_seconds=300)
         data = {
             "ui.theme": ResolvedSetting(
@@ -179,12 +195,12 @@ class TestServiceGetAllResolved:
         assert result["ui.theme"].source == "user"
 
     def test_get_all_from_db_populates_cache(self) -> None:
-        uow = FakeUoW()
+        uow = _fake_uow()
         cache = SettingsCache(ttl_seconds=300)
         service = SettingsService(uow=uow, cache=cache)
         result = service.get_all_resolved()
         # Should resolve all 24 registry keys
-        assert len(result) == 24
+        assert len(result) == 26
         # Cache should now be populated
         assert cache.get_all() is not None
 
@@ -193,7 +209,7 @@ class TestServiceGetAll:
     """get_all() returns raw unresolved rows."""
 
     def test_get_all_returns_raw_rows(self) -> None:
-        uow = FakeUoW()
+        uow = _fake_uow()
         uow.settings._data["ui.theme"] = FakeRow(key="ui.theme", value="dark")
         uow.settings._data["data.sync_interval_minutes"] = FakeRow(
             key="data.sync_interval_minutes", value="15"
@@ -205,7 +221,7 @@ class TestServiceGetAll:
         assert keys == {"ui.theme", "data.sync_interval_minutes"}
 
     def test_get_all_empty(self) -> None:
-        uow = FakeUoW()
+        uow = _fake_uow()
         service = SettingsService(uow=uow)
         rows = service.get_all()
         assert rows == []

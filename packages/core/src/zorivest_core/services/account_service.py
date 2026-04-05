@@ -11,6 +11,7 @@ from decimal import Decimal
 from zorivest_core.application.commands import CreateAccount, UpdateBalance
 from zorivest_core.application.ports import UnitOfWork
 from zorivest_core.domain.entities import Account, BalanceSnapshot
+from zorivest_core.domain.enums import AccountType
 from zorivest_core.domain.exceptions import NotFoundError
 
 
@@ -84,6 +85,9 @@ class AccountService:
             account = self.uow.accounts.get(account_id)
             if account is None:
                 raise NotFoundError(f"Account not found: {account_id}")
+            # Coerce account_type string → AccountType enum if present
+            if "account_type" in kwargs and isinstance(kwargs["account_type"], str):
+                kwargs["account_type"] = AccountType(kwargs["account_type"].lower())
             # Frozen dataclass — create new instance with updated fields
             updated = Account(**{**account.__dict__, **kwargs})
             self.uow.accounts.update(updated)

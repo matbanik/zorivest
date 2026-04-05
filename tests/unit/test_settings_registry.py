@@ -1,10 +1,10 @@
 # tests/unit/test_settings_registry.py
 """Tests for SettingSpec, Sensitivity, SETTINGS_REGISTRY, and seed_defaults (MEU-17).
 
-AC-17.1: SETTINGS_REGISTRY contains exactly 24 entries
+AC-17.1: SETTINGS_REGISTRY contains exactly 26 entries
 AC-17.2: Every entry has valid value_type
 AC-17.3: Every entry has valid category
-AC-17.4: seed_defaults() populates all 24 rows
+AC-17.4: seed_defaults() populates all 26 rows
 AC-17.5: seed_defaults() is idempotent
 AC-17.6: Dynamic key ui.panel.*.collapsed is present
 """
@@ -38,10 +38,10 @@ def _engine():
 
 
 class TestRegistryCount:
-    """AC-17.1: SETTINGS_REGISTRY contains exactly 24 entries."""
+    """AC-17.1: SETTINGS_REGISTRY contains exactly 26 entries."""
 
-    def test_registry_has_24_entries(self) -> None:
-        assert len(SETTINGS_REGISTRY) == 24
+    def test_registry_has_26_entries(self) -> None:
+        assert len(SETTINGS_REGISTRY) == 26
 
 
 # ── AC-17.2: Value types ─────────────────────────────────────────────────
@@ -103,7 +103,7 @@ class TestCategories:
 
 
 class TestSeedDefaults:
-    """AC-17.4: seed_defaults() populates app_defaults with all 24 rows."""
+    """AC-17.4: seed_defaults() populates app_defaults with all 26 rows."""
 
     def test_seed_populates_all_rows(self) -> None:
         engine = _engine()
@@ -111,7 +111,7 @@ class TestSeedDefaults:
             seed_defaults(session, SETTINGS_REGISTRY)
             session.commit()
             count = session.query(AppDefaultModel).count()
-            assert count == 24
+            assert count == 26
 
     def test_seed_values_match_registry(self) -> None:
         """Seeded values match the registry's hardcoded_default."""
@@ -122,11 +122,11 @@ class TestSeedDefaults:
             for key, spec in SETTINGS_REGISTRY.items():
                 row = session.get(AppDefaultModel, key)
                 assert row is not None, f"Missing seed row for '{key}'"
-                assert row.value == str(spec.hardcoded_default), (
+                assert row.value == str(spec.hardcoded_default), (  # type: ignore[operator]
                     f"Value mismatch for '{key}': {row.value!r} != {str(spec.hardcoded_default)!r}"
                 )
-                assert row.value_type == spec.value_type
-                assert row.category == spec.category
+                assert row.value_type == spec.value_type  # type: ignore[operator]
+                assert row.category == spec.category  # type: ignore[operator]
 
     def test_seed_sets_description(self) -> None:
         """Seeded rows carry the spec description."""
@@ -138,7 +138,7 @@ class TestSeedDefaults:
             row = session.get(AppDefaultModel, "dialog.confirm_delete")
             assert row is not None
             assert row.description is not None
-            assert len(row.description) > 0
+            assert len(row.description) > 0  # type: ignore[arg-type]
 
 
 # ── AC-17.5: Idempotent re-seeding ───────────────────────────────────────
@@ -156,7 +156,7 @@ class TestIdempotentSeeding:
             seed_defaults(session, SETTINGS_REGISTRY)
             session.commit()
             count = session.query(AppDefaultModel).count()
-            assert count == 24
+            assert count == 26
 
     def test_seed_updates_existing_on_rerun(self) -> None:
         """Re-seeding updates value/description if the registry changed."""
@@ -168,7 +168,7 @@ class TestIdempotentSeeding:
             # Manually change a row to simulate stale DB
             row = session.get(AppDefaultModel, "ui.theme")
             assert row is not None
-            row.value = "stale_value"
+            row.value = "stale_value"  # type: ignore[assignment]
             session.commit()
 
             # Re-seed should restore the registry value
@@ -176,7 +176,7 @@ class TestIdempotentSeeding:
             session.commit()
             row = session.get(AppDefaultModel, "ui.theme")
             assert row is not None
-            assert row.value == "dark"
+            assert row.value == "dark"  # type: ignore[operator]
 
 
 # ── AC-17.6: Dynamic key ─────────────────────────────────────────────────

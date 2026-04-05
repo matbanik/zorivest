@@ -36,6 +36,7 @@ class CreateAccountRequest(BaseModel):
 
 class UpdateAccountRequest(BaseModel):
     name: Optional[str] = None
+    account_type: Optional[str] = None
     institution: Optional[str] = None
     currency: Optional[str] = None
     is_tax_advantaged: Optional[bool] = None

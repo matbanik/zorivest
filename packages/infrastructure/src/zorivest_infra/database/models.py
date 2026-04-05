@@ -91,7 +91,9 @@ class AccountModel(Base):
 
     trades = relationship("TradeModel", back_populates="account_rel")
     balance_snapshots = relationship(
-        "BalanceSnapshotModel", back_populates="account_rel"
+        "BalanceSnapshotModel",
+        back_populates="account_rel",
+        cascade="all, delete-orphan",
     )
 
 

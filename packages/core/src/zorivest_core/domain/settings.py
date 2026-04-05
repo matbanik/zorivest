@@ -6,7 +6,7 @@ Source: 02a-backup-restore.md §2A.1, §2A.2
 Contains:
 - Sensitivity enum (NON_SENSITIVE, SENSITIVE, SECRET)
 - SettingSpec frozen dataclass (registry entry metadata)
-- SETTINGS_REGISTRY dict — canonical list of all 24 known settings
+- SETTINGS_REGISTRY dict — canonical list of all 26 known settings
 """
 
 from __future__ import annotations
@@ -223,6 +223,26 @@ SETTINGS_REGISTRY: dict[str, SettingSpec] = {
         description="Sidebar width in pixels",
         min_value=150,
         max_value=600,
+    ),
+    "ui.accounts.active": SettingSpec(
+        key="ui.accounts.active",
+        value_type="str",
+        hardcoded_default="",
+        category="ui",
+        description="Currently selected account UUID (empty if none)",
+        sensitivity=Sensitivity.SENSITIVE,
+        exportable=False,
+        max_length=36,
+    ),
+    "ui.accounts.mru": SettingSpec(
+        key="ui.accounts.mru",
+        value_type="json",
+        hardcoded_default="[]",
+        category="ui",
+        description="Most Recently Used account UUIDs (max 3, JSON array)",
+        sensitivity=Sensitivity.SENSITIVE,
+        exportable=False,
+        max_length=256,
     ),
     # ── Notifications (4 entries) ─────────────────────────────────────────
     "notification.success.enabled": SettingSpec(
