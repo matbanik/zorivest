@@ -34,3 +34,5 @@ docs/_todo_considerations.txt
 # Node.js
 node_modules/
 ui/out/
+ui/playwright-report/
+ui/test-results/
