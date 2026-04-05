@@ -75,7 +75,7 @@
 | MEU-34 | `mcp-diagnostics` | 15f | zorivest_diagnose MCP tool | ✅ approved |
 | MEU-35 | `mcp-trade-analytics` | 13 | Trade analytics MCP tools | ✅ approved |
 | MEU-36 | `mcp-trade-planning` | 13 | Trade planning MCP tools | ✅ approved |
-| MEU-37 | `mcp-accounts` | 13 | Account MCP tools | ✅ approved |
+| MEU-37 | `mcp-accounts` | 13 | Account CRUD + balance snapshots + broker sync/import MCP tools (13 tools) | 🔴 changes_required |
 | MEU-38 | `mcp-guard` | 15e | McpGuardModel + REST + middleware | ✅ approved |
 | MEU-39 | `mcp-perf-metrics` | 15g | Per-tool performance metrics middleware | ✅ approved |
 | MEU-40 | `mcp-launch-gui` | 15h | zorivest_launch_gui MCP tool | ✅ approved |
@@ -206,3 +206,4 @@ P2.75 (broker adapters): MEU-96 → MEU-99
 | MEU-73 | `gui-email-settings` | 35c | Email Provider Settings GUI — full stack (backend model/repo/service/route, frontend page/route/nav, 16 tests) | ✅ 2026-03-25 |
 | MEU-71 | `account-api-completion` | 35a | Account API enrichment: `get_latest`/`list_for_account` on BalanceSnapshotRepo, `AccountService` portfolio total, enriched `AccountResponse` + balance history endpoint, FK enforcement (27 tests) | ✅ 2026-03-26 |
 | MEU-71b | `calculator-accounts` | 81a | Calculator Account Integration: `useAccounts` hook, account dropdown with All Accounts default + auto-fill, manual override, zero-total support (12 tests) | ✅ 2026-03-26 |
+| MEU-71a | `account-gui` | 35a.1 | Account Management GUI: AccountsHome dashboard (MRU cards, table, split layout), AccountDetailPanel (RHF+Zod CRUD), BalanceHistory (canvas sparkline), AccountReviewWizard (multi-step balance review), AccountContext, G11 event wiring (47 tests) | ✅ 2026-03-27 |

@@ -143,6 +143,16 @@
 - **Details:** When `AxeBuilder.analyze()` throws (e.g., Electron protocol error), the test fails at the scan call — not at `expect(violations).toEqual([])`. If violation logging logic is guarded by `if (violations.length > 0)`, it is never reached, making it appear as if no violations were found (the log file is not written). This caused several debugging sessions chasing heading-order and label violations when the real issue was the scanner never running.
 - **Workaround:** When debugging axe failures in E2E, always check the error at the scan call itself (not just the assertion). Wrap the scan in a try/catch during debugging to distinguish "scanner failed" from "violations found". Prefer writing violation details via `test.info().attach()` rather than filesystem writes, as attach() works regardless of where in the test the failure occurs.
 
+### [E2E-ELECTRONLAUNCH] — Playwright `Process failed to launch!` in headless/sandboxed environments
+- **Severity:** High (verification blocker)
+- **Component:** ui (E2E tests)
+- **Discovered:** 2026-03-18 (first observed in Codex critical review)
+- **Status:** Active — environment-specific
+- **Details:** `npx playwright test` fails with `Process failed to launch!` before any test assertions execute. Electron requires a display server (X11/Wayland on Linux, native desktop on Windows/macOS). The Codex reviewer runs in a sandboxed cloud environment without a display server, causing 100% E2E failure rate across all test suites (launch, persistence, accounts, market-data, trade-entry, position-size). The same tests pass on the developer's local Windows desktop.
+- **Affected suites:** `launch.test.ts`, `persistence.test.ts`, `account-crud.test.ts`, `trade-entry.test.ts`, `mode-gating.test.ts`, `settings-market-data.test.ts`, `position-size.test.ts`
+- **Workaround:** E2E tests are verified locally by the implementation agent (Opus). The Codex reviewer validates unit/integration tests and code review only. CI pipeline will need `xvfb-run` or equivalent virtual framebuffer when E2E tests are added to GitHub Actions.
+- **Resolution path:** Configure `xvfb-run npx playwright test` in CI, or use Electron's `--headless` flag once Playwright's Electron integration supports it.
+
 ## Template
 
 When adding issues, use this format:
