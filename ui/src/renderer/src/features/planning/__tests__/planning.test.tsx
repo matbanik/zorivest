@@ -395,12 +395,12 @@ describe('MEU-48: WatchlistPage', () => {
 
 describe('MEU-48: PositionCalculatorModal', () => {
     it('should not render when closed', () => {
-        render(<PositionCalculatorModal isOpen={false} onClose={vi.fn()} />)
+        render(<PositionCalculatorModal isOpen={false} onClose={vi.fn()} />, { wrapper: createWrapper() })
         expect(screen.queryByTestId('calculator-modal')).not.toBeInTheDocument()
     })
 
     it('should render with all input fields (AC-14)', () => {
-        render(<PositionCalculatorModal isOpen={true} onClose={vi.fn()} />)
+        render(<PositionCalculatorModal isOpen={true} onClose={vi.fn()} />, { wrapper: createWrapper() })
         expect(screen.getByTestId('calculator-modal')).toBeInTheDocument()
         expect(screen.getByTestId('calc-account-size')).toBeInTheDocument()
         expect(screen.getByTestId('calc-risk-percent')).toBeInTheDocument()
@@ -410,7 +410,7 @@ describe('MEU-48: PositionCalculatorModal', () => {
     })
 
     it('should compute shares correctly (AC-15)', () => {
-        render(<PositionCalculatorModal isOpen={true} onClose={vi.fn()} />)
+        render(<PositionCalculatorModal isOpen={true} onClose={vi.fn()} />, { wrapper: createWrapper() })
         // Explicitly set account size (no longer relies on hardcoded default)
         fireEvent.change(screen.getByTestId('calc-account-select'), { target: { value: '' } })  // Manual
         fireEvent.change(screen.getByTestId('calc-account-size'), { target: { value: '100000' } })
@@ -423,7 +423,7 @@ describe('MEU-48: PositionCalculatorModal', () => {
     })
 
     it('should compute R:R ratio correctly (AC-15)', () => {
-        render(<PositionCalculatorModal isOpen={true} onClose={vi.fn()} />)
+        render(<PositionCalculatorModal isOpen={true} onClose={vi.fn()} />, { wrapper: createWrapper() })
         fireEvent.change(screen.getByTestId('calc-entry-price'), { target: { value: '100' } })
         fireEvent.change(screen.getByTestId('calc-stop-price'), { target: { value: '98' } })
         fireEvent.change(screen.getByTestId('calc-target-price'), { target: { value: '106' } })
@@ -432,7 +432,7 @@ describe('MEU-48: PositionCalculatorModal', () => {
     })
 
     it('should show oversize warning when position > 100% (AC-15)', () => {
-        render(<PositionCalculatorModal isOpen={true} onClose={vi.fn()} />)
+        render(<PositionCalculatorModal isOpen={true} onClose={vi.fn()} />, { wrapper: createWrapper() })
         // Explicitly set account size
         fireEvent.change(screen.getByTestId('calc-account-select'), { target: { value: '' } })  // Manual
         fireEvent.change(screen.getByTestId('calc-account-size'), { target: { value: '100000' } })
@@ -445,7 +445,7 @@ describe('MEU-48: PositionCalculatorModal', () => {
 
     it('should close on Escape key', () => {
         const onClose = vi.fn()
-        render(<PositionCalculatorModal isOpen={true} onClose={onClose} />)
+        render(<PositionCalculatorModal isOpen={true} onClose={onClose} />, { wrapper: createWrapper() })
         fireEvent.keyDown(window, { key: 'Escape' })
         expect(onClose).toHaveBeenCalled()
     })
@@ -510,7 +510,7 @@ describe('MEU-48: PlanningLayout', () => {
 
 describe('MEU-70 T1: C2 — Copy-to-clipboard on shares', () => {
     it('should render copy button next to shares output', () => {
-        render(<PositionCalculatorModal isOpen={true} onClose={vi.fn()} />)
+        render(<PositionCalculatorModal isOpen={true} onClose={vi.fn()} />, { wrapper: createWrapper() })
         fireEvent.change(screen.getByTestId('calc-entry-price'), { target: { value: '100' } })
         fireEvent.change(screen.getByTestId('calc-stop-price'), { target: { value: '98' } })
         expect(screen.getByTestId('calc-copy-shares-btn')).toBeInTheDocument()
@@ -520,7 +520,7 @@ describe('MEU-70 T1: C2 — Copy-to-clipboard on shares', () => {
         const writeText = vi.fn().mockResolvedValue(undefined)
         Object.assign(navigator, { clipboard: { writeText } })
 
-        render(<PositionCalculatorModal isOpen={true} onClose={vi.fn()} />)
+        render(<PositionCalculatorModal isOpen={true} onClose={vi.fn()} />, { wrapper: createWrapper() })
         // Explicitly set account size
         fireEvent.change(screen.getByTestId('calc-account-select'), { target: { value: '' } })  // Manual
         fireEvent.change(screen.getByTestId('calc-account-size'), { target: { value: '100000' } })

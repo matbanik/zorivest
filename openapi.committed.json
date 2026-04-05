@@ -1554,6 +1554,17 @@
       },
       "UpdateAccountRequest": {
         "properties": {
+          "account_type": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Account Type"
+          },
           "currency": {
             "anyOf": [
               {
