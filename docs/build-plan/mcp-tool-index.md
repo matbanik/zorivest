@@ -1,4 +1,4 @@
-﻿# MCP Tool Index
+# MCP Tool Index
 
 Generated from docs/build-plan/ on 2026-02-26. This index is agent-facing and optimized for reliable tool selection and invocation.
 
@@ -44,6 +44,11 @@ Generated from docs/build-plan/ on 2026-02-26. This index is agent-facing and op
 | zorivest_service_status | Specified | `zorivest-diagnostics` | Check backend service process-level runtime health. | none. | JSON text with backend state; pid; uptime; cpu/memory; scheduler/db hints, or unreachable error. | Read-only; combines /health + /service/status. |
 | zorivest_service_restart | Specified | `zorivest-diagnostics` | Request graceful backend restart via service wrapper. | confirm literal RESTART. | JSON text restarted status when healthy again, or timeout/failure error. | Operational side effect: service restart; requires confirmation. |
 | zorivest_service_logs | Specified | `zorivest-diagnostics` | Locate service log directory/files for troubleshooting. | none. | JSON text with log_directory; log_files; hint. | Reads filesystem metadata only. |
+| list_accounts | Specified | `accounts` | List all accounts with balances and metadata. | none. | JSON text array of account objects. | Read-only. |
+| get_account | Specified | `accounts` | Get single account details. | account_id. | JSON text account object. | Read-only. |
+| create_account | Specified | `accounts` | Create a new account (broker, bank, IRA, etc.). | name; account_type; institution; currency (default USD); is_tax_advantaged; notes. | JSON text created account with account_id. | Writes account; guarded + confirmation. |
+| update_account | Specified | `accounts` | Update account metadata. | account_id; optional name, account_type, institution, currency, is_tax_advantaged, notes. | JSON text updated account. | Writes account; guarded. |
+| record_balance | Specified | `accounts` | Record a balance snapshot for an account. | account_id; balance (number); optional snapshot_datetime (ISO 8601). | JSON text created balance snapshot. | Writes balance; guarded. |
 | sync_broker | Specified | `accounts` | Trigger broker sync/import workflow. | broker_id (e.g., ibkr_pro/alpaca_paper). | JSON text sync summary/status. | Writes imported data. |
 | list_brokers | Specified | `accounts` | List configured broker adapters. | none. | JSON text list of broker configs/status. | Read-only. |
 | get_round_trips | Specified | `trade-analytics` | Analyze closed/open execution pairs. | optional account_id; status (open/closed/all, default all). | JSON text round-trip list. | Read-only analytics query. |
@@ -94,7 +99,7 @@ Generated from docs/build-plan/ on 2026-02-26. This index is agent-facing and op
 | Category | Specified | Planned | Future | Total |
 |----------|-----------|---------|--------|-------|
 | `trade-analytics` | 19 | — | — | 19 |
-| `accounts` | 8 | — | — | 8 |
+| `accounts` | 13 | — | — | 13 |
 | `market-data` | 7 | — | — | 7 |
 | `tax` | 8 | — | — | 8 |
 | `scheduling` | 6 | — | — | 6 |
@@ -105,7 +110,7 @@ Generated from docs/build-plan/ on 2026-02-26. This index is agent-facing and op
 | `calculator` | 1 | — | — | 1 |
 | `discovery` | 4 | — | — | 4 |
 
-> **Note:** Tools with multiple categories are counted in each. Primary category listed first in the Categories column. Unique tool count: 69 (all Specified).
+> **Note:** Tools with multiple categories are counted in each. Primary category listed first in the Categories column. Unique tool count: 74 (all Specified).
 
 ---
 
@@ -120,7 +125,7 @@ Generated from docs/build-plan/ on 2026-02-26. This index is agent-facing and op
 | `trade-analytics` | 05c | 19 | ✅ Default | Trade CRUD, screenshots, analytics, reports |
 | `trade-planning` | 05c, 05d | 3 | ✅ Default | Position calculator, trade plans (includes `create_trade` cross-tagged from 05c) |
 | `market-data` | 05e | 7 | ⬜ Deferred | Stock quotes, news, SEC filings, ticker search |
-| `accounts` | 05f | 8 | ⬜ Deferred | Account management, broker sync, CSV import |
+| `accounts` | 05f | 13 | ⬜ Deferred | Account CRUD, balance snapshots, broker sync, CSV import |
 | `scheduling` | 05g | 6 | ⬜ Deferred | Policy CRUD, pipeline execution, scheduler status |
 | `tax` | 05h | 8 | ⬜ Deferred | Tax estimation, wash sales, lot management, harvesting |
 | `behavioral` | 05i | 3 | ⬜ Deferred | Mistake tracking, expectancy, Monte Carlo |

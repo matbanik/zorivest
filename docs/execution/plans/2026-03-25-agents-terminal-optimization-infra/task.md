@@ -13,9 +13,9 @@
 | 4 | BUILD_PLAN.md check | Opus | rg confirms no stale refs; no product rows to update | `rg "agents-terminal-optimization\|terminal-preflight\|PRIORITY 0" docs/BUILD_PLAN.md` → 0 matches | [x] |
 | 5 | current-focus.md changelog | Opus | `.agent/context/current-focus.md` updated with agent-infra entry | `rg "agents-terminal-optimization-infra\|terminal-preflight" .agent/context/current-focus.md` returns ≥ 1 match | [x] |
 | 6 | Handoffs created (3) | Opus | `001-*-bp00s0.0.md`, `002-*-bp00s0.0.md`, `003-*-bp00s0.0.md` | `Test-Path .agent/context/handoffs/001-2026-03-25-agents-p0-windows-shell-bp00s0.0.md`; same for 002, 003 | [x] |
-| 7 | Codex review — all 3 handoffs | Codex | Review handoffs 001-003; verify no rule deletions, checklist parity, correct placement | `rg "Verdict\|verdict" .agent/context/handoffs/001-2026-03-25-agents-p0-windows-shell-bp00s0.0.md` returns ≥ 1 match; same for 002, 003 handoffs | [ ] |
-| 8 | Reflection file | Opus | `docs/execution/reflections/2026-03-25-agents-terminal-optimization-infra-reflection.md` | `Test-Path docs/execution/reflections/2026-03-25-agents-terminal-optimization-infra-reflection.md` | [ ] |
-| 9 | Metrics update | Opus | `docs/execution/metrics.md` updated with session row | `rg "2026-03-25.*agents-terminal" docs/execution/metrics.md` returns 1 match | [ ] |
+| 7 | Codex review — all 3 handoffs | Codex | Review handoffs 001-003; verify no rule deletions, checklist parity, correct placement | `rg "Verdict\|verdict" .agent/context/handoffs/001-2026-03-25-agents-p0-windows-shell-bp00s0.0.md` returns ≥ 1 match; same for 002, 003 handoffs | [x] |
+| 8 | Reflection file | Opus | `docs/execution/reflections/2026-03-25-agents-terminal-optimization-infra-reflection.md` | `Test-Path docs/execution/reflections/2026-03-25-agents-terminal-optimization-infra-reflection.md` | [x] |
+| 9 | Metrics update | Opus | `docs/execution/metrics.md` updated with session row | `rg "2026-03-25.*agents-terminal" docs/execution/metrics.md` returns 1 match | [x] |
 | 10 | Commit messages prepared | Opus | Proposed commit messages presented to human | `rg "feat:\|fix:\|refactor:\|docs:\|test:" .agent/context/handoffs/003-2026-03-25-workflow-amendments-bp00s0.0.md` returns ≥ 1 match (commit msgs included in final handoff) | [x] |
 
 ---

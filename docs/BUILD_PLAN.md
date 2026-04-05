@@ -187,7 +187,7 @@ Domain → Infrastructure → Services → REST API → MCP Server → GUI → D
 | MEU-34 | `mcp-diagnostics` | 15f | [05b](build-plan/05b-mcp-zorivest-diagnostics.md) | zorivest_diagnose MCP tool | ✅ |
 | MEU-35 | `mcp-trade-analytics` | 13 | [05c](build-plan/05c-mcp-trade-analytics.md) | Trade analytics MCP tools | ✅ |
 | MEU-36 | `mcp-trade-planning` | 13 | [05d](build-plan/05d-mcp-trade-planning.md) | Trade planning MCP tools | ✅ |
-| MEU-37 | `mcp-accounts` | 13 | [05f](build-plan/05f-mcp-accounts.md) | Account MCP tools | ✅ |
+| MEU-37 | `mcp-accounts` | 13 | [05f](build-plan/05f-mcp-accounts.md) | Account CRUD MCP tools (5) + **account-trade integrity**: System Default Account (seeded, undeletable), `is_archived` soft-delete, `is_system` guard, three-path deletion (block/archive/reassign-to-default), computed metrics (`trade_count`, `round_trip_count`, `win_rate`, `total_realized_pnl`), GUI trade form account `<select>` dropdown ([06b L179](build-plan/06b-gui-trades.md)), MCP `account_id` validation | 🔴 |
 | MEU-38 | `mcp-guard` | 15e | [05 §guard](build-plan/05-mcp-server.md) | McpGuardModel + REST + middleware + GUI | ✅ |
 | MEU-39 | `mcp-perf-metrics` | 15g | [05 §5.9](build-plan/05-mcp-server.md) | Per-tool performance metrics middleware | ✅ |
 | MEU-40 | `mcp-launch-gui` | 15h | [05 §5.10](build-plan/05-mcp-server.md) | zorivest_launch_gui MCP tool | ✅ |
@@ -260,7 +260,7 @@ Domain → Infrastructure → Services → REST API → MCP Server → GUI → D
 | MEU-70a | `watchlist-visual-redesign` | 35.1 | [06i](build-plan/06i-gui-watchlist-visual.md) | Watchlist visual redesign (Level 1: dark palette, price columns, tabular figures, gain/loss arrows) + [PLAN-NOSIZE] full-stack `position_size`/`shares` field · Depends on: MEU-65 ✅, MEU-70 ✅ | ⬜ |
 | MEU-70b | `planning-ux-polish` | 35.2 | [06c §ux](build-plan/06c-gui-planning.md) | Trade Planner UX polish: segmented status buttons (no dropdown), conditional Link-to-Trade grayout, picker selection label feedback, editable `shares_planned` field · Frontend-only | ✅ |
 | MEU-71 | `account-entity-api` | 35a.0 | [06d](build-plan/06d-gui-accounts.md) | Account entity + service + REST API; FK constraints already exist at infra layer (no Alembic migration needed); balance history + portfolio total endpoints | ⏸ |
-| MEU-71a | `account-gui` | 35a.1 | [06d](build-plan/06d-gui-accounts.md) | Account Management GUI (list, add, edit, balance display); accounts dropdown in Trade Planner form · Depends on MEU-71 | ⏸ |
+| MEU-71a | `account-gui` | 35a.1 | [06d](build-plan/06d-gui-accounts.md) | Account Management GUI (list, add, edit, balance display); accounts dropdown in Trade Planner form · Depends on MEU-71 | ✅ |
 | MEU-71b | `calculator-account-integration` | 35a.2 | [06h](build-plan/06h-gui-calculator.md) | Position Calculator pulls account balance from selected account for risk % calculation · Depends on MEU-71 | ⏸ |
 | MEU-72 | `gui-scheduling` | 35b | [06e](build-plan/06e-gui-scheduling.md) | Scheduling GUI | ⬜ |
 | MEU-73 | `gui-email-settings` | 35c | [06f §email](build-plan/06f-gui-settings.md) | Email Provider Settings GUI | ✅ |

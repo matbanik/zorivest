@@ -4,6 +4,180 @@
 
 ## Tools
 
+### `list_accounts` [Specified]
+
+List all accounts with latest balance and metadata.
+
+```typescript
+  server.tool(
+    'list_accounts',
+    'List all accounts with latest balance, account type, and institution',
+    {},
+    async () => fetchApi('/api/v1/accounts')
+  );
+```
+
+#### Annotations
+
+- `readOnlyHint`: true
+- `destructiveHint`: false
+- `idempotentHint`: true
+- `toolset`: accounts
+- `alwaysLoaded`: false
+
+**Input:** none
+**Output:** JSON text array of account objects (account_id, name, account_type, institution, currency, is_tax_advantaged, latest_balance, latest_balance_date, notes)
+**Side Effects:** None (read-only)
+
+---
+
+### `get_account` [Specified]
+
+Get detailed information for a single account.
+
+```typescript
+  server.tool(
+    'get_account',
+    'Get single account details including latest balance and metadata',
+    {
+      account_id: z.string().describe('Account UUID'),
+    },
+    async ({ account_id }) => fetchApi(`/api/v1/accounts/${account_id}`)
+  );
+```
+
+#### Annotations
+
+- `readOnlyHint`: true
+- `destructiveHint`: false
+- `idempotentHint`: true
+- `toolset`: accounts
+- `alwaysLoaded`: false
+
+**Input:** `account_id` (string, UUID)
+**Output:** JSON text account object with full details
+**Side Effects:** None (read-only)
+**Error Posture:** Returns 404 if account not found
+
+---
+
+### `create_account` [Specified]
+
+Create a new brokerage, bank, or investment account.
+
+```typescript
+  server.tool(
+    'create_account',
+    'Create a new account (broker, bank, IRA, 401k, etc.)',
+    {
+      name: z.string().describe('Account display name'),
+      account_type: z.enum(['BROKER', 'BANK', 'REVOLVING', 'INSTALLMENT', 'IRA', 'K401'])
+        .describe('Account category'),
+      institution: z.string().describe('Financial institution name'),
+      currency: z.string().default('USD').describe('Base currency (ISO 4217)'),
+      is_tax_advantaged: z.boolean().default(false).describe('Tax-advantaged account flag'),
+      notes: z.string().optional().describe('Optional notes'),
+    },
+    async (params) => fetchApi('/api/v1/accounts', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify(params),
+    })
+  );
+```
+
+#### Annotations
+
+- `readOnlyHint`: false
+- `destructiveHint`: false
+- `idempotentHint`: false
+- `toolset`: accounts
+- `alwaysLoaded`: false
+
+**Input:** `name`, `account_type` (enum), `institution`, optional `currency`, `is_tax_advantaged`, `notes`
+**Output:** JSON text created account object with assigned `account_id`
+**Side Effects:** Writes new account record; guarded + confirmation required
+**Error Posture:** Returns 400 on validation failure, 409 on duplicate name
+
+---
+
+### `update_account` [Specified]
+
+Update an existing account's metadata.
+
+```typescript
+  server.tool(
+    'update_account',
+    'Update account details (name, institution, notes, etc.)',
+    {
+      account_id: z.string().describe('Account UUID to update'),
+      name: z.string().optional().describe('New display name'),
+      account_type: z.enum(['BROKER', 'BANK', 'REVOLVING', 'INSTALLMENT', 'IRA', 'K401']).optional(),
+      institution: z.string().optional().describe('New institution name'),
+      currency: z.string().optional().describe('New base currency'),
+      is_tax_advantaged: z.boolean().optional(),
+      notes: z.string().optional(),
+    },
+    async ({ account_id, ...body }) => fetchApi(`/api/v1/accounts/${account_id}`, {
+      method: 'PUT',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify(body),
+    })
+  );
+```
+
+#### Annotations
+
+- `readOnlyHint`: false
+- `destructiveHint`: false
+- `idempotentHint`: true
+- `toolset`: accounts
+- `alwaysLoaded`: false
+
+**Input:** `account_id` (required), plus optional fields to update
+**Output:** JSON text updated account object
+**Side Effects:** Writes account update; guarded
+**Error Posture:** Returns 404 if account not found
+
+---
+
+### `record_balance` [Specified]
+
+Record a balance snapshot for an account.
+
+```typescript
+  server.tool(
+    'record_balance',
+    'Record a balance snapshot for an account (e.g., end-of-day balance)',
+    {
+      account_id: z.string().describe('Account UUID'),
+      balance: z.number().describe('Balance amount in account currency'),
+      snapshot_datetime: z.string().optional()
+        .describe('ISO 8601 timestamp (defaults to now)'),
+    },
+    async ({ account_id, ...body }) => fetchApi(`/api/v1/accounts/${account_id}/balances`, {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify(body),
+    })
+  );
+```
+
+#### Annotations
+
+- `readOnlyHint`: false
+- `destructiveHint`: false
+- `idempotentHint`: false
+- `toolset`: accounts
+- `alwaysLoaded`: false
+
+**Input:** `account_id`, `balance` (number), optional `snapshot_datetime` (ISO 8601)
+**Output:** JSON text created balance snapshot with assigned ID
+**Side Effects:** Writes balance record; guarded
+**Error Posture:** Returns 404 if account not found
+
+---
+
 ### `sync_broker` [Specified]
 
 Trigger broker sync/import workflow.

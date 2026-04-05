@@ -33,6 +33,8 @@ The Account backend (entity, service, repository, CRUD routes, balance history e
 | All Accounts table with filter/sort + portfolio total | Spec | `06-gui` L302-314 | ✅ | Uses `useAccounts` hook |
 | AccountContext provider (global active account) | Spec | `06-gui` L343-378 | ✅ | Context API |
 | E2E Wave 2 test IDs (`accounts-page`, `account-list`, `add-account-btn`) | Spec | `06-gui` L411 | ✅ | Already in `test-ids.ts` |
+| Account Review triggerable from command palette | Spec | `06d` L83-85, `06a` L222 | ✅ | G11 custom event pattern via AppShell |
+| Account Review triggerable from Accounts page button | Spec | `06d` L83 | ✅ | Button dispatches same custom event |
 
 ---
 
@@ -100,13 +102,13 @@ Balance History panel (per `06d` L174-199):
 
 ---
 
-### Account Review Wizard
+### Account Review Wizard + Global Action Wiring
 
 ---
 
 #### [NEW] [AccountReviewWizard.tsx](file:///p:/zorivest/ui/src/renderer/src/features/accounts/AccountReviewWizard.tsx)
 
-Full-screen dialog/overlay wizard (per `06d` L83-162):
+Full-screen dialog/overlay wizard (per `06d` L83-162). Accepts `isOpen: boolean` + `onClose: () => void` props.
 
 **Step View** (per account):
 - Progress bar: "Account N of M" with visual indicator
@@ -126,6 +128,24 @@ Full-screen dialog/overlay wizard (per `06d` L83-162):
 - [Done] button closes wizard
 
 **Dedup rule**: Balance only saved (via `POST /{id}/balances`) if value actually changed from last snapshot.
+
+#### [MODIFY] [commandRegistry.ts](file:///p:/zorivest/ui/src/renderer/src/registry/commandRegistry.ts)
+
+Replace console stub at L97-102 with G11-compliant custom event dispatch (per `emerging-standards.md` G11, `06a` L222):
+
+```typescript
+// Before:
+action: () => { console.info('[command] Account Review — not yet implemented') },
+// After:
+action: () => { window.dispatchEvent(new CustomEvent('zorivest:start-review')) },
+```
+
+#### [MODIFY] [AppShell.tsx](file:///p:/zorivest/ui/src/renderer/src/components/layout/AppShell.tsx)
+
+Add Account Review wizard ownership following the same G11 pattern used for Position Calculator:
+1. Add `reviewOpen` state
+2. Add `useEffect` listener for `zorivest:start-review` custom event
+3. Render `<AccountReviewWizard isOpen={reviewOpen} onClose={() => setReviewOpen(false)} />`
 
 ---
 
@@ -153,7 +173,7 @@ Add MEU-71a entry with completion evidence
 
 #### [NEW] Handoff file
 
-`007-2026-03-27-account-gui-bp06ds35a1.md` in `.agent/context/handoffs/`
+`094-2026-03-27-account-gui-bp06ds35a1.md` in `.agent/context/handoffs/`
 
 ---
 
@@ -178,6 +198,7 @@ Add MEU-71a entry with completion evidence
 | AC-13 | "Fetch from API" button shown only for BROKER accounts (disabled stub with tooltip) | Spec: `06d` L154 |
 | AC-14 | AccountContext provider sets global `activeAccountId`; consumed by other modules | Spec: `06-gui` L343-378 |
 | AC-15 | `data-testid` attributes applied: `accounts-page`, `account-list`, `add-account-btn` (Wave 2) | Spec: `06-gui` L411 |
+| AC-16 | Account Review Wizard opens via command palette (`action:review` → `zorivest:start-review` custom event → AppShell) and via "Start Review" button on Accounts page | Spec: `06d` L83-85, `06a` L222; Local Canon: `emerging-standards.md` G11 |
 
 ---
 
@@ -192,31 +213,47 @@ New test files:
 | `AccountsHome.test.tsx` | MRU cards render, "Add New" card, All Accounts table, portfolio total, account selection | AC-1, AC-2, AC-3, AC-4, AC-14 |
 | `AccountDetailPanel.test.tsx` | Form renders fields, save creates, save updates, delete with confirm, balance update | AC-5, AC-6, AC-7, AC-8 |
 | `BalanceHistory.test.tsx` | Table renders balance entries, change calculation, empty state | AC-9 |
-| `AccountReviewWizard.test.tsx` | Wizard steps, progress bar, skip, dedup, completion summary, fetch button visibility | AC-10, AC-11, AC-12, AC-13 |
+| `AccountReviewWizard.test.tsx` | Wizard steps, progress bar, skip, dedup, completion summary, fetch button visibility, event-driven open | AC-10, AC-11, AC-12, AC-13, AC-16 |
 | `AccountContext.test.tsx` | Context provides activeAccountId, selectAccount updates, MRU tracking | AC-14 |
 
-**Run command:**
-```bash
-npx vitest run src/features/accounts/ src/context/__tests__/ --reporter=verbose *> C:\Temp\zorivest\vitest-accounts.txt; Get-Content C:\Temp\zorivest\vitest-accounts.txt | Select-Object -Last 40
+**Run command** (Cwd: `ui/`):
+```powershell
+cd ui; npx vitest run src/renderer/src/features/accounts/ src/renderer/src/context/__tests__/ --reporter=verbose *> C:\Temp\zorivest\vitest-accounts.txt; Get-Content C:\Temp\zorivest\vitest-accounts.txt | Select-Object -Last 40
 ```
 
 ### Automated Tests — E2E (Playwright)
 
-Existing E2E `persistence.test.ts` (2 tests) activates when `data-testid` attributes are present:
+Existing E2E `persistence.test.ts` (2 tests) activates when `data-testid` attributes are present.
 
-**Run command:**
-```bash
-npx playwright test persistence.test.ts *> C:\Temp\zorivest\e2e-wave2.txt; Get-Content C:\Temp\zorivest\e2e-wave2.txt | Select-Object -Last 30
+> [!IMPORTANT]
+> **Build before E2E.** Per `06-gui.md` L413-417, `npm run build` is required before every Playwright run — Playwright launches the compiled bundle, not source files.
+
+**Run commands** (Cwd: `ui/`):
+```powershell
+cd ui; npm run build *> C:\Temp\zorivest\e2e-build.txt; Get-Content C:\Temp\zorivest\e2e-build.txt | Select-Object -Last 20
+cd ui; npx playwright test persistence.test.ts *> C:\Temp\zorivest\e2e-wave2.txt; Get-Content C:\Temp\zorivest\e2e-wave2.txt | Select-Object -Last 30
 ```
 
 ### Type Check + Lint
 
-```bash
-npx tsc --noEmit *> C:\Temp\zorivest\tsc.txt; Get-Content C:\Temp\zorivest\tsc.txt | Select-Object -Last 20
+```powershell
+cd ui; npx tsc --noEmit *> C:\Temp\zorivest\tsc.txt; Get-Content C:\Temp\zorivest\tsc.txt | Select-Object -Last 20
 ```
 
 ### MEU Gate
 
-```bash
+```powershell
 uv run python tools/validate_codebase.py --scope meu *> C:\Temp\zorivest\validate.txt; Get-Content C:\Temp\zorivest\validate.txt | Select-Object -Last 50
 ```
+
+---
+
+## Stop Conditions
+
+Execution **must halt** and return to PLANNING if any of the following occur:
+
+1. **Lightweight Charts incompatibility** — if `lightweight-charts` cannot render inside jsdom/happy-dom test environment and no viable mock strategy exists, halt and decide on canvas fallback
+2. **React Hook Form + shadcn integration failure** — if form field bindings produce runtime errors with shadcn Select/Checkbox components, halt and evaluate alternative form library
+3. **AppShell circular dependency** — if importing `AccountReviewWizard` into `AppShell.tsx` creates a circular import chain through shared hooks, halt and restructure module boundaries
+4. **E2E Wave 2 infrastructure missing** — if `npm run build` fails due to missing Playwright or electron-builder configuration, halt (this is an infrastructure gap, not a code bug)
+5. **API contract mismatch** — if the `AccountResponse` schema from the running API differs from the fields documented in the implementation plan, halt and reconcile with the backend

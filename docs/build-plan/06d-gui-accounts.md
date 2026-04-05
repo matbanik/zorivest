@@ -56,7 +56,7 @@ Build the Account Management surface: a list+detail page for Account CRUD, the A
 | `name` | `text` | user input | Display name |
 | `account_type` | `select` | AccountType enum | BROKER, BANK, RETIREMENT, LOAN, INVESTMENT, SAVINGS |
 | `institution` | `text` | user input | Bank or broker name |
-| `currency` | `select` | currency codes | Default USD |
+| `currency` | `select` | currency codes | **DEFERRED** — hidden in GUI, hardcoded to USD. Multi-currency support (formatting, FX rates, aggregation) deferred until coordinated planning phase after full GUI build. See `AccountDetailPanel.tsx` DEFERRED comment. |
 | `is_tax_advantaged` | `checkbox` | user input | Excludes from tax calculations |
 | `notes` | `textarea` | user input | Free-text notes |
 

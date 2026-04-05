@@ -18,13 +18,13 @@
 | [05c-mcp-trade-analytics.md](05c-mcp-trade-analytics.md) | `trade-analytics` | 17 | 2 | — | 19 |
 | [05d-mcp-trade-planning.md](05d-mcp-trade-planning.md) | `trade-planning`, `calculator` | 6 | 1 | — | 7 |
 | [05e-mcp-market-data.md](05e-mcp-market-data.md) | `market-data` | 7 | — | — | 7 |
-| [05f-mcp-accounts.md](05f-mcp-accounts.md) | `accounts` | 7 | 1 | — | 8 |
+| [05f-mcp-accounts.md](05f-mcp-accounts.md) | `accounts` | 12 | 1 | — | 13 |
 | [05g-mcp-scheduling.md](05g-mcp-scheduling.md) | `scheduling` | 6 | — | — | 6 |
 | [05h-mcp-tax.md](05h-mcp-tax.md) | `tax` | — | 8 | — | 8 |
 | [05i-mcp-behavioral.md](05i-mcp-behavioral.md) | `behavioral` | 3 | — | — | 3 |
 | [05j-mcp-discovery.md](05j-mcp-discovery.md) | `discovery` | 4 | — | — | 4 |
 | [05k-mcp-setup-workspace.md](05k-mcp-setup-workspace.md) | `core` | 1 | — | — | 1 |
-| **Totals** | | **60** | **12** | **2** | **74** |
+| **Totals** | | **65** | **12** | **2** | **79** |
 
 ---
 
@@ -740,7 +740,7 @@ Toolsets group related MCP tools into named categories for selective loading. Th
 | `trade-analytics` | 05c | 19 | ✅ Default | Trade CRUD, screenshots, analytics, reports |
 | `trade-planning` | 05c, 05d | 3 | ✅ Default | Position calculator, trade plans (includes `create_trade` cross-tagged from 05c) |
 | `market-data` | 05e | 7 | ⬜ Deferred | Stock quotes, news, SEC filings, ticker search |
-| `accounts` | 05f | 8 | ⬜ Deferred | Account management, broker sync, CSV import |
+| `accounts` | 05f | 13 | ⬜ Deferred | Account CRUD, balance snapshots, broker sync, CSV import |
 | `scheduling` | 05g | 6 | ⬜ Deferred | Policy CRUD, pipeline execution, scheduler status |
 | `tax` | 05h | 8 | ⬜ Deferred | Tax estimation, wash sales, lot management, harvesting |
 | `behavioral` | 05i | 3 | ⬜ Deferred | Mistake tracking, expectancy, Monte Carlo |
