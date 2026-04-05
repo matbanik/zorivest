@@ -7,7 +7,7 @@
 
 import { spawn, type ChildProcess } from 'child_process'
 
-const BACKEND_PORT = 8765
+const BACKEND_PORT = 17787
 const BACKEND_URL = `http://localhost:${BACKEND_PORT}`
 const HEALTH_URL = `${BACKEND_URL}/api/v1/health`
 const MAX_WAIT_MS = 30_000

@@ -13,7 +13,7 @@ import { spawn, type ChildProcess } from 'child_process'
 import { resolve, dirname } from 'path'
 import { fileURLToPath } from 'url'
 
-const BACKEND_PORT = 8765
+const BACKEND_PORT = 17787
 const BASE_URL = `http://127.0.0.1:${BACKEND_PORT}`
 const HEALTH_URL = `${BASE_URL}/api/v1/health`
 const VERSION_URL = `${BASE_URL}/api/v1/version/`

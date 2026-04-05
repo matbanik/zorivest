@@ -10,7 +10,18 @@ import { resolve } from 'path'
 import { SIDEBAR } from '../test-ids'
 
 const MAIN_ENTRY = resolve(__dirname, '../../../out/main/index.js')
-const API_BASE = 'http://localhost:8765/api/v1'
+const API_BASE = 'http://localhost:17787/api/v1'
+
+/**
+ * Resolve the Electron executable path from node_modules.
+ * Playwright's auto-detection can fail in CI/headless environments.
+ */
+function resolveElectronPath(): string {
+    // electron package exports the path to the binary as its default export
+    // eslint-disable-next-line @typescript-eslint/no-var-requires
+    const electronPath = require('electron') as unknown as string
+    return electronPath
+}
 
 export class AppPage {
     app!: ElectronApplication
@@ -18,21 +29,73 @@ export class AppPage {
 
     /** Launch the Electron app and wait for the main window. */
     async launch(): Promise<void> {
-        this.app = await electron.launch({
-            args: [MAIN_ENTRY],
-            env: {
-                ...process.env,
-                NODE_ENV: 'test',
-                ZORIVEST_BACKEND_URL:
-                    process.env.ZORIVEST_BACKEND_URL || 'http://localhost:8765',
-            },
-        })
+        const executablePath = resolveElectronPath()
 
-        // firstWindow() returns the splash screen (400x300, frameless).
-        // Wait for the main window to open, then use that instead.
-        await this.app.firstWindow() // splash — discard reference
-        this.page = await this.app.waitForEvent('window')
-        await this.page.waitForLoadState('domcontentloaded')
+        try {
+            this.app = await electron.launch({
+                executablePath,
+                args: [MAIN_ENTRY],
+                env: {
+                    ...process.env,
+                    NODE_ENV: 'test',
+                    ZORIVEST_BACKEND_URL:
+                        process.env.ZORIVEST_BACKEND_URL || 'http://localhost:17787',
+                },
+                timeout: 30_000,
+            })
+        } catch (err) {
+            const message = err instanceof Error ? err.message : String(err)
+            throw new Error(
+                `Electron launch failed.\n` +
+                `  executablePath: ${executablePath}\n` +
+                `  mainEntry: ${MAIN_ENTRY}\n` +
+                `  error: ${message}`,
+            )
+        }
+
+        // The Electron app creates two windows on startup:
+        //   1. Splash (400x300, frameless, show: true)
+        //   2. Main window (show: false, becomes visible after ready-to-show)
+        //
+        // Playwright registers a Page for each BrowserWindow at creation time,
+        // not when the window becomes visible. So both pages exist early —
+        // we just need to find the one that loaded the renderer (not splash).
+        //
+        // Strategy: wait for firstWindow (splash), then poll until we find
+        // a page whose URL points to the renderer index.html.
+        await this.app.firstWindow()
+
+        const POLL_INTERVAL = 500
+        const MAX_WAIT = 30_000
+        const deadline = Date.now() + MAX_WAIT
+
+        while (Date.now() < deadline) {
+            const pages = this.app.windows()
+            for (const page of pages) {
+                try {
+                    const url = page.url()
+                    // The main window loads renderer/index.html; the splash loads splash.html
+                    if (url.includes('index.html') && !url.includes('splash')) {
+                        await page.waitForLoadState('domcontentloaded')
+                        this.page = page
+                        return
+                    }
+                } catch {
+                    // Page may not be ready yet
+                }
+            }
+            await new Promise((r) => setTimeout(r, POLL_INTERVAL))
+        }
+
+        // Diagnostic: dump what we found
+        const pageUrls = this.app.windows().map((p) => {
+            try { return p.url() } catch { return '<unavailable>' }
+        })
+        throw new Error(
+            `Main window did not load within ${MAX_WAIT}ms.\n` +
+            `  Pages found: ${pageUrls.length}\n` +
+            `  URLs: ${JSON.stringify(pageUrls)}`,
+        )
     }
 
     /** Close the Electron app. */

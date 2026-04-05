@@ -96,7 +96,25 @@ mockApiFetch.mockResolvedValue({ is_locked: true })
 ## Troubleshooting
 
 - **App fails to launch**: Ensure `npm run build` completed successfully and `out/main/index.js` exists.
-- **Backend health check timeout**: Check Python environment with `uv run uvicorn zorivest_api.main:app --port 8765`.
+- **`Process failed to launch!` in headless/CI**: Electron needs a display server. Use `xvfb-run` or `ELECTRON_DISABLE_SANDBOX=1`. See full guidance in `.agent/skills/e2e-testing/SKILL.md` §Headless / CI / Sandbox Environments.
+- **Backend health check timeout**: Check Python environment with `uv run uvicorn zorivest_api.main:app --port 17787`.
 - **`data-testid` not found**: Add missing attributes to React components using constants from `ui/tests/e2e/test-ids.ts`.
 - **Visual regression diff**: Run `--update-snapshots` if the change is intentional.
 - **Stale bundle**: If source changes aren't reflected in E2E, you forgot to rebuild. Run `cd ui && npm run build`.
+
+### Headless / CI Quick Reference
+
+```bash
+# Option 1: xvfb-run (needs apt-get install -y xvfb)
+xvfb-run --auto-servernum --server-args="-screen 0 1920x1080x24" \
+  npx playwright test --reporter=line
+
+# Option 2: Disable Chromium sandbox
+ELECTRON_DISABLE_SANDBOX=1 npx playwright test --reporter=line
+
+# Option 3: Combined
+xvfb-run --auto-servernum -- env ELECTRON_DISABLE_SANDBOX=1 \
+  npx playwright test --reporter=line
+```
+
+> See `.agent/skills/e2e-testing/SKILL.md` §Headless for diagnostics and the accepted exception path.

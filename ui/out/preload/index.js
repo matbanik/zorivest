@@ -1,6 +1,6 @@
 "use strict";
 const electron = require("electron");
-let __baseUrl = "http://127.0.0.1:8765";
+let __baseUrl = "http://127.0.0.1:17787";
 let __token = "";
 electron.contextBridge.exposeInMainWorld("api", {
   get baseUrl() {

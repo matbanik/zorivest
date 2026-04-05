@@ -164,8 +164,8 @@ describe('PythonManager', () => {
 
     describe('setExternalUrl', () => {
         it('should override baseUrl when set', () => {
-            pm.setExternalUrl('http://127.0.0.1:8765')
-            expect(pm.baseUrl).toBe('http://127.0.0.1:8765')
+            pm.setExternalUrl('http://127.0.0.1:17787')
+            expect(pm.baseUrl).toBe('http://127.0.0.1:17787')
         })
 
         it('should take priority over allocated port', async () => {

@@ -8,7 +8,7 @@
  */
 
 const API_BASE =
-    process.env.ZORIVEST_API_URL ?? "http://localhost:8765/api/v1";
+    process.env.ZORIVEST_API_URL ?? "http://127.0.0.1:17787/api/v1";
 
 // ── Auth state ─────────────────────────────────────────────────────────
 
