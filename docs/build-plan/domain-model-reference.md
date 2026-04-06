@@ -21,10 +21,18 @@ The domain is organized around **five temporal concerns** plus **two tool module
 │  ├── institution: str           (e.g., "Interactive Brokers", "Chase") │
 │  ├── currency: str              (e.g., "USD")                          │
 │  ├── is_tax_advantaged: bool    (IRA/401K = True)                      │
+│  ├── is_archived: bool          (soft-delete flag, default False)      │
+│  ├── is_system: bool            (sentinel flag, default False)         │
 │  ├── notes: str                                                         │
 │  ├── sub_accounts: list[str]   (optional sub-account identifiers, §26) │
 │  ├── balance_source: BalanceSource (MANUAL/CSV_IMPORT/OFX_IMPORT, §26) │
 │  └── balance_snapshots: list[BalanceSnapshot]                          │
+│                                                                         │
+│  System Reassignment Account (seeded sentinel)                          │
+│  ├── account_id = "SYSTEM_DEFAULT"                                     │
+│  ├── name = "System Reassignment Account"                              │
+│  ├── is_system = True (undeletable, unmodifiable)                      │
+│  └── Purpose: reassign-trades target when deleting accounts            │
 │                                                                         │
 │  BalanceSnapshot                                                        │
 │  ├── id: int (PK)                                                       │

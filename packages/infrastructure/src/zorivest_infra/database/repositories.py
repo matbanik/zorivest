@@ -90,6 +90,8 @@ def _account_to_model(account: Account) -> AccountModel:
         is_tax_advantaged=account.is_tax_advantaged,
         notes=account.notes or None,
         created_at=datetime.now(),
+        is_archived=account.is_archived,
+        is_system=account.is_system,
     )
 
 
@@ -103,6 +105,8 @@ def _model_to_account(m: AccountModel) -> Account:
         is_tax_advantaged=bool(m.is_tax_advantaged),
         notes=m.notes or "",
         balance_source=BalanceSource.MANUAL,
+        is_archived=bool(m.is_archived),
+        is_system=bool(m.is_system),
     )
 
 
@@ -335,9 +339,37 @@ class SqlAlchemyAccountRepository:
     def save(self, account: Account) -> None:
         self._session.add(_account_to_model(account))
 
-    def list_all(self, limit: int = 100, offset: int = 0) -> list[Account]:
-        rows = self._session.query(AccountModel).offset(offset).limit(limit).all()
+    def list_all(
+        self,
+        limit: int = 100,
+        offset: int = 0,
+        include_archived: bool = False,
+        include_system: bool = False,
+    ) -> list[Account]:
+        """List accounts with optional archived/system filtering.
+
+        By default, archived and system accounts are excluded.
+        """
+        query = self._session.query(AccountModel)
+        if not include_archived:
+            query = query.filter(AccountModel.is_archived == False)  # noqa: E712
+        if not include_system:
+            query = query.filter(AccountModel.is_system == False)  # noqa: E712
+        rows = query.offset(offset).limit(limit).all()
         return [_model_to_account(r) for r in rows]
+
+    def count_all(
+        self,
+        include_archived: bool = False,
+        include_system: bool = False,
+    ) -> int:
+        """Count accounts with optional archived/system filtering."""
+        query = self._session.query(AccountModel)
+        if not include_archived:
+            query = query.filter(AccountModel.is_archived == False)  # noqa: E712
+        if not include_system:
+            query = query.filter(AccountModel.is_system == False)  # noqa: E712
+        return query.count()
 
     def update(self, account: Account) -> None:
         """Update existing account via merge (upsert-safe)."""
@@ -348,6 +380,22 @@ class SqlAlchemyAccountRepository:
         m = self._session.get(AccountModel, account_id)
         if m:
             self._session.delete(m)
+
+    def reassign_trades_to(self, source_id: str, target_id: str) -> int:
+        """Reassign all trades from source account to target account.
+
+        Returns the number of trades reassigned.
+        """
+        count = (
+            self._session.query(TradeModel)
+            .filter(TradeModel.account_id == source_id)
+            .count()
+        )
+        if count > 0:
+            self._session.query(TradeModel).filter(
+                TradeModel.account_id == source_id
+            ).update({TradeModel.account_id: target_id})
+        return count
 
 
 class SqlAlchemyBalanceSnapshotRepository:
@@ -634,6 +682,7 @@ def _plan_to_model(plan: TradePlan) -> TradePlanModel:
     m.status = str(plan.status)
     m.linked_trade_id = plan.linked_trade_id
     m.account_id = plan.account_id
+    m.shares_planned = plan.shares_planned
     m.created_at = plan.created_at
     m.updated_at = plan.updated_at
     return m
@@ -658,6 +707,7 @@ def _model_to_plan(m: TradePlanModel) -> TradePlan:
         status=m.status or "draft",
         linked_trade_id=m.linked_trade_id,
         account_id=m.account_id,
+        shares_planned=getattr(m, "shares_planned", None),
         created_at=m.created_at,
         updated_at=m.updated_at or m.created_at,
     )
@@ -698,6 +748,14 @@ class SqlAlchemyTradePlanRepository:
             .all()
         )
         return [_model_to_plan(m) for m in models]
+
+    def count_for_account(self, account_id: str) -> int:
+        """Count plans referencing a specific account."""
+        return (
+            self._session.query(TradePlanModel)
+            .filter(TradePlanModel.account_id == account_id)
+            .count()
+        )
 
     def update(self, plan: TradePlan) -> None:
         """Update existing plan via merge (upsert-safe)."""

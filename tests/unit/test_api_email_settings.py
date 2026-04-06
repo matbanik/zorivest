@@ -8,6 +8,7 @@ Source: 06f-gui-settings.md §Email Provider
 
 from __future__ import annotations
 
+from collections.abc import Generator
 from unittest.mock import MagicMock
 
 import pytest
@@ -39,7 +40,7 @@ def mock_svc() -> MagicMock:
 
 
 @pytest.fixture()
-def client(mock_svc: MagicMock) -> TestClient:
+def client(mock_svc: MagicMock) -> Generator[TestClient, None, None]:
     """HTTP test client with dependency override for EmailProviderService."""
     app = create_app()
     app.dependency_overrides[get_email_provider_service] = lambda: mock_svc
@@ -314,3 +315,118 @@ class TestEmailServiceIntegration:
             }
         )
         assert svc.get_config()["has_password"] is True
+
+
+# ── Boundary validation: EmailConfigRequest ─────────────────────────────
+
+
+class TestEmailConfigBoundaryValidation:
+    """Boundary validation tests for PUT /settings/email.
+
+    Addresses finding F6 from handoff 096 — MEU-BV5.
+    """
+
+    def test_extra_field_rejected(self, client: TestClient) -> None:
+        """AC-EM1: Unknown fields in EmailConfigRequest → 422."""
+        resp = client.put(
+            "/api/v1/settings/email",
+            json={
+                "provider_preset": "Gmail",
+                "smtp_host": "smtp.gmail.com",
+                "port": 587,
+                "security": "STARTTLS",
+                "username": "user@gmail.com",
+                "password": "secret",
+                "from_email": "user@gmail.com",
+                "unknown_field": "should-reject",
+            },
+        )
+        assert resp.status_code == 422
+
+    def test_whitespace_only_smtp_host_rejected(self, client: TestClient) -> None:
+        """AC-EM2: Whitespace-only smtp_host → 422."""
+        resp = client.put(
+            "/api/v1/settings/email",
+            json={"smtp_host": "   "},
+        )
+        assert resp.status_code == 422
+
+    def test_whitespace_only_username_rejected(self, client: TestClient) -> None:
+        """AC-EM3: Whitespace-only username → 422."""
+        resp = client.put(
+            "/api/v1/settings/email",
+            json={"username": "   "},
+        )
+        assert resp.status_code == 422
+
+    def test_unknown_provider_preset_rejected(self, client: TestClient) -> None:
+        """AC-EM4: Unknown provider_preset → 422 (only Gmail/Brevo/SendGrid/Outlook/Yahoo/Custom)."""
+        resp = client.put(
+            "/api/v1/settings/email",
+            json={"provider_preset": "NotARealPreset"},
+        )
+        assert resp.status_code == 422
+
+    def test_whitespace_only_from_email_rejected(self, client: TestClient) -> None:
+        """AC-EM5: Whitespace-only from_email → 422."""
+        resp = client.put(
+            "/api/v1/settings/email",
+            json={"from_email": "   "},
+        )
+        assert resp.status_code == 422
+
+    def test_zero_port_rejected(self, client: TestClient) -> None:
+        """AC-EM6: port=0 → 422 (must be ≥ 1)."""
+        resp = client.put(
+            "/api/v1/settings/email",
+            json={"port": 0},
+        )
+        assert resp.status_code == 422
+
+    def test_port_above_65535_rejected(self, client: TestClient) -> None:
+        """AC-EM7: port=99999 → 422 (must be ≤ 65535)."""
+        resp = client.put(
+            "/api/v1/settings/email",
+            json={"port": 99999},
+        )
+        assert resp.status_code == 422
+
+    def test_invalid_security_rejected(self, client: TestClient) -> None:
+        """AC-EM8: security='INVALID' → 422 (only STARTTLS/SSL accepted)."""
+        resp = client.put(
+            "/api/v1/settings/email",
+            json={"security": "INVALID"},
+        )
+        assert resp.status_code == 422
+
+    def test_whitespace_password_accepted(self, client: TestClient) -> None:
+        """AC-EM9: password=' ' (whitespace-only) is accepted — not stripped."""
+        resp = client.put(
+            "/api/v1/settings/email",
+            json={"password": " "},
+        )
+        assert resp.status_code == 200
+
+    def test_valid_full_payload_accepted(self, client: TestClient) -> None:
+        """AC-EM10: Valid full payload still accepted → 200 (regression guard)."""
+        resp = client.put(
+            "/api/v1/settings/email",
+            json={
+                "provider_preset": "Gmail",
+                "smtp_host": "smtp.gmail.com",
+                "port": 587,
+                "security": "STARTTLS",
+                "username": "user@gmail.com",
+                "password": "secret123",
+                "from_email": "user@gmail.com",
+            },
+        )
+        assert resp.status_code == 200
+
+    def test_whitespace_only_provider_preset_rejected(self, client: TestClient) -> None:
+        """AC-EM11: Whitespace-only provider_preset → 422 (not a valid preset)."""
+        resp = client.put(
+            "/api/v1/settings/email",
+            json={"provider_preset": "   "},
+        )
+        assert resp.status_code == 422

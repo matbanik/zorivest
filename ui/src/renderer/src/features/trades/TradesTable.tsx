@@ -25,6 +25,7 @@ export interface Trade {
     quantity: number
     price: number
     account_id: string
+    account_name?: string
     account_type?: string
     commission: number
     realized_pnl: number | null
@@ -88,12 +89,14 @@ export const tradeColumns = [
     col.accessor('account_id', {
         header: 'Account',
         cell: (info) => {
-            const val = info.getValue()
+            const id = info.getValue()
+            const name = info.row.original.account_name
             const accountType = info.row.original.account_type
+            const displayText = name || (id.length > 15 ? `${id.slice(0, 15)}…` : id)
             return (
-                <span className="inline-flex items-center gap-1.5" title={val}>
+                <span className="inline-flex items-center gap-1.5" title={name ? `${name} (${id})` : id}>
                     {accountType && <AccountTypeBadge accountType={accountType} />}
-                    {val.length > 15 ? `${val.slice(0, 15)}…` : val}
+                    {displayText}
                 </span>
             )
         },

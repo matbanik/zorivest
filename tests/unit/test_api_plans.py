@@ -456,3 +456,202 @@ class TestPlanRouteWiring:
         assert link_resp.status_code == 404, (
             f"Expected 404, got {link_resp.status_code}: {link_resp.text}"
         )
+
+
+# ── MEU-BV3: Boundary Validation — Plan Input Hardening ─────────────────
+
+
+class TestCreatePlanBoundaryValidation:
+    """BV3-AC-1 through AC-6: Schema-level rejection of invalid create input."""
+
+    def test_invalid_direction_returns_422(self, client) -> None:
+        """BV3-AC-1: Invalid direction enum value rejected at schema level."""
+        http, svc = client
+        resp = http.post(
+            "/api/v1/trade-plans",
+            json={
+                "ticker": "AAPL",
+                "direction": "INVALID",
+                "conviction": "high",
+                "strategy_name": "Test",
+            },
+        )
+        assert resp.status_code == 422
+
+    def test_invalid_conviction_returns_422(self, client) -> None:
+        """BV3-AC-2: Invalid conviction enum value rejected at schema level."""
+        http, svc = client
+        resp = http.post(
+            "/api/v1/trade-plans",
+            json={
+                "ticker": "AAPL",
+                "direction": "BOT",
+                "conviction": "INVALID",
+                "strategy_name": "Test",
+            },
+        )
+        assert resp.status_code == 422
+
+    def test_blank_ticker_returns_422(self, client) -> None:
+        """BV3-AC-3: Blank ticker rejected at schema level."""
+        http, svc = client
+        resp = http.post(
+            "/api/v1/trade-plans",
+            json={
+                "ticker": "",
+                "direction": "BOT",
+                "conviction": "high",
+                "strategy_name": "Test",
+            },
+        )
+        assert resp.status_code == 422
+
+    def test_blank_strategy_name_returns_422(self, client) -> None:
+        """BV3-AC-4: Blank strategy_name rejected at schema level."""
+        http, svc = client
+        resp = http.post(
+            "/api/v1/trade-plans",
+            json={
+                "ticker": "AAPL",
+                "direction": "BOT",
+                "conviction": "high",
+                "strategy_name": "",
+            },
+        )
+        assert resp.status_code == 422
+
+    def test_extra_field_on_create_returns_422(self, client) -> None:
+        """BV3-AC-5: Unknown extra fields rejected by extra='forbid'."""
+        http, svc = client
+        resp = http.post(
+            "/api/v1/trade-plans",
+            json={
+                "ticker": "AAPL",
+                "direction": "BOT",
+                "conviction": "high",
+                "strategy_name": "Test",
+                "unexpected_field": "should_reject",
+            },
+        )
+        assert resp.status_code == 422
+
+
+class TestUpdatePlanBoundaryValidation:
+    """BV3-AC-5,AC-6,AC-7: Schema-level rejection of invalid update input."""
+
+    def test_invalid_direction_on_update_returns_422(self, client) -> None:
+        """BV3-AC-6: Invalid direction enum on update rejected."""
+        http, svc = client
+        resp = http.put(
+            "/api/v1/trade-plans/1",
+            json={"direction": "INVALID"},
+        )
+        assert resp.status_code == 422
+
+    def test_invalid_conviction_on_update_returns_422(self, client) -> None:
+        """BV3-AC-7: Invalid conviction enum on update rejected."""
+        http, svc = client
+        resp = http.put(
+            "/api/v1/trade-plans/1",
+            json={"conviction": "INVALID"},
+        )
+        assert resp.status_code == 422
+
+    def test_invalid_status_on_update_returns_422(self, client) -> None:
+        """BV3-AC-7: Invalid status enum on update rejected."""
+        http, svc = client
+        resp = http.put(
+            "/api/v1/trade-plans/1",
+            json={"status": "INVALID"},
+        )
+        assert resp.status_code == 422
+
+    def test_blank_ticker_on_update_returns_422(self, client) -> None:
+        """BV3-AC-8: Blank ticker on update rejected (create/update parity)."""
+        http, svc = client
+        resp = http.put(
+            "/api/v1/trade-plans/1",
+            json={"ticker": ""},
+        )
+        assert resp.status_code == 422
+
+    def test_extra_field_on_update_returns_422(self, client) -> None:
+        """BV3-AC-5: Unknown extra fields rejected on update."""
+        http, svc = client
+        resp = http.put(
+            "/api/v1/trade-plans/1",
+            json={"unexpected_field": "should_reject"},
+        )
+        assert resp.status_code == 422
+
+
+class TestPatchPlanStatusBoundaryValidation:
+    """BV3-AC-9: PATCH /trade-plans/{id}/status schema hardening."""
+
+    def test_invalid_status_on_patch_returns_422(self, client) -> None:
+        """BV3-AC-9: Invalid status enum on PATCH rejected."""
+        http, svc = client
+        resp = http.patch(
+            "/api/v1/trade-plans/1/status",
+            json={"status": "INVALID"},
+        )
+        assert resp.status_code == 422
+
+
+class TestWhitespaceOnlyPlanValidation:
+    """F3/F5 fix: Whitespace-only strings must be rejected, not just empty strings."""
+
+    def test_whitespace_ticker_on_create_returns_422(self, client) -> None:
+        """Whitespace-only ticker is stripped to '' and rejected by min_length=1."""
+        http, svc = client
+        resp = http.post(
+            "/api/v1/trade-plans",
+            json={
+                "ticker": "   ",
+                "direction": "BOT",
+                "conviction": "high",
+                "strategy_name": "Test",
+            },
+        )
+        assert resp.status_code == 422
+
+    def test_whitespace_strategy_name_on_create_returns_422(self, client) -> None:
+        """Whitespace-only strategy_name is stripped to '' and rejected."""
+        http, svc = client
+        resp = http.post(
+            "/api/v1/trade-plans",
+            json={
+                "ticker": "AAPL",
+                "direction": "BOT",
+                "conviction": "high",
+                "strategy_name": "   ",
+            },
+        )
+        assert resp.status_code == 422
+
+    def test_whitespace_ticker_on_update_returns_422(self, client) -> None:
+        """Whitespace-only ticker on update is stripped to '' and rejected."""
+        http, svc = client
+        resp = http.put(
+            "/api/v1/trade-plans/1",
+            json={"ticker": "   "},
+        )
+        assert resp.status_code == 422
+
+    def test_whitespace_strategy_name_on_update_returns_422(self, client) -> None:
+        """Whitespace-only strategy_name on update is stripped to '' and rejected."""
+        http, svc = client
+        resp = http.put(
+            "/api/v1/trade-plans/1",
+            json={"strategy_name": "   "},
+        )
+        assert resp.status_code == 422
+
+    def test_blank_strategy_name_on_update_returns_422(self, client) -> None:
+        """Empty strategy_name on update rejected (completes missing parity test)."""
+        http, svc = client
+        resp = http.put(
+            "/api/v1/trade-plans/1",
+            json={"strategy_name": ""},
+        )
+        assert resp.status_code == 422

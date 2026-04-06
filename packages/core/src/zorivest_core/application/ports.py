@@ -112,7 +112,30 @@ class AccountRepository(Protocol):
         """Delete an account by account_id."""
         ...
 
-    def list_all(self, limit: int = 100, offset: int = 0) -> list[Account]: ...
+    def list_all(
+        self,
+        limit: int = 100,
+        offset: int = 0,
+        include_archived: bool = False,
+        include_system: bool = False,
+    ) -> list[Account]:
+        """List accounts with optional archived/system filtering."""
+        ...
+
+    def count_all(
+        self,
+        include_archived: bool = False,
+        include_system: bool = False,
+    ) -> int:
+        """Count accounts with optional archived/system filtering."""
+        ...
+
+    def reassign_trades_to(self, source_id: str, target_id: str) -> int:
+        """Reassign all trades from source account to target.
+
+        Returns the number of trades reassigned.
+        """
+        ...
 
 
 class BalanceSnapshotRepository(Protocol):
@@ -217,6 +240,10 @@ class TradePlanRepository(Protocol):
 
     def delete(self, plan_id: int) -> None:
         """Delete a plan by ID."""
+        ...
+
+    def count_for_account(self, account_id: str) -> int:
+        """Count plans referencing a specific account."""
         ...
 
 

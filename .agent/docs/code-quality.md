@@ -17,6 +17,32 @@
 - No `console.log` — use structured logging (`structlog`)
 - Docstrings on every exported function/class
 
+#### Boundary Validation Standards (Maximum Tier)
+
+- **Validate at the first trust boundary** — API route, MCP tool handler, or UI form submit
+- **Reject unknown fields** — use `extra="forbid"` (Pydantic) or `.strict()` (Zod), or explicitly document why extra fields are allowed
+- **Do NOT rely on dataclass/type-hint annotations as runtime validation** — Python type hints are not enforced at runtime; `assert` is stripped under `-O`
+- **Do NOT use `replace(obj, **raw_input)` or `Model(**{**old, **updates})` on external input** without prior boundary schema validation
+- **Keep create/update invariant logic centralized** — partial updates must pass through the same validation as creates
+
+##### Forbidden Boundary Patterns
+
+```python
+# ❌ NEVER — raw dict from request body used directly
+def update(self, id: str, updates: dict[str, Any]) -> Entity:
+    existing = repo.get(id)
+    return replace(existing, **updates)  # bypasses all validation
+
+# ✅ ALWAYS — validated model at boundary, invariants in service
+class UpdateRequest(BaseModel, extra="forbid"):
+    name: str = Field(min_length=1)
+    # ...
+
+def update(self, id: str, cmd: UpdateCommand) -> Entity:
+    existing = repo.get(id)
+    # apply validated fields with invariant checks
+```
+
 ### Balanced Tier (ui/)
 
 - No placeholders or skeleton code

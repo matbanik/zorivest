@@ -6,6 +6,8 @@ Hierarchy:
     ZorivestError (base)
     ├── ValidationError
     ├── NotFoundError
+    ├── ForbiddenError
+    ├── ConflictError
     ├── BusinessRuleError
     ├── BudgetExceededError
     ├── ImportError
@@ -26,6 +28,14 @@ class ValidationError(ZorivestError):
 
 class NotFoundError(ZorivestError):
     """Requested entity does not exist."""
+
+
+class ForbiddenError(ZorivestError):
+    """Operation forbidden (e.g., mutating a system-protected entity)."""
+
+
+class ConflictError(ZorivestError):
+    """Operation conflicts with current state (e.g., deleting entity with dependents)."""
 
 
 class BusinessRuleError(ZorivestError):

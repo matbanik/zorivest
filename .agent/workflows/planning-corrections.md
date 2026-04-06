@@ -95,9 +95,10 @@ Skip any findings that are already resolved or refuted.
 
 For each verified finding:
 
-1. **Categorize it** — assign a category label (e.g., "error mapping gap", "stale evidence", "stub inadequacy", "cross-doc reference").
+1. **Categorize it** — assign a category label (e.g., "error mapping gap", "stale evidence", "stub inadequacy", "cross-doc reference", "boundary validation gap").
 2. **Search for siblings** — run `rg` for the same pattern across all similar files/routes/modules.
 3. **Document siblings** — add to the findings table: "Found M additional instances of same category in files X, Y, Z."
+4. **Boundary validation gap** — when a finding identifies a missing or weak input schema at a write boundary, search ALL sibling write paths (same route file, same service, same MCP tool set) for the same gap. Do not fix one endpoint while leaving identical gaps in adjacent endpoints.
 
 This ensures the corrections plan addresses ALL instances, not just the cited ones.
 

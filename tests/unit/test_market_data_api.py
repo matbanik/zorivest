@@ -6,6 +6,7 @@ Tests 8 endpoints using TestClient with dependency overrides.
 
 from __future__ import annotations
 
+from collections.abc import Generator
 from unittest.mock import AsyncMock
 
 import pytest
@@ -72,7 +73,7 @@ def mock_provider_service() -> AsyncMock:
 def client(
     mock_market_data_service: AsyncMock,
     mock_provider_service: AsyncMock,
-) -> TestClient:
+) -> Generator[TestClient, None, None]:
     """Create a TestClient with overridden dependencies."""
     app = create_app()
     app.dependency_overrides[require_unlocked_db] = lambda: None
@@ -85,7 +86,7 @@ def client(
 
 
 @pytest.fixture()
-def locked_client() -> TestClient:
+def locked_client() -> Generator[TestClient, None, None]:
     """Create a TestClient WITHOUT unlocked DB override."""
     app = create_app()
     with TestClient(app, raise_server_exceptions=False) as c:
@@ -250,3 +251,69 @@ class TestRemoveProviderKey:
         assert resp.status_code == 200
         assert resp.json()["status"] == "removed"
         assert resp.json()["stub"] is True
+
+
+# ── Boundary validation: ProviderConfigRequest ──────────────────────────
+
+
+class TestProviderConfigBoundaryValidation:
+    """Boundary validation tests for PUT /providers/{name}.
+
+    Addresses finding F5 from handoff 096 — MEU-BV4.
+    """
+
+    def test_extra_field_rejected(self, client: TestClient) -> None:
+        """AC-MD1: Unknown fields in ProviderConfigRequest → 422."""
+        resp = client.put(
+            "/api/v1/market-data/providers/Alpha%20Vantage",
+            json={"api_key": "valid-key", "unknown_field": "should-reject"},
+        )
+        assert resp.status_code == 422
+
+    def test_whitespace_only_api_key_rejected(self, client: TestClient) -> None:
+        """AC-MD2: Whitespace-only api_key → 422 via StrippedStr + min_length=1."""
+        resp = client.put(
+            "/api/v1/market-data/providers/Alpha%20Vantage",
+            json={"api_key": "   "},
+        )
+        assert resp.status_code == 422
+
+    def test_whitespace_only_api_secret_rejected(self, client: TestClient) -> None:
+        """AC-MD3: Whitespace-only api_secret → 422."""
+        resp = client.put(
+            "/api/v1/market-data/providers/Alpha%20Vantage",
+            json={"api_secret": "   "},
+        )
+        assert resp.status_code == 422
+
+    def test_zero_rate_limit_rejected(self, client: TestClient) -> None:
+        """AC-MD4: rate_limit=0 → 422 (must be ≥ 1)."""
+        resp = client.put(
+            "/api/v1/market-data/providers/Alpha%20Vantage",
+            json={"rate_limit": 0},
+        )
+        assert resp.status_code == 422
+
+    def test_zero_timeout_rejected(self, client: TestClient) -> None:
+        """AC-MD5: timeout=0 → 422 (must be ≥ 1)."""
+        resp = client.put(
+            "/api/v1/market-data/providers/Alpha%20Vantage",
+            json={"timeout": 0},
+        )
+        assert resp.status_code == 422
+
+    def test_negative_rate_limit_rejected(self, client: TestClient) -> None:
+        """AC-MD6: Negative rate_limit → 422."""
+        resp = client.put(
+            "/api/v1/market-data/providers/Alpha%20Vantage",
+            json={"rate_limit": -5},
+        )
+        assert resp.status_code == 422
+
+    def test_valid_partial_payload_accepted(self, client: TestClient) -> None:
+        """AC-MD7: Valid partial payload (only is_enabled) still accepted → 200."""
+        resp = client.put(
+            "/api/v1/market-data/providers/Alpha%20Vantage",
+            json={"is_enabled": True},
+        )
+        assert resp.status_code == 200

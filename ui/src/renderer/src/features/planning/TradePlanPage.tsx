@@ -28,6 +28,7 @@ export interface TradePlan {
     // T5: status timestamps
     executed_at?: string | null
     cancelled_at?: string | null
+    shares_planned?: number | null
 }
 
 // T3: Account type for dropdown — matches AccountResponse from GET /api/v1/accounts
@@ -82,6 +83,7 @@ const NEW_PLAN: Partial<TradePlan> = {
     status: 'draft',
     linked_trade_id: null,
     account_id: null,
+    shares_planned: null,
 }
 
 // ── R:R and Risk Computation ─────────────────────────────────────────────
@@ -164,7 +166,6 @@ export default function TradePlanPage({ onOpenCalculator }: TradePlanPageProps) 
     const [linkedTradeId, setLinkedTradeId] = useState<string>('')
     const [tradePickerSearch, setTradePickerSearch] = useState<string>('')
     const [tradePickerLabel, setTradePickerLabel] = useState<string>('')  // MEU-70b: selected label display
-    const [sharesPlanned, setSharesPlanned] = useState<number | ''>('')
     const isExecutedStatus = form.status === 'executed'
     const planTicker = form.ticker ?? ''
     const { data: linkableTrades = [] } = useQuery<Trade[]>({
@@ -194,10 +195,8 @@ export default function TradePlanPage({ onOpenCalculator }: TradePlanPageProps) 
         setSelectedPlan(plan)
         setIsCreating(false)
         setForm({ ...plan })
-        // MEU-70b: restore picker label + shares when selecting a saved plan
         setLinkedTradeId(plan.linked_trade_id ?? '')
         setTradePickerLabel(plan.linked_trade_id ?? '')
-        setSharesPlanned('')
     }, [])
 
     const handleNewPlan = useCallback(() => {
@@ -206,7 +205,6 @@ export default function TradePlanPage({ onOpenCalculator }: TradePlanPageProps) 
         setForm({ ...NEW_PLAN })
         setLinkedTradeId('')
         setTradePickerLabel('')
-        setSharesPlanned('')
     }, [])
 
     const handleClose = useCallback(() => {
@@ -217,6 +215,26 @@ export default function TradePlanPage({ onOpenCalculator }: TradePlanPageProps) 
     const updateField = useCallback(<K extends keyof TradePlan>(key: K, value: TradePlan[K]) => {
         setForm((prev) => ({ ...prev, [key]: value }))
     }, [])
+
+    // Fetch live quote when ticker is selected from autocomplete dropdown
+    const handleTickerSelect = useCallback((result: { symbol: string }) => {
+        const sym = result.symbol
+        updateField('ticker', sym)
+        apiFetch<{ price: number }>(`/api/v1/market-data/quote?ticker=${encodeURIComponent(sym)}`)
+            .then((quote) => {
+                const price = Math.round(quote.price * 100) / 100
+                setForm((prev) => ({
+                    ...prev,
+                    entry_price: price,
+                    // Auto-fill stop and target when both are at 0 (fresh plan)
+                    stop_loss: (prev.stop_loss === 0 || prev.stop_loss == null) ? price : prev.stop_loss,
+                    target_price: (prev.target_price === 0 || prev.target_price == null) ? price : prev.target_price,
+                }))
+            })
+            .catch((err: unknown) => {
+                setStatus(`Could not fetch quote: ${err instanceof Error ? err.message : 'error'}`)
+            })
+    }, [updateField, setStatus])
 
     // Live R:R computation (AC-4)
     const rr = useMemo(() => {
@@ -242,6 +260,7 @@ export default function TradePlanPage({ onOpenCalculator }: TradePlanPageProps) 
             exit_conditions: form.exit_conditions,
             timeframe: form.timeframe,
             account_id: form.account_id || null,
+            shares_planned: form.shares_planned || null,
             // R1: persist the linked trade selection on saves
             linked_trade_id: linkedTradeId || form.linked_trade_id || null,
         }
@@ -453,6 +472,7 @@ export default function TradePlanPage({ onOpenCalculator }: TradePlanPageProps) 
                                     <TickerAutocomplete
                                         value={form.ticker ?? ''}
                                         onChange={(val) => updateField('ticker', val)}
+                                        onSelect={handleTickerSelect}
                                         placeholder="AAPL"
                                         data-testid="plan-ticker"
                                     />
@@ -606,8 +626,8 @@ export default function TradePlanPage({ onOpenCalculator }: TradePlanPageProps) 
                                         type="number"
                                         min="0"
                                         step="1"
-                                        value={sharesPlanned}
-                                        onChange={(e) => setSharesPlanned(e.target.value === '' ? '' : parseInt(e.target.value) || 0)}
+                                        value={form.shares_planned ?? ''}
+                                        onChange={(e) => updateField('shares_planned', e.target.value === '' ? null : (parseInt(e.target.value) || 0))}
                                         placeholder="e.g. 100"
                                         className="flex-1 px-3 py-1.5 text-sm rounded-md bg-bg border border-bg-subtle text-fg"
                                     />

@@ -96,7 +96,7 @@ Create a new brokerage, bank, or investment account.
 
 **Input:** `name`, `account_type` (enum), `institution`, optional `currency`, `is_tax_advantaged`, `notes`
 **Output:** JSON text created account object with assigned `account_id`
-**Side Effects:** Writes new account record; guarded + confirmation required
+**Side Effects:** Writes new account record; guarded (no confirmation required)
 **Error Posture:** Returns 400 on validation failure, 409 on duplicate name
 
 ---
@@ -175,6 +175,63 @@ Record a balance snapshot for an account.
 **Output:** JSON text created balance snapshot with assigned ID
 **Side Effects:** Writes balance record; guarded
 **Error Posture:** Returns 404 if account not found
+
+---
+
+### `delete_account` [Implemented]
+
+Delete an account (blocked if trades exist).
+
+**Input:** `account_id` (string, UUID), `confirmation_token` (string, required)
+**Output:** JSON text confirmation of deletion
+**Side Effects:** Hard-deletes account; destructive + confirmation required
+**Error Posture:** Returns 403 if system account, 404 if not found, 409 if account has trades (use `archive_account` or `reassign_trades` instead)
+
+#### Annotations
+
+- `readOnlyHint`: false
+- `destructiveHint`: true
+- `idempotentHint`: false
+- `toolset`: accounts
+- `alwaysLoaded`: false
+
+---
+
+### `archive_account` [Implemented]
+
+Soft-delete an account by setting `is_archived=true`.
+
+**Input:** `account_id` (string, UUID)
+**Output:** JSON text updated account with `is_archived=true`
+**Side Effects:** Writes archive flag; guarded (no confirmation required)
+**Error Posture:** Returns 403 if system account, 404 if not found
+
+#### Annotations
+
+- `readOnlyHint`: false
+- `destructiveHint`: false
+- `idempotentHint`: true
+- `toolset`: accounts
+- `alwaysLoaded`: false
+
+---
+
+### `reassign_trades` [Implemented]
+
+Reassign all trades from one account to SYSTEM_DEFAULT, then hard-delete the source account.
+
+**Input:** `account_id` (string, UUID), `confirmation_token` (string, required)
+**Output:** JSON text confirmation with reassigned trade count
+**Side Effects:** Moves all trades to SYSTEM_DEFAULT account, then deletes source account; destructive + confirmation required
+**Error Posture:** Returns 403 if system account, 404 if not found
+
+#### Annotations
+
+- `readOnlyHint`: false
+- `destructiveHint`: true
+- `idempotentHint`: false
+- `toolset`: accounts
+- `alwaysLoaded`: false
 
 ---
 

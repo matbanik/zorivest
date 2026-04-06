@@ -6,7 +6,7 @@
  * Uses mocked global.fetch — no live API needed.
  *
  * Source: 05f-mcp-accounts.md
- * FIC: MEU-37 AC-1 through AC-12
+ * FIC: MEU-37 AC-1 through AC-20
  */
 
 import { describe, it, expect, vi, beforeEach } from "vitest";
@@ -14,6 +14,10 @@ import { McpServer } from "@modelcontextprotocol/sdk/server/mcp.js";
 import { registerAccountTools } from "../src/tools/accounts-tools.js";
 import { Client } from "@modelcontextprotocol/sdk/client/index.js";
 import { InMemoryTransport } from "@modelcontextprotocol/sdk/inMemory.js";
+import {
+    setConfirmationMode,
+    createConfirmationToken,
+} from "../src/middleware/confirmation.js";
 
 // Mock node:fs and node:path for uploadFile tests
 vi.mock("node:fs", () => ({
@@ -427,5 +431,392 @@ describe("get_account_review_checklist", () => {
         expect(parsed.accounts[0].id).toBe("ibkr");
         expect(parsed.accounts[0].is_stale).toBe(true);
         expect(parsed.accounts[0].suggested_action).toContain("sync_broker");
+    });
+});
+
+// ── CRUD Account Tools (AC-14 through AC-20) ──────────────────────────
+
+// AC-14: list_accounts GETs /accounts with query params
+describe("list_accounts", () => {
+    beforeEach(() => {
+        vi.restoreAllMocks();
+    });
+
+    it("GETs /accounts with no query params by default", async () => {
+        mockFetch([
+            { account_id: "ACC001", name: "Main Broker", account_type: "BROKER" },
+        ]);
+
+        const client = await createTestClient();
+        const result = await client.callTool({
+            name: "list_accounts",
+            arguments: {},
+        });
+
+        expect(fetch).toHaveBeenCalledOnce();
+        const [url] = vi.mocked(fetch).mock.calls[0];
+        expect(url).toContain("/accounts");
+        // No query params when defaults are false
+        expect(url).not.toContain("include_archived");
+        expect(url).not.toContain("include_system");
+
+        const content = result.content as Array<{ type: string; text: string }>;
+        const parsed = JSON.parse(content[0].text);
+        expect(parsed.success).toBe(true);
+    });
+
+    it("forwards include_archived and include_system as query params", async () => {
+        mockFetch([]);
+
+        const client = await createTestClient();
+        await client.callTool({
+            name: "list_accounts",
+            arguments: { include_archived: true, include_system: true },
+        });
+
+        const [url] = vi.mocked(fetch).mock.calls[0];
+        expect(url).toContain("include_archived=true");
+        expect(url).toContain("include_system=true");
+    });
+});
+
+// AC-15: get_account GETs /accounts/{id}
+describe("get_account", () => {
+    beforeEach(() => {
+        vi.restoreAllMocks();
+    });
+
+    it("GETs /accounts/{account_id} and returns enriched metrics", async () => {
+        const accountResponse = {
+            account_id: "ACC001",
+            name: "Main Broker",
+            account_type: "BROKER",
+            trade_count: 42,
+            win_rate: 0.65,
+            realized_pnl: 1250.50,
+        };
+        mockFetch(accountResponse);
+
+        const client = await createTestClient();
+        const result = await client.callTool({
+            name: "get_account",
+            arguments: { account_id: "ACC001" },
+        });
+
+        expect(fetch).toHaveBeenCalledOnce();
+        const [url] = vi.mocked(fetch).mock.calls[0];
+        expect(url).toContain("/accounts/ACC001");
+
+        const content = result.content as Array<{ type: string; text: string }>;
+        const parsed = JSON.parse(content[0].text);
+        expect(parsed.success).toBe(true);
+        expect(parsed.data.account_id).toBe("ACC001");
+    });
+});
+
+// AC-16: create_account POSTs /accounts (guarded, no confirmation)
+describe("create_account", () => {
+    beforeEach(() => {
+        vi.restoreAllMocks();
+    });
+
+    it("POSTs to /accounts with JSON body and returns created account", async () => {
+        const createdAccount = {
+            account_id: "auto-uuid",
+            name: "Test Broker",
+            account_type: "BROKER",
+        };
+        mockGuardAndApi(createdAccount, 201);
+
+        const client = await createTestClient();
+        const result = await client.callTool({
+            name: "create_account",
+            arguments: {
+                name: "Test Broker",
+                account_type: "BROKER",
+                institution: "Interactive Brokers",
+                currency: "USD",
+                is_tax_advantaged: false,
+            },
+        });
+
+        // Guard check + API call = 2 fetch calls
+        expect(fetch).toHaveBeenCalledTimes(2);
+        const [url, opts] = vi.mocked(fetch).mock.calls[1];
+        expect(url).toContain("/accounts");
+        expect(opts?.method).toBe("POST");
+
+        // Verify body
+        const headers = opts?.headers as Record<string, string>;
+        expect(headers["Content-Type"]).toBe("application/json");
+        const body = JSON.parse(opts?.body as string);
+        expect(body.name).toBe("Test Broker");
+        expect(body.account_type).toBe("BROKER");
+        expect(body.institution).toBe("Interactive Brokers");
+        expect(body.currency).toBe("USD");
+        expect(body.is_tax_advantaged).toBe(false);
+
+        const content = result.content as Array<{ type: string; text: string }>;
+        const parsed = JSON.parse(content[0].text);
+        expect(parsed.success).toBe(true);
+    });
+});
+
+// update_account PUTs /accounts/{id} (guarded)
+describe("update_account", () => {
+    beforeEach(() => {
+        vi.restoreAllMocks();
+    });
+
+    it("PUTs to /accounts/{account_id} with only provided fields", async () => {
+        const updatedAccount = {
+            account_id: "ACC001",
+            name: "Renamed Broker",
+            account_type: "BROKER",
+        };
+        mockGuardAndApi(updatedAccount);
+
+        const client = await createTestClient();
+        const result = await client.callTool({
+            name: "update_account",
+            arguments: {
+                account_id: "ACC001",
+                name: "Renamed Broker",
+            },
+        });
+
+        expect(fetch).toHaveBeenCalledTimes(2);
+        const [url, opts] = vi.mocked(fetch).mock.calls[1];
+        expect(url).toContain("/accounts/ACC001");
+        expect(opts?.method).toBe("PUT");
+
+        const body = JSON.parse(opts?.body as string);
+        expect(body.name).toBe("Renamed Broker");
+        // Fields not provided should NOT be in body
+        expect(body).not.toHaveProperty("account_type");
+        expect(body).not.toHaveProperty("currency");
+
+        const content = result.content as Array<{ type: string; text: string }>;
+        const parsed = JSON.parse(content[0].text);
+        expect(parsed.success).toBe(true);
+    });
+});
+
+// AC-17: delete_account DELETEs /accounts/{id} (destructive + confirmation)
+describe("delete_account", () => {
+    beforeEach(() => {
+        vi.restoreAllMocks();
+        setConfirmationMode("dynamic");
+    });
+
+    it("calls DELETE /accounts/{account_id} and returns success", async () => {
+        mockGuardAndApi(null, 204);
+
+        const client = await createTestClient();
+        const result = await client.callTool({
+            name: "delete_account",
+            arguments: { account_id: "ACC-DEL" },
+        });
+
+        // Guard + API = 2 calls
+        const deleteCalls = vi
+            .mocked(fetch)
+            .mock.calls.filter(
+                ([url]) =>
+                    typeof url === "string" &&
+                    url.includes("/accounts/ACC-DEL") &&
+                    !url.includes("/mcp-guard/"),
+            );
+        expect(deleteCalls.length).toBe(1);
+        const [delUrl, delOpts] = deleteCalls[0];
+        expect(delUrl).toContain("/accounts/ACC-DEL");
+        expect(delOpts?.method).toBe("DELETE");
+
+        const content = result.content as Array<{ type: string; text: string }>;
+        const parsed = JSON.parse(content[0].text);
+        expect(parsed.success).toBe(true);
+    });
+
+    it("requires confirmation_token on static clients", async () => {
+        mockGuardAndApi(null, 204);
+        setConfirmationMode("static");
+
+        const client = await createTestClient();
+
+        // Call WITHOUT token — should be blocked
+        const blocked = await client.callTool({
+            name: "delete_account",
+            arguments: { account_id: "ACC-DEL" },
+        });
+
+        const blockedContent = blocked.content as Array<{ type: string; text: string }>;
+        const blockedPayload = JSON.parse(blockedContent[0].text);
+        expect(blockedPayload.error).toBe("Confirmation required");
+        expect(blockedPayload.tool).toBe("delete_account");
+
+        // Retry with valid token
+        const { token } = createConfirmationToken("delete_account");
+        const result = await client.callTool({
+            name: "delete_account",
+            arguments: { account_id: "ACC-DEL", confirmation_token: token },
+        });
+
+        const content = result.content as Array<{ type: string; text: string }>;
+        const parsed = JSON.parse(content[0].text);
+        expect(parsed.success).toBe(true);
+    });
+});
+
+// AC-18: archive_account POSTs /accounts/{id}:archive (guarded, non-destructive)
+describe("archive_account", () => {
+    beforeEach(() => {
+        vi.restoreAllMocks();
+    });
+
+    it("POSTs to /accounts/{account_id}:archive", async () => {
+        const archiveResponse = {
+            account_id: "ACC-ARCH",
+            is_archived: true,
+        };
+        mockGuardAndApi(archiveResponse);
+
+        const client = await createTestClient();
+        const result = await client.callTool({
+            name: "archive_account",
+            arguments: { account_id: "ACC-ARCH" },
+        });
+
+        expect(fetch).toHaveBeenCalledTimes(2);
+        const [url, opts] = vi.mocked(fetch).mock.calls[1];
+        expect(url).toContain("/accounts/ACC-ARCH:archive");
+        expect(opts?.method).toBe("POST");
+
+        const content = result.content as Array<{ type: string; text: string }>;
+        const parsed = JSON.parse(content[0].text);
+        expect(parsed.success).toBe(true);
+        expect(parsed.data.is_archived).toBe(true);
+    });
+});
+
+// AC-19: reassign_trades POSTs /accounts/{id}:reassign-trades (destructive + confirmation)
+describe("reassign_trades", () => {
+    beforeEach(() => {
+        vi.restoreAllMocks();
+        setConfirmationMode("dynamic");
+    });
+
+    it("POSTs to /accounts/{account_id}:reassign-trades", async () => {
+        const reassignResponse = { trades_reassigned: 5 };
+        mockGuardAndApi(reassignResponse);
+
+        const client = await createTestClient();
+        const result = await client.callTool({
+            name: "reassign_trades",
+            arguments: { account_id: "ACC-REASS" },
+        });
+
+        const reassignCalls = vi
+            .mocked(fetch)
+            .mock.calls.filter(
+                ([url]) =>
+                    typeof url === "string" &&
+                    url.includes(":reassign-trades") &&
+                    !url.includes("/mcp-guard/"),
+            );
+        expect(reassignCalls.length).toBe(1);
+        const [rUrl, rOpts] = reassignCalls[0];
+        expect(rUrl).toContain("/accounts/ACC-REASS:reassign-trades");
+        expect(rOpts?.method).toBe("POST");
+
+        const content = result.content as Array<{ type: string; text: string }>;
+        const parsed = JSON.parse(content[0].text);
+        expect(parsed.success).toBe(true);
+    });
+
+    it("requires confirmation_token on static clients", async () => {
+        mockGuardAndApi({ trades_reassigned: 5 });
+        setConfirmationMode("static");
+
+        const client = await createTestClient();
+
+        // Call WITHOUT token — should be blocked
+        const blocked = await client.callTool({
+            name: "reassign_trades",
+            arguments: { account_id: "ACC-REASS" },
+        });
+
+        const blockedContent = blocked.content as Array<{ type: string; text: string }>;
+        const blockedPayload = JSON.parse(blockedContent[0].text);
+        expect(blockedPayload.error).toBe("Confirmation required");
+        expect(blockedPayload.tool).toBe("reassign_trades");
+
+        // Retry with valid token
+        const { token } = createConfirmationToken("reassign_trades");
+        const result = await client.callTool({
+            name: "reassign_trades",
+            arguments: { account_id: "ACC-REASS", confirmation_token: token },
+        });
+
+        const content = result.content as Array<{ type: string; text: string }>;
+        const parsed = JSON.parse(content[0].text);
+        expect(parsed.success).toBe(true);
+    });
+});
+
+// AC-20: record_balance POSTs /accounts/{id}/balances (guarded)
+describe("record_balance", () => {
+    beforeEach(() => {
+        vi.restoreAllMocks();
+    });
+
+    it("POSTs to /accounts/{account_id}/balances with balance payload", async () => {
+        const balanceResponse = {
+            id: 1,
+            account_id: "ACC001",
+            balance: 7777.00,
+            snapshot_datetime: "2026-04-06T12:00:00Z",
+        };
+        mockGuardAndApi(balanceResponse, 201);
+
+        const client = await createTestClient();
+        const result = await client.callTool({
+            name: "record_balance",
+            arguments: {
+                account_id: "ACC001",
+                balance: 7777.00,
+                snapshot_datetime: "2026-04-06T12:00:00Z",
+            },
+        });
+
+        expect(fetch).toHaveBeenCalledTimes(2);
+        const [url, opts] = vi.mocked(fetch).mock.calls[1];
+        expect(url).toContain("/accounts/ACC001/balances");
+        expect(opts?.method).toBe("POST");
+
+        const headers = opts?.headers as Record<string, string>;
+        expect(headers["Content-Type"]).toBe("application/json");
+
+        const body = JSON.parse(opts?.body as string);
+        expect(body.balance).toBe(7777.00);
+        expect(body.snapshot_datetime).toBe("2026-04-06T12:00:00Z");
+
+        const content = result.content as Array<{ type: string; text: string }>;
+        const parsed = JSON.parse(content[0].text);
+        expect(parsed.success).toBe(true);
+    });
+
+    it("omits snapshot_datetime from body when not provided", async () => {
+        mockGuardAndApi({ id: 2, account_id: "ACC001", balance: 5000 }, 201);
+
+        const client = await createTestClient();
+        await client.callTool({
+            name: "record_balance",
+            arguments: { account_id: "ACC001", balance: 5000 },
+        });
+
+        const [, opts] = vi.mocked(fetch).mock.calls[1];
+        const body = JSON.parse(opts?.body as string);
+        expect(body.balance).toBe(5000);
+        expect(body).not.toHaveProperty("snapshot_datetime");
     });
 });

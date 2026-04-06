@@ -77,6 +77,9 @@ For each item, record PASS or FAIL with evidence:
 | AV-4 | **No skipped/xfail masking** | Tests exist but are not blanket-marked `@pytest.mark.skip`, `xfail`, or `it.skip`. Any skip must have a documented reason. |
 | AV-5 | **No unresolved placeholders** | No `TODO`, `FIXME`, `NotImplementedError`, `pass  # placeholder`, or skeleton stubs remain. |
 | AV-6 | **Source-backed criteria** | Any behavior beyond explicit build-plan text is traceable to `Local Canon`, `Research-backed`, or `Human-approved` sources. Uncited "best practice" rules fail review. |
+| AV-7 | **Boundary schema enforcement** | Every external write boundary has an explicit Pydantic/Zod schema. Unknown fields are rejected (or intentionally allowed with source-backed rationale). |
+| AV-8 | **Create/update parity** | Create and update flows share invariant enforcement. No `replace(obj, **raw_input)` or `Model(**{**old, **kwargs})` without prior schema validation. |
+| AV-9 | **Invalid input produces 4xx** | Malformed input produces controlled 422 responses, not downstream exceptions or deferred failures. |
 
 ### 4. Banned Pattern Scan
 

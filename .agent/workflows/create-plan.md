@@ -90,6 +90,13 @@ Rules:
 - If local docs are insufficient, run `.agent/workflows/pre-build-research.md` or equivalent targeted web research before Step 3.
 - Ask the human only when materially different product behaviors remain plausible, sources conflict, or the decision is irreversible/high-risk.
 
+For any MEU that accepts external input, the sufficiency table must include a **Boundary Inventory Row** per write surface:
+
+| Boundary | Schema Owner | Extra-Field Policy | Invalid-Input Error Code | Create/Update Parity | Source |
+|----------|-------------|--------------------|--------------------------|---------------------|--------|
+
+The plan is not approvable until it identifies every external input surface and documents expected rejection behavior for malformed, missing, out-of-range, and unexpected fields.
+
 ### 3. Reason About Project Scope
 
 Use sequential thinking to group the next set of pending MEUs into a coherent **project**. Apply these principles:

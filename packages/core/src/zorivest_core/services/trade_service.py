@@ -9,7 +9,6 @@ from __future__ import annotations
 from zorivest_core.application.commands import CreateTrade
 from zorivest_core.application.ports import UnitOfWork
 from zorivest_core.domain.entities import Trade
-from zorivest_core.domain.enums import TradeAction
 from zorivest_core.domain.exceptions import BusinessRuleError, NotFoundError
 from zorivest_core.domain.trades.identity import trade_fingerprint
 
@@ -162,6 +161,7 @@ class TradeService:
 
         Raises:
             NotFoundError: If trade does not exist.
+            ValueError: If invariants are violated (quantity <= 0, blank instrument).
         """
         with self.uow:
             trade = self.uow.trades.get(exec_id)
@@ -170,9 +170,20 @@ class TradeService:
             # Filter kwargs to only fields that Trade accepts.
             valid_fields = {f for f in trade.__dataclass_fields__}
             filtered = {k: v for k, v in kwargs.items() if k in valid_fields}
-            # Convert action string to TradeAction enum if present
-            if "action" in filtered and isinstance(filtered["action"], str):
-                filtered["action"] = TradeAction(filtered["action"])
+            # Validate create/update invariant parity
+            if "quantity" in filtered and filtered["quantity"] is not None:
+                qty = filtered["quantity"]
+                if not isinstance(qty, (int, float, str)):
+                    msg = f"quantity must be numeric, got {type(qty).__name__}"
+                    raise ValueError(msg)
+                if float(qty) <= 0:
+                    msg = f"quantity must be positive, got {qty}"
+                    raise ValueError(msg)
+            if "instrument" in filtered and (
+                not filtered["instrument"] or not str(filtered["instrument"]).strip()
+            ):
+                msg = "instrument must not be empty"
+                raise ValueError(msg)
             updated = Trade(**{**trade.__dict__, **filtered})
             self.uow.trades.update(updated)
             self.uow.commit()

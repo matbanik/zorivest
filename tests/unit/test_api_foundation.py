@@ -6,6 +6,7 @@ Red phase — written FIRST per TDD protocol.
 
 from __future__ import annotations
 
+import os
 import uuid
 
 import pytest
@@ -250,6 +251,18 @@ class TestModeGating:
 
 class TestAppStateWiring:
     """Verify services are wired in lifespan without dependency_overrides."""
+
+    @pytest.fixture(autouse=True)
+    def _clear_dev_unlock(self):
+        """Ensure ZORIVEST_DEV_UNLOCK is not set before each test.
+
+        test_api_roundtrip.py sets this env var at module import time.
+        Without cleanup, create_app() picks it up and starts with
+        db_unlocked=True, causing mode-gating assertions to fail.
+        """
+        os.environ.pop("ZORIVEST_DEV_UNLOCK", None)
+        yield
+        os.environ.pop("ZORIVEST_DEV_UNLOCK", None)
 
     def test_auth_service_wired_in_lifespan(self) -> None:
         """Auth routes should work without dependency overrides."""

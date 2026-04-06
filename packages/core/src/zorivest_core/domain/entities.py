@@ -108,6 +108,8 @@ class Account:
     sub_accounts: list[str] = field(default_factory=list)
     balance_source: BalanceSource = BalanceSource.MANUAL
     balance_snapshots: list[BalanceSnapshot] = field(default_factory=list)
+    is_archived: bool = False  # MEU-37 AC-1: Soft-delete flag
+    is_system: bool = False  # MEU-37 AC-2: System-seeded, immutable/undeletable
 
 
 @dataclass
@@ -136,6 +138,7 @@ class TradePlan:
     linked_trade_id: Optional[str] = None  # FK → Trade, nullable
     images: list[ImageAttachment] = field(default_factory=list)
     account_id: Optional[str] = None  # FK → Account, nullable
+    shares_planned: Optional[int] = None  # Position size (shares/contracts)
     executed_at: Optional[datetime] = None  # T5: when status → executed
     cancelled_at: Optional[datetime] = None  # T5: when status → cancelled
 

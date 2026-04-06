@@ -98,8 +98,20 @@ class MarketDataService:
     async def get_quote(self, ticker: str) -> MarketQuote:
         """Get a stock quote, trying providers in priority order.
 
+        MEU-91 complement: Always tries Yahoo Finance first (zero-config, no API key).
+        Falls back to configured providers (Finnhub, Alpha Vantage, etc.) if Yahoo fails.
         Implements MarketDataPort.get_quote.
         """
+        # Yahoo Finance is always tried first — no API key needed
+        try:
+            yahoo_quote = await self._yahoo_quote(ticker)
+            if yahoo_quote:
+                return yahoo_quote
+        except Exception as exc:
+            logger.debug(
+                "Yahoo Finance quote failed, falling back to providers: %s", exc
+            )
+
         providers = self._get_enabled_providers(self._quote_normalizers)
         if not providers:
             raise MarketDataError(
@@ -208,7 +220,7 @@ class MarketDataService:
         }
         url = (
             f"https://query1.finance.yahoo.com/v1/finance/search"
-            f"?q={query}&quotesCount=6&newsCount=0&enableFuzzyQuery=false"
+            f"?q={query}&quotesCount=6&newsCount=0"
         )
         response = await self._http.get(
             url, headers={"User-Agent": "Mozilla/5.0"}, timeout=10
@@ -229,6 +241,40 @@ class MarketDataService:
             for q in quotes
             if q.get("quoteType") not in _EXCLUDED_TYPES
         ]
+
+    async def _yahoo_quote(self, ticker: str) -> MarketQuote | None:
+        """Fetch a quote from Yahoo Finance (no API key required).
+
+        URL: https://query1.finance.yahoo.com/v8/finance/chart/{ticker}?range=1d&interval=1d
+        Returns the regularMarketPrice from the chart meta.
+        """
+        url = (
+            f"https://query1.finance.yahoo.com/v8/finance/chart/{ticker}"
+            f"?range=1d&interval=1d"
+        )
+        response = await self._http.get(
+            url, headers={"User-Agent": "Mozilla/5.0"}, timeout=10
+        )
+        if response.status_code != 200:
+            return None
+
+        data = response.json()
+        chart = data.get("chart", {})
+        results = chart.get("result")
+        if not results:
+            return None
+
+        meta = results[0].get("meta", {})
+        price = meta.get("regularMarketPrice")
+        if price is None:
+            return None
+
+        return MarketQuote(
+            ticker=ticker,
+            price=float(price),
+            previous_close=meta.get("chartPreviousClose"),
+            provider="Yahoo Finance",
+        )
 
     async def get_sec_filings(self, ticker: str) -> list[SecFiling]:
         """Get SEC filings for a company (SEC API only).

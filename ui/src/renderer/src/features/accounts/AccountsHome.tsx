@@ -1,5 +1,5 @@
 import React, { useCallback, useMemo, useState } from 'react'
-import { useAccounts, useCreateAccount } from '@/hooks/useAccounts'
+import { useAccounts, useCreateAccount, useArchivedAccounts } from '@/hooks/useAccounts'
 import { useAccountContext } from '@/context/AccountContext'
 import type { Account } from '@/hooks/useAccounts'
 import AccountDetailPanel from './AccountDetailPanel'
@@ -152,7 +152,7 @@ function AccountRow({ account, onSelect, portfolioPercent }: AccountRowProps) {
  * AC-15: E2E data-testid attributes
  */
 export default function AccountsHome() {
-    const { accounts, portfolioTotal } = useAccounts()
+    const { accounts, portfolioTotal, isFetching, refetch } = useAccounts()
     const { activeAccountId, selectAccount, mruAccountIds } = useAccountContext()
     const createAccount = useCreateAccount()
     const [showCreateForm, setShowCreateForm] = useState(false)
@@ -185,8 +185,22 @@ export default function AccountsHome() {
         window.dispatchEvent(new CustomEvent('zorivest:start-review'))
     }, [])
 
+    const isArchivedMode = typeFilter === 'ARCHIVED'
+    const { accounts: archivedAccounts, isFetching: isFetchingArchived } = useArchivedAccounts(isArchivedMode)
+
     // Filter + sort accounts
     const filteredAccounts = useMemo(() => {
+        // Archived mode: show archived accounts from the dedicated query
+        if (isArchivedMode) {
+            return [...archivedAccounts].sort((a, b) => {
+                if (sortBy === 'name') return a.name.localeCompare(b.name)
+                if (sortBy === 'balance') return (b.latest_balance ?? 0) - (a.latest_balance ?? 0)
+                const dateA = a.latest_balance_date ?? ''
+                const dateB = b.latest_balance_date ?? ''
+                return dateB.localeCompare(dateA)
+            })
+        }
+
         let filtered = typeFilter === 'ALL'
             ? accounts
             : accounts.filter((a) => a.account_type === typeFilter)
@@ -201,7 +215,7 @@ export default function AccountsHome() {
         })
 
         return filtered
-    }, [accounts, typeFilter, sortBy])
+    }, [accounts, archivedAccounts, typeFilter, sortBy, isArchivedMode])
 
     return (
         <div data-testid="accounts-page" className="flex h-full gap-4">
@@ -213,12 +227,24 @@ export default function AccountsHome() {
                 {/* Header with Start Review */}
                 <div className="flex items-center justify-between mb-4">
                     <h2 className="text-lg font-semibold text-fg">Accounts</h2>
-                    <button
-                        className="rounded-md bg-accent px-3 py-1.5 text-sm font-medium text-fg-on-accent transition-colors hover:bg-accent-hover"
-                        onClick={handleStartReview}
-                    >
-                        Start Review
-                    </button>
+                    <div className="flex items-center gap-2">
+                        <button
+                            data-testid="refresh-accounts-btn"
+                            onClick={() => refetch()}
+                            disabled={isFetching}
+                            title="Refresh accounts list"
+                            className="px-3 py-1.5 text-sm font-medium rounded-md border border-bg-subtle bg-bg hover:bg-bg-elevated text-fg transition-colors cursor-pointer disabled:opacity-50 disabled:cursor-not-allowed"
+                        >
+                            {isFetching || isFetchingArchived ? '⟳' : '↻'} Refresh
+                        </button>
+                        <button
+                            data-testid="start-review-btn"
+                            className="px-3 py-1.5 text-sm font-medium rounded-md border border-bg-subtle bg-bg hover:bg-bg-elevated text-fg transition-colors cursor-pointer"
+                            onClick={handleStartReview}
+                        >
+                            Start Review
+                        </button>
+                    </div>
                 </div>
 
                 {/* MRU Card Strip */}
@@ -247,6 +273,8 @@ export default function AccountsHome() {
                             {ACCOUNT_TYPES.map((t) => (
                                 <option key={t} value={t}>{ACCOUNT_TYPE_LABELS[t] ?? t}</option>
                             ))}
+                            <option disabled>────────</option>
+                            <option value="ARCHIVED">📦 Archived</option>
                         </select>
                     </label>
                     <label className="flex items-center gap-1 text-xs text-fg-muted">
@@ -336,6 +364,8 @@ export default function AccountsHome() {
                             institution: '',
                             currency: 'USD',
                             is_tax_advantaged: false,
+                            is_archived: false,
+                            is_system: false,
                             notes: '',
                             latest_balance: null,
                             latest_balance_date: null,

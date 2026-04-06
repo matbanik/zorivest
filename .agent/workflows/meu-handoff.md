@@ -72,6 +72,13 @@ Build plan reference: [link to docs/build-plan/XX-section.md]
 
 > Any criterion that is not explicit in the target build-plan section must cite the exact local file path or web source used to resolve it. `Best practice` alone is not acceptable.
 
+### Boundary Contract (Write-Adjacent MEUs Only)
+
+| Boundary | Schema | Extra-Field Policy | Negative Tests | Create/Update Parity |
+|----------|--------|--------------------|----------------|---------------------|
+
+> Skip this section for read-only or internal-only MEUs.
+
 ## Design Decisions & Known Risks
 
 - **Decision**: {what you chose} — **Reasoning**: {why, in 1-2 sentences} — **ADR**: {ADR-NNNN if created, or "inline" if minor}

@@ -1,5 +1,5 @@
 {
-  "total_tools": 51,
+  "total_tools": 59,
   "toolset_count": 9,
   "toolsets": [
     {
@@ -74,10 +74,18 @@
     },
     {
       "name": "accounts",
-      "description": "Broker sync, identifier resolution, bank/CSV/PDF import, account review",
-      "tool_count": 8,
+      "description": "Account CRUD, lifecycle (archive/reassign), balance recording, broker sync, import tools",
+      "tool_count": 16,
       "always_loaded": false,
       "tools": [
+        "list_accounts",
+        "get_account",
+        "create_account",
+        "update_account",
+        "delete_account",
+        "archive_account",
+        "reassign_trades",
+        "record_balance",
         "sync_broker",
         "list_brokers",
         "resolve_identifiers",
@@ -126,5 +134,5 @@
       ]
     }
   ],
-  "generated_at": "2026-04-02T01:56:42.384Z"
+  "generated_at": "2026-04-06T15:23:06.713Z"
 }

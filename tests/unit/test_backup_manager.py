@@ -393,6 +393,7 @@ class TestBackupSecurity:
         )
         import base64
 
+        assert result.manifest is not None
         salt = base64.b64decode(result.manifest.kdf.salt_b64)
         wrong_key = wrong_mgr._derive_key(salt)
 

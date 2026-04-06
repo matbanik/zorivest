@@ -4,6 +4,89 @@
 
 ## Active Issues
 
+### [BOUNDARY-GAP] — Systemic input validation gaps across API/MCP write paths
+- **Severity:** High
+- **Component:** api, core (services), mcp-server (planned)
+- **Discovered:** 2026-04-05 (handoff 096 review)
+- **Status:** Partially resolved — 5 of 7 findings closed
+- **Details:** Originally 7 write boundaries lacked strict schema enforcement. Resolution status:
+  - ✅ F1 Accounts — resolved by MEU-BV1 (handoff 098)
+  - ✅ F2 Trades — resolved by MEU-BV2 (handoff 099)
+  - ✅ F3 Plans — resolved by MEU-BV3 (handoff 100)
+  - ✅ F5 Market Data — resolved by MEU-BV4 (handoff 101)
+  - ✅ F6 Email Settings — resolved by MEU-BV5 (handoff 102)
+  - ⬜ F4 Scheduling — open (prerequisite for MEU-72 `gui-scheduling`)
+  - ⬜ F7 Watchlists — open (prerequisite for MEU-70a `watchlist-visual-redesign`)
+  - ⬜ Settings — open (prerequisite for MEU-76 `gui-reset-defaults`)
+- **Next Step:** F4/F7/Settings will be hardened as prerequisites before their respective GUI MEUs.
+
+### [PYRIGHT-PREEXIST] — ~300+ pre-existing pyright errors across test suite and services
+- **Severity:** Low–Medium (all test-only or annotation-only; zero runtime impact)
+- **Component:** tests (unit, integration, property), core (services)
+- **Discovered:** 2026-04-05 (boundary validation review)
+- **Status:** Partially resolved — 13 errors fixed 2026-04-06 (MEU-TS1 ✅); remainder tracked below
+- **MEU linkage:** `BUILD_PLAN.md` → CI / Quality Gate Research Items → MEU-TS1 (✅), MEU-TS2 (⬜), MEU-TS3 (⬜)
+
+#### Tier 1: Safe Test-Only Fixes — ✅ RESOLVED (2026-04-06)
+
+13 errors fixed with zero production code changes:
+
+| Category | Files | Errors | Fix Applied |
+|----------|-------|--------|-------------|
+| Generator fixture typing | `test_market_data_api.py`, `test_provider_service_wiring.py`, `test_api_email_settings.py` | ~8 | `-> TestClient` → `-> Generator[TestClient, None, None]` |
+| Optional narrowing guards | `test_backup_manager.py`, `test_backup_integration.py`, `test_backup_roundtrip.py` | 3 | Added `assert obj is not None` before accessing `.kdf` / `backup_path` |
+| Mock protocol compliance | `test_provider_connection_service.py` | 1 | Added `post()` to `MockHttpClient` (satisfies `HttpClient` protocol) |
+| Protocol `__mro__` access | `test_ports.py` | 1 | Changed `UnitOfWork.__mro__` → `inspect.getmro(UnitOfWork)` |
+
+**Evidence:** 134/134 tests pass, ruff clean. No production files touched.
+
+#### Tier 2: String Literal → Enum Refactoring (~50 errors) — Open
+
+- **What:** Test assertions use raw strings (`"BOT"`, `"SLD"`) where pyright expects enum values (`TradeAction.BOT`).
+- **Scope:** `test_trade_service.py`, `test_account_service.py`, `test_api_trades.py`, `test_api_accounts.py`, `test_api_plans.py`
+- **Risk:** Low — changes string comparisons in test assertions only
+- **Fix approach:** Import enums, replace string literals with `.value` comparisons
+- **MEU linkage:** Standalone cleanup, no MEU prerequisite — can be done anytime
+
+#### Tier 3: Entity Factory Typing (~121 errors) — Open
+
+- **What:** `Trade(...)` / `Account(...)` constructors pass `Column[T]` values where pyright expects `T`. This is a SQLAlchemy Column descriptor pattern issue.
+- **Scope:** All test files that construct domain entities via factory helpers
+- **Risk:** Medium — requires updating entity constructors or adding type stubs for Column coercion
+- **Fix approach:** Either (a) add `# type: ignore[arg-type]` inline suppressions, or (b) create typed factory functions that narrow Column→T, or (c) update entity `__init__` signatures with `@overload`
+- **MEU linkage:** Best addressed as a dedicated Phase 1 cleanup MEU or when entity constructors are next refactored
+
+#### Tier 4: Core Service Errors — ✅ RESOLVED (2026-04-06)
+
+- ~~`account_service.py:131` — `count_for_account` method not on `TradePlanRepository` port ABC~~ → ✅ Fixed 2026-04-06 (added to `TradePlanRepository` protocol in `ports.py`)
+- ~~`trade_service.py:175` — `float(filtered["quantity"])` fails type narrowing (`object` not assignable to `ConvertibleToFloat`)~~ → ✅ Fixed 2026-04-06 (added `isinstance(qty, (int, float, str))` narrowing guard)
+
+#### Recommended Fix Schedule
+
+| Priority | Tier | Error Count | When to Fix | Approach |
+|----------|------|-------------|-------------|----------|
+| ~~P1~~ | ~~Tier 1~~ | ~~13~~ | ~~✅ Done 2026-04-06~~ | ~~Annotation + mock fixes~~ |
+| P2 | Tier 2 | ~50 | Next available session | Import enums, swap string literals |
+| P3 | Tier 3 | ~121 | Dedicated cleanup MEU | Factory typing strategy (TBD) |
+| ~~P4~~ | ~~Tier 4~~ | ~~2~~ | ~~✅ Done 2026-04-06~~ | ~~Port ABC + type narrowing~~ |
+
+### [TEST-ISOLATION] — test_api_foundation.py::test_unlock_propagates_db_unlocked flaky in suite ✅ RESOLVED
+- **Severity:** ~~Low~~ → Resolved (2026-04-06)
+- **Component:** tests (unit, integration)
+- **Discovered:** 2026-04-05 (BV4/BV5 validation)
+- **Status:** ✅ **Resolved 2026-04-06**
+- **Root cause:** `test_api_roundtrip.py` and `test_gui_api_seams.py` set `os.environ["ZORIVEST_DEV_UNLOCK"] = "1"` at module import time (during pytest collection) but never cleaned it up. When `test_api_foundation.py::TestAppStateWiring` later called `create_app()`, the lifespan read the leaked env var and started with `db_unlocked=True`, causing 403→200 assertion failures.
+- **Fix:** Added module-scoped `autouse` cleanup fixtures in `test_api_roundtrip.py` and `test_gui_api_seams.py`, plus a defensive `autouse` clear in `test_api_foundation.py::TestAppStateWiring`. Full suite now passes (1718 passed, 15 skipped, excluding pre-existing `test_market_data_service.py` drift).
+
+### [TEST-DRIFT-MDS] — 5 tests in test_market_data_service.py fail due to wiring changes
+- **Severity:** Medium
+- **Component:** tests (unit)
+- **Discovered:** 2026-04-05 (full suite run without `-x`)
+- **Status:** Open — pre-existing since MEU-91 (market data service wiring)
+- **Details:** `TestGetQuote` (4 tests) + `TestRateLimiting` (1 test) fail because test setup doesn't match post-wiring service constructor. Masked by `-x` stopping at earlier failure.
+- **Workaround:** These tests are in a different module. Fix when market data service tests are next touched.
+
+
 ### [MCP-TOOLCAP] — IDE tool limits render 68-tool flat registration non-viable
 - **Severity:** Critical
 - **Component:** mcp-server

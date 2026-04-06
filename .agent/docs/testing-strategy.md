@@ -105,3 +105,19 @@ tests/
 | ImageAttachment | Mime type, owner fields | Save, get_for_trade, delete |
 | Calculator | Basic calc, edge cases, zero inputs | N/A (pure function) |
 | UnitOfWork | N/A | Commit, rollback, context manager |
+
+## Write-Boundary Test Matrix
+
+For any MEU touching API/MCP/UI/config write paths, include these test categories:
+
+| Test Category | Example | Required? |
+|--------------|---------|-----------|
+| Valid create | Happy path with all required fields | Yes |
+| Valid update | Partial update with valid fields | Yes |
+| Invalid enum | `account_type="INVALID"` → 422 | Yes |
+| Blank required field | `name=""` or `ticker=""` → 422 | Yes |
+| Malformed format | Invalid cron, invalid email, invalid URL → 422 | Yes (when applicable) |
+| Non-positive/OOR numeric | `quantity=-1`, `price=0` → 422 | Yes (when applicable) |
+| Extra/unexpected field | `{"valid_field": "x", "hacker_field": "y"}` → 422 | Yes (when `extra="forbid"`) |
+| Missing-entity mapping | Update non-existent ID → 404 | Yes |
+| Create/update parity | Update bypasses create invariant → same error | Yes |

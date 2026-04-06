@@ -8,8 +8,9 @@ from __future__ import annotations
 from datetime import datetime
 
 from fastapi import APIRouter, Depends, File, Form, HTTPException, UploadFile
-from pydantic import BaseModel
-from typing import Optional
+from pydantic import BaseModel, Field
+from pydantic.functional_validators import BeforeValidator
+from typing import Annotated, Optional
 
 from zorivest_core.application.commands import AttachImage, CreateTrade
 from zorivest_core.domain.enums import ImageOwnerType, TradeAction
@@ -21,6 +22,14 @@ from zorivest_api.dependencies import (
 )
 from zorivest_api.schemas.common import PaginatedResponse
 
+
+def _strip_whitespace(v: object) -> object:
+    """Strip leading/trailing whitespace so min_length=1 rejects blank strings."""
+    return v.strip() if isinstance(v, str) else v
+
+
+StrippedStr = Annotated[str, BeforeValidator(_strip_whitespace)]
+
 trade_router = APIRouter(prefix="/api/v1/trades", tags=["trades"])
 
 
@@ -28,23 +37,27 @@ trade_router = APIRouter(prefix="/api/v1/trades", tags=["trades"])
 
 
 class CreateTradeRequest(BaseModel):
-    exec_id: str
+    model_config = {"extra": "forbid"}
+
+    exec_id: StrippedStr = Field(min_length=1)
     time: datetime
-    instrument: str
-    action: str  # "BOT" | "SLD"
-    quantity: float
-    price: float
-    account_id: str
+    instrument: StrippedStr = Field(min_length=1)
+    action: TradeAction  # Pydantic validates against StrEnum members
+    quantity: float = Field(gt=0)
+    price: float = Field(ge=0)
+    account_id: StrippedStr = Field(min_length=1)
     commission: float = 0.0
     realized_pnl: float = 0.0
     notes: Optional[str] = None
 
 
 class UpdateTradeRequest(BaseModel):
-    instrument: Optional[str] = None
-    action: Optional[str] = None  # "BOT" | "SLD"
-    quantity: Optional[float] = None
-    price: Optional[float] = None
+    model_config = {"extra": "forbid"}
+
+    instrument: Optional[StrippedStr] = Field(default=None, min_length=1)
+    action: Optional[TradeAction] = None
+    quantity: Optional[float] = Field(default=None, gt=0)
+    price: Optional[float] = Field(default=None, ge=0)
     account_id: Optional[str] = None
     time: Optional[datetime] = None
     commission: Optional[float] = None
@@ -81,7 +94,7 @@ async def create_trade(
             exec_id=body.exec_id,
             time=body.time,
             instrument=body.instrument,
-            action=TradeAction(body.action),
+            action=body.action,  # Already validated as TradeAction by Pydantic
             quantity=body.quantity,
             price=body.price,
             account_id=body.account_id,

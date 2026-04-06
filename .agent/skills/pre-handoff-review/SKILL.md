@@ -139,6 +139,23 @@ rg -n "ValueError" <all-route-files>          # Should map to 422
 
 **Rule**: Every write-adjacent route must map ALL domain exceptions AND at least one test must assert response body shape (not just status code). A missing mapping is a HIGH finding.
 
+### Step 6b: Boundary Validation Audit (Pattern 11) — TIER 3
+
+For MEUs touching external write boundaries:
+
+1. **List every boundary touched** and cite the schema/validator used
+2. **Prove rejection**: at least one negative test per invalid-input class (blank string, invalid enum, non-positive numeric, extra field)
+3. **Create/update parity**: confirm no partial update path bypasses create-time invariants
+
+```powershell
+# Check for raw dict parameters in route handlers
+rg -n "dict\[str, Any\]" <touched-route-files>
+
+# Check for unvalidated kwargs reconstruction
+rg -n "replace\(.*\*\*" <touched-service-files>
+rg -n "\*\*{.*\*\*" <touched-service-files>
+```
+
 ### Step 7: Evidence Freshness (Pattern 3) — ALL TIERS ⚠️ MUST BE LAST
 
 > This step MUST be executed LAST, after ALL other steps (including fix generalization, cross-doc sweeps, and error mapping changes). Running it earlier creates the staleness it aims to prevent.

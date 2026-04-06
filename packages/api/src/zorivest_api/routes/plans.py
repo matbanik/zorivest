@@ -6,25 +6,53 @@ Source: 04a-api-trades.md §TradePlan endpoints (nested under /api/v1/trade-plan
 
 from __future__ import annotations
 
-from typing import Optional
+from typing import Annotated, Optional
 from datetime import datetime, timezone
 
 from fastapi import APIRouter, Depends, HTTPException, Query
-from pydantic import BaseModel, model_validator
+from pydantic import BaseModel, Field, model_validator
+from pydantic.functional_validators import BeforeValidator
 
 from zorivest_api.dependencies import get_report_service, require_unlocked_db
+from zorivest_core.domain.enums import ConvictionLevel, PlanStatus, TradeAction
+
+
+def _strip_whitespace(v: object) -> object:
+    """Strip leading/trailing whitespace so min_length=1 rejects blank strings."""
+    return v.strip() if isinstance(v, str) else v
+
+
+StrippedStr = Annotated[str, BeforeValidator(_strip_whitespace)]
 
 plan_router = APIRouter(prefix="/api/v1/trade-plans", tags=["trade-plans"])
+
+
+# Direction alias normalizer: accept MCP names (long/short) and enum values (BOT/SLD)
+_DIRECTION_ALIASES: dict[str, str] = {
+    "long": "BOT",
+    "short": "SLD",
+}
+
+
+def _normalize_direction(v: object) -> object:
+    if isinstance(v, str):
+        return _DIRECTION_ALIASES.get(v.lower(), v)
+    return v
+
+
+CIDirection = Annotated[TradeAction, BeforeValidator(_normalize_direction)]
 
 
 # ── Request/Response schemas ────────────────────────────────────────────
 
 
 class CreatePlanRequest(BaseModel):
-    ticker: str
-    direction: str = "BOT"
-    conviction: str = "medium"
-    strategy_name: str
+    model_config = {"extra": "forbid"}
+
+    ticker: StrippedStr = Field(min_length=1)
+    direction: CIDirection = TradeAction.BOT
+    conviction: ConvictionLevel = ConvictionLevel.MEDIUM
+    strategy_name: StrippedStr = Field(min_length=1)
     strategy_description: str = ""
     entry_price: Optional[float] = None
     stop_loss: Optional[float] = None
@@ -33,6 +61,7 @@ class CreatePlanRequest(BaseModel):
     exit_conditions: str = ""
     timeframe: str = "intraday"
     account_id: Optional[str] = None
+    shares_planned: Optional[int] = None
     # MCP short-name aliases (05d-mcp-trade-planning.md)
     entry: Optional[float] = None
     stop: Optional[float] = None
@@ -56,10 +85,12 @@ class CreatePlanRequest(BaseModel):
 
 
 class UpdatePlanRequest(BaseModel):
-    ticker: Optional[str] = None
-    direction: Optional[str] = None
-    conviction: Optional[str] = None
-    strategy_name: Optional[str] = None
+    model_config = {"extra": "forbid"}
+
+    ticker: Optional[StrippedStr] = Field(default=None, min_length=1)
+    direction: Optional[CIDirection] = None
+    conviction: Optional[ConvictionLevel] = None
+    strategy_name: Optional[StrippedStr] = Field(default=None, min_length=1)
     strategy_description: Optional[str] = None
     entry_price: Optional[float] = None
     stop_loss: Optional[float] = None
@@ -67,9 +98,10 @@ class UpdatePlanRequest(BaseModel):
     entry_conditions: Optional[str] = None
     exit_conditions: Optional[str] = None
     timeframe: Optional[str] = None
-    status: Optional[str] = None
+    status: Optional[PlanStatus] = None
     linked_trade_id: Optional[str] = None
     account_id: Optional[str] = None
+    shares_planned: Optional[int] = None
 
 
 class PlanResponse(BaseModel):
@@ -89,6 +121,7 @@ class PlanResponse(BaseModel):
     status: str
     linked_trade_id: Optional[str] = None
     account_id: Optional[str] = None
+    shares_planned: Optional[int] = None
     created_at: str
     updated_at: str
     executed_at: Optional[str] = None  # T5: when status → executed
@@ -178,7 +211,9 @@ async def update_plan(
 
 
 class PatchStatusRequest(BaseModel):
-    status: str
+    model_config = {"extra": "forbid"}
+
+    status: PlanStatus
     linked_trade_id: Optional[str] = None
 
 
@@ -251,6 +286,7 @@ def _to_response(plan: object) -> dict:
         "status": str(plan.status),  # type: ignore[attr-defined]
         "linked_trade_id": plan.linked_trade_id,  # type: ignore[attr-defined]
         "account_id": plan.account_id,  # type: ignore[attr-defined]
+        "shares_planned": getattr(plan, "shares_planned", None),  # type: ignore[attr-defined]
         "created_at": plan.created_at.isoformat() if plan.created_at else "",  # type: ignore[attr-defined]
         "updated_at": plan.updated_at.isoformat() if plan.updated_at else "",  # type: ignore[attr-defined]
         "executed_at": plan.executed_at.isoformat()  # type: ignore[attr-defined]

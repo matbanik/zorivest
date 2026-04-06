@@ -187,7 +187,7 @@ Domain → Infrastructure → Services → REST API → MCP Server → GUI → D
 | MEU-34 | `mcp-diagnostics` | 15f | [05b](build-plan/05b-mcp-zorivest-diagnostics.md) | zorivest_diagnose MCP tool | ✅ |
 | MEU-35 | `mcp-trade-analytics` | 13 | [05c](build-plan/05c-mcp-trade-analytics.md) | Trade analytics MCP tools | ✅ |
 | MEU-36 | `mcp-trade-planning` | 13 | [05d](build-plan/05d-mcp-trade-planning.md) | Trade planning MCP tools | ✅ |
-| MEU-37 | `mcp-accounts` | 13 | [05f](build-plan/05f-mcp-accounts.md) | Account CRUD MCP tools (5) + **account-trade integrity**: System Default Account (seeded, undeletable), `is_archived` soft-delete, `is_system` guard, three-path deletion (block/archive/reassign-to-default), computed metrics (`trade_count`, `round_trip_count`, `win_rate`, `total_realized_pnl`), GUI trade form account `<select>` dropdown ([06b L179](build-plan/06b-gui-trades.md)), MCP `account_id` validation | 🔴 |
+| MEU-37 | `mcp-accounts` | 13 | [05f](build-plan/05f-mcp-accounts.md) | Account CRUD MCP tools (8 new: list, get, create, update, delete, archive, reassign_trades, record_balance) + **account-trade integrity**: System Reassignment Account (seeded, undeletable `SYSTEM_DEFAULT`), `is_archived` soft-delete, `is_system` guard, separate action endpoints (`DELETE` block-if-trades, `POST :archive` soft-delete, `POST :reassign-trades` migrate+hard-delete), computed metrics (`trade_count`, `round_trip_count`, `win_rate`, `total_realized_pnl`), `delete_account`/`reassign_trades` registered as destructive (confirmation required) | ✅ |
 | MEU-38 | `mcp-guard` | 15e | [05 §guard](build-plan/05-mcp-server.md) | McpGuardModel + REST + middleware + GUI | ✅ |
 | MEU-39 | `mcp-perf-metrics` | 15g | [05 §5.9](build-plan/05-mcp-server.md) | Per-tool performance metrics middleware | ✅ |
 | MEU-40 | `mcp-launch-gui` | 15h | [05 §5.10](build-plan/05-mcp-server.md) | zorivest_launch_gui MCP tool | ✅ |
@@ -244,6 +244,7 @@ Domain → Infrastructure → Services → REST API → MCP Server → GUI → D
 | MEU-65 | `market-data-gui` | 30 | [06f §providers](build-plan/06f-gui-settings.md) | Market Data Providers GUI settings page | ✅ |
 | MEU-65a | `market-data-wiring` | 30.1 | [08 §8.9](build-plan/08-market-data.md#step-89-service-wiring) | Wire real `MarketDataService` + `ProviderConnectionService` into FastAPI lifespan (retire stubs); Yahoo Finance zero-config search fallback | ✅ |
 
+
 ---
 
 ### P2 — Planning & Watchlists
@@ -257,16 +258,16 @@ Domain → Infrastructure → Services → REST API → MCP Server → GUI → D
 | MEU-68 | `watchlist` | 33 | [03](build-plan/03-service-layer.md) | Watchlist entity + service | ✅ |
 | MEU-69 | `plan-watchlist-mcp` | 34 | [05d](build-plan/05d-mcp-trade-planning.md) | TradePlan + Watchlist MCP tools | ✅ |
 | MEU-70 | `gui-planning` | 35 | [06c](build-plan/06c-gui-planning.md) | Planning GUI (plan cards, watchlists) | ✅ |
-| MEU-70a | `watchlist-visual-redesign` | 35.1 | [06i](build-plan/06i-gui-watchlist-visual.md) | Watchlist visual redesign (Level 1: dark palette, price columns, tabular figures, gain/loss arrows) + [PLAN-NOSIZE] full-stack `position_size`/`shares` field · Depends on: MEU-65 ✅, MEU-70 ✅ | ⬜ |
+| MEU-70a | `watchlist-visual-redesign` | 35.1 | [06i](build-plan/06i-gui-watchlist-visual.md) | Watchlist visual redesign (Level 1: dark palette, price columns, tabular figures, gain/loss arrows) + [PLAN-NOSIZE] full-stack `position_size`/`shares` field · ⚠️ **`[BOUNDARY-GAP]` F7 prerequisite:** harden `watchlists.py` routes (Pydantic `extra="forbid"`, `StrippedStr`, field constraints) before visual redesign — apply BV pattern from MEU-BV1–BV3 · Depends on: MEU-65 ✅, MEU-70 ✅ | ⬜ |
 | MEU-70b | `planning-ux-polish` | 35.2 | [06c §ux](build-plan/06c-gui-planning.md) | Trade Planner UX polish: segmented status buttons (no dropdown), conditional Link-to-Trade grayout, picker selection label feedback, editable `shares_planned` field · Frontend-only | ✅ |
 | MEU-71 | `account-entity-api` | 35a.0 | [06d](build-plan/06d-gui-accounts.md) | Account entity + service + REST API; FK constraints already exist at infra layer (no Alembic migration needed); balance history + portfolio total endpoints | ⏸ |
 | MEU-71a | `account-gui` | 35a.1 | [06d](build-plan/06d-gui-accounts.md) | Account Management GUI (list, add, edit, balance display); accounts dropdown in Trade Planner form · Depends on MEU-71 | ✅ |
 | MEU-71b | `calculator-account-integration` | 35a.2 | [06h](build-plan/06h-gui-calculator.md) | Position Calculator pulls account balance from selected account for risk % calculation · Depends on MEU-71 | ⏸ |
-| MEU-72 | `gui-scheduling` | 35b | [06e](build-plan/06e-gui-scheduling.md) | Scheduling GUI | ⬜ |
-| MEU-73 | `gui-email-settings` | 35c | [06f §email](build-plan/06f-gui-settings.md) | Email Provider Settings GUI | ✅ |
+| MEU-72 | `gui-scheduling` | 35b | [06e](build-plan/06e-gui-scheduling.md) | Scheduling GUI · ⚠️ **`[BOUNDARY-GAP]` F4 prerequisite:** harden `scheduling.py` routes (5 write endpoints lack Pydantic schema enforcement: `extra="forbid"`, `StrippedStr`, enum constraints) before building GUI — apply BV pattern from MEU-BV1–BV3 | ⬜ |
+| MEU-73 | `gui-email-settings` | 35c | [06f §email](build-plan/06f-gui-settings.md) | Email Provider Settings GUI · ✅ `[BOUNDARY-GAP]` F6 resolved by MEU-BV5 (handoff 102) | ✅ |
 | MEU-74 | `gui-backup-restore` | 35d | [06f §backup](build-plan/06f-gui-settings.md) | Backup & Restore Settings GUI · **E2E Wave 3**: `backup-restore` tests (+2 = 16) | ⬜ |
 | MEU-75 | `gui-config-export` | 35e | [06f §export](build-plan/06f-gui-settings.md) | Config Export/Import GUI | ⬜ |
-| MEU-76 | `gui-reset-defaults` | 35f | [06f §reset](build-plan/06f-gui-settings.md) | Reset to Default on settings pages | ⬜ |
+| MEU-76 | `gui-reset-defaults` | 35f | [06f §reset](build-plan/06f-gui-settings.md) | Reset to Default on settings pages · ⚠️ **`[BOUNDARY-GAP]` prerequisite:** harden `settings.py` PUT routes (Pydantic schema enforcement, `extra="forbid"`) before implementing reset-to-defaults — apply BV pattern from MEU-BV1–BV3 | ⬜ |
 
 ---
 
@@ -483,6 +484,9 @@ Domain → Infrastructure → Services → REST API → MCP Server → GUI → D
 | MEU-168 | `schemathesis-ci` | CI.A | [testing-strategy](build-plan/testing-strategy.md) §Schemathesis | Schemathesis API fuzzing as CI step (start server + fuzz + report) | ⬜ |
 | MEU-169 | `guard-auto-trip` | 15e.B | [friction-inventory](build-plan/friction-inventory.md) §FR-2.4, [05](build-plan/05-mcp-server.md) §5.9 | Auto-tripping circuit breaker state machine (CLOSED→OPEN→HALF_OPEN) + tests | ⬜ |
 | MEU-170 | `e2e-all-green` | E2E.A | [testing-strategy](build-plan/testing-strategy.md) §E2E, [06-gui](build-plan/06-gui.md) §E2E Waves | All 20 Playwright E2E tests green (final gate after Waves 0–5 complete) | ⬜ |
+| MEU-TS1 | `pyright-test-annotations` | TS.A | [testing-strategy](build-plan/testing-strategy.md) | Pyright Tier 1: fix generator fixture typing, Optional narrowing guards, mock protocol compliance, and `__mro__` access across 8 test files (13 errors) — zero production code changes | ✅ |
+| MEU-TS2 | `pyright-enum-literals` | TS.B | [testing-strategy](build-plan/testing-strategy.md), [01 §1.2](build-plan/01-domain-layer.md) | Pyright Tier 2: replace ~50 raw string literals (`"BOT"`, `"SLD"`, `"broker"`) with enum values (`TradeAction.BOT`, `AccountType.BROKER`) in test assertions — zero production code changes | ⬜ |
+| MEU-TS3 | `pyright-entity-factories` | TS.C | [testing-strategy](build-plan/testing-strategy.md), [01 §1.4](build-plan/01-domain-layer.md) | Pyright Tier 3: resolve ~121 entity factory typing errors where `Column[T]` is passed as `T` — options: typed factory fns, `@overload` signatures, or scoped `# type: ignore` suppressions. 2 core service errors (Tier 4: `account_service.py` port ABC, `trade_service.py` type narrowing) included. | ⬜ |
 
 ---
 
@@ -505,8 +509,8 @@ Domain → Infrastructure → Services → REST API → MCP Server → GUI → D
 | P2.75 — Expansion | MEU-96 → MEU-122 | 27 | 2 |
 | P3 — Tax | MEU-123 → MEU-156 | 34 | 0 |
 | Phase 7 | MEU-157 | 1 | 0 |
-| Research | MEU-158 → MEU-170 | 13 | 0 |
-| **Total** | | **183** | **96 + 1 🚫** |
+| Research | MEU-158 → MEU-170, MEU-TS1 → MEU-TS3 | 16 | 1 |
+| **Total** | | **186** | **97 + 1 🚫** |
 
 ---
 

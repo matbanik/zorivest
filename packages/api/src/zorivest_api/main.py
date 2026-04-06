@@ -157,6 +157,9 @@ async def lifespan(app: FastAPI) -> AsyncGenerator[None, None]:
         "ALTER TABLE trades ADD COLUMN notes TEXT DEFAULT ''",
         "ALTER TABLE trade_plans ADD COLUMN executed_at TEXT",  # T5: status timestamps
         "ALTER TABLE trade_plans ADD COLUMN cancelled_at TEXT",  # T5: status timestamps
+        "ALTER TABLE accounts ADD COLUMN is_archived BOOLEAN DEFAULT 0",  # MEU-37 AC-1
+        "ALTER TABLE accounts ADD COLUMN is_system BOOLEAN DEFAULT 0",  # MEU-37 AC-2
+        "ALTER TABLE trade_plans ADD COLUMN shares_planned INTEGER",  # Position size
     ]
     with engine.connect() as conn:
         for _stmt in _inline_migrations:
@@ -166,6 +169,14 @@ async def lifespan(app: FastAPI) -> AsyncGenerator[None, None]:
             except Exception:
                 # Column already exists (fresh DB or already migrated) — ignore
                 conn.rollback()
+
+    # ── Seed system account (MEU-37 AC-3) ─────────────────────────────
+    from zorivest_infra.database.seed_system_account import seed_system_account
+    from sqlalchemy.orm import Session as _SaSession
+
+    with _SaSession(engine) as _seed_session:
+        seed_system_account(_seed_session)
+        _seed_session.commit()
 
     # ── Unit of Work (reentrant — pre-entered once, services re-enter per call) ──
     uow: Any = SqlAlchemyUnitOfWork(engine)

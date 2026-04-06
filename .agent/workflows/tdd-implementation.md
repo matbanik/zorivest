@@ -29,6 +29,8 @@ Write FIC inline in your session notes:
 - **Intent statement**: What must be true when this MEU ships
 - **Acceptance criteria**: Numbered, testable conditions (AC-1, AC-2, ...) with a source label for each: `Spec`, `Local Canon`, `Research-backed`, or `Human-approved`
 - **Negative cases**: What must NOT happen
+- **Boundary contract**: For write-adjacent MEUs, list each input boundary and its schema owner
+- **Negative input cases**: Required classes — blank required strings, invalid enums, malformed format fields, non-positive/out-of-range numerics, unexpected/extra fields, create vs update parity
 - **Test mapping**: Which test file/function proves each AC
 
 `Best practice` is not a valid acceptance-criterion source unless it is backed by a cited local doc or web source.
@@ -39,6 +41,15 @@ Write ALL tests FIRST in the appropriate `tests/unit/` file. Every AC must have 
 - Happy path tests
 - Edge case tests (zero, negative, empty, overflow)
 - Error condition tests
+
+For write-adjacent MEUs, the Red phase MUST include negative input tests:
+- Blank/empty required string → 422
+- Invalid enum value → 422
+- Non-positive numeric where positive required → 422
+- Unexpected/extra fields → 422 (when `extra="forbid"`)
+- Partial update bypassing create invariants → same validation error as create
+
+> Handlers/services may NOT accept raw `dict` or `**kwargs` from external input unless those values have already passed boundary schema validation.
 
 // turbo
 

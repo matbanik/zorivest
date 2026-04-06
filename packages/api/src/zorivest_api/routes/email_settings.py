@@ -12,10 +12,11 @@ the generic /{key} route from shadowing these static paths.
 
 from __future__ import annotations
 
-from typing import Any, Optional
+from typing import Annotated, Any, Literal, Optional
 
 from fastapi import APIRouter, Depends, HTTPException
-from pydantic import BaseModel
+from pydantic import BaseModel, ConfigDict, Field
+from pydantic.functional_validators import BeforeValidator
 
 from zorivest_api.dependencies import get_email_provider_service, require_unlocked_db
 
@@ -24,6 +25,22 @@ email_settings_router = APIRouter(
     tags=["email-settings"],
     dependencies=[Depends(require_unlocked_db)],
 )
+
+
+def _strip_whitespace(v: object) -> object:
+    """Strip leading/trailing whitespace so min_length=1 rejects blank strings."""
+    return v.strip() if isinstance(v, str) else v
+
+
+StrippedStr = Annotated[str, BeforeValidator(_strip_whitespace)]
+
+# Closed preset set matching GUI PRESETS map (EmailSettingsPage.tsx L22–27)
+# and spec (06f-gui-settings.md L245–250).
+ProviderPreset = Literal["Gmail", "Brevo", "SendGrid", "Outlook", "Yahoo", "Custom"]
+
+# Transport security matching spec (06f L236), input-index (L430),
+# and GUI radio control (EmailSettingsPage.tsx L167).
+SecurityMode = Literal["STARTTLS", "SSL"]
 
 
 # ── Schemas ────────────────────────────────────────────────────────────────
@@ -40,13 +57,15 @@ class EmailConfigResponse(BaseModel):
 
 
 class EmailConfigRequest(BaseModel):
-    provider_preset: Optional[str] = None
-    smtp_host: Optional[str] = None
-    port: Optional[int] = None
-    security: Optional[str] = None
-    username: Optional[str] = None
-    password: Optional[str] = ""  # empty = keep existing
-    from_email: Optional[str] = None
+    model_config = ConfigDict(extra="forbid")
+
+    provider_preset: Optional[ProviderPreset] = None
+    smtp_host: Optional[StrippedStr] = Field(None, min_length=1)
+    port: Optional[int] = Field(None, ge=1, le=65535)
+    security: Optional[SecurityMode] = None
+    username: Optional[StrippedStr] = Field(None, min_length=1)
+    password: Optional[str] = ""  # empty = keep existing; NOT stripped
+    from_email: Optional[StrippedStr] = Field(None, min_length=1)
 
 
 class TestConnectionResponse(BaseModel):

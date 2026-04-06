@@ -397,6 +397,7 @@ Documentation-only discrepancies are non-blocking by default unless they:
 | IR-3 | Error mapping completeness | Every write-adjacent route maps `NotFoundError → 404`, `BusinessRuleError → 409`, `ValueError → 422` AND at least one test asserts response body shape (not just status code) |
 | IR-4 | Fix generalization | When a finding was fixed, similar instances in other files/routes were also checked and fixed |
 | IR-5 | Test rigor audit | Every test file in scope is audited for assertion strength. Each test is rated 🟢 Strong / 🟡 Adequate / 🔴 Weak using the criteria below. Any 🔴 is `Medium` minimum; > 3 🟡 in one file is `Low` |
+| IR-6 | Boundary validation coverage | For every create/update/patch/import surface in scope: (a) explicit schema exists, (b) negative tests cover malformed input, (c) unknown fields are handled, (d) create/update parity is verified |
 
 #### IR-5 Test Rigor Grading Criteria
 

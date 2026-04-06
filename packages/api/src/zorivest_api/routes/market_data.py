@@ -6,10 +6,11 @@ Source: docs/build-plan/08-market-data.md §8.4.
 
 from __future__ import annotations
 
-from typing import Any, Optional
+from typing import Annotated, Any, Optional
 
 from fastapi import APIRouter, Depends, HTTPException, Query
-from pydantic import BaseModel
+from pydantic import BaseModel, ConfigDict, Field
+from pydantic.functional_validators import BeforeValidator
 
 from zorivest_api.dependencies import (
     get_market_data_service,
@@ -21,16 +22,26 @@ from zorivest_core.services.market_data_service import MarketDataError
 market_data_router = APIRouter(prefix="/api/v1/market-data", tags=["market-data"])
 
 
+def _strip_whitespace(v: object) -> object:
+    """Strip leading/trailing whitespace so min_length=1 rejects blank strings."""
+    return v.strip() if isinstance(v, str) else v
+
+
+StrippedStr = Annotated[str, BeforeValidator(_strip_whitespace)]
+
+
 # ── Request schemas ─────────────────────────────────────────────────────
 
 
 class ProviderConfigRequest(BaseModel):
     """Body for PUT /providers/{name}."""
 
-    api_key: Optional[str] = None
-    api_secret: Optional[str] = None
-    rate_limit: Optional[int] = None
-    timeout: Optional[int] = None
+    model_config = ConfigDict(extra="forbid")
+
+    api_key: Optional[StrippedStr] = Field(None, min_length=1)
+    api_secret: Optional[StrippedStr] = Field(None, min_length=1)
+    rate_limit: Optional[int] = Field(None, ge=1)
+    timeout: Optional[int] = Field(None, ge=1)
     is_enabled: Optional[bool] = None
 
 

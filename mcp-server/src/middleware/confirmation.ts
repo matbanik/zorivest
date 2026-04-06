@@ -24,6 +24,8 @@ const DESTRUCTIVE_TOOLS = new Set([
     "zorivest_emergency_stop",
     "create_trade",
     "delete_trade",
+    "delete_account",
+    "reassign_trades",
     "sync_broker",
     "disconnect_market_provider",
     "zorivest_service_restart",

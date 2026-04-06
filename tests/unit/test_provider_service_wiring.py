@@ -12,6 +12,8 @@ Source: docs/execution/plans/2026-03-21-market-data-gui/implementation-plan.md
 
 from __future__ import annotations
 
+from collections.abc import Generator
+
 import pytest
 from fastapi.testclient import TestClient
 
@@ -43,7 +45,7 @@ class TestProviderListViaRealService:
     """AC-W2/W3/W4: Real service returns all 14 providers with correct fields."""
 
     @pytest.fixture()
-    def client(self) -> TestClient:
+    def client(self) -> Generator[TestClient, None, None]:
         app = create_app()
         # DB must be unlocked for providers endpoint to respond (auth guard)
         with (

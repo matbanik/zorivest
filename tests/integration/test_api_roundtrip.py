@@ -19,6 +19,19 @@ os.environ["ZORIVEST_DEV_UNLOCK"] = "1"
 from zorivest_api.main import app  # noqa: E402
 
 
+@pytest.fixture(autouse=True, scope="module")
+def _cleanup_dev_unlock():
+    """Ensure ZORIVEST_DEV_UNLOCK is removed after this module runs.
+
+    The env var is set at module import time (line 17) so the module-level
+    ``app = create_app()`` picks it up.  Without cleanup, later test modules
+    that call ``create_app()`` inherit a truthy ``db_unlocked``, causing
+    mode-gating assertions to fail (e.g. test_api_foundation.py).
+    """
+    yield
+    os.environ.pop("ZORIVEST_DEV_UNLOCK", None)
+
+
 @pytest.fixture()
 def client():
     """TestClient with startup/shutdown lifespan."""

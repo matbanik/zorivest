@@ -30,6 +30,19 @@ from zorivest_api.routes.trades import (  # noqa: E402
 from zorivest_core.domain.entities import Trade  # noqa: E402
 
 
+@pytest.fixture(autouse=True, scope="module")
+def _ensure_dev_unlock():
+    """Ensure ZORIVEST_DEV_UNLOCK is set for this module's lifespan.
+
+    The module-level os.environ set at line 22 runs at import/collection time,
+    but test_api_roundtrip.py's cleanup fixture can remove it before this
+    module's tests actually execute.  This fixture re-sets it and cleans up.
+    """
+    os.environ["ZORIVEST_DEV_UNLOCK"] = "1"
+    yield
+    os.environ.pop("ZORIVEST_DEV_UNLOCK", None)
+
+
 @pytest.fixture()
 def client():
     with TestClient(app) as c:

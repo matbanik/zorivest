@@ -75,7 +75,7 @@
 | MEU-34 | `mcp-diagnostics` | 15f | zorivest_diagnose MCP tool | ✅ approved |
 | MEU-35 | `mcp-trade-analytics` | 13 | Trade analytics MCP tools | ✅ approved |
 | MEU-36 | `mcp-trade-planning` | 13 | Trade planning MCP tools | ✅ approved |
-| MEU-37 | `mcp-accounts` | 13 | Account CRUD + balance snapshots + broker sync/import MCP tools (13 tools) | 🔴 changes_required |
+| MEU-37 | `mcp-accounts` | 13 | Account CRUD MCP tools (8 new) + account-trade integrity (system guards, archive, reassign, metrics) | ✅ approved |
 | MEU-38 | `mcp-guard` | 15e | McpGuardModel + REST + middleware | ✅ approved |
 | MEU-39 | `mcp-perf-metrics` | 15g | Per-tool performance metrics middleware | ✅ approved |
 | MEU-40 | `mcp-launch-gui` | 15h | zorivest_launch_gui MCP tool | ✅ approved |
@@ -207,3 +207,11 @@ P2.75 (broker adapters): MEU-96 → MEU-99
 | MEU-71 | `account-api-completion` | 35a | Account API enrichment: `get_latest`/`list_for_account` on BalanceSnapshotRepo, `AccountService` portfolio total, enriched `AccountResponse` + balance history endpoint, FK enforcement (27 tests) | ✅ 2026-03-26 |
 | MEU-71b | `calculator-accounts` | 81a | Calculator Account Integration: `useAccounts` hook, account dropdown with All Accounts default + auto-fill, manual override, zero-total support (12 tests) | ✅ 2026-03-26 |
 | MEU-71a | `account-gui` | 35a.1 | Account Management GUI: AccountsHome dashboard (MRU cards, table, split layout), AccountDetailPanel (RHF+Zod CRUD), BalanceHistory (canvas sparkline), AccountReviewWizard (multi-step balance review), AccountContext, G11 event wiring (47 tests) | ✅ 2026-03-27 |
+| MEU-BV1 | `boundary-validation-accounts` | 04b | Account schema hardening: `AccountType` enum, `Field(min_length=1)`, `extra="forbid"`, update invariant parity (6 tests) | ✅ 2026-04-05 |
+| MEU-BV2 | `boundary-validation-trades` | 04a | Trade schema hardening: `TradeAction` enum, `Field(gt=0)` quantity, `Field(ge=0)` price, `Field(min_length=1)` instrument/exec_id, `extra="forbid"`, update invariant parity (11 tests) | ✅ 2026-04-05 |
+| MEU-BV3 | `boundary-validation-plans` | 04a | Plan schema hardening: `TradeAction`/`ConvictionLevel`/`PlanStatus` enums, `Field(min_length=1)` ticker/strategy_name, `extra="forbid"`, update invariant parity, 3 write paths (12 tests) | ✅ 2026-04-05 |
+| MEU-BV4 | `boundary-validation-market-data` | 08 §8.4 | Market data provider config hardening: `StrippedStr` on `api_key`/`api_secret`, `Field(ge=1)` on `rate_limit`/`timeout`, `extra="forbid"` (7 tests) | ✅ 2026-04-05 |
+| MEU-BV5 | `boundary-validation-email` | 06f | Email settings hardening: `StrippedStr` on string fields (except password), `Literal` on `provider_preset` (6 presets) and `security` (STARTTLS/SSL), `Field(ge=1, le=65535)` on `port`, `extra="forbid"` (11 tests) | ✅ 2026-04-05 |
+| MEU-TS1 | `pyright-test-annotations` | TS.A | Pyright Tier 1: fix generator fixture typing, Optional narrowing guards, mock protocol compliance, `__mro__` access across 8 test files (13 errors) — zero production code changes | ✅ 2026-04-06 |
+| MEU-TS2 | `pyright-enum-literals` | TS.B | Pyright Tier 2: replace ~50 raw string literals (`"BOT"`, `"SLD"`) with enum values in test assertions — zero production code changes | ⬜ |
+| MEU-TS3 | `pyright-entity-factories` | TS.C | Pyright Tier 3: resolve ~121 entity factory `Column[T]`→`T` typing errors + 2 core service errors | ⬜ |

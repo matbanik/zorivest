@@ -1,6 +1,18 @@
 {
   "components": {
     "schemas": {
+      "AccountType": {
+        "enum": [
+          "broker",
+          "bank",
+          "revolving",
+          "installment",
+          "ira",
+          "401k"
+        ],
+        "title": "AccountType",
+        "type": "string"
+      },
       "AddTickerRequest": {
         "properties": {
           "notes": {
@@ -76,15 +88,32 @@
         "title": "ConfirmationRequest",
         "type": "object"
       },
+      "ConvictionLevel": {
+        "enum": [
+          "low",
+          "medium",
+          "high",
+          "max"
+        ],
+        "title": "ConvictionLevel",
+        "type": "string"
+      },
       "CreateAccountRequest": {
+        "additionalProperties": false,
         "properties": {
           "account_id": {
-            "title": "Account Id",
-            "type": "string"
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Account Id"
           },
           "account_type": {
-            "title": "Account Type",
-            "type": "string"
+            "$ref": "#/components/schemas/AccountType"
           },
           "currency": {
             "default": "USD",
@@ -102,6 +131,7 @@
             "type": "boolean"
           },
           "name": {
+            "minLength": 1,
             "title": "Name",
             "type": "string"
           },
@@ -118,7 +148,6 @@
           }
         },
         "required": [
-          "account_id",
           "name",
           "account_type"
         ],
@@ -126,6 +155,7 @@
         "type": "object"
       },
       "CreatePlanRequest": {
+        "additionalProperties": false,
         "properties": {
           "account_id": {
             "anyOf": [
@@ -150,14 +180,12 @@
             "title": "Conditions"
           },
           "conviction": {
-            "default": "medium",
-            "title": "Conviction",
-            "type": "string"
+            "$ref": "#/components/schemas/ConvictionLevel",
+            "default": "medium"
           },
           "direction": {
-            "default": "BOT",
-            "title": "Direction",
-            "type": "string"
+            "$ref": "#/components/schemas/TradeAction",
+            "default": "BOT"
           },
           "entry": {
             "anyOf": [
@@ -191,6 +219,17 @@
             "title": "Exit Conditions",
             "type": "string"
           },
+          "shares_planned": {
+            "anyOf": [
+              {
+                "type": "integer"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Shares Planned"
+          },
           "stop": {
             "anyOf": [
               {
@@ -219,6 +258,7 @@
             "type": "string"
           },
           "strategy_name": {
+            "minLength": 1,
             "title": "Strategy Name",
             "type": "string"
           },
@@ -245,6 +285,7 @@
             "title": "Target Price"
           },
           "ticker": {
+            "minLength": 1,
             "title": "Ticker",
             "type": "string"
           },
@@ -317,14 +358,15 @@
         "type": "object"
       },
       "CreateTradeRequest": {
+        "additionalProperties": false,
         "properties": {
           "account_id": {
+            "minLength": 1,
             "title": "Account Id",
             "type": "string"
           },
           "action": {
-            "title": "Action",
-            "type": "string"
+            "$ref": "#/components/schemas/TradeAction"
           },
           "commission": {
             "default": 0.0,
@@ -332,10 +374,12 @@
             "type": "number"
           },
           "exec_id": {
+            "minLength": 1,
             "title": "Exec Id",
             "type": "string"
           },
           "instrument": {
+            "minLength": 1,
             "title": "Instrument",
             "type": "string"
           },
@@ -351,10 +395,12 @@
             "title": "Notes"
           },
           "price": {
+            "minimum": 0.0,
             "title": "Price",
             "type": "number"
           },
           "quantity": {
+            "exclusiveMinimum": 0.0,
             "title": "Quantity",
             "type": "number"
           },
@@ -414,10 +460,12 @@
         "type": "object"
       },
       "EmailConfigRequest": {
+        "additionalProperties": false,
         "properties": {
           "from_email": {
             "anyOf": [
               {
+                "minLength": 1,
                 "type": "string"
               },
               {
@@ -441,6 +489,8 @@
           "port": {
             "anyOf": [
               {
+                "maximum": 65535.0,
+                "minimum": 1.0,
                 "type": "integer"
               },
               {
@@ -452,6 +502,14 @@
           "provider_preset": {
             "anyOf": [
               {
+                "enum": [
+                  "Gmail",
+                  "Brevo",
+                  "SendGrid",
+                  "Outlook",
+                  "Yahoo",
+                  "Custom"
+                ],
                 "type": "string"
               },
               {
@@ -463,6 +521,10 @@
           "security": {
             "anyOf": [
               {
+                "enum": [
+                  "STARTTLS",
+                  "SSL"
+                ],
                 "type": "string"
               },
               {
@@ -474,6 +536,7 @@
           "smtp_host": {
             "anyOf": [
               {
+                "minLength": 1,
                 "type": "string"
               },
               {
@@ -485,6 +548,7 @@
           "username": {
             "anyOf": [
               {
+                "minLength": 1,
                 "type": "string"
               },
               {
@@ -834,6 +898,7 @@
         "type": "object"
       },
       "PatchStatusRequest": {
+        "additionalProperties": false,
         "properties": {
           "linked_trade_id": {
             "anyOf": [
@@ -847,8 +912,7 @@
             "title": "Linked Trade Id"
           },
           "status": {
-            "title": "Status",
-            "type": "string"
+            "$ref": "#/components/schemas/PlanStatus"
           }
         },
         "required": [
@@ -856,6 +920,17 @@
         ],
         "title": "PatchStatusRequest",
         "type": "object"
+      },
+      "PlanStatus": {
+        "enum": [
+          "draft",
+          "active",
+          "executed",
+          "expired",
+          "cancelled"
+        ],
+        "title": "PlanStatus",
+        "type": "string"
       },
       "PolicyCreateRequest": {
         "description": "Request body for creating or updating a policy.",
@@ -1036,11 +1111,13 @@
         "type": "object"
       },
       "ProviderConfigRequest": {
+        "additionalProperties": false,
         "description": "Body for PUT /providers/{name}.",
         "properties": {
           "api_key": {
             "anyOf": [
               {
+                "minLength": 1,
                 "type": "string"
               },
               {
@@ -1052,6 +1129,7 @@
           "api_secret": {
             "anyOf": [
               {
+                "minLength": 1,
                 "type": "string"
               },
               {
@@ -1074,6 +1152,7 @@
           "rate_limit": {
             "anyOf": [
               {
+                "minimum": 1.0,
                 "type": "integer"
               },
               {
@@ -1085,6 +1164,7 @@
           "timeout": {
             "anyOf": [
               {
+                "minimum": 1.0,
                 "type": "integer"
               },
               {
@@ -1539,6 +1619,14 @@
         "title": "TestConnectionResponse",
         "type": "object"
       },
+      "TradeAction": {
+        "enum": [
+          "BOT",
+          "SLD"
+        ],
+        "title": "TradeAction",
+        "type": "string"
+      },
       "UnlockRequest": {
         "properties": {
           "api_key": {
@@ -1553,17 +1641,17 @@
         "type": "object"
       },
       "UpdateAccountRequest": {
+        "additionalProperties": false,
         "properties": {
           "account_type": {
             "anyOf": [
               {
-                "type": "string"
+                "$ref": "#/components/schemas/AccountType"
               },
               {
                 "type": "null"
               }
-            ],
-            "title": "Account Type"
+            ]
           },
           "currency": {
             "anyOf": [
@@ -1601,6 +1689,7 @@
           "name": {
             "anyOf": [
               {
+                "minLength": 1,
                 "type": "string"
               },
               {
@@ -1625,6 +1714,7 @@
         "type": "object"
       },
       "UpdatePlanRequest": {
+        "additionalProperties": false,
         "properties": {
           "account_id": {
             "anyOf": [
@@ -1640,24 +1730,22 @@
           "conviction": {
             "anyOf": [
               {
-                "type": "string"
+                "$ref": "#/components/schemas/ConvictionLevel"
               },
               {
                 "type": "null"
               }
-            ],
-            "title": "Conviction"
+            ]
           },
           "direction": {
             "anyOf": [
               {
-                "type": "string"
+                "$ref": "#/components/schemas/TradeAction"
               },
               {
                 "type": "null"
               }
-            ],
-            "title": "Direction"
+            ]
           },
           "entry_conditions": {
             "anyOf": [
@@ -1703,16 +1791,26 @@
             ],
             "title": "Linked Trade Id"
           },
-          "status": {
+          "shares_planned": {
             "anyOf": [
               {
-                "type": "string"
+                "type": "integer"
               },
               {
                 "type": "null"
               }
             ],
-            "title": "Status"
+            "title": "Shares Planned"
+          },
+          "status": {
+            "anyOf": [
+              {
+                "$ref": "#/components/schemas/PlanStatus"
+              },
+              {
+                "type": "null"
+              }
+            ]
           },
           "stop_loss": {
             "anyOf": [
@@ -1739,6 +1837,7 @@
           "strategy_name": {
             "anyOf": [
               {
+                "minLength": 1,
                 "type": "string"
               },
               {
@@ -1761,6 +1860,7 @@
           "ticker": {
             "anyOf": [
               {
+                "minLength": 1,
                 "type": "string"
               },
               {
@@ -1874,6 +1974,7 @@
         "type": "object"
       },
       "UpdateTradeRequest": {
+        "additionalProperties": false,
         "properties": {
           "account_id": {
             "anyOf": [
@@ -1889,13 +1990,12 @@
           "action": {
             "anyOf": [
               {
-                "type": "string"
+                "$ref": "#/components/schemas/TradeAction"
               },
               {
                 "type": "null"
               }
-            ],
-            "title": "Action"
+            ]
           },
           "commission": {
             "anyOf": [
@@ -1911,6 +2011,7 @@
           "instrument": {
             "anyOf": [
               {
+                "minLength": 1,
                 "type": "string"
               },
               {
@@ -1933,6 +2034,7 @@
           "price": {
             "anyOf": [
               {
+                "minimum": 0.0,
                 "type": "number"
               },
               {
@@ -1944,6 +2046,7 @@
           "quantity": {
             "anyOf": [
               {
+                "exclusiveMinimum": 0.0,
                 "type": "number"
               },
               {
@@ -2123,8 +2226,30 @@
   "paths": {
     "/api/v1/accounts": {
       "get": {
-        "description": "List all accounts.\n\nReturns a bare Account[] array for backward compatibility with\n19 existing GUI consumers.",
+        "description": "List all accounts.\n\nBy default, archived and system accounts are excluded.\nReturns a bare Account[] array for backward compatibility.",
         "operationId": "list_accounts_api_v1_accounts_get",
+        "parameters": [
+          {
+            "in": "query",
+            "name": "include_archived",
+            "required": false,
+            "schema": {
+              "default": false,
+              "title": "Include Archived",
+              "type": "boolean"
+            }
+          },
+          {
+            "in": "query",
+            "name": "include_system",
+            "required": false,
+            "schema": {
+              "default": false,
+              "title": "Include System",
+              "type": "boolean"
+            }
+          }
+        ],
         "responses": {
           "200": {
             "content": {
@@ -2133,6 +2258,16 @@
               }
             },
             "description": "Successful Response"
+          },
+          "422": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HTTPValidationError"
+                }
+              }
+            },
+            "description": "Validation Error"
           }
         },
         "summary": "List Accounts",
@@ -2181,7 +2316,7 @@
     },
     "/api/v1/accounts/{account_id}": {
       "delete": {
-        "description": "Delete an account.",
+        "description": "Delete an account (block-only: fails if trades exist).",
         "operationId": "delete_account_api_v1_accounts__account_id__delete",
         "parameters": [
           {
@@ -2215,7 +2350,7 @@
         ]
       },
       "get": {
-        "description": "Get a single account (enriched with latest balance).",
+        "description": "Get a single account (enriched with latest balance + metrics).",
         "operationId": "get_account_api_v1_accounts__account_id__get",
         "parameters": [
           {
@@ -2411,6 +2546,88 @@
           }
         },
         "summary": "Record Balance",
+        "tags": [
+          "accounts"
+        ]
+      }
+    },
+    "/api/v1/accounts/{account_id}:archive": {
+      "post": {
+        "description": "Soft-delete: set is_archived=True. Trades remain unchanged.",
+        "operationId": "archive_account_api_v1_accounts__account_id__archive_post",
+        "parameters": [
+          {
+            "in": "path",
+            "name": "account_id",
+            "required": true,
+            "schema": {
+              "title": "Account Id",
+              "type": "string"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "schema": {}
+              }
+            },
+            "description": "Successful Response"
+          },
+          "422": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HTTPValidationError"
+                }
+              }
+            },
+            "description": "Validation Error"
+          }
+        },
+        "summary": "Archive Account",
+        "tags": [
+          "accounts"
+        ]
+      }
+    },
+    "/api/v1/accounts/{account_id}:reassign-trades": {
+      "post": {
+        "description": "Move all trades to SYSTEM_DEFAULT, then hard-delete the account.",
+        "operationId": "reassign_trades_api_v1_accounts__account_id__reassign_trades_post",
+        "parameters": [
+          {
+            "in": "path",
+            "name": "account_id",
+            "required": true,
+            "schema": {
+              "title": "Account Id",
+              "type": "string"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "schema": {}
+              }
+            },
+            "description": "Successful Response"
+          },
+          "422": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HTTPValidationError"
+                }
+              }
+            },
+            "description": "Validation Error"
+          }
+        },
+        "summary": "Reassign Trades",
         "tags": [
           "accounts"
         ]

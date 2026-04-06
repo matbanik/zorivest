@@ -25,6 +25,12 @@ Perform findings-first review with emphasis on defects, behavioral regressions, 
 5. Update handoff notes with review verdict and required follow-ups.
 6. Complete the Adversarial Verification Checklist for every review.
 7. Reject unsourced acceptance criteria, silent scope narrowing, and deferrals disguised as "best practice".
+8. Verify boundary validation for write-adjacent MEUs:
+   - Every external write boundary has an explicit schema (Pydantic model / Zod schema)
+   - Unconstrained DTOs (`dict[str, Any]`, bare `str`) at write boundaries are flagged
+   - Silent coercion (e.g., `AccountType(raw_string)` without error handling) is flagged
+   - Unknown-field acceptance without source-backed rationale is flagged
+   - Update paths that reconstruct domain objects (e.g., `replace(obj, **kwargs)`) without revalidation are flagged
 
 ## Adversarial Verification Checklist
 

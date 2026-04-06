@@ -62,28 +62,27 @@ export default function PositionCalculatorModal({ isOpen, onClose }: PositionCal
         return () => window.removeEventListener('keydown', handler)
     }, [isOpen, onClose])
 
-    // C3: Fetch live quote when ticker changes — auto-fill entry price
-    useEffect(() => {
-        if (!ticker) return
-
-        let cancelled = false
+    // C3: Fetch live quote when ticker is *selected* from autocomplete dropdown
+    // (Not on every keystroke — that caused the modal to jump due to "Fetching quote…" layout shift)
+    const handleTickerSelect = useCallback((result: { symbol: string }) => {
+        const sym = result.symbol
+        setTicker(sym)
         setQuoteFetching(true)
-        apiFetch<{ last_price: number }>(`/api/v1/market-data/quote?ticker=${encodeURIComponent(ticker)}`)
+        apiFetch<{ price: number }>(`/api/v1/market-data/quote?ticker=${encodeURIComponent(sym)}`)
             .then((quote) => {
-                if (!cancelled) {
-                    setEntryPrice(Math.round(quote.last_price * 100) / 100)
-                    setQuoteFetching(false)
-                }
+                const price = Math.round(quote.price * 100) / 100
+                setEntryPrice(price)
+                // Auto-fill stop and target when both are still at 0 (fresh calculator)
+                setStopPrice((prev) => (prev === 0 ? price : prev))
+                setTargetPrice((prev) => (prev === 0 ? price : prev))
+                setQuoteFetching(false)
             })
             .catch((err: unknown) => {
-                if (!cancelled) {
-                    setQuoteFetching(false)
-                    setStatus(`Could not fetch quote: ${err instanceof Error ? err.message : 'error'}`)
-                    // AC-C3-4: preserve existing entry price — no setEntryPrice call
-                }
+                setQuoteFetching(false)
+                setStatus(`Could not fetch quote: ${err instanceof Error ? err.message : 'error'}`)
+                // AC-C3-4: preserve existing entry price — no setEntryPrice call
             })
-        return () => { cancelled = true }
-    }, [ticker, setStatus])
+    }, [setStatus])
 
     // Listen for pre-fill events from Trade Plan (T2)
     useEffect(() => {
@@ -147,8 +146,8 @@ export default function PositionCalculatorModal({ isOpen, onClose }: PositionCal
     if (!isOpen) return null
 
     return (
-        <div className="fixed inset-0 bg-black/50 flex items-center justify-center z-50" data-testid="calculator-modal" role="dialog" aria-modal="true" aria-labelledby="calc-modal-heading">
-            <div className="bg-bg-elevated border border-bg-subtle rounded-lg shadow-xl w-[420px] max-h-[90vh] overflow-y-auto">
+        <div className="fixed inset-0 bg-black/50 flex items-start justify-center z-50 pt-[10vh]" data-testid="calculator-modal" role="dialog" aria-modal="true" aria-labelledby="calc-modal-heading">
+            <div className="bg-bg-elevated border border-bg-subtle rounded-lg shadow-xl w-[420px] max-h-[80vh] overflow-y-auto">
                 {/* Header */}
                 <div className="flex items-center justify-between p-4 border-b border-bg-subtle">
                     <h2 id="calc-modal-heading" className="text-md font-semibold text-fg">🧮 Position Calculator</h2>
@@ -169,17 +168,21 @@ export default function PositionCalculatorModal({ isOpen, onClose }: PositionCal
                         <TickerAutocomplete
                             value={ticker}
                             onChange={setTicker}
+                            onSelect={handleTickerSelect}
                             placeholder="Search ticker..."
                             data-testid="calc-ticker"
                         />
-                        {quoteFetching && (
-                            <span
-                                data-testid="calc-quote-loading"
-                                className="text-xs text-fg-muted mt-1 block"
-                            >
-                                Fetching quote…
-                            </span>
-                        )}
+                        {/* Fixed-height container prevents layout shift when loading indicator appears/disappears */}
+                        <div className="h-5 mt-1">
+                            {quoteFetching && (
+                                <span
+                                    data-testid="calc-quote-loading"
+                                    className="text-xs text-fg-muted block"
+                                >
+                                    Fetching quote…
+                                </span>
+                            )}
+                        </div>
                     </div>
 
                     {/* MEU-71b: Account Selection (AC-1) */}

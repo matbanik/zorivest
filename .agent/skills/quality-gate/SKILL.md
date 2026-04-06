@@ -50,6 +50,26 @@ uv run python tools/validate_codebase.py --json
 | 8 | Anti-deferral scan | `rg pass.*placeholder\|raise NotImplementedError` | Deferred implementation |
 | 9 | GUI-API seam tests | `pytest tests/integration/test_gui_api_seams.py` | Field mismatch, schema gap, response format bug |
 | 10 | OpenAPI spec drift | `uv run python tools/export_openapi.py --check openapi.committed.json` | API route changed without regenerating committed spec |
+| 11 | Boundary validation audit | Multi-pattern scan (see below) | Write-adjacent input lacks boundary schema enforcement |
+
+#### Check 11 — Boundary Validation Audit Patterns
+
+Run all four patterns against touched route and service files. Any match requires investigation:
+
+```powershell
+# 11a: Raw dict params in route handlers
+rg -n "dict\[str, Any\]" <touched-route-files>
+
+# 11b: Unvalidated reconstruction (replace or __dict__ update)
+rg -n "replace\(.*\*\*|__dict__.*update" <touched-service-files>
+
+# 11c: Missing extra="forbid" on request models
+rg -n "class.*Request.*BaseModel" <touched-route-files>
+# Then verify each match has extra="forbid"
+
+# 11d: kwargs bypass from external input
+rg -n "\*\*kwargs|\*\*{" <touched-service-files>
+```
 
 ### Advisory (non-blocking)
 

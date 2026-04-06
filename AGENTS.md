@@ -22,6 +22,10 @@
 - [ ] **Receipts dir**: output routed to `C:\Temp\zorivest\` (created automatically)
 - [ ] **No-pipe check**: no `|` piping stdout of long-running process to a filter
 - [ ] **Background flag**: if command may run >5s, use appropriate `WaitMsBeforeAsync`
+- [ ] **No `command_status` polling**: never use `command_status` to read output — read the redirect file with `view_file` instead
+
+> [!CAUTION]
+> **`command_status` is forbidden for reading command output.** It exists only to check if a background process (dev server, watcher) is still alive. All command output must be read from the redirect file using `view_file`. If you catch yourself calling `command_status` more than once for the same command, you have violated the redirect pattern.
 
 > Invoke `.agent/skills/terminal-preflight/SKILL.md` before your first `run_command` in any execution phase.
 
@@ -181,6 +185,19 @@ Before approving any plan or starting TDD:
 4. Ask the human only when materially different product behaviors remain plausible, the sources conflict, or the choice is irreversible/high-risk.
 
 Under-specified specs are not permission to narrow scope, invent behavior, or defer work.
+
+### Boundary Input Contract (Mandatory for External-Input MEUs)
+
+Every MEU that touches external input must include in its plan and FIC:
+
+1. **Boundary Inventory**: enumerate all write surfaces (`REST body/query/path`, `MCP tool input`, `UI form payload`, `file import`, `env/config input`)
+2. **Schema Owner**: identify the Pydantic model, Zod schema, or validator responsible for each boundary
+3. **Field Constraints**: document enum/format rules, normalization, and range limits per field
+4. **Extra-Field Policy**: `extra="forbid"` (Pydantic) or `.strict()` (Zod) unless source-backed exception documented
+5. **Error Mapping**: invalid input → 422, not downstream 500
+6. **Create/Update Parity**: partial update paths must enforce the same invariants as create paths unless a source-backed exception is documented
+
+> Python `assert` and type annotations alone are NOT acceptable runtime boundary validation (ref: Python docs — `assert` bytecode is omitted under `-O`).
 
 ## Testing & TDD Protocol
 

@@ -196,6 +196,10 @@ class TestDeleteAccount:
     def test_delete_account_success(self) -> None:
         """Deletes account and commits."""
         uow = _make_uow()
+        account = _sample_account("ACC001")
+        uow.accounts.get.return_value = account
+        uow.trades.list_for_account.return_value = []
+        uow.trade_plans.count_for_account.return_value = 0
 
         svc = AccountService(uow)
         svc.delete_account("ACC001")

@@ -142,6 +142,7 @@ class ReportService:
             status=plan_data.get("status", "draft"),
             linked_trade_id=plan_data.get("linked_trade_id"),
             account_id=plan_data.get("account_id"),
+            shares_planned=plan_data.get("shares_planned"),
             created_at=now,
             updated_at=now,
         )
@@ -188,6 +189,19 @@ class ReportService:
             existing = self.uow.trade_plans.get(plan_id)
             if existing is None:
                 msg = f"Plan {plan_id} not found"
+                raise ValueError(msg)
+
+            # Validate create/update invariant parity — string fields must not be blank
+            if "ticker" in updates and (
+                not updates["ticker"] or not str(updates["ticker"]).strip()
+            ):
+                msg = "ticker must not be empty"
+                raise ValueError(msg)
+            if "strategy_name" in updates and (
+                not updates["strategy_name"]
+                or not str(updates["strategy_name"]).strip()
+            ):
+                msg = "strategy_name must not be empty"
                 raise ValueError(msg)
 
             updated = replace(existing, **updates, updated_at=datetime.now())

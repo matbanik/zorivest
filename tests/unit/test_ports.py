@@ -179,7 +179,7 @@ class TestUnitOfWork:
 
         # Protocol attrs may appear in annotations or class vars
         cls_annotations: dict = {}
-        for cls in UnitOfWork.__mro__:
+        for cls in inspect.getmro(UnitOfWork):
             cls_annotations.update(getattr(cls, "__annotations__", {}))
         expected_attrs = {"trades", "images", "settings", "app_defaults"}
         assert expected_attrs <= set(cls_annotations), (

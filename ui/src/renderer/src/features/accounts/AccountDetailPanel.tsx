@@ -3,7 +3,7 @@ import { useForm } from 'react-hook-form'
 import { z } from 'zod'
 import { zodResolver } from '@hookform/resolvers/zod'
 import type { Account } from '@/hooks/useAccounts'
-import { useUpdateAccount, useDeleteAccount, useAddBalance, useCreateAccount } from '@/hooks/useAccounts'
+import { useUpdateAccount, useDeleteAccount, useArchiveAccount, useAddBalance, useCreateAccount } from '@/hooks/useAccounts'
 import BalanceHistory from './BalanceHistory'
 import { formatTimestamp } from '@/lib/formatDate'
 
@@ -61,9 +61,12 @@ interface AccountDetailPanelProps {
 export default function AccountDetailPanel({ account, isNew, onCreated }: AccountDetailPanelProps) {
     const updateAccount = useUpdateAccount()
     const deleteAccount = useDeleteAccount()
+    const archiveAccount = useArchiveAccount()
     const addBalance = useAddBalance()
     const createAccountMutation = useCreateAccount()
     const [showDeleteConfirm, setShowDeleteConfirm] = useState(false)
+    const [showArchiveConfirm, setShowArchiveConfirm] = useState(false)
+    const [deleteError, setDeleteError] = useState<string | null>(null)
     const [showBalanceInput, setShowBalanceInput] = useState(false)
     const [newBalance, setNewBalance] = useState('')
 
@@ -116,8 +119,37 @@ export default function AccountDetailPanel({ account, isNew, onCreated }: Accoun
     }
 
     const onDelete = () => {
-        deleteAccount.mutate(account.account_id)
+        setDeleteError(null)
+        deleteAccount.mutate(account.account_id, {
+            onError: (err: Error) => {
+                // Extract the error detail from the API response (e.g., 409 conflict message)
+                const msg = err.message?.replace(/^API \d+:\s*/, '') || 'Failed to delete account'
+                // Try to parse JSON detail from FastAPI's error response
+                try {
+                    const parsed = JSON.parse(msg)
+                    setDeleteError(parsed.detail || msg)
+                } catch {
+                    setDeleteError(msg)
+                }
+            },
+        })
         setShowDeleteConfirm(false)
+    }
+
+    const onArchive = () => {
+        setDeleteError(null)
+        archiveAccount.mutate(account.account_id, {
+            onError: (err: Error) => {
+                const msg = err.message?.replace(/^API \d+:\s*/, '') || 'Failed to archive account'
+                try {
+                    const parsed = JSON.parse(msg)
+                    setDeleteError(parsed.detail || msg)
+                } catch {
+                    setDeleteError(msg)
+                }
+            },
+        })
+        setShowArchiveConfirm(false)
     }
 
     const onUpdateBalance = () => {
@@ -329,6 +361,16 @@ export default function AccountDetailPanel({ account, isNew, onCreated }: Accoun
                     {!isNew && (
                     <button
                         type="button"
+                        data-testid="account-archive-btn"
+                        className="rounded-md bg-yellow-900/30 px-4 py-1.5 text-sm font-medium text-yellow-400 hover:bg-yellow-900/50 border border-yellow-900/50"
+                        onClick={() => setShowArchiveConfirm(true)}
+                    >
+                        Archive
+                    </button>
+                    )}
+                    {!isNew && (
+                    <button
+                        type="button"
                         data-testid="account-delete-btn"
                         className="rounded-md bg-red-900/30 px-4 py-1.5 text-sm font-medium text-red-400 hover:bg-red-900/50 border border-red-900/50"
                         onClick={() => setShowDeleteConfirm(true)}
@@ -338,6 +380,43 @@ export default function AccountDetailPanel({ account, isNew, onCreated }: Accoun
                     )}
                 </div>
             </form>
+
+            {/* Delete Error */}
+            {deleteError && (
+                <div className="rounded-lg border border-error bg-error/10 p-3">
+                    <p className="text-sm text-red-400">{deleteError}</p>
+                    <button
+                        className="mt-1 text-xs text-fg-muted hover:text-fg"
+                        onClick={() => setDeleteError(null)}
+                    >
+                        Dismiss
+                    </button>
+                </div>
+            )}
+
+            {/* Archive Confirmation */}
+            {showArchiveConfirm && (
+                <div className="rounded-lg border border-yellow-700 bg-yellow-900/10 p-3">
+                    <p className="text-sm text-fg mb-2">
+                        Archive <strong>{account.name}</strong>? Trades and plans will remain unchanged.
+                        Archived accounts are hidden from active views.
+                    </p>
+                    <div className="flex gap-2">
+                        <button
+                            className="rounded-md bg-yellow-700 px-3 py-1 text-sm text-white hover:bg-yellow-600"
+                            onClick={onArchive}
+                        >
+                            Confirm Archive
+                        </button>
+                        <button
+                            className="rounded-md border border-border px-3 py-1 text-sm hover:bg-bg-hover"
+                            onClick={() => setShowArchiveConfirm(false)}
+                        >
+                            Cancel
+                        </button>
+                    </div>
+                </div>
+            )}
 
             {/* Delete Confirmation */}
             {showDeleteConfirm && (

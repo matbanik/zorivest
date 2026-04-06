@@ -131,6 +131,7 @@ class TestBackupRestoreRoundtrip:
             )
             result = mgr.create_backup()
             assert result.status == BackupStatus.SUCCESS
+            assert result.backup_path is not None
 
             recovery = BackupRecoveryManager(
                 db_paths=db_paths,

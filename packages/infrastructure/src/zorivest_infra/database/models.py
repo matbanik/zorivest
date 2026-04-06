@@ -88,6 +88,10 @@ class AccountModel(Base):
     is_tax_advantaged = Column(Boolean, default=False)
     notes = Column(Text, nullable=True)
     created_at = Column(DateTime, nullable=False)
+    is_archived = Column(Boolean, default=False)  # MEU-37 AC-1: Soft-delete flag
+    is_system = Column(
+        Boolean, default=False
+    )  # MEU-37 AC-2: System-seeded, undeletable
 
     trades = relationship("TradeModel", back_populates="account_rel")
     balance_snapshots = relationship(
@@ -137,6 +141,7 @@ class TradePlanModel(Base):
     status = Column(String(15), default="draft")  # PlanStatus
     linked_trade_id = Column(String, ForeignKey("trades.exec_id"), nullable=True)
     account_id = Column(String, ForeignKey("accounts.account_id"), nullable=True)
+    shares_planned = Column(Integer, nullable=True)  # Position size (shares/contracts)
     created_at = Column(DateTime, nullable=False)
     updated_at = Column(DateTime, nullable=True)
     executed_at = Column(DateTime, nullable=True)  # T5: timestamp when → executed

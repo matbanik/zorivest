@@ -2,6 +2,8 @@ import { useForm } from 'react-hook-form'
 import { zodResolver } from '@hookform/resolvers/zod'
 import { z } from 'zod'
 import { useState } from 'react'
+import { useQuery } from '@tanstack/react-query'
+import { apiFetch } from '@/lib/api'
 import type { Trade } from './TradesTable'
 import ScreenshotPanel from './ScreenshotPanel'
 import TradeReportForm from './TradeReportForm'
@@ -24,6 +26,42 @@ type TradeFormData = z.infer<typeof tradeSchema>
 // ── Tabs ─────────────────────────────────────────────────────────────────
 
 type DetailTab = 'info' | 'journal' | 'screenshots'
+
+// ── Account dropdown sub-component ──────────────────────────────────────
+
+interface AccountOption {
+    account_id: string
+    name: string
+    account_type: string
+}
+
+function AccountSelect({ register }: { register: ReturnType<typeof useForm<TradeFormData>>['register'] }) {
+    const { data: accounts = [] } = useQuery<AccountOption[]>({
+        queryKey: ['accounts', { include_system: true }],
+        queryFn: async () => {
+            try {
+                return await apiFetch<AccountOption[]>('/api/v1/accounts?include_system=true')
+            } catch {
+                return []
+            }
+        },
+    })
+
+    return (
+        <select
+            {...register('account_id')}
+            data-testid="trade-account-select"
+            className="w-full px-3 py-1.5 text-sm rounded-md bg-bg border border-bg-subtle text-fg"
+        >
+            <option value="">Select account…</option>
+            {accounts.map((acct) => (
+                <option key={acct.account_id} value={acct.account_id}>
+                    {acct.name} ({acct.account_type})
+                </option>
+            ))}
+        </select>
+    )
+}
 
 // ── Component ────────────────────────────────────────────────────────────
 
@@ -184,13 +222,10 @@ export default function TradeDetailPanel({
                             )}
                         </div>
 
-                        {/* Account */}
+                        {/* Account — dropdown populated from /api/v1/accounts */}
                         <div>
                             <label className="block text-xs text-fg-muted mb-1">Account</label>
-                            <input
-                                {...register('account_id')}
-                                className="w-full px-3 py-1.5 text-sm rounded-md bg-bg border border-bg-subtle text-fg"
-                            />
+                            <AccountSelect register={register} />
                             {errors.account_id && (
                                 <span className="text-xs text-red-400">{errors.account_id.message}</span>
                             )}

@@ -185,6 +185,56 @@ class TestAccount:
         assert account.balance_source == BalanceSource.CSV_IMPORT
 
 
+# ── MEU-37 AC-1: is_archived field ──────────────────────────────────────
+
+
+class TestAccountIsArchived:
+    """MEU-37 AC-1: Account has is_archived: bool = False."""
+
+    def test_is_archived_defaults_to_false(self) -> None:
+        account = _make_account()
+        assert account.is_archived is False
+
+    def test_is_archived_can_be_set_true(self) -> None:
+        account = _make_account(is_archived=True)
+        assert account.is_archived is True
+
+    def test_is_archived_can_be_toggled(self) -> None:
+        account = _make_account()
+        assert account.is_archived is False
+        account.is_archived = True
+        assert account.is_archived is True
+
+
+# ── MEU-37 AC-2: is_system field ────────────────────────────────────────
+
+
+class TestAccountIsSystem:
+    """MEU-37 AC-2: Account has is_system: bool = False."""
+
+    def test_is_system_defaults_to_false(self) -> None:
+        account = _make_account()
+        assert account.is_system is False
+
+    def test_is_system_can_be_set_true(self) -> None:
+        account = _make_account(is_system=True)
+        assert account.is_system is True
+
+    def test_system_account_construction(self) -> None:
+        """System Reassignment Account can be created with is_system=True."""
+        from zorivest_core.domain.enums import AccountType
+
+        system_acct = _make_account(
+            account_id="SYSTEM_DEFAULT",
+            name="System Reassignment Account",
+            account_type=AccountType.BROKER,
+            is_system=True,
+        )
+        assert system_acct.account_id == "SYSTEM_DEFAULT"
+        assert system_acct.name == "System Reassignment Account"
+        assert system_acct.is_system is True
+
+
 # ── AC-4: BalanceSnapshot frozen dataclass ───────────────────────────────
 
 

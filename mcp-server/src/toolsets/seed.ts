@@ -218,8 +218,18 @@ export const TOOLSET_DEFINITIONS: ToolsetDefinition[] = [
     {
         name: "accounts",
         description:
-            "Broker sync, identifier resolution, bank/CSV/PDF import, account review",
+            "Account CRUD, lifecycle (archive/reassign), balance recording, broker sync, import tools",
         tools: [
+            // MEU-37: Account CRUD + integrity tools
+            { name: "list_accounts", description: "List accounts with filtering" },
+            { name: "get_account", description: "Get account with metrics" },
+            { name: "create_account", description: "Create a new account" },
+            { name: "update_account", description: "Update account fields" },
+            { name: "delete_account", description: "Delete account (block-only)" },
+            { name: "archive_account", description: "Soft-delete account" },
+            { name: "reassign_trades", description: "Reassign trades and delete" },
+            { name: "record_balance", description: "Record balance snapshot" },
+            // Pre-existing stub tools
             { name: "sync_broker", description: "Sync with broker API" },
             { name: "list_brokers", description: "List configured brokers" },
             {

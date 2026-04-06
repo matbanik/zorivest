@@ -311,3 +311,200 @@ class TestImageUpload:
         assert resp.status_code == 201
         assert resp.json()["image_id"] == 42
         image_svc.attach_image.assert_called_once()
+
+
+# ── MEU-BV2: Boundary Validation — Trade Input Hardening ────────────────
+
+
+class TestCreateTradeBoundaryValidation:
+    """BV2-AC-1 through AC-6: Schema-level rejection of invalid create input."""
+
+    def test_invalid_action_returns_422(self, client) -> None:
+        """BV2-AC-1: Invalid action enum value rejected at schema level."""
+        http, trade_svc, _ = client
+        resp = http.post(
+            "/api/v1/trades",
+            json={
+                "exec_id": "E001",
+                "time": "2025-01-15T10:30:00",
+                "instrument": "AAPL",
+                "action": "INVALID",
+                "quantity": 100.0,
+                "price": 150.0,
+                "account_id": "ACC001",
+            },
+        )
+        assert resp.status_code == 422
+
+    def test_zero_quantity_returns_422(self, client) -> None:
+        """BV2-AC-2: Zero quantity rejected at schema level."""
+        http, trade_svc, _ = client
+        resp = http.post(
+            "/api/v1/trades",
+            json={
+                "exec_id": "E001",
+                "time": "2025-01-15T10:30:00",
+                "instrument": "AAPL",
+                "action": "BOT",
+                "quantity": 0,
+                "price": 150.0,
+                "account_id": "ACC001",
+            },
+        )
+        assert resp.status_code == 422
+
+    def test_negative_quantity_returns_422(self, client) -> None:
+        """BV2-AC-2: Negative quantity rejected at schema level."""
+        http, trade_svc, _ = client
+        resp = http.post(
+            "/api/v1/trades",
+            json={
+                "exec_id": "E001",
+                "time": "2025-01-15T10:30:00",
+                "instrument": "AAPL",
+                "action": "BOT",
+                "quantity": -10,
+                "price": 150.0,
+                "account_id": "ACC001",
+            },
+        )
+        assert resp.status_code == 422
+
+    def test_negative_price_returns_422(self, client) -> None:
+        """BV2-AC-3: Negative price rejected at schema level."""
+        http, trade_svc, _ = client
+        resp = http.post(
+            "/api/v1/trades",
+            json={
+                "exec_id": "E001",
+                "time": "2025-01-15T10:30:00",
+                "instrument": "AAPL",
+                "action": "BOT",
+                "quantity": 100,
+                "price": -5.0,
+                "account_id": "ACC001",
+            },
+        )
+        assert resp.status_code == 422
+
+    def test_blank_instrument_returns_422(self, client) -> None:
+        """BV2-AC-4: Blank instrument rejected at schema level."""
+        http, trade_svc, _ = client
+        resp = http.post(
+            "/api/v1/trades",
+            json={
+                "exec_id": "E001",
+                "time": "2025-01-15T10:30:00",
+                "instrument": "",
+                "action": "BOT",
+                "quantity": 100,
+                "price": 150.0,
+                "account_id": "ACC001",
+            },
+        )
+        assert resp.status_code == 422
+
+    def test_blank_exec_id_returns_422(self, client) -> None:
+        """BV2-AC-5: Blank exec_id rejected at schema level."""
+        http, trade_svc, _ = client
+        resp = http.post(
+            "/api/v1/trades",
+            json={
+                "exec_id": "",
+                "time": "2025-01-15T10:30:00",
+                "instrument": "AAPL",
+                "action": "BOT",
+                "quantity": 100,
+                "price": 150.0,
+                "account_id": "ACC001",
+            },
+        )
+        assert resp.status_code == 422
+
+    def test_extra_field_on_create_returns_422(self, client) -> None:
+        """BV2-AC-6: Unknown extra fields rejected by extra='forbid'."""
+        http, trade_svc, _ = client
+        resp = http.post(
+            "/api/v1/trades",
+            json={
+                "exec_id": "E001",
+                "time": "2025-01-15T10:30:00",
+                "instrument": "AAPL",
+                "action": "BOT",
+                "quantity": 100,
+                "price": 150.0,
+                "account_id": "ACC001",
+                "unexpected_field": "should_reject",
+            },
+        )
+        assert resp.status_code == 422
+
+
+class TestUpdateTradeBoundaryValidation:
+    """BV2-AC-6,AC-7,AC-8: Schema-level rejection of invalid update input."""
+
+    def test_invalid_action_on_update_returns_422(self, client) -> None:
+        """BV2-AC-7: Invalid action enum on update rejected at schema level."""
+        http, trade_svc, _ = client
+        resp = http.put(
+            "/api/v1/trades/E001",
+            json={"action": "INVALID"},
+        )
+        assert resp.status_code == 422
+
+    def test_zero_quantity_on_update_returns_422(self, client) -> None:
+        """BV2-AC-8: Zero quantity on update rejected."""
+        http, trade_svc, _ = client
+        resp = http.put(
+            "/api/v1/trades/E001",
+            json={"quantity": 0},
+        )
+        assert resp.status_code == 422
+
+    def test_blank_instrument_on_update_returns_422(self, client) -> None:
+        """BV2-AC-8: Blank instrument on update rejected."""
+        http, trade_svc, _ = client
+        resp = http.put(
+            "/api/v1/trades/E001",
+            json={"instrument": ""},
+        )
+        assert resp.status_code == 422
+
+    def test_extra_field_on_update_returns_422(self, client) -> None:
+        """BV2-AC-6: Unknown extra fields rejected on update."""
+        http, trade_svc, _ = client
+        resp = http.put(
+            "/api/v1/trades/E001",
+            json={"unexpected_field": "should_reject"},
+        )
+        assert resp.status_code == 422
+
+
+class TestWhitespaceOnlyTradeValidation:
+    """Whitespace-only strings must be rejected after StrippedStr normalization."""
+
+    def test_whitespace_only_instrument_on_create_returns_422(self, client) -> None:
+        """Whitespace-only instrument stripped to '' triggers min_length=1 rejection."""
+        http, trade_svc, _ = client
+        resp = http.post(
+            "/api/v1/trades",
+            json={
+                "exec_id": "E001",
+                "time": "2025-01-15T10:30:00",
+                "instrument": "   ",
+                "action": "BOT",
+                "quantity": 100,
+                "price": 150.0,
+                "account_id": "ACC001",
+            },
+        )
+        assert resp.status_code == 422
+
+    def test_whitespace_only_instrument_on_update_returns_422(self, client) -> None:
+        """Whitespace-only instrument on update stripped to '' triggers min_length=1 rejection."""
+        http, trade_svc, _ = client
+        resp = http.put(
+            "/api/v1/trades/E001",
+            json={"instrument": "   "},
+        )
+        assert resp.status_code == 422

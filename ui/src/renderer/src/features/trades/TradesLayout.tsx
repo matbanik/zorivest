@@ -26,7 +26,9 @@ interface GuardStatusResponse {
 
 interface AccountSummary {
     account_id: string
+    name: string
     account_type: string
+    is_archived?: boolean
 }
 
 /**
@@ -76,7 +78,7 @@ export default function TradesLayout() {
         queryKey: ['accounts'],
         queryFn: async () => {
             try {
-                const result = await apiFetch<AccountSummary[]>('/api/v1/accounts')
+                const result = await apiFetch<AccountSummary[]>('/api/v1/accounts?include_system=true&include_archived=true')
                 return result
             } catch {
                 return []
@@ -103,6 +105,23 @@ export default function TradesLayout() {
             account_type: type,
         }))
     }, [fetchedAccounts, trades])
+
+    // Build account_id → name lookup from fetched accounts
+    const accountNameMap = useMemo(() => {
+        const m = new Map<string, string>()
+        for (const a of fetchedAccounts) {
+            m.set(a.account_id, a.is_archived ? `${a.name} (Archived)` : a.name)
+        }
+        return m
+    }, [fetchedAccounts])
+
+    // Enrich trades with account_name for display
+    const enrichedTrades = useMemo(() =>
+        trades.map(t => ({
+            ...t,
+            account_name: accountNameMap.get(t.account_id) ?? undefined,
+        })),
+    [trades, accountNameMap])
 
     const { data: guardStatus } = useQuery<GuardStatusResponse>({
         queryKey: ['mcp-guard-status'],
@@ -242,13 +261,13 @@ export default function TradesLayout() {
                         <option value="">All Accounts</option>
                         {uniqueAccounts.map((acc) => (
                             <option key={acc.account_id} value={acc.account_id}>
-                                {acc.account_id}
+                                {accountNameMap.get(acc.account_id) ?? acc.account_id}{acc.account_type ? ` (${acc.account_type})` : ''}
                             </option>
                         ))}
                     </select>
                 </div>
                 <TradesTable
-                    data={trades}
+                    data={enrichedTrades}
                     selectedId={selectedTrade?.exec_id}
                     onSelectTrade={handleSelectTrade}
                 />

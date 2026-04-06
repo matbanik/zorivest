@@ -1,4 +1,4 @@
-import { useMemo } from 'react'
+import { useEffect, useMemo } from 'react'
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query'
 import { apiFetch } from '@/lib/api'
 
@@ -11,6 +11,8 @@ export interface Account {
     institution: string
     currency: string
     is_tax_advantaged: boolean
+    is_archived: boolean
+    is_system: boolean
     notes: string
     latest_balance: number | null
     latest_balance_date: string | null
@@ -50,6 +52,7 @@ export interface UseAccountsResult {
     accounts: Account[]
     portfolioTotal: number
     isLoading: boolean
+    isFetching: boolean
     error: string | null
     refetch: () => void
 }
@@ -71,10 +74,20 @@ const accountKeys = {
  * AC-6: Fetches from GET /api/v1/accounts and computes portfolio total.
  */
 export function useAccounts(): UseAccountsResult {
-    const { data, isLoading, error, refetch } = useQuery({
+    const queryClient = useQueryClient()
+
+    // Clear any stale cache on mount — prevents ghost flash when navigating back
+    useEffect(() => {
+        queryClient.removeQueries({ queryKey: accountKeys.all, exact: true })
+    }, []) // eslint-disable-line react-hooks/exhaustive-deps
+
+    const { data, isLoading, isFetching, error, refetch } = useQuery({
         queryKey: accountKeys.all,
         queryFn: () => apiFetch<Account[]>('/api/v1/accounts'),
-        staleTime: 30_000,
+        staleTime: 0,
+        gcTime: 0,
+        refetchInterval: 5_000,    // G5: auto-refresh for external mutations (MCP, API)
+        refetchOnWindowFocus: true,
     })
 
     const accounts = Array.isArray(data) ? data : []
@@ -90,7 +103,33 @@ export function useAccounts(): UseAccountsResult {
         accounts,
         portfolioTotal,
         isLoading,
+        isFetching,
         error: error ? (error instanceof Error ? error.message : 'Failed to fetch accounts') : null,
+        refetch,
+    }
+}
+
+// ── useArchivedAccounts ─ fetches archived accounts only when needed ────────
+
+export function useArchivedAccounts(enabled: boolean) {
+    const { data, isLoading, isFetching, error, refetch } = useQuery({
+        queryKey: ['accounts', 'archived'],
+        queryFn: () => apiFetch<Account[]>('/api/v1/accounts?include_archived=true'),
+        staleTime: 0,
+        enabled,
+    })
+
+    // Filter to only archived accounts (the API returns all when include_archived=true)
+    const archivedAccounts = useMemo(() => {
+        const all = Array.isArray(data) ? data : []
+        return all.filter((a) => a.is_archived)
+    }, [data])
+
+    return {
+        accounts: archivedAccounts,
+        isLoading,
+        isFetching,
+        error: error ? (error instanceof Error ? error.message : 'Failed to fetch archived accounts') : null,
         refetch,
     }
 }
@@ -153,7 +192,57 @@ export function useDeleteAccount() {
             apiFetch<void>(`/api/v1/accounts/${id}`, {
                 method: 'DELETE',
             }),
-        onSuccess: () => {
+        onMutate: async (id: string) => {
+            // Optimistic removal — prevent stale ghost flash
+            await queryClient.cancelQueries({ queryKey: accountKeys.all })
+            const previous = queryClient.getQueryData<Account[]>(accountKeys.all)
+            queryClient.setQueryData<Account[]>(
+                accountKeys.all,
+                (old) => old?.filter((a) => a.account_id !== id) ?? [],
+            )
+            return { previous }
+        },
+        onError: (_err, _id, context) => {
+            // Rollback on failure
+            if (context?.previous) {
+                queryClient.setQueryData(accountKeys.all, context.previous)
+            }
+        },
+        onSettled: () => {
+            queryClient.invalidateQueries({ queryKey: accountKeys.all })
+        },
+    })
+}
+
+/**
+ * useArchiveAccount — POST /api/v1/accounts/{id}:archive
+ *
+ * AC-10: Soft-delete (set is_archived=True). Trades remain unchanged.
+ */
+export function useArchiveAccount() {
+    const queryClient = useQueryClient()
+
+    return useMutation({
+        mutationFn: (id: string) =>
+            apiFetch<{ status: string; account_id: string }>(`/api/v1/accounts/${id}:archive`, {
+                method: 'POST',
+            }),
+        onMutate: async (id: string) => {
+            // Optimistic removal — archived accounts excluded from default list
+            await queryClient.cancelQueries({ queryKey: accountKeys.all })
+            const previous = queryClient.getQueryData<Account[]>(accountKeys.all)
+            queryClient.setQueryData<Account[]>(
+                accountKeys.all,
+                (old) => old?.filter((a) => a.account_id !== id) ?? [],
+            )
+            return { previous }
+        },
+        onError: (_err, _id, context) => {
+            if (context?.previous) {
+                queryClient.setQueryData(accountKeys.all, context.previous)
+            }
+        },
+        onSettled: () => {
             queryClient.invalidateQueries({ queryKey: accountKeys.all })
         },
     })

@@ -370,3 +370,76 @@ Decisions made based on web research (UX Stack Exchange, Nielsen Norman Group, I
   // List rendered only when: isActive && !pickerLabel
   ```
 - **Clear button rule:** Absolute-positioned `×` inside the input wrapper; visible only when `pickerLabel` is set.
+
+### G12 — Modal Positioning: Fixed-Top, Not Centered
+- **Severity:** 🟡 Medium
+- **Applies to:** GUI
+- **Rule:** Modals that contain dynamic-height content (autocomplete dropdowns, loading states, expandable sections) must use fixed-top positioning (`items-start pt-[10vh]`), not vertical centering (`items-center justify-center`). Centering causes the modal to jump/shift whenever content height changes.
+- **Origin:** 2026-04-05 — Position Calculator modal jumped on every keystroke and dropdown toggle because `items-center` recalculated vertical position as the autocomplete dropdown appeared/disappeared.
+- **Bad example:** `className="fixed inset-0 flex items-center justify-center"` → modal bounces when dropdown opens
+- **Good example:** `className="fixed inset-0 flex items-start justify-center pt-[10vh]"` → modal stays pinned
+
+### G13 — Archived/Soft-Deleted Entities: Include in Name Lookups with Suffix
+- **Severity:** 🔴 Critical
+- **Applies to:** GUI, API
+- **Rule:** When an entity is soft-deleted (archived), it must remain resolvable in name lookup maps for related data. Fetch with `include_archived=true` for lookup queries and append `(Archived)` to the display name. The main entity list page should still exclude archived items.
+- **Origin:** 2026-04-05 — Archiving an account caused all trades referencing it to display raw UUIDs instead of the account name, because the accounts query excluded archived accounts from the name map.
+- **Bad example:** `GET /api/v1/accounts` (excludes archived) → trades show `"a1b2c3d4-..."` for archived account
+- **Good example:**
+  ```tsx
+  // Lookup query includes archived for name resolution
+  apiFetch('/api/v1/accounts?include_system=true&include_archived=true')
+  // Name map appends suffix
+  m.set(a.account_id, a.is_archived ? `${a.name} (Archived)` : a.name)
+  ```
+- **Decision rationale:** Sequential thinking analysis of 5 options (suffix, generic label, reassign, styling, transparent) — suffix preserves full history context and is the industry-standard pattern used by brokerage platforms.
+
+### G14 — Auto-Populate Related Fields on Entity Selection
+- **Severity:** 🟡 Medium
+- **Applies to:** GUI
+- **Rule:** When a user selects a primary entity (ticker, account) from an autocomplete/dropdown, auto-populate related dependent fields (price, balance, stop/target) from a live data source. If dependent fields are at their default/zero value, fill them with the fetched value; if the user has already edited them, preserve the user's value.
+- **Origin:** 2026-04-05/06 — Calculator and Trade Plan ticker selection did not auto-fill entry price from spot quote. Users had to manually type the current price after selecting a ticker, defeating the purpose of the autocomplete. Stop/target at 0 also needed seeding.
+- **Bad example:** Ticker selected → only ticker field updated → entry/stop/target stay at 0 → user must look up and type current price
+- **Good example:**
+  ```tsx
+  const handleTickerSelect = useCallback((result) => {
+      apiFetch(`/api/v1/market-data/quote?ticker=${result.symbol}`)
+          .then((quote) => {
+              const price = Math.round(quote.price * 100) / 100
+              setEntryPrice(price)
+              setStopPrice((prev) => (prev === 0 ? price : prev))
+              setTargetPrice((prev) => (prev === 0 ? price : prev))
+          })
+  }, [])
+  ```
+- **Consistency rule:** If this pattern exists in one form (Calculator), apply it to all forms with the same field (Trade Plan, Watchlist). Use [TickerAutocomplete's `onSelect` callback](file:///p:/zorivest/ui/src/renderer/src/components/TickerAutocomplete.tsx#L17) to wire it uniformly.
+
+### G15 — API Conflict/Error Responses Must Surface in UI
+- **Severity:** 🔴 Critical
+- **Applies to:** GUI, API
+- **Rule:** Every mutation hook (`useMutation`) must have an `onError` handler that parses the API error response (especially 409 Conflict) and displays it to the user. Silent swallowing of API errors is never acceptable for destructive operations.
+- **Origin:** 2026-04-05 — Deleting an account with assigned trades returned 409 Conflict from the API, but the frontend `deleteAccount.mutate()` had no `onError` callback — the error was silently swallowed, and the user saw no feedback.
+- **Bad example:**
+  ```tsx
+  deleteAccount.mutate(id) // no onError → 409 silently swallowed
+  ```
+- **Good example:**
+  ```tsx
+  const [deleteError, setDeleteError] = useState<string | null>(null)
+  deleteAccount.mutate(id, {
+      onError: (err: Error) => {
+          try {
+              const body = JSON.parse(err.message.split('\n').pop() ?? '')
+              setDeleteError(body.detail ?? 'Deletion failed')
+          } catch {
+              setDeleteError(err.message || 'Deletion failed')
+          }
+      },
+  })
+  // Render dismissible error banner when deleteError is set
+  ```
+- **Checklist for new mutations:**
+  1. [ ] `onError` handler added to `mutate()` call
+  2. [ ] Error state variable declared for UI display
+  3. [ ] Error banner/toast rendered with dismiss capability
+  4. [ ] 409 Conflict `detail` field parsed for actionable message

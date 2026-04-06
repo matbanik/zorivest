@@ -170,6 +170,19 @@ class MockHttpClient:
         assert self.response is not None
         return self.response
 
+    async def post(
+        self,
+        url: str,
+        headers: dict[str, str],
+        timeout: int,
+        json: Any = None,
+    ) -> MockResponse:
+        self.calls.append((url, headers, timeout))
+        if isinstance(self.response, Exception):
+            raise self.response
+        assert self.response is not None
+        return self.response
+
 
 class MockEncryption:
     """Mock encryption that prefixes/strips 'ENC:'."""

@@ -46,8 +46,15 @@ def _schema_fields(schema_cls: type) -> set[str]:
 KNOWN_EXCEPTIONS: dict[str, set[str]] = {
     # ReportResponse has 'id', 'created_at', 'trade_id' which are DB-generated, not on the domain dataclass
     "ReportResponse": {"id", "created_at", "trade_id"},
-    # AccountResponse has balance fields enriched from BalanceSnapshot, not on Account entity
-    "AccountResponse": {"latest_balance", "latest_balance_date"},
+    # AccountResponse has balance + metrics fields enriched from BalanceSnapshot/analytics, not on Account entity
+    "AccountResponse": {
+        "latest_balance",
+        "latest_balance_date",  # MEU-71: balance enrichment
+        "trade_count",
+        "round_trip_count",
+        "win_rate",
+        "total_realized_pnl",  # MEU-37 AC-12: computed metrics
+    },
 }
 
 

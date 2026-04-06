@@ -470,5 +470,413 @@ export function registerAccountTools(server: McpServer): RegisteredToolHandle[] 
             };
         },
     ));
+
+    // ════════════════════════════════════════════════════════════════════
+    // MEU-37: Account CRUD + Integrity MCP Tools (AC-14 through AC-20)
+    // ════════════════════════════════════════════════════════════════════
+
+    // ── list_accounts (AC-14) ─────────────────────────────────────────
+    handles.push(server.registerTool(
+        "list_accounts",
+        {
+            description:
+                "List financial accounts with optional filtering. By default, archived and system accounts are excluded.",
+            inputSchema: {
+                include_archived: z
+                    .boolean()
+                    .default(false)
+                    .describe("Include archived (soft-deleted) accounts"),
+                include_system: z
+                    .boolean()
+                    .default(false)
+                    .describe("Include system accounts (e.g. SYSTEM_DEFAULT)"),
+            },
+            annotations: {
+                readOnlyHint: true,
+                destructiveHint: false,
+                idempotentHint: true,
+                openWorldHint: false,
+            },
+            _meta: {
+                toolset: "accounts",
+                alwaysLoaded: false,
+            },
+        },
+        async (params: { include_archived: boolean; include_system: boolean }) => {
+            const queryParts: string[] = [];
+            if (params.include_archived) queryParts.push("include_archived=true");
+            if (params.include_system) queryParts.push("include_system=true");
+            const query = queryParts.length > 0 ? `?${queryParts.join("&")}` : "";
+            const result = await fetchApi(`/accounts${query}`);
+            return {
+                content: [
+                    { type: "text" as const, text: JSON.stringify(result) },
+                ],
+            };
+        },
+    ));
+
+    // ── get_account (AC-15) ───────────────────────────────────────────
+    handles.push(server.registerTool(
+        "get_account",
+        {
+            description:
+                "Get a single account with computed metrics (trade count, win rate, realized PnL)",
+            inputSchema: {
+                account_id: z.string().describe("Account ID to retrieve"),
+            },
+            annotations: {
+                readOnlyHint: true,
+                destructiveHint: false,
+                idempotentHint: true,
+                openWorldHint: false,
+            },
+            _meta: {
+                toolset: "accounts",
+                alwaysLoaded: false,
+            },
+        },
+        async (params: { account_id: string }) => {
+            const result = await fetchApi(`/accounts/${params.account_id}`);
+            return {
+                content: [
+                    { type: "text" as const, text: JSON.stringify(result) },
+                ],
+            };
+        },
+    ));
+
+    // ── create_account (AC-16) — guarded, no confirmation ─────────────
+    handles.push(server.registerTool(
+        "create_account",
+        {
+            description:
+                "Create a new financial account. Account ID is auto-generated if omitted.",
+            inputSchema: {
+                name: z.string().describe("Account display name"),
+                account_type: z
+                    .enum(["BROKER", "BANK", "IRA", "K401", "ROTH_IRA", "HSA", "OTHER"])
+                    .describe("Account type"),
+                institution: z
+                    .string()
+                    .optional()
+                    .describe("Financial institution name"),
+                currency: z
+                    .string()
+                    .default("USD")
+                    .describe("Currency code (default: USD)"),
+                is_tax_advantaged: z
+                    .boolean()
+                    .default(false)
+                    .describe("Whether account is tax-advantaged"),
+                notes: z
+                    .string()
+                    .optional()
+                    .describe("Optional notes"),
+            },
+            annotations: {
+                readOnlyHint: false,
+                destructiveHint: false,
+                idempotentHint: false,
+                openWorldHint: false,
+            },
+            _meta: {
+                toolset: "accounts",
+                alwaysLoaded: false,
+            },
+        },
+        withMetrics(
+            "create_account",
+            withGuard(
+                async (params: {
+                    name: string;
+                    account_type: string;
+                    institution?: string;
+                    currency: string;
+                    is_tax_advantaged: boolean;
+                    notes?: string;
+                }) => {
+                    const body = {
+                        name: params.name,
+                        account_type: params.account_type,
+                        institution: params.institution ?? "",
+                        currency: params.currency,
+                        is_tax_advantaged: params.is_tax_advantaged,
+                        notes: params.notes,
+                    };
+                    const result = await fetchApi("/accounts", {
+                        method: "POST",
+                        headers: { "Content-Type": "application/json" },
+                        body: JSON.stringify(body),
+                    });
+                    return {
+                        content: [
+                            { type: "text" as const, text: JSON.stringify(result) },
+                        ],
+                    };
+                },
+            ),
+        ),
+    ));
+
+    // ── update_account ────────────────────────────────────────────────
+    handles.push(server.registerTool(
+        "update_account",
+        {
+            description:
+                "Update account fields. Cannot modify system accounts.",
+            inputSchema: {
+                account_id: z.string().describe("Account ID to update"),
+                name: z.string().optional().describe("New display name"),
+                account_type: z
+                    .enum(["BROKER", "BANK", "IRA", "K401", "ROTH_IRA", "HSA", "OTHER"])
+                    .optional()
+                    .describe("New account type"),
+                institution: z
+                    .string()
+                    .optional()
+                    .describe("New institution name"),
+                currency: z
+                    .string()
+                    .optional()
+                    .describe("New currency code"),
+                is_tax_advantaged: z
+                    .boolean()
+                    .optional()
+                    .describe("New tax-advantaged status"),
+                notes: z.string().optional().describe("New notes"),
+            },
+            annotations: {
+                readOnlyHint: false,
+                destructiveHint: false,
+                idempotentHint: true,
+                openWorldHint: false,
+            },
+            _meta: {
+                toolset: "accounts",
+                alwaysLoaded: false,
+            },
+        },
+        withMetrics(
+            "update_account",
+            withGuard(
+                async (params: {
+                    account_id: string;
+                    name?: string;
+                    account_type?: string;
+                    institution?: string;
+                    currency?: string;
+                    is_tax_advantaged?: boolean;
+                    notes?: string;
+                }) => {
+                    // Build body with only provided fields
+                    const body: Record<string, unknown> = {};
+                    if (params.name !== undefined) body.name = params.name;
+                    if (params.account_type !== undefined) body.account_type = params.account_type;
+                    if (params.institution !== undefined) body.institution = params.institution;
+                    if (params.currency !== undefined) body.currency = params.currency;
+                    if (params.is_tax_advantaged !== undefined)
+                        body.is_tax_advantaged = params.is_tax_advantaged;
+                    if (params.notes !== undefined) body.notes = params.notes;
+
+                    const result = await fetchApi(`/accounts/${params.account_id}`, {
+                        method: "PUT",
+                        headers: { "Content-Type": "application/json" },
+                        body: JSON.stringify(body),
+                    });
+                    return {
+                        content: [
+                            { type: "text" as const, text: JSON.stringify(result) },
+                        ],
+                    };
+                },
+            ),
+        ),
+    ));
+
+    // ── delete_account (AC-17) — destructive + confirmation ───────────
+    handles.push(server.registerTool(
+        "delete_account",
+        {
+            description:
+                "Delete an account. Block-only: fails with 409 if trades exist. Use archive_account or reassign_trades for accounts with trades.",
+            inputSchema: {
+                account_id: z.string().describe("Account ID to delete"),
+                confirmation_token: z
+                    .string()
+                    .optional()
+                    .describe(
+                        "Confirmation token from get_confirmation_token (required on static/annotation-unaware clients)",
+                    ),
+            },
+            annotations: {
+                readOnlyHint: false,
+                destructiveHint: true,
+                idempotentHint: true,
+                openWorldHint: false,
+            },
+            _meta: {
+                toolset: "accounts",
+                alwaysLoaded: false,
+            },
+        },
+        withMetrics(
+            "delete_account",
+            withGuard(withConfirmation(
+                "delete_account",
+                async (params: { account_id: string }, _extra: unknown) => {
+                    const result = await fetchApi(`/accounts/${params.account_id}`, {
+                        method: "DELETE",
+                    });
+                    return {
+                        content: [
+                            { type: "text" as const, text: JSON.stringify(result) },
+                        ],
+                    };
+                },
+            )),
+        ),
+    ));
+
+    // ── archive_account (AC-18) — guarded, non-destructive ────────────
+    handles.push(server.registerTool(
+        "archive_account",
+        {
+            description:
+                "Soft-delete an account by setting is_archived=True. Trades remain unchanged. The account will no longer appear in default listings.",
+            inputSchema: {
+                account_id: z.string().describe("Account ID to archive"),
+            },
+            annotations: {
+                readOnlyHint: false,
+                destructiveHint: false,
+                idempotentHint: true,
+                openWorldHint: false,
+            },
+            _meta: {
+                toolset: "accounts",
+                alwaysLoaded: false,
+            },
+        },
+        withMetrics(
+            "archive_account",
+            withGuard(
+                async (params: { account_id: string }) => {
+                    const result = await fetchApi(
+                        `/accounts/${params.account_id}:archive`,
+                        { method: "POST" },
+                    );
+                    return {
+                        content: [
+                            { type: "text" as const, text: JSON.stringify(result) },
+                        ],
+                    };
+                },
+            ),
+        ),
+    ));
+
+    // ── reassign_trades (AC-19) — destructive + confirmation ──────────
+    handles.push(server.registerTool(
+        "reassign_trades",
+        {
+            description:
+                "Move all trades from this account to SYSTEM_DEFAULT, then hard-delete the account. Returns count of reassigned trades.",
+            inputSchema: {
+                account_id: z.string().describe("Account ID to reassign and delete"),
+                confirmation_token: z
+                    .string()
+                    .optional()
+                    .describe(
+                        "Confirmation token from get_confirmation_token (required on static/annotation-unaware clients)",
+                    ),
+            },
+            annotations: {
+                readOnlyHint: false,
+                destructiveHint: true,
+                idempotentHint: false,
+                openWorldHint: false,
+            },
+            _meta: {
+                toolset: "accounts",
+                alwaysLoaded: false,
+            },
+        },
+        withMetrics(
+            "reassign_trades",
+            withGuard(withConfirmation(
+                "reassign_trades",
+                async (params: { account_id: string }, _extra: unknown) => {
+                    const result = await fetchApi(
+                        `/accounts/${params.account_id}:reassign-trades`,
+                        { method: "POST" },
+                    );
+                    return {
+                        content: [
+                            { type: "text" as const, text: JSON.stringify(result) },
+                        ],
+                    };
+                },
+            )),
+        ),
+    ));
+
+    // ── record_balance (AC-20) ────────────────────────────────────────
+    handles.push(server.registerTool(
+        "record_balance",
+        {
+            description:
+                "Record a balance snapshot for an account. Used for portfolio tracking and performance calculation.",
+            inputSchema: {
+                account_id: z.string().describe("Account ID"),
+                balance: z.number().describe("Current balance amount"),
+                snapshot_datetime: z
+                    .string()
+                    .optional()
+                    .describe("Snapshot timestamp (ISO 8601). Defaults to now."),
+            },
+            annotations: {
+                readOnlyHint: false,
+                destructiveHint: false,
+                idempotentHint: false,
+                openWorldHint: false,
+            },
+            _meta: {
+                toolset: "accounts",
+                alwaysLoaded: false,
+            },
+        },
+        withMetrics(
+            "record_balance",
+            withGuard(
+                async (params: {
+                    account_id: string;
+                    balance: number;
+                    snapshot_datetime?: string;
+                }) => {
+                    const body: Record<string, unknown> = {
+                        balance: params.balance,
+                    };
+                    if (params.snapshot_datetime) {
+                        body.snapshot_datetime = params.snapshot_datetime;
+                    }
+                    const result = await fetchApi(
+                        `/accounts/${params.account_id}/balances`,
+                        {
+                            method: "POST",
+                            headers: { "Content-Type": "application/json" },
+                            body: JSON.stringify(body),
+                        },
+                    );
+                    return {
+                        content: [
+                            { type: "text" as const, text: JSON.stringify(result) },
+                        ],
+                    };
+                },
+            ),
+        ),
+    ));
+
     return handles;
 }
