@@ -9,7 +9,6 @@ Use this workflow when implementing a Manageable Execution Unit (MEU). Opus is t
 ## Prerequisites
 
 - Read `AGENTS.md` for project config
-- Read `SOUL.md` for identity
 - Read `.agent/context/meu-registry.md` for MEU scope
 - Read `.agent/context/current-focus.md` for active phase
 - Read `.agent/docs/emerging-standards.md` — verify applicable standards are covered. If the MEU involves MCP tools or GUI components, the matching standards are mandatory subtasks.

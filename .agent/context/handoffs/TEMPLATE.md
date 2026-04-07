@@ -1,66 +1,126 @@
-# Task Handoff Template
+---
+seq: "{SEQ}"
+date: "{YYYY-MM-DD}"
+project: "{project-slug}"
+meu: "{MEU-ID}"
+status: "draft"
+action_required: "VALIDATE_AND_APPROVE"
+template_version: "2.0"
+plan_source: "docs/execution/plans/{YYYY-MM-DD}-{project-slug}/implementation-plan.md"
+build_plan_section: "bp{NN}s{X.Y}"
+agent: "{agent-name}"
+reviewer: "{reviewer-name}"
+predecessor: "{previous-handoff-filename or none}"
+---
 
-## Task
+# Handoff: {SEQ}-{YYYY-MM-DD}-{project-slug}-bp{NN}s{X.Y}
 
-- **Date:** YYYY-MM-DD
-- **Task slug:** short-kebab-case
-- **Owner role:** orchestrator
-- **Scope:** one focused task only
+> **Status**: `draft` | `in_progress` | `complete` | `blocked`
+> **Action Required**: `VALIDATE_AND_APPROVE` | `REVIEW_CORRECTIONS` | `EXECUTE`
 
-## Inputs
+---
 
-- User request:
-- Specs/docs referenced:
-- Constraints:
+## Scope
 
-## Role Plan
+**MEU**: {MEU-ID} — {brief description}
+**Build Plan Section**: {section reference}
+**Predecessor**: {link to previous handoff or "none"}
 
-1. orchestrator
-2. coder
-3. tester
-4. reviewer
-- Optional roles: researcher, guardrail
+---
 
-## Coder Output
+## Acceptance Criteria
 
-- Changed files:
-- Design notes / ADRs referenced:
-- Commands run:
-- Results:
+| AC | Description | Source | Test(s) | Status |
+|----|-------------|--------|---------|--------|
+| AC-1 | {criterion} | {Spec\|Local Canon\|Research-backed\|Human-approved} | {test file:function} | ⬜ |
+| AC-2 | {criterion} | {source} | {test reference} | ⬜ |
 
-## Tester Output
+---
 
-- Commands run:
-- Pass/fail matrix:
-- Repro failures:
-- Coverage/test gaps:
-- Evidence bundle location:
-- FAIL_TO_PASS / PASS_TO_PASS result:
-- Mutation score:
-- Contract verification status:
+## Evidence
 
-## Reviewer Output
+### FAIL_TO_PASS
 
-- Findings by severity:
-- Open questions:
-- Verdict:
-- Residual risk:
-- Anti-deferral scan result:
+| Test | Red Output (hash/snippet) | Green Output | File:Line |
+|------|--------------------------|--------------|-----------|
+| {test_name} | {failure message} | {pass message} | {file:line} |
 
-## Guardrail Output (If Required)
+### Commands Executed
 
-- Safety checks:
-- Blocking risks:
-- Verdict:
+| Command | Exit Code | Key Output |
+|---------|-----------|------------|
+| `{exact command}` | 0 | {relevant output} |
 
-## Approval Gate
+### Quality Gate Results
 
-- **Human approval required for merge/release/deploy:** yes
-- **Approval status:** pending/approved
-- **Approver:**
-- **Timestamp:**
+```
+pyright: X errors, Y warnings
+ruff: X violations
+pytest: X passed, Y failed
+anti-placeholder: 0 matches
+```
 
-## Final Summary
+---
 
-- Status:
-- Next steps:
+## Changed Files
+
+| File | Action | Lines | Summary |
+|------|--------|-------|---------|
+| {path} | {new\|modified\|deleted} | {range} | {what changed} |
+
+---
+
+## Codex Validation Report
+
+_Left blank for reviewer agent. Reviewer fills this section during `/validation-review`._
+
+### Recheck Protocol
+
+1. Read Scope + AC table
+2. Verify each AC against Evidence section (file:line, not memory)
+3. Run all Commands Executed and compare output
+4. Run Quality Gate commands independently
+5. Record findings below
+
+### Findings
+
+| # | Severity | Finding | File:Line | Recommendation | Status |
+|---|----------|---------|-----------|----------------|--------|
+| 1 | {High\|Medium\|Low} | {description} | {file:line} | {fix} | {open\|fixed} |
+
+### Verdict
+
+`{approved | changes_required}` — {rationale}
+
+---
+
+## Corrections Applied ({YYYY-MM-DD})
+
+_Repeatable section. Add one per correction round._
+
+**Findings resolved**: {N}/{N}
+
+| # | Finding | Fix Applied | Verification |
+|---|---------|-------------|--------------|
+| 1 | {finding} | {fix} | {evidence} |
+
+---
+
+## Deferred Items
+
+_Optional. Skip this section if no items are deferred._
+
+| Item | Reason | Follow-up |
+|------|--------|-----------|
+| {item} | {blocked\|out-of-scope\|future-MEU} | {link to tracking} |
+
+---
+
+## History
+
+| Event | Date | Agent | Detail |
+|-------|------|-------|--------|
+| Created | {date} | {agent} | Initial handoff |
+| Submitted for review | {date} | {agent} | Sent to {reviewer} |
+| Review complete | {date} | {reviewer} | Verdict: {verdict} |
+| Corrections applied | {date} | {agent} | {N} findings resolved |

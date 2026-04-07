@@ -443,3 +443,74 @@ Decisions made based on web research (UX Stack Exchange, Nielsen Norman Group, I
   2. [ ] Error state variable declared for UI display
   3. [ ] Error banner/toast rendered with dismiss capability
   4. [ ] 409 Conflict `detail` field parsed for actionable message
+
+### G16 — Electron CSP Must Include img-src for Local API Images
+- **Severity:** 🔴 Critical
+- **Applies to:** GUI (Electron)
+- **Rule:** The Electron renderer's `Content-Security-Policy` meta tag must include `img-src 'self' http://localhost:* http://127.0.0.1:* data:`. Without this, `<img>` tags pointing to the local API will silently fail (`naturalWidth === 0`) with no console error.
+- **Origin:** 2026-04-06 — Screenshots uploaded via the API rendered as broken images in the ScreenshotPanel. Root cause: `default-src 'self'` blocked images from `http://127.0.0.1:17787`. No browser console error was visible; debugging required checking `naturalWidth` in DevTools.
+- **Bad example:** CSP with only `default-src 'self' http://localhost:*` — `default-src` does NOT cascade to `img-src` for cross-origin images when the page is loaded from `file://` or Electron's custom protocol
+- **Good example:**
+  ```html
+  <meta http-equiv="Content-Security-Policy"
+    content="default-src 'self' http://localhost:* http://127.0.0.1:*;
+             img-src 'self' http://localhost:* http://127.0.0.1:* data:;
+             script-src 'self'; style-src 'self' 'unsafe-inline'" />
+  ```
+- **Debugging tip:** If images fail to load in Electron, inspect with `document.querySelector('img').naturalWidth` — `0` means CSP blocked, not a network error.
+- **Checklist for CSP changes:**
+  1. [ ] `img-src` directive explicitly listed (not relying on `default-src` fallback)
+  2. [ ] Both `localhost` and `127.0.0.1` origins included (Node may resolve either)
+  3. [ ] `data:` included if thumbnails use data URIs
+  4. [ ] E2E test verifies `naturalWidth > 0` on at least one `<img>` element
+
+### G17 — Fetch Wrapper Must Detect FormData and Omit Content-Type
+- **Severity:** 🟡 Medium
+- **Applies to:** GUI (API client)
+- **Rule:** Any shared `fetch` wrapper that sets `Content-Type: application/json` must detect when the request body is a `FormData` instance and omit the `Content-Type` header entirely. The browser auto-sets `multipart/form-data` with the correct boundary; manually setting it corrupts the boundary.
+- **Origin:** 2026-04-06 — Image upload via `apiFetch()` returned 422/400 because the wrapper injected `Content-Type: application/json` on a `FormData` body, corrupting the multipart boundary. The server couldn't parse the file.
+- **Bad example:**
+  ```ts
+  // Always sets JSON content type — breaks FormData uploads
+  const res = await fetch(url, {
+      headers: { 'Content-Type': 'application/json' },
+      body: data,
+  })
+  ```
+- **Good example:**
+  ```ts
+  const headers: Record<string, string> = {}
+  if (!(body instanceof FormData)) {
+      headers['Content-Type'] = 'application/json'
+  }
+  const res = await fetch(url, { headers, body })
+  ```
+- **When this applies:** Any time a new file upload feature is added that uses the shared `apiFetch`/`fetchWithAuth` wrapper.
+
+---
+
+## E2E Testing Standards
+
+### E1 — E2E Test Data Seeding Must Use Node fetch, Not page.request
+- **Severity:** 🟡 Medium
+- **Applies to:** GUI (E2E/Playwright)
+- **Rule:** When seeding test data in Playwright E2E tests for Electron apps, use Node's native `fetch()` (runs in the test process) instead of Playwright's `page.request.post()` (routes through the Electron renderer's network stack). The renderer may enforce CSP, CORS, or other policies that block test seeding requests.
+- **Origin:** 2026-04-06 — E2E test `seedImage()` used `page.request.post()` with multipart data. The request failed because it was routed through the Electron renderer's network context, which applied the app's CSP policy. Switching to Node's native `fetch()` bypassed this entirely.
+- **Bad example:**
+  ```ts
+  // Routes through Electron's network stack → CSP may block
+  const res = await page.page.request.post(`${API}/trades/${id}/images`, {
+      multipart: { file: { ... } },
+  })
+  ```
+- **Good example:**
+  ```ts
+  // Runs in Node context → bypasses Electron CSP/CORS
+  const formData = new FormData()
+  formData.append('file', new Blob([png], { type: 'image/png' }), 'test.png')
+  const res = await fetch(`${API}/trades/${id}/images`, {
+      method: 'POST',
+      body: formData,
+  })
+  ```
+- **Rule of thumb:** `page.request` is for testing the app's own API behavior (verifying CORS, auth headers). `fetch()` is for seeding test fixtures that should not be subject to the app's security policies.

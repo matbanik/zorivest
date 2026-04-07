@@ -65,3 +65,19 @@ async def get_image_full(image_id: int, service=Depends(get_image_service)):
     if data is None:
         raise HTTPException(404, f"Image not found: {image_id}")
     return Response(content=data, media_type="image/webp")
+
+
+@image_router.delete(
+    "/{image_id}",
+    status_code=204,
+    dependencies=[Depends(require_unlocked_db)],
+)
+async def delete_image(image_id: int, service=Depends(get_image_service)):
+    """Delete an image by ID.
+
+    Returns 204 on success, 404 if image does not exist.
+    """
+    try:
+        service.delete_image(image_id)
+    except NotFoundError:
+        raise HTTPException(404, f"Image not found: {image_id}")

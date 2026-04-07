@@ -209,26 +209,40 @@ describe('TradeDetailPanel', () => {
 // ─── ScreenshotPanel Tests ───────────────────────────────────────────────────
 
 describe('ScreenshotPanel', () => {
-    it('should render upload button', () => {
-        render(<ScreenshotPanel tradeId="T001" />, { wrapper: createWrapper() })
-        expect(screen.getByTestId('screenshot-upload-btn')).toBeInTheDocument()
+    const MOCK_IMAGES = [
+        { id: 1, caption: 'Entry', mime_type: 'image/webp', file_size: 5000 },
+        { id: 2, caption: 'Exit', mime_type: 'image/webp', file_size: 3000 },
+    ]
+
+    beforeEach(() => {
+        mockApiFetch.mockImplementation((url: string) => {
+            if (url.includes('/trades/T001/images')) return Promise.resolve(MOCK_IMAGES)
+            return Promise.resolve([])
+        })
     })
 
-    it('should render thumbnails for existing screenshots', () => {
-        const screenshots = [
-            { id: 's1', url: 'http://example.com/img1.png', caption: 'Entry' },
-            { id: 's2', url: 'http://example.com/img2.png', caption: 'Exit' },
-        ]
-        render(<ScreenshotPanel tradeId="T001" screenshots={screenshots} />, {
-            wrapper: createWrapper(),
+    it('should render upload button', async () => {
+        render(<ScreenshotPanel tradeId="T001" />, { wrapper: createWrapper() })
+        await waitFor(() => {
+            expect(screen.getByTestId('screenshot-upload-btn')).toBeInTheDocument()
         })
+    })
+
+    it('should render thumbnails for existing screenshots', async () => {
+        render(<ScreenshotPanel tradeId="T001" />, { wrapper: createWrapper() })
+        await waitFor(() => {
+            expect(screen.getAllByTestId('screenshot-thumbnail')).toHaveLength(2)
+        })
+        // Verify alt text uses the caption from API response
         expect(screen.getByAltText('Entry')).toBeInTheDocument()
         expect(screen.getByAltText('Exit')).toBeInTheDocument()
     })
 
-    it('should have hidden file input', () => {
+    it('should have hidden file input', async () => {
         render(<ScreenshotPanel tradeId="T001" />, { wrapper: createWrapper() })
-        expect(screen.getByTestId('screenshot-file-input')).toBeInTheDocument()
+        await waitFor(() => {
+            expect(screen.getByTestId('screenshot-file-input')).toBeInTheDocument()
+        })
     })
 })
 

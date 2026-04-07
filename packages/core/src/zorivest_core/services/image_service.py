@@ -45,6 +45,7 @@ class ImageService:
                 created_at=__import__("datetime").datetime.now(),
                 mime_type=command.mime_type,
                 caption=command.caption,
+                thumbnail=command.thumbnail,
             )
             image_id = self.uow.images.save(
                 command.owner_type.value, command.owner_id, image
@@ -92,3 +93,16 @@ class ImageService:
         """Get all images attached to an owner (trade, account, etc.)."""
         with self.uow:
             return self.uow.images.get_for_owner(owner_type, owner_id)
+
+    def delete_image(self, image_id: int) -> None:
+        """Delete an image by ID.
+
+        Raises:
+            NotFoundError: If image does not exist.
+        """
+        with self.uow:
+            image = self.uow.images.get(image_id)
+            if image is None:
+                raise NotFoundError(f"Image not found: {image_id}")
+            self.uow.images.delete(image_id)
+            self.uow.commit()

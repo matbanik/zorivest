@@ -54,12 +54,11 @@ This is the workflow for prompts like:
 
 Read these files in order:
 
-1. `SOUL.md`
-2. `AGENTS.md`
-3. `.agent/context/current-focus.md`
-4. `.agent/context/known-issues.md`
-5. `pomera_notes` search (`Zorivest`, `Memory/Session/*`, `Memory/Decisions/*`)
-6. `.agent/docs/emerging-standards.md` — consult when architecture, API/UI contracts, or testing standards are implicated. Do not raise standalone findings for standards drift unless it affects runtime behavior, safety, or test validity.
+1. `AGENTS.md`
+2. `.agent/context/current-focus.md`
+3. `.agent/context/known-issues.md`
+4. `pomera_notes` search (`Zorivest`, `Memory/Session/*`, `Memory/Decisions/*`)
+5. `.agent/docs/emerging-standards.md` — consult when architecture, API/UI contracts, or testing standards are implicated. Do not raise standalone findings for standards drift unless it affects runtime behavior, safety, or test validity.
 
 ---
 
@@ -442,11 +441,14 @@ If that file already exists, append a new dated review update section. Do not fo
 
 The workflow is incomplete until the canonical review handoff exists and is readable at the correct path for the detected review mode.
 
-Use `.agent/context/handoffs/TEMPLATE.md`, but for review-only tasks:
+> **Start from** [`.agent/context/handoffs/REVIEW-TEMPLATE.md`](file:///p:/zorivest/.agent/context/handoffs/REVIEW-TEMPLATE.md) (v2.0)
+>
+> For review artifacts, use the review template (not the handoff template). The Rolling Summary Header enables each recheck to start with a compact prior-pass table for context continuity.
 
-- `Coder Output`: note "No product changes; review-only"
-- `Tester Output`: include grep/diff/link-check commands and failures found
-- `Reviewer Output`: findings by severity, questions, verdict, residual risk
+Fill the template sections:
+- `Findings` table with severity-ranked findings and file:line references
+- `Checklist Results` with IR/DR/PR check outcomes
+- `Verdict` with explicit `approved` or `changes_required`
 
 ### Required Review Handoff Content
 

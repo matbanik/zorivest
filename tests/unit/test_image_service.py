@@ -91,3 +91,32 @@ class TestGetTradeImages:
 
         assert len(result) == 1
         uow.images.get_for_owner.assert_called_once_with("trade", "E001")
+
+
+class TestDeleteImage:
+    """MEU-47a AC-1: ImageService.delete_image()."""
+
+    def test_delete_image_success(self) -> None:
+        """AC-1: delete_image delegates to uow.images.delete and commits."""
+        img = MagicMock(spec=ImageAttachment)
+        uow = _make_uow()
+        uow.images.get.return_value = img
+
+        svc = ImageService(uow)
+        svc.delete_image(42)
+
+        uow.images.get.assert_called_once_with(42)
+        uow.images.delete.assert_called_once_with(42)
+        uow.commit.assert_called_once()
+
+    def test_delete_image_not_found_raises(self) -> None:
+        """AC-1 negative: raises NotFoundError for nonexistent image."""
+        uow = _make_uow()
+        uow.images.get.return_value = None
+
+        svc = ImageService(uow)
+        with pytest.raises(NotFoundError, match="Image not found: 99"):
+            svc.delete_image(99)
+
+        uow.images.delete.assert_not_called()
+        uow.commit.assert_not_called()

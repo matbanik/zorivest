@@ -169,6 +169,12 @@ P2.75 (broker adapters): MEU-96 → MEU-99
 | MEU-50 | `gui-command-palette` | 16b | Command palette (Ctrl+K) | ✅ 2026-03-19 |
 | MEU-51 | `gui-state-persistence` | 16c | UI state persistence: sidebar collapse (Zustand+localStorage `[UI-ESMSTORE]`), route restoration (usePersistedState), theme (usePersistedState) | ✅ 2026-03-19 |
 
+## Phase 6: GUI Feature Wiring
+
+| MEU | Slug | Matrix | Description | Status |
+|-----|------|:------:|-------------|:------|
+| MEU-47a | `screenshot-wiring` | 16.1 | Wire ScreenshotPanel to image REST API (useQuery/useMutation + DELETE route + ImageService.delete_image) | ✅ 2026-04-07 |
+
 ## Phase-Exit Criteria (Updated)
 
 - Phase 6 (foundation): MEU-43..45 ✅ (shell + commands + window state) → Phase 6 features unblocked

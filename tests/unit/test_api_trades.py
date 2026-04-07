@@ -259,6 +259,24 @@ class TestGlobalImages:
             "application/octet-stream",
         )
 
+    def test_delete_image_204(self, client) -> None:
+        """MEU-47a AC-2: DELETE /images/{id} returns 204 on success."""
+        http, _, image_svc = client
+
+        resp = http.delete("/api/v1/images/42")
+        assert resp.status_code == 204
+        assert resp.content == b""
+        image_svc.delete_image.assert_called_once_with(42)
+
+    def test_delete_image_404(self, client) -> None:
+        """MEU-47a AC-2 negative: DELETE /images/{id} returns 404 for missing."""
+        http, _, image_svc = client
+        image_svc.delete_image.side_effect = NotFoundError("Image not found: 99")
+
+        resp = http.delete("/api/v1/images/99")
+        assert resp.status_code == 404
+        assert "detail" in resp.json()
+
 
 # ── Round-trips ─────────────────────────────────────────────────────────
 
@@ -298,16 +316,49 @@ class TestRoundTrips:
 
 
 class TestImageUpload:
-    def test_upload_trade_image_201(self, client) -> None:
-        """AC-12: POST /trades/{exec_id}/images uploads and attaches image."""
+    @pytest.fixture()
+    def _valid_png(self) -> bytes:
+        """Generate a minimal valid 1×1 red PNG for upload fixture."""
+        import io
+
+        from PIL import Image
+
+        buf = io.BytesIO()
+        img = Image.new("RGB", (1, 1), color=(255, 0, 0))
+        img.save(buf, format="PNG")
+        return buf.getvalue()
+
+    def test_upload_trade_image_201(self, client, _valid_png: bytes) -> None:
+        """AC-12: POST /trades/{exec_id}/images uploads and attaches image.
+
+        Mocks the infra-layer image processing functions (validate_image,
+        standardize_to_webp, generate_thumbnail) to keep this a pure
+        route-wiring unit test.
+        """
+        from unittest.mock import patch
+
         http, _, image_svc = client
         image_svc.attach_image.return_value = 42
 
-        resp = http.post(
-            "/api/v1/trades/E001/images",
-            files={"file": ("chart.webp", b"\x00" * 100, "image/webp")},
-            data={"caption": "entry chart"},
-        )
+        with (
+            patch(
+                "zorivest_api.routes.trades.validate_image",
+                return_value=("image/png", 1, 1),
+            ),
+            patch(
+                "zorivest_api.routes.trades.standardize_to_webp",
+                return_value=b"webp-stub",
+            ),
+            patch(
+                "zorivest_api.routes.trades.generate_thumbnail",
+                return_value=b"thumb-stub",
+            ),
+        ):
+            resp = http.post(
+                "/api/v1/trades/E001/images",
+                files={"file": ("chart.png", _valid_png, "image/png")},
+                data={"caption": "entry chart"},
+            )
         assert resp.status_code == 201
         assert resp.json()["image_id"] == 42
         image_svc.attach_image.assert_called_once()

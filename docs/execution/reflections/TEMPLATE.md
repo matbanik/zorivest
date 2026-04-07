@@ -1,8 +1,16 @@
+---
+date: "{YYYY-MM-DD}"
+project: "{project-slug}"
+meus: ["{MEU-ID-1}", "{MEU-ID-2}"]
+plan_source: "docs/execution/plans/{YYYY-MM-DD}-{project-slug}/implementation-plan.md"
+template_version: "2.0"
+---
+
 # {YYYY-MM-DD} Meta-Reflection
 
 > **Date**: {YYYY-MM-DD}
 > **MEU(s) Completed**: {list}
-> **Plan Source**: `/create-plan` workflow
+> **Plan Source**: {plan path}
 
 ---
 
@@ -114,6 +122,7 @@ EXAMPLE: {before → after}
 | Prompt→commit time | ___ |
 
 ### Rules Sampled for Adherence Check
+
 | Rule | Source | Followed? |
 |------|--------|-----------|
 | _{rule description}_ | AGENTS.md §X | Yes/No |

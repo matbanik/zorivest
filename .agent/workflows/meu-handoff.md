@@ -28,91 +28,14 @@ Example: `.agent/context/handoffs/001-2026-03-06-calculator-bp01s1.3.md`
 
 ## Template
 
-```markdown
----
-meu: {N}
-slug: {slug}
-phase: {1/1A/2/2A/3/...}
-priority: {P0/P1/P2/P3}
-status: ready_for_review
-agent: opus-4.6
-iteration: 1
-files_changed: {count}
-tests_added: {count}
-tests_passing: {count}
----
-
-# MEU-{N}: {Title}
-
-## Scope
-
-{One paragraph: what this MEU covers, what build plan section it implements}
-
-Build plan reference: [link to docs/build-plan/XX-section.md]
-
-## Feature Intent Contract
-
-### Intent Statement
-{What must be true for users when this MEU ships}
-
-### Acceptance Criteria
-- AC-1 (Source: Spec): {concrete, testable condition}
-- AC-2 (Source: Local Canon / Research-backed / Human-approved): {concrete, testable condition}
-- ...
-
-### Negative Cases
-- Must NOT: {what must not happen}
-- Must NOT: {what must not happen}
-
-### Test Mapping
-| Criterion | Test File | Test Function |
-|-----------|-----------|---------------|
-| AC-1 | tests/unit/test_xxx.py | test_yyy |
-| AC-2 | tests/unit/test_xxx.py | test_zzz |
-
-> Any criterion that is not explicit in the target build-plan section must cite the exact local file path or web source used to resolve it. `Best practice` alone is not acceptable.
-
-### Boundary Contract (Write-Adjacent MEUs Only)
-
-| Boundary | Schema | Extra-Field Policy | Negative Tests | Create/Update Parity |
-|----------|--------|--------------------|----------------|---------------------|
-
-> Skip this section for read-only or internal-only MEUs.
-
-## Design Decisions & Known Risks
-
-- **Decision**: {what you chose} — **Reasoning**: {why, in 1-2 sentences} — **ADR**: {ADR-NNNN if created, or "inline" if minor}
-- **Source Basis**: {exact file path(s) and/or URL(s) that justify non-explicit behavior}
-- **Assumption**: {only if still unresolved and the handoff status is `blocked` or `changes_required`}
-- **Risk**: {any edge cases not fully covered}
-
-> For decisions affecting cross-package boundaries or rejecting plausible alternatives, create a formal ADR at `docs/decisions/`. Reference it here by number.
-
-## Changed Files
-
-| File | Action | Description |
-|------|--------|-------------|
-| `path/to/file.py` | Created / Modified | {what changed} |
-
-## Commands Executed
-
-| Command | Result | Notes |
-|---------|--------|-------|
-| `pytest tests/unit/test_xxx.py -x -v` | PASS (N tests) | All green |
-| `pyright packages/core/src/` | PASS | No errors |
-| `ruff check packages/core/src/` | PASS | No warnings |
-
-## FAIL_TO_PASS Evidence
-
-| Test | Before | After |
-|------|--------|-------|
-| `test_xxx` | FAIL (not implemented) | PASS |
-| `test_yyy` | FAIL (not implemented) | PASS |
-
----
-## Codex Validation Report
-{Left blank — Codex fills this section during validation-review workflow}
-```
+> **Start from** [`.agent/context/handoffs/TEMPLATE.md`](file:///p:/zorivest/.agent/context/handoffs/TEMPLATE.md) (v2.0)
+>
+> Copy the template, fill all placeholder fields, and ensure:
+> - YAML frontmatter `seq`, `date`, `project`, `meu`, `status`, `action_required` are populated
+> - `action_required` is set to `VALIDATE_AND_APPROVE` for new handoffs
+> - AC table has source labels for every criterion
+> - Evidence section has FAIL_TO_PASS table and Commands Executed table
+> - Codex Validation Report section is left blank for the reviewer
 
 ## Live Runtime Probe Requirements
 

@@ -14,11 +14,10 @@ Use this workflow to start a new build session. Instead of reading a pre-written
 
 Read these files in order:
 
-1. `SOUL.md`
-2. `AGENTS.md`
-3. `.agent/context/current-focus.md`
-4. `.agent/context/known-issues.md`
-5. `.agent/docs/emerging-standards.md` — scan for standards applicable to the MEUs being planned. Add matching standards as explicit subtasks in Step 4.
+1. `AGENTS.md`
+2. `.agent/context/current-focus.md`
+3. `.agent/context/known-issues.md`
+4. `.agent/docs/emerging-standards.md` — scan for standards applicable to the MEUs being planned. Add matching standards as explicit subtasks in Step 4.
 
 ## Steps
 
@@ -124,8 +123,8 @@ New-Item -ItemType Directory -Force -Path "docs\execution\plans\$projectSlug" | 
 ```
 
 Write both files to `docs/execution/plans/{YYYY-MM-DD}-{project-slug}/`:
-- `implementation-plan.md`
-- `task.md`
+- `implementation-plan.md` — start from [`docs/execution/plans/PLAN-TEMPLATE.md`](file:///p:/zorivest/docs/execution/plans/PLAN-TEMPLATE.md) (v2.0)
+- `task.md` — start from [`docs/execution/plans/TASK-TEMPLATE.md`](file:///p:/zorivest/docs/execution/plans/TASK-TEMPLATE.md) (v2.0)
 
 > [!IMPORTANT]
 > **The project folder is the single source of truth.** All edits and revisions happen here. The Antigravity brain folder (`~/.gemini/antigravity/brain/{conversation-id}/`) may receive a copy for UI rendering, but the project folder is what Codex validates against and what gets version-controlled.

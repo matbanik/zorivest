@@ -14,6 +14,11 @@ from typing import Annotated, Optional
 
 from zorivest_core.application.commands import AttachImage, CreateTrade
 from zorivest_core.domain.enums import ImageOwnerType, TradeAction
+from zorivest_infra.image_processing import (
+    generate_thumbnail,
+    standardize_to_webp,
+    validate_image,
+)
 from zorivest_core.domain.exceptions import BusinessRuleError, NotFoundError
 from zorivest_api.dependencies import (
     get_trade_service,
@@ -203,19 +208,27 @@ async def upload_trade_image(
     """Upload an image and attach it to a trade.
 
     Source: 04a-api-trades.md §Image Upload
-    The service layer normalizes to image/webp after standardization.
+    Validates the image (magic bytes, 10 MB size limit), converts to WebP,
+    extracts real dimensions, and stores via the service layer.
     """
-    data = await file.read()
+    raw_data = await file.read()
     try:
+        # Validate format and size, extract dimensions
+        _mime, width, height = validate_image(raw_data)
+        # Convert to standardized WebP
+        webp_data = standardize_to_webp(raw_data)
+        # Generate 200×200 WebP thumbnail
+        thumb_data = generate_thumbnail(raw_data)
         image_id = service.attach_image(
             AttachImage(
                 owner_type=ImageOwnerType.TRADE,
                 owner_id=exec_id,
-                data=data,
-                mime_type=file.content_type or "image/webp",
-                width=0,  # service layer extracts dimensions after WebP conversion
-                height=0,
+                data=webp_data,
+                mime_type="image/webp",
+                width=width,
+                height=height,
                 caption=caption,
+                thumbnail=thumb_data,
             )
         )
     except NotFoundError:

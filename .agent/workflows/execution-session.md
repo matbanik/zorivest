@@ -18,7 +18,7 @@ Artifact naming conventions:
 
 ## Prerequisites
 
-- Read `SOUL.md`, `AGENTS.md`
+- Read `AGENTS.md`
 - Read `.agent/context/current-focus.md` for active phase
 - Read `.agent/context/meu-registry.md` for MEU scope
 
@@ -121,7 +121,9 @@ Before declaring any MEU "ready for review" or writing completion claims in the 
 
 ### 5. Meta-Reflection (Post-Execution)
 
-After Codex validation has completed for the project's MEU handoff set, create the reflection file at `docs/execution/reflections/{YYYY-MM-DD}-{project-slug}-reflection.md` using the template at `docs/execution/reflections/TEMPLATE.md`.
+After Codex validation has completed for the project's MEU handoff set, create the reflection file at `docs/execution/reflections/{YYYY-MM-DD}-{project-slug}-reflection.md`.
+
+> **Start from** [`docs/execution/reflections/TEMPLATE.md`](file:///p:/zorivest/docs/execution/reflections/TEMPLATE.md) (v2.0)
 
 Structure the reflection with these sections:
 

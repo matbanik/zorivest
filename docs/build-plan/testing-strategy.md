@@ -525,6 +525,9 @@ Track eval results per feature in the handoff artifact. Use the following templa
 
 > Status: **Scaffolded** — 20 tests in 8 files, activated incrementally via 6 waves (see [06-gui.md](06-gui.md) §E2E Waves).
 
+> [!CAUTION]
+> **GUI verification must always use Playwright E2E tests, never `browser_subagent`.** The browser tool cannot launch or interact with Electron apps — it opens a Chromium tab, not the Electron shell. Any GUI behavior that needs verification requires an E2E test in `ui/tests/e2e/`. See `.agent/skills/e2e-testing/SKILL.md` for infrastructure and patterns.
+
 | Aspect | Detail |
 |---|---|
 | **Tool** | Playwright `_electron` with `@axe-core/playwright` |

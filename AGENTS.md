@@ -57,7 +57,6 @@ uv run pytest tests/ -x --tb=short -v *> C:\Temp\zorivest\pytest.txt; Get-Conten
 # Zorivest Agent Instructions
 
 AI-specific guidance for working with the Zorivest codebase. Single source of truth for all AI coding assistants.
-For agent identity, see `SOUL.md`.
 
 ## Quick Commands
 
@@ -99,10 +98,11 @@ Hybrid monorepo — see `.agent/docs/architecture.md` for the target-state archi
 > [!IMPORTANT]
 > **Zorivest does NOT execute trades — it plans and evaluates.** The software imports trade results from execution platforms (Interactive Brokers, etc.), analyzes performance, and generates trade plans. It never places, modifies, or cancels orders. All references to "trade confirmation" or "execution safety" apply to data-destructive operations (e.g., deleting trade records), NOT financial execution.
 
-## Agent Identity
+## Communication Policy
 
-Read and internalize `SOUL.md` at session start — identity (Kael), core equation, personality.
-`SOUL.md` = who you are. `AGENTS.md` = project rules.
+- Surface risks and bad news early. No performative enthusiasm.
+- When uncertain: state confidence level and propose a verification step.
+- If instructions conflict across files, flag the conflict explicitly — do not silently pick one.
 
 ## Session Discipline
 
@@ -113,7 +113,7 @@ Read and internalize `SOUL.md` at session start — identity (Kael), core equati
 - **Time is not a constraint** in agentic development cycles. Do not optimize for speed over quality.
 - **Token usage is not a constraint** (subscription-based). Do not truncate, summarize prematurely, or skip work to save tokens.
 - **Do not bring up time or token usage** in design discussions, trade-off analyses, or implementation decisions. Quality, wisdom, and expert experience are the only optimization targets.
-- **At session start:** Read `SOUL.md`, check `pomera_notes` (`search_term: "Zorivest"`), read `.agent/context/current-focus.md` and `.agent/context/known-issues.md`. Verify MCP server availability (`pomera_diagnose`). If `pomera` or `text-editor` unavailable, report and stop.
+- **At session start:** Check `pomera_notes` (`search_term: "Zorivest"`), read `.agent/context/current-focus.md` and `.agent/context/known-issues.md`. Verify MCP server availability (`pomera_diagnose`). If `pomera` or `text-editor` unavailable, report and stop.
 - **At session end:** Save to `pomera_notes` (`Memory/Session/Zorivest-{project-slug}-{date}`) and create/update handoff(s) at `.agent/context/handoffs/`. Update `.agent/context/current-focus.md` only when the session changes project state; review-only sessions should not overwrite unrelated focus state.
 - **Handoff continuity:** For the same `docs/execution/plans/{YYYY-MM-DD}-{project-slug}/` target, keep plan review in one rolling `-plan-critical-review.md` file and project implementation critique/recheck in one rolling `-implementation-critical-review.md` file. Append updates to the same file instead of creating new `-recheck`, `-final`, or `-approved` variants.
 - **Under-specified build-plan handling:** Never make silent assumptions, silent scope cuts, or silent deferrals. Resolve gaps in this order: (1) local canonical docs (`docs/build-plan/`, linked references, ADRs, approved reflections/handoffs when they establish carry-forward rules), (2) targeted web research against primary/current sources to confirm best practice, (3) explicit human decision only if materially different product behaviors remain plausible, sources conflict, or the decision is irreversible/high-risk.
@@ -206,6 +206,9 @@ Every MEU that touches external input must include in its plan and FIC:
 - Run `pytest` / `vitest` after EVERY code change.
 - Coverage targets (advisory): core 80–90%, infra/api/mcp 70%, UI 50–60%.
 - See `.agent/docs/testing-strategy.md` for test pyramid and fixtures.
+
+> [!CAUTION]
+> **Never use `browser_subagent` for GUI verification.** Zorivest is an Electron app — the browser tool cannot launch or interact with it. All GUI verification must go through Playwright E2E tests (`ui/tests/e2e/`). If a GUI fix needs verification, **write an E2E test** that asserts the correct behavior. See `/e2e-testing` workflow and `.agent/skills/e2e-testing/SKILL.md`.
 
 ### FIC-Based TDD Workflow (Mandatory)
 

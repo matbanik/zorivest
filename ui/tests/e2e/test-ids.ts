@@ -75,6 +75,19 @@ export const TRADES = {
     },
 } as const
 
+// ── Screenshot Panel ────────────────────────────────────────────────────
+
+export const SCREENSHOTS = {
+    PANEL: 'screenshot-panel',
+    THUMBNAIL: 'screenshot-thumbnail',
+    UPLOAD_BTN: 'screenshot-upload-btn',
+    DELETE_BTN: 'screenshot-delete-btn',
+    LIGHTBOX: 'screenshot-lightbox',
+    FILE_INPUT: 'screenshot-file-input',
+    LOADING: 'screenshot-loading',
+    ERROR: 'screenshot-error',
+} as const
+
 // ── Settings Page ───────────────────────────────────────────────────────
 
 export const SETTINGS = {

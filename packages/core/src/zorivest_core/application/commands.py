@@ -49,6 +49,7 @@ class AttachImage:
     width: int
     height: int
     caption: str = ""
+    thumbnail: bytes = b""
 
     def __post_init__(self) -> None:
         if self.mime_type != "image/webp":
