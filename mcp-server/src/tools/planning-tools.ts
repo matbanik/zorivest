@@ -58,6 +58,15 @@ export function registerPlanningTools(server: McpServer): RegisteredToolHandle[]
                     .string()
                     .optional()
                     .describe("Target account for the plan"),
+                shares_planned: z
+                    .number()
+                    .int()
+                    .optional()
+                    .describe("Number of shares/contracts planned"),
+                position_size: z
+                    .number()
+                    .optional()
+                    .describe("Total dollar value of position (shares × entry_price)"),
             },
             // AC-2: annotations per spec 05d L87-93
             annotations: {
@@ -87,6 +96,8 @@ export function registerPlanningTools(server: McpServer): RegisteredToolHandle[]
                 conditions: string;
                 timeframe: string;
                 account_id?: string;
+                shares_planned?: number;
+                position_size?: number;
             }, _extra: unknown) => {
                 const body = {
                     ticker: params.ticker,
@@ -100,6 +111,8 @@ export function registerPlanningTools(server: McpServer): RegisteredToolHandle[]
                     conditions: params.conditions,
                     timeframe: params.timeframe,
                     account_id: params.account_id,
+                    shares_planned: params.shares_planned,
+                    position_size: params.position_size,
                 };
 
                 // AC-4: POST to /trade-plans with JSON body

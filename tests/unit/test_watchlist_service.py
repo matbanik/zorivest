@@ -208,6 +208,52 @@ class TestDuplicateTicker:
 # ── AC-9: Cascade delete ────────────────────────────────────────────────
 
 
+class TestUpdateItemNotes:
+    """Bug-fix: inline notes editing requires update_item_notes service method."""
+
+    def test_update_notes_happy_path(self, service: WatchlistService) -> None:
+        wl = service.create("Test")
+        service.add_ticker(wl.id, "AAPL", "Original notes")
+        updated = service.update_item_notes(wl.id, "AAPL", "Updated notes")
+        assert updated.notes == "Updated notes"
+        assert updated.ticker == "AAPL"
+
+    def test_update_notes_persists(self, service: WatchlistService) -> None:
+        wl = service.create("Test")
+        service.add_ticker(wl.id, "AAPL", "First")
+        service.update_item_notes(wl.id, "AAPL", "Second")
+        items = service.get_items(wl.id)
+        assert len(items) == 1
+        assert items[0].notes == "Second"
+
+    def test_update_notes_nonexistent_watchlist_raises(
+        self, service: WatchlistService
+    ) -> None:
+        with pytest.raises(ValueError, match="not found"):
+            service.update_item_notes(999, "AAPL", "notes")
+
+    def test_update_notes_nonexistent_ticker_raises(
+        self, service: WatchlistService
+    ) -> None:
+        wl = service.create("Test")
+        with pytest.raises(ValueError, match="not found"):
+            service.update_item_notes(wl.id, "GOOG", "notes")
+
+    def test_update_notes_case_insensitive_ticker(
+        self, service: WatchlistService
+    ) -> None:
+        wl = service.create("Test")
+        service.add_ticker(wl.id, "AAPL", "Old")
+        updated = service.update_item_notes(wl.id, "aapl", "New")
+        assert updated.notes == "New"
+
+    def test_update_notes_to_empty_string(self, service: WatchlistService) -> None:
+        wl = service.create("Test")
+        service.add_ticker(wl.id, "AAPL", "Has notes")
+        updated = service.update_item_notes(wl.id, "AAPL", "")
+        assert updated.notes == ""
+
+
 class TestCascadeDelete:
     """AC-9: Deleting a watchlist removes all its items."""
 

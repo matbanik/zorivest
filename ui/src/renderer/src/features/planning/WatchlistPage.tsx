@@ -1,8 +1,10 @@
-import { useState, useCallback, useEffect } from 'react'
+import { useState, useCallback, useEffect, useRef } from 'react'
 import { useQuery, useQueryClient } from '@tanstack/react-query'
 import { apiFetch } from '@/lib/api'
 import { useStatusBar } from '@/hooks/useStatusBar'
+import { usePersistedState } from '@/hooks/usePersistedState'
 import TickerAutocomplete from '@/components/TickerAutocomplete'
+import WatchlistTable from './WatchlistTable'
 
 // ── Types (G6: exact API field names) ────────────────────────────────────
 
@@ -25,13 +27,47 @@ interface Watchlist {
 
 interface MarketQuote {
     last_price: number
-    change_pct: number
+    change?: number         // Dollar change
+    change_pct: number      // Percent change
+    volume?: number
     symbol: string
+    timestamp?: string      // ISO 8601 quote timestamp
 }
 
+// API response shape — matches backend MarketQuote DTO (market_dtos.py)
+interface ApiMarketQuote {
+    ticker: string
+    price: number
+    change: number | null
+    change_pct: number | null
+    volume: number | null
+    provider: string
+    timestamp?: string
+}
+
+/** Map backend DTO → UI MarketQuote (field name bridge). */
+function mapApiQuote(api: ApiMarketQuote): MarketQuote {
+    return {
+        last_price: api.price,
+        change: api.change ?? undefined,
+        change_pct: api.change_pct ?? 0,
+        volume: api.volume ?? undefined,
+        symbol: api.ticker,
+        timestamp: api.timestamp,
+    }
+}
+
+
 // W2: Per-ticker quote fetcher — returns map of ticker → quote (or null)
-function useWatchlistQuotes(tickers: string[]): Record<string, MarketQuote | null> {
+// W2: Stagger-polled quote fetcher — fetches each ticker with 200ms delay
+// to avoid API rate-limiting, tracks most recent timestamp for freshness.
+function useWatchlistQuotes(tickers: string[]): {
+    quotes: Record<string, MarketQuote | null>
+    lastQuoteTime: string | null
+} {
     const [quotes, setQuotes] = useState<Record<string, MarketQuote | null>>({})
+    const [lastQuoteTime, setLastQuoteTime] = useState<string | null>(null)
+    const intervalRef = useRef<ReturnType<typeof setInterval> | null>(null)
 
     useEffect(() => {
         if (tickers.length === 0) return
@@ -44,19 +80,42 @@ function useWatchlistQuotes(tickers: string[]): Record<string, MarketQuote | nul
             return next
         })
 
-        tickers.forEach((ticker) => {
-            apiFetch<MarketQuote>(`/api/v1/market-data/quote?ticker=${encodeURIComponent(ticker)}`)
-                .then((q) => {
-                    if (!cancelled) setQuotes((prev) => ({ ...prev, [ticker]: q }))
-                })
-                .catch(() => {
-                    // AC-W2-4: graceful degradation — keep null (shows '—')
-                })
-        })
-        return () => { cancelled = true }
+        // Stagger-fetch: 4000 + Math.random() * 1000 per ticker (06i §6 — thundering herd prevention)
+        const REFRESH_BASE_MS = 4000
+        const REFRESH_JITTER_MS = 1000
+
+        const fetchAll = () => {
+            tickers.forEach((ticker) => {
+                const delay = REFRESH_BASE_MS + Math.random() * REFRESH_JITTER_MS
+                setTimeout(() => {
+                    if (cancelled) return
+                    apiFetch<ApiMarketQuote>(`/api/v1/market-data/quote?ticker=${encodeURIComponent(ticker)}`)
+                        .then((raw) => {
+                            if (!cancelled) {
+                                const q = mapApiQuote(raw)
+                                setQuotes((prev) => ({ ...prev, [ticker]: q }))
+                                setLastQuoteTime(q.timestamp ?? new Date().toISOString())
+                            }
+                        })
+                        .catch(() => {
+                            // AC-W2-4: graceful degradation — keep null (shows '—')
+                        })
+                }, delay)
+            })
+        }
+
+        fetchAll()
+
+        // Auto-refresh every 5s (06i §6 — refetchInterval: 5000)
+        intervalRef.current = setInterval(fetchAll, 5000)
+
+        return () => {
+            cancelled = true
+            if (intervalRef.current) clearInterval(intervalRef.current)
+        }
     }, [tickers.join(',')]) // eslint-disable-line react-hooks/exhaustive-deps
 
-    return quotes
+    return { quotes, lastQuoteTime }
 }
 
 // ── Component ────────────────────────────────────────────────────────────
@@ -73,7 +132,10 @@ export default function WatchlistPage() {
 
     // W2: Fetch quotes for visible tickers when a watchlist is selected
     const visibleTickers = selectedList?.items.map((i) => i.ticker) ?? []
-    const quotes = useWatchlistQuotes(visibleTickers)
+    const { quotes, lastQuoteTime } = useWatchlistQuotes(visibleTickers)
+
+    // Colorblind mode — persisted via Settings API
+    const [colorblind, setColorblind] = usePersistedState<boolean>('ui.watchlist.colorblind_mode', false)
 
     // Fetch watchlists (G5: 5s auto-refresh)
     const { data: watchlists = [] } = useQuery<Watchlist[]>({
@@ -184,6 +246,23 @@ export default function WatchlistPage() {
             setStatus(`Error: ${err instanceof Error ? err.message : 'Failed'}`)
         }
     }, [selectedList, queryClient, setStatus])
+
+    // Update item notes (Bug-Fix: inline editing)
+    const handleUpdateNotes = useCallback(async (ticker: string, notes: string) => {
+        if (!selectedList) return
+        try {
+            setStatus('Updating notes...')
+            await apiFetch(`/api/v1/watchlists/${selectedList.id}/items/${ticker}`, {
+                method: 'PATCH',
+                body: JSON.stringify({ notes }),
+            })
+            setStatus('Notes updated')
+            const updated = await apiFetch<Watchlist>(`/api/v1/watchlists/${selectedList.id}`)
+            setSelectedList(updated)
+        } catch (err) {
+            setStatus(`Error: ${err instanceof Error ? err.message : 'Failed'}`)
+        }
+    }, [selectedList, setStatus])
 
     const isDetailOpen = isCreating || selectedList !== null
 
@@ -302,10 +381,21 @@ export default function WatchlistPage() {
                             </div>
                         </div>
 
-                        {/* Items Table (AC-8, AC-9) */}
+                        {/* Items Table (AC-8, AC-9) — WatchlistTable */}
                         {selectedList && !isCreating && (
                             <div className="border-t border-bg-subtle pt-4">
-                                <h4 className="text-sm font-semibold text-fg mb-3">Tickers</h4>
+                                <div className="flex items-center justify-between mb-3">
+                                    <h4 className="text-sm font-semibold text-fg">Tickers</h4>
+                                    {/* Colorblind toggle (AC-18) */}
+                                    <button
+                                        data-testid="colorblind-toggle"
+                                        onClick={() => setColorblind(!colorblind)}
+                                        className={`wl-cb-toggle${colorblind ? ' wl-cb-toggle--active' : ''}`}
+                                    >
+                                        <span>🔵</span>
+                                        <span>{colorblind ? 'Colorblind: On' : 'Colorblind: Off'}</span>
+                                    </button>
+                                </div>
 
                                 {/* Add ticker inline (AC-9) */}
                                 <div className="flex gap-2 mb-3">
@@ -335,60 +425,16 @@ export default function WatchlistPage() {
                                     </button>
                                 </div>
 
-                                {/* Items list */}
-                                <div className="space-y-1" data-testid="watchlist-items">
-                                    {selectedList.items.length === 0 && (
-                                        <p className="text-xs text-fg-muted py-2 text-center">No tickers yet</p>
-                                    )}
-                                    {selectedList.items.map((item) => {
-                                        const q = quotes[item.ticker]
-                                        const hasPrice = q?.last_price != null
-                                        const priceText = hasPrice ? (q!.last_price as number).toFixed(2) : '—'
-                                        const changePct = (hasPrice && q?.change_pct != null) ? q.change_pct : null
-                                        const changeText = changePct !== null
-                                            ? `${changePct >= 0 ? '▲' : '▼'} ${Math.abs(changePct).toFixed(2)}%`
-                                            : '—'
-                                        const changeClass = changePct === null
-                                            ? 'text-fg-muted'
-                                            : changePct >= 0 ? 'text-gain' : 'text-loss'
-                                        return (
-                                            <div
-                                                key={item.id}
-                                                data-testid={`watchlist-item-${item.ticker}`}
-                                                className="flex items-center justify-between px-3 py-2 rounded-md border border-bg-subtle bg-bg"
-                                            >
-                                                <div className="flex items-center gap-3">
-                                                    <span className="font-medium text-fg text-sm">{item.ticker}</span>
-                                                    {item.notes && (
-                                                        <span className="text-xs text-fg-muted">{item.notes}</span>
-                                                    )}
-                                                </div>
-                                                {/* W2: Price + Change columns */}
-                                                <div className="flex items-center gap-3">
-                                                    <span
-                                                        data-testid={`watchlist-price-${item.ticker}`}
-                                                        className="text-sm font-mono text-fg"
-                                                    >
-                                                        {priceText}
-                                                    </span>
-                                                    <span
-                                                        data-testid={`watchlist-change-${item.ticker}`}
-                                                        className={`text-xs font-mono ${changeClass}`}
-                                                    >
-                                                        {changeText}
-                                                    </span>
-                                                    <button
-                                                        data-testid={`remove-ticker-${item.ticker}`}
-                                                        onClick={() => handleRemoveTicker(item.ticker)}
-                                                        className="text-xs text-red-400 hover:text-red-300 cursor-pointer"
-                                                        title="Remove"
-                                                    >
-                                                        ✕
-                                                    </button>
-                                                </div>
-                                            </div>
-                                        )
-                                    })}
+                                {/* Professional data table */}
+                                <div data-testid="watchlist-items">
+                                    <WatchlistTable
+                                        items={selectedList.items}
+                                        quotes={quotes}
+                                        colorblind={colorblind}
+                                        onRemoveTicker={handleRemoveTicker}
+                                        onUpdateNotes={handleUpdateNotes}
+                                        lastQuoteTime={lastQuoteTime}
+                                    />
                                 </div>
                             </div>
                         )}

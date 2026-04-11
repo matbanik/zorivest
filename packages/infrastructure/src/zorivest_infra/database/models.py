@@ -142,6 +142,9 @@ class TradePlanModel(Base):
     linked_trade_id = Column(String, ForeignKey("trades.exec_id"), nullable=True)
     account_id = Column(String, ForeignKey("accounts.account_id"), nullable=True)
     shares_planned = Column(Integer, nullable=True)  # Position size (shares/contracts)
+    position_size = Column(
+        Float, nullable=True
+    )  # Total dollar value (shares × entry_price)
     created_at = Column(DateTime, nullable=False)
     updated_at = Column(DateTime, nullable=True)
     executed_at = Column(DateTime, nullable=True)  # T5: timestamp when → executed

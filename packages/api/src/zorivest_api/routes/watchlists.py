@@ -68,6 +68,12 @@ class WatchlistResponse(BaseModel):
     model_config = {"from_attributes": True}
 
 
+class UpdateItemNotesRequest(BaseModel):
+    model_config = {"extra": "forbid"}
+
+    notes: str = ""
+
+
 # ── Watchlist routes ────────────────────────────────────────────────────
 
 
@@ -205,3 +211,25 @@ def _to_response(wl: object, service: object) -> dict:
         "updated_at": str(getattr(wl, "updated_at", "")),
         "items": items,
     }
+
+
+@watchlist_router.patch("/{watchlist_id}/items/{ticker}")
+def patch_watchlist_item_notes(
+    watchlist_id: int,
+    ticker: str,
+    body: UpdateItemNotesRequest,
+    svc=Depends(get_watchlist_service),
+):
+    """Update notes for a specific ticker in a watchlist."""
+    try:
+        updated = svc.update_item_notes(watchlist_id, ticker, body.notes)
+    except ValueError as exc:
+        raise HTTPException(status_code=404, detail=str(exc)) from exc
+
+    return WatchlistItemResponse(
+        id=updated.id,
+        watchlist_id=updated.watchlist_id,
+        ticker=updated.ticker,
+        added_at=str(updated.added_at),
+        notes=updated.notes,
+    )

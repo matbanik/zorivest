@@ -9,7 +9,7 @@ from __future__ import annotations
 
 from typing import Any
 
-from fastapi import APIRouter, Depends, HTTPException
+from fastapi import APIRouter, Depends, HTTPException, Response
 from pydantic import BaseModel
 
 from zorivest_api.dependencies import get_settings_service, require_unlocked_db
@@ -34,6 +34,15 @@ class UpdateSettingRequest(BaseModel):
     value: Any
 
 
+class ResolvedSettingResponse(BaseModel):
+    """Single resolved setting with source attribution."""
+
+    key: str
+    value: Any
+    value_type: str
+    source: str  # "user" | "default" | "hardcoded"
+
+
 @settings_router.get("", dependencies=[Depends(require_unlocked_db)])
 async def get_all_settings(
     service: Any = Depends(get_settings_service),
@@ -41,7 +50,7 @@ async def get_all_settings(
     """Bulk read all settings as key-value dict.
 
     Returns all raw user settings. For resolved settings with
-    source attribution, use GET /settings/resolved (Phase 2A).
+    source attribution, use GET /settings/resolved.
     """
     rows = service.get_all()
     return {
@@ -49,6 +58,30 @@ async def get_all_settings(
             r, "value", r.get("value") if isinstance(r, dict) else None
         )
         for r in rows
+    }
+
+
+@settings_router.get("/resolved", dependencies=[Depends(require_unlocked_db)])
+async def get_resolved_settings(
+    service: Any = Depends(get_settings_service),
+) -> dict[str, ResolvedSettingResponse]:
+    """Bulk read all settings with three-tier source attribution.
+
+    Returns all known settings resolved through:
+    user override → app default → hardcoded fallback.
+    Each entry includes the value source for UI rendering.
+
+    Source: MEU-76 (06f-gui-settings.md §6f.7)
+    """
+    resolved = service.get_all_resolved()
+    return {
+        key: ResolvedSettingResponse(
+            key=rs.key,
+            value=rs.value,
+            value_type=rs.value_type,
+            source=rs.source,
+        )
+        for key, rs in resolved.items()
     }
 
 
@@ -121,3 +154,24 @@ async def update_single_setting(
         return service.bulk_upsert({key: body.value})
     except SettingsValidationError as e:
         raise HTTPException(422, detail={"errors": e.per_key_errors})
+
+
+@settings_router.delete("/{key}", dependencies=[Depends(require_unlocked_db)])
+async def delete_setting(
+    key: str,
+    service: Any = Depends(get_settings_service),
+) -> Response:
+    """Reset a single setting to its default value.
+
+    Removes the user override so the value falls through to
+    app default → hardcoded fallback.
+    Returns 204 on success, 404 if key is not in the registry.
+
+    Source: MEU-76 (06f-gui-settings.md §6f.7)
+    """
+    from zorivest_core.domain.settings import SETTINGS_REGISTRY
+
+    if key not in SETTINGS_REGISTRY:
+        raise HTTPException(404, f"Setting '{key}' not found")
+    service.reset_to_default(key)
+    return Response(status_code=204)

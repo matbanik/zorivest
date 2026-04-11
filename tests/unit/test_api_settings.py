@@ -276,3 +276,91 @@ class TestSettingsBoundaryValidation:
             json={},
         )
         assert resp.status_code == 422
+
+
+# ── MEU-76: DELETE /api/v1/settings/{key} (Reset to Default) ─────────
+
+
+class TestDeleteSetting:
+    """MEU-76: Reset single setting to default via DELETE."""
+
+    def test_delete_existing_returns_204(self, client: TestClient) -> None:
+        """AC-1: DELETE /{key} for existing user override returns 204."""
+        # First PUT a value so we have a user override
+        client.put("/api/v1/settings/ui.theme", json={"value": "light"})
+        # DELETE should remove the override
+        resp = client.delete("/api/v1/settings/ui.theme")
+        assert resp.status_code == 204
+
+    def test_delete_resets_to_default(self, client: TestClient) -> None:
+        """AC-1: After DELETE, GET returns hardcoded default (not user value)."""
+        # Set a user override
+        client.put("/api/v1/settings/ui.theme", json={"value": "light"})
+        # Verify it's set
+        get_resp = client.get("/api/v1/settings/ui.theme")
+        assert get_resp.json()["value"] == "light"
+        # DELETE the override
+        client.delete("/api/v1/settings/ui.theme")
+        # GET should return the hardcoded default
+        get_resp2 = client.get("/api/v1/settings/ui.theme")
+        assert get_resp2.status_code == 200
+        assert get_resp2.json()["value"] == "dark"  # hardcoded default
+
+    def test_delete_unknown_key_returns_404(self, client: TestClient) -> None:
+        """AC-2: DELETE /{key} for unknown key returns 404."""
+        resp = client.delete("/api/v1/settings/nonexistent.key.xyz")
+        assert resp.status_code == 404
+
+    def test_delete_403_when_locked(self) -> None:
+        """AC-1: DELETE route is mode-gated."""
+        app = create_app()
+        app.state.db_unlocked = False
+        app.state.start_time = __import__("time").time()
+        locked_client = TestClient(app)
+        resp = locked_client.delete("/api/v1/settings/ui.theme")
+        assert resp.status_code == 403
+
+
+# ── MEU-76: GET /api/v1/settings/resolved ────────────────────────────
+
+
+class TestGetResolvedSettings:
+    """MEU-76: Resolved settings with source attribution."""
+
+    def test_resolved_returns_200(self, client: TestClient) -> None:
+        """AC-3: GET /settings/resolved returns 200 with dict."""
+        resp = client.get("/api/v1/settings/resolved")
+        assert resp.status_code == 200
+        data = resp.json()
+        assert isinstance(data, dict)
+
+    def test_resolved_contains_source(self, client: TestClient) -> None:
+        """AC-3: Each resolved setting has key, value, source, value_type."""
+        resp = client.get("/api/v1/settings/resolved")
+        data = resp.json()
+        # Should have at least some settings from the registry
+        assert len(data) > 0
+        for key, entry in data.items():
+            assert isinstance(key, str)
+            assert "key" in entry
+            assert "value" in entry
+            assert "source" in entry
+            assert entry["source"] in ("user", "default", "hardcoded")
+            assert "value_type" in entry
+
+    def test_resolved_shows_user_source(self, client: TestClient) -> None:
+        """AC-3: User override is reflected as source='user'."""
+        client.put("/api/v1/settings/ui.theme", json={"value": "light"})
+        resp = client.get("/api/v1/settings/resolved")
+        data = resp.json()
+        assert data["ui.theme"]["source"] == "user"
+        assert data["ui.theme"]["value"] == "light"
+
+    def test_resolved_403_when_locked(self) -> None:
+        """AC-3: GET /settings/resolved is mode-gated."""
+        app = create_app()
+        app.state.db_unlocked = False
+        app.state.start_time = __import__("time").time()
+        locked_client = TestClient(app)
+        resp = locked_client.get("/api/v1/settings/resolved")
+        assert resp.status_code == 403

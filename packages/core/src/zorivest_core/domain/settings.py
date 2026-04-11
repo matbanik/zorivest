@@ -6,7 +6,7 @@ Source: 02a-backup-restore.md §2A.1, §2A.2
 Contains:
 - Sensitivity enum (NON_SENSITIVE, SENSITIVE, SECRET)
 - SettingSpec frozen dataclass (registry entry metadata)
-- SETTINGS_REGISTRY dict — canonical list of all 26 known settings
+- SETTINGS_REGISTRY dict — canonical list of all 27 known settings
 """
 
 from __future__ import annotations
@@ -243,6 +243,13 @@ SETTINGS_REGISTRY: dict[str, SettingSpec] = {
         sensitivity=Sensitivity.SENSITIVE,
         exportable=False,
         max_length=256,
+    ),
+    "ui.watchlist.colorblind_mode": SettingSpec(
+        key="ui.watchlist.colorblind_mode",
+        value_type="bool",
+        hardcoded_default=False,
+        category="ui",
+        description="Use colorblind-friendly palette for watchlist gain/loss colors",
     ),
     # ── Notifications (4 entries) ─────────────────────────────────────────
     "notification.success.enabled": SettingSpec(

@@ -13,6 +13,19 @@ Use this workflow when implementing a Manageable Execution Unit (MEU). Opus is t
 - Read `.agent/context/current-focus.md` for active phase
 - Read `.agent/docs/emerging-standards.md` — verify applicable standards are covered. If the MEU involves MCP tools or GUI components, the matching standards are mandatory subtasks.
 
+## Bug-Fix TDD Protocol
+
+> [!IMPORTANT]
+> **Bug reports trigger TDD, not direct code fixes.** When the user reports a defect (not a new feature), follow this protocol BEFORE touching any production code. See emerging standard **G19**.
+
+1. **Reproduce:** Write a test that exercises the broken behavior. Assert what the *correct* behavior should be.
+2. **Red:** Run the test — confirm it FAILS for the exact reason the bug exists (not a test setup issue).
+3. **Fix:** Edit production code to make the test pass.
+4. **Green:** Run the test — confirm it PASSES.
+5. **Regression sweep:** `rg` for the same pattern in sibling files (e.g., if `getChangeColor()` ignored a prop, check all functions that receive that prop).
+
+**Never skip from "user reports bug" → "edit production code."** The test IS the regression guard.
+
 ## Steps
 
 ### 1. Scope Lock

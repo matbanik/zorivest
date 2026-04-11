@@ -683,6 +683,7 @@ def _plan_to_model(plan: TradePlan) -> TradePlanModel:
     m.linked_trade_id = plan.linked_trade_id
     m.account_id = plan.account_id
     m.shares_planned = plan.shares_planned
+    m.position_size = plan.position_size
     m.created_at = plan.created_at
     m.updated_at = plan.updated_at
     return m
@@ -708,6 +709,7 @@ def _model_to_plan(m: TradePlanModel) -> TradePlan:
         linked_trade_id=m.linked_trade_id,
         account_id=m.account_id,
         shares_planned=getattr(m, "shares_planned", None),
+        position_size=getattr(m, "position_size", None),
         created_at=m.created_at,
         updated_at=m.updated_at or m.created_at,
     )

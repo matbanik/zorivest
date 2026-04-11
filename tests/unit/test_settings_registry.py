@@ -1,7 +1,7 @@
 # tests/unit/test_settings_registry.py
 """Tests for SettingSpec, Sensitivity, SETTINGS_REGISTRY, and seed_defaults (MEU-17).
 
-AC-17.1: SETTINGS_REGISTRY contains exactly 26 entries
+AC-17.1: SETTINGS_REGISTRY contains exactly 27 entries
 AC-17.2: Every entry has valid value_type
 AC-17.3: Every entry has valid category
 AC-17.4: seed_defaults() populates all 26 rows
@@ -38,10 +38,10 @@ def _engine():
 
 
 class TestRegistryCount:
-    """AC-17.1: SETTINGS_REGISTRY contains exactly 26 entries."""
+    """AC-17.1: SETTINGS_REGISTRY contains exactly 27 entries."""
 
     def test_registry_has_26_entries(self) -> None:
-        assert len(SETTINGS_REGISTRY) == 26
+        assert len(SETTINGS_REGISTRY) == 27
 
 
 # ── AC-17.2: Value types ─────────────────────────────────────────────────
@@ -103,7 +103,7 @@ class TestCategories:
 
 
 class TestSeedDefaults:
-    """AC-17.4: seed_defaults() populates app_defaults with all 26 rows."""
+    """AC-17.4: seed_defaults() populates app_defaults with all 27 rows."""
 
     def test_seed_populates_all_rows(self) -> None:
         engine = _engine()
@@ -111,7 +111,7 @@ class TestSeedDefaults:
             seed_defaults(session, SETTINGS_REGISTRY)
             session.commit()
             count = session.query(AppDefaultModel).count()
-            assert count == 26
+            assert count == 27
 
     def test_seed_values_match_registry(self) -> None:
         """Seeded values match the registry's hardcoded_default."""
@@ -156,7 +156,7 @@ class TestIdempotentSeeding:
             seed_defaults(session, SETTINGS_REGISTRY)
             session.commit()
             count = session.query(AppDefaultModel).count()
-            assert count == 26
+            assert count == 27
 
     def test_seed_updates_existing_on_rerun(self) -> None:
         """Re-seeding updates value/description if the registry changed."""
@@ -211,3 +211,33 @@ class TestSensitivityEnum:
         assert Sensitivity.NON_SENSITIVE.value == "non_sensitive"
         assert Sensitivity.SENSITIVE.value == "sensitive"
         assert Sensitivity.SECRET.value == "secret"
+
+
+# ── MEU-70a: Colorblind mode setting ─────────────────────────────────────
+
+
+class TestColorblindModeSetting:
+    """MEU-70a: ui.watchlist.colorblind_mode is registered with correct metadata."""
+
+    def test_colorblind_mode_key_exists(self) -> None:
+        assert "ui.watchlist.colorblind_mode" in SETTINGS_REGISTRY
+
+    def test_colorblind_mode_is_bool(self) -> None:
+        spec = SETTINGS_REGISTRY["ui.watchlist.colorblind_mode"]
+        assert spec.value_type == "bool"
+
+    def test_colorblind_mode_defaults_false(self) -> None:
+        spec = SETTINGS_REGISTRY["ui.watchlist.colorblind_mode"]
+        assert spec.hardcoded_default is False
+
+    def test_colorblind_mode_category_is_ui(self) -> None:
+        spec = SETTINGS_REGISTRY["ui.watchlist.colorblind_mode"]
+        assert spec.category == "ui"
+
+    def test_colorblind_mode_is_exportable(self) -> None:
+        spec = SETTINGS_REGISTRY["ui.watchlist.colorblind_mode"]
+        assert spec.exportable is True
+
+    def test_colorblind_mode_is_non_sensitive(self) -> None:
+        spec = SETTINGS_REGISTRY["ui.watchlist.colorblind_mode"]
+        assert spec.sensitivity == Sensitivity.NON_SENSITIVE

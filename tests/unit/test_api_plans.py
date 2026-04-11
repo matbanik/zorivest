@@ -655,3 +655,125 @@ class TestWhitespaceOnlyPlanValidation:
             json={"strategy_name": ""},
         )
         assert resp.status_code == 422
+
+
+# ── MEU-70a: position_size round-trip ────────────────────────────────────
+
+
+class TestPositionSizeRoundTrip:
+    """AC-4/AC-5/AC-6: position_size accepted on create/update, returned in response."""
+
+    def test_create_plan_with_position_size_returns_value(self, client) -> None:
+        """POST with position_size → response includes the value."""
+        http, svc = client
+        svc.create_plan.return_value = _sample_plan(
+            shares_planned=100, position_size=20000.0
+        )
+
+        resp = http.post(
+            "/api/v1/trade-plans",
+            json={
+                "ticker": "AAPL",
+                "direction": "BOT",
+                "strategy_name": "Gap & Go",
+                "entry_price": 200.0,
+                "stop_loss": 195.0,
+                "target_price": 215.0,
+                "timeframe": "intraday",
+                "shares_planned": 100,
+                "position_size": 20000.0,
+            },
+        )
+        assert resp.status_code == 201
+        data = resp.json()
+        assert data["position_size"] == 20000.0
+        assert data["shares_planned"] == 100
+
+    def test_create_plan_without_position_size_returns_null(self, client) -> None:
+        """POST without position_size → response has null."""
+        http, svc = client
+        svc.create_plan.return_value = _sample_plan()
+
+        resp = http.post(
+            "/api/v1/trade-plans",
+            json={
+                "ticker": "AAPL",
+                "direction": "BOT",
+                "strategy_name": "Gap & Go",
+                "entry_price": 200.0,
+                "stop_loss": 195.0,
+                "target_price": 215.0,
+                "timeframe": "intraday",
+            },
+        )
+        assert resp.status_code == 201
+        data = resp.json()
+        assert data["position_size"] is None
+
+    def test_update_plan_with_position_size(self, client) -> None:
+        """PUT with position_size → value persisted in response."""
+        http, svc = client
+        svc.update_plan.return_value = _sample_plan(position_size=15000.0)
+
+        resp = http.put(
+            "/api/v1/trade-plans/1",
+            json={"position_size": 15000.0},
+        )
+        assert resp.status_code == 200
+        assert resp.json()["position_size"] == 15000.0
+
+    def test_get_plan_includes_position_size(self, client) -> None:
+        """GET includes position_size in response body."""
+        http, svc = client
+        svc.get_plan.return_value = _sample_plan(position_size=25000.0)
+
+        resp = http.get("/api/v1/trade-plans/1")
+        assert resp.status_code == 200
+        assert resp.json()["position_size"] == 25000.0
+
+
+class TestPositionSizeRealWiring:
+    """AC-4/AC-5: position_size round-trip through real StubUoW wiring."""
+
+    @pytest.fixture()
+    def wired_client(self):
+        """TestClient using real app wiring (only override require_unlocked_db)."""
+        from zorivest_api.main import create_app
+        from zorivest_api.dependencies import require_unlocked_db
+
+        app = create_app()
+        app.dependency_overrides[require_unlocked_db] = lambda: None
+
+        with TestClient(app) as http:
+            yield http
+
+    def test_create_with_position_size_real_wiring(self, wired_client) -> None:
+        """POST→GET round-trip preserves position_size through real wiring."""
+        http = wired_client
+
+        resp = http.post(
+            "/api/v1/trade-plans",
+            json={
+                "ticker": "MSFT",
+                "direction": "BOT",
+                "strategy_name": "Position Size Test",
+                "entry_price": 400.0,
+                "stop_loss": 390.0,
+                "target_price": 420.0,
+                "timeframe": "swing",
+                "shares_planned": 50,
+                "position_size": 20000.0,
+            },
+        )
+        assert resp.status_code == 201
+        data = resp.json()
+        plan_id = data["id"]
+        assert data["position_size"] == 20000.0
+        assert data["shares_planned"] == 50
+
+        # GET should return same values
+        get_resp = http.get(f"/api/v1/trade-plans/{plan_id}")
+        assert get_resp.status_code == 200
+        get_data = get_resp.json()
+        assert get_data["position_size"] == 20000.0
+        assert get_data["shares_planned"] == 50

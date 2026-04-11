@@ -33,6 +33,96 @@
         "title": "AddTickerRequest",
         "type": "object"
       },
+      "BackupEntryResponse": {
+        "description": "Summary of a single backup file.",
+        "properties": {
+          "filename": {
+            "title": "Filename",
+            "type": "string"
+          },
+          "modified_at": {
+            "title": "Modified At",
+            "type": "string"
+          },
+          "path": {
+            "title": "Path",
+            "type": "string"
+          },
+          "size_bytes": {
+            "title": "Size Bytes",
+            "type": "integer"
+          }
+        },
+        "required": [
+          "path",
+          "filename",
+          "size_bytes",
+          "modified_at"
+        ],
+        "title": "BackupEntryResponse",
+        "type": "object"
+      },
+      "BackupPathRequest": {
+        "additionalProperties": false,
+        "description": "Request body requiring a filesystem path to a backup file.",
+        "properties": {
+          "path": {
+            "title": "Path",
+            "type": "string"
+          }
+        },
+        "required": [
+          "path"
+        ],
+        "title": "BackupPathRequest",
+        "type": "object"
+      },
+      "BackupResultResponse": {
+        "description": "Result of a backup create operation.",
+        "properties": {
+          "backup_path": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Backup Path"
+          },
+          "elapsed_seconds": {
+            "default": 0.0,
+            "title": "Elapsed Seconds",
+            "type": "number"
+          },
+          "error": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Error"
+          },
+          "files_backed_up": {
+            "default": 0,
+            "title": "Files Backed Up",
+            "type": "integer"
+          },
+          "status": {
+            "title": "Status",
+            "type": "string"
+          }
+        },
+        "required": [
+          "status"
+        ],
+        "title": "BackupResultResponse",
+        "type": "object"
+      },
       "BalanceRequest": {
         "properties": {
           "balance": {
@@ -75,6 +165,49 @@
           "file"
         ],
         "title": "Body_upload_trade_image_api_v1_trades__exec_id__images_post",
+        "type": "object"
+      },
+      "ConfigImportRequest": {
+        "additionalProperties": false,
+        "description": "Request body for POST /config/import.\n\nUses extra='forbid' per Boundary Input Contract.",
+        "properties": {
+          "app_version": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "App Version"
+          },
+          "config_version": {
+            "title": "Config Version",
+            "type": "integer"
+          },
+          "created_at": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Created At"
+          },
+          "settings": {
+            "additionalProperties": true,
+            "title": "Settings",
+            "type": "object"
+          }
+        },
+        "required": [
+          "config_version",
+          "settings"
+        ],
+        "title": "ConfigImportRequest",
         "type": "object"
       },
       "ConfirmationRequest": {
@@ -220,6 +353,17 @@
             "default": "",
             "title": "Exit Conditions",
             "type": "string"
+          },
+          "position_size": {
+            "anyOf": [
+              {
+                "type": "number"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Position Size"
           },
           "shares_planned": {
             "anyOf": [
@@ -723,6 +867,44 @@
         "title": "HealthResponse",
         "type": "object"
       },
+      "ImportPreviewResponse": {
+        "description": "Import validation result showing key categorization.",
+        "properties": {
+          "accepted": {
+            "items": {
+              "type": "string"
+            },
+            "title": "Accepted",
+            "type": "array"
+          },
+          "applied": {
+            "title": "Applied",
+            "type": "boolean"
+          },
+          "rejected": {
+            "items": {
+              "type": "string"
+            },
+            "title": "Rejected",
+            "type": "array"
+          },
+          "unknown": {
+            "items": {
+              "type": "string"
+            },
+            "title": "Unknown",
+            "type": "array"
+          }
+        },
+        "required": [
+          "accepted",
+          "rejected",
+          "unknown",
+          "applied"
+        ],
+        "title": "ImportPreviewResponse",
+        "type": "object"
+      },
       "KeyCreateRequest": {
         "properties": {
           "name": {
@@ -1215,6 +1397,59 @@
           "confirm"
         ],
         "title": "RecordPaymentRequest",
+        "type": "object"
+      },
+      "ResolvedSettingResponse": {
+        "description": "Single resolved setting with source attribution.",
+        "properties": {
+          "key": {
+            "title": "Key",
+            "type": "string"
+          },
+          "source": {
+            "title": "Source",
+            "type": "string"
+          },
+          "value": {
+            "title": "Value"
+          },
+          "value_type": {
+            "title": "Value Type",
+            "type": "string"
+          }
+        },
+        "required": [
+          "key",
+          "value",
+          "value_type",
+          "source"
+        ],
+        "title": "ResolvedSettingResponse",
+        "type": "object"
+      },
+      "RestoreResultResponse": {
+        "description": "Result of a backup restore operation.",
+        "properties": {
+          "error": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Error"
+          },
+          "status": {
+            "title": "Status",
+            "type": "string"
+          }
+        },
+        "required": [
+          "status"
+        ],
+        "title": "RestoreResultResponse",
         "type": "object"
       },
       "RunDetailResponse": {
@@ -1797,6 +2032,17 @@
             ],
             "title": "Linked Trade Id"
           },
+          "position_size": {
+            "anyOf": [
+              {
+                "type": "number"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Position Size"
+          },
           "shares_planned": {
             "anyOf": [
               {
@@ -2170,6 +2416,31 @@
           "type"
         ],
         "title": "ValidationError",
+        "type": "object"
+      },
+      "VerifyResultResponse": {
+        "description": "Result of a backup verification.",
+        "properties": {
+          "error": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Error"
+          },
+          "status": {
+            "title": "Status",
+            "type": "string"
+          }
+        },
+        "required": [
+          "status"
+        ],
+        "title": "VerifyResultResponse",
         "type": "object"
       },
       "VersionResponse": {
@@ -3373,6 +3644,136 @@
         ]
       }
     },
+    "/api/v1/backups": {
+      "get": {
+        "description": "List all backup files, newest first.\n\nReturns file metadata (path, size, modified timestamp).\n\nSource: MEU-74 (06f-gui-settings.md \u00a76f.5)",
+        "operationId": "list_backups_api_v1_backups_get",
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "items": {
+                    "$ref": "#/components/schemas/BackupEntryResponse"
+                  },
+                  "title": "Response List Backups Api V1 Backups Get",
+                  "type": "array"
+                }
+              }
+            },
+            "description": "Successful Response"
+          }
+        },
+        "summary": "List Backups",
+        "tags": [
+          "backups"
+        ]
+      },
+      "post": {
+        "description": "Create a manual backup of all databases.\n\nTriggers snapshot \u2192 encrypt \u2192 rotate \u2192 verify workflow.\n\nSource: MEU-74 (06f-gui-settings.md \u00a76f.5)",
+        "operationId": "create_backup_api_v1_backups_post",
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/BackupResultResponse"
+                }
+              }
+            },
+            "description": "Successful Response"
+          }
+        },
+        "summary": "Create Backup",
+        "tags": [
+          "backups"
+        ]
+      }
+    },
+    "/api/v1/backups/restore": {
+      "post": {
+        "description": "Restore from a backup file.\n\nDetect format \u2192 decrypt \u2192 verify manifest \u2192 stage \u2192 swap \u2192 migrate.\n\nSource: MEU-74 (06f-gui-settings.md \u00a76f.5)",
+        "operationId": "restore_backup_api_v1_backups_restore_post",
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/BackupPathRequest"
+              }
+            }
+          },
+          "required": true
+        },
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/RestoreResultResponse"
+                }
+              }
+            },
+            "description": "Successful Response"
+          },
+          "422": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HTTPValidationError"
+                }
+              }
+            },
+            "description": "Validation Error"
+          }
+        },
+        "summary": "Restore Backup",
+        "tags": [
+          "backups"
+        ]
+      }
+    },
+    "/api/v1/backups/verify": {
+      "post": {
+        "description": "Non-destructive backup verification.\n\nOpens the backup, validates manifest, verifies file hashes.\n\nSource: MEU-74 (06f-gui-settings.md \u00a76f.5)",
+        "operationId": "verify_backup_api_v1_backups_verify_post",
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/BackupPathRequest"
+              }
+            }
+          },
+          "required": true
+        },
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/VerifyResultResponse"
+                }
+              }
+            },
+            "description": "Successful Response"
+          },
+          "422": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HTTPValidationError"
+                }
+              }
+            },
+            "description": "Validation Error"
+          }
+        },
+        "summary": "Verify Backup",
+        "tags": [
+          "backups"
+        ]
+      }
+    },
     "/api/v1/calculator/position-size": {
       "post": {
         "description": "Calculate position size based on risk parameters.\nPure calculation \u2014 no auth or DB required.",
@@ -3414,6 +3815,84 @@
         "summary": "Calculate Position",
         "tags": [
           "calculator"
+        ]
+      }
+    },
+    "/api/v1/config/export": {
+      "get": {
+        "description": "Export portable (exportable + non-sensitive) settings as JSON.\n\nReturns a config payload with config_version, app_version,\ncreated_at, and settings dict containing only portable key-value pairs.\n\nSource: MEU-75 (06f-gui-settings.md \u00a76f.6)",
+        "operationId": "export_config_api_v1_config_export_get",
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "additionalProperties": true,
+                  "title": "Response Export Config Api V1 Config Export Get",
+                  "type": "object"
+                }
+              }
+            },
+            "description": "Successful Response"
+          }
+        },
+        "summary": "Export Config",
+        "tags": [
+          "config"
+        ]
+      }
+    },
+    "/api/v1/config/import": {
+      "post": {
+        "description": "Import settings from a config export payload.\n\nWith dry_run=true: validates and returns preview (accepted/rejected/unknown)\nwithout persisting any changes.\n\nWithout dry_run: validates AND applies accepted keys via bulk_upsert.\n\nSource: MEU-75 (06f-gui-settings.md \u00a76f.6)",
+        "operationId": "import_config_api_v1_config_import_post",
+        "parameters": [
+          {
+            "in": "query",
+            "name": "dry_run",
+            "required": false,
+            "schema": {
+              "default": false,
+              "title": "Dry Run",
+              "type": "boolean"
+            }
+          }
+        ],
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/ConfigImportRequest"
+              }
+            }
+          },
+          "required": true
+        },
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ImportPreviewResponse"
+                }
+              }
+            },
+            "description": "Successful Response"
+          },
+          "422": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HTTPValidationError"
+                }
+              }
+            },
+            "description": "Validation Error"
+          }
+        },
+        "summary": "Import Config",
+        "tags": [
+          "config"
         ]
       }
     },
@@ -5280,7 +5759,7 @@
     },
     "/api/v1/settings": {
       "get": {
-        "description": "Bulk read all settings as key-value dict.\n\nReturns all raw user settings. For resolved settings with\nsource attribution, use GET /settings/resolved (Phase 2A).",
+        "description": "Bulk read all settings as key-value dict.\n\nReturns all raw user settings. For resolved settings with\nsource attribution, use GET /settings/resolved.",
         "operationId": "get_all_settings_api_v1_settings_get",
         "responses": {
           "200": {
@@ -5428,7 +5907,72 @@
         ]
       }
     },
+    "/api/v1/settings/resolved": {
+      "get": {
+        "description": "Bulk read all settings with three-tier source attribution.\n\nReturns all known settings resolved through:\nuser override \u2192 app default \u2192 hardcoded fallback.\nEach entry includes the value source for UI rendering.\n\nSource: MEU-76 (06f-gui-settings.md \u00a76f.7)",
+        "operationId": "get_resolved_settings_api_v1_settings_resolved_get",
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "additionalProperties": {
+                    "$ref": "#/components/schemas/ResolvedSettingResponse"
+                  },
+                  "title": "Response Get Resolved Settings Api V1 Settings Resolved Get",
+                  "type": "object"
+                }
+              }
+            },
+            "description": "Successful Response"
+          }
+        },
+        "summary": "Get Resolved Settings",
+        "tags": [
+          "settings"
+        ]
+      }
+    },
     "/api/v1/settings/{key}": {
+      "delete": {
+        "description": "Reset a single setting to its default value.\n\nRemoves the user override so the value falls through to\napp default \u2192 hardcoded fallback.\nReturns 204 on success, 404 if key is not in the registry.\n\nSource: MEU-76 (06f-gui-settings.md \u00a76f.7)",
+        "operationId": "delete_setting_api_v1_settings__key__delete",
+        "parameters": [
+          {
+            "in": "path",
+            "name": "key",
+            "required": true,
+            "schema": {
+              "title": "Key",
+              "type": "string"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "schema": {}
+              }
+            },
+            "description": "Successful Response"
+          },
+          "422": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HTTPValidationError"
+                }
+              }
+            },
+            "description": "Validation Error"
+          }
+        },
+        "summary": "Delete Setting",
+        "tags": [
+          "settings"
+        ]
+      },
       "get": {
         "description": "Read a single setting by key.\n\nReturns the resolved value through three-tier chain:\nuser override \u2192 app default \u2192 hardcoded fallback.\nReturns 404 if key is not in the settings registry.",
         "operationId": "get_setting_api_v1_settings__key__get",
@@ -7384,6 +7928,14 @@
     {
       "description": "Power events, scheduler lifecycle",
       "name": "scheduler"
+    },
+    {
+      "description": "Database backup, restore, verify, history",
+      "name": "backups"
+    },
+    {
+      "description": "Config export/import with security filtering",
+      "name": "config"
     }
   ]
 }

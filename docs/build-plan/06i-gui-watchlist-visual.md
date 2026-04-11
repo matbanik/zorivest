@@ -6,7 +6,7 @@
 
 ## Goal
 
-Transform the existing `WatchlistPage.tsx` from a basic list+detail layout into a professional-grade financial data table with real-time quote columns, dark trading palette, tabular figures, and sparklines. Simultaneously close [PLAN-NOSIZE] by adding `position_size`/`shares` fields to `TradePlan` across the full stack.
+Transform the existing `WatchlistPage.tsx` from a basic list+detail layout into a professional-grade financial data table with real-time quote columns, dark trading palette, tabular figures, and sparklines. Simultaneously close [PLAN-NOSIZE] by adding `position_size`/`shares_planned` fields to `TradePlan` across the full stack.
 
 ---
 
@@ -34,18 +34,20 @@ Transform the existing `WatchlistPage.tsx` from a basic list+detail layout into 
 
 > Source: [known-issues.md](../../.agent/context/known-issues.md) §PLAN-NOSIZE
 
-Full-stack propagation of `position_size` and `shares` fields:
+Full-stack propagation of `position_size` and `shares_planned` fields:
+
+> **Naming note (Human-Approved):** The repo standardized on `shares_planned` (not `shares`) during MEU-70b to avoid ambiguity with trading shares. All layers (entity, model, API, UI) already use `shares_planned`. No alias mapping is needed.
 
 | Layer | File | Change |
 |-------|------|--------|
-| Domain entity | `entities.py` | Add `position_size: Optional[float]`, `shares: Optional[int]` |
+| Domain entity | `entities.py` | Add `position_size: Optional[float]` (`shares_planned` already exists) |
 | SQLAlchemy model | `models.py` | Add `Float` + `Integer` columns |
 | DB migration | `ALTER TABLE` | Add nullable columns to `trade_plans` |
 | API schemas | `plans.py` | Add to `CreatePlanRequest`, `UpdatePlanRequest`, `PlanResponse` |
 | API serializer | `plans.py` | Add to `_to_response()` |
 | MCP tools | `trade-planning` toolset | Add to plan input/output schemas |
-| GUI form | `TradePlanPage.tsx` | Add readonly display field (populated via calculator) |
-| Calculator integration | `PositionCalculatorModal.tsx` | Write-back computed shares to plan form |
+| GUI form | `TradePlanPage.tsx` | Add readonly `position_size` display; `shares_planned` already editable (MEU-70b) |
+| Calculator integration | `PositionCalculatorModal.tsx` | Write-back computed `shares_planned` + `position_size` to plan form |
 
 ---
 
@@ -153,12 +155,12 @@ font-synthesis: none;
 
 | Action | File | Description |
 |--------|------|-------------|
-| MODIFY | `packages/core/src/zorivest_core/domain/entities.py` | Add `position_size`, `shares` to `TradePlan` |
+| MODIFY | `packages/core/src/zorivest_core/domain/entities.py` | Add `position_size` to `TradePlan` (`shares_planned` already exists) |
 | MODIFY | `packages/infrastructure/src/zorivest_infra/database/models.py` | Add columns to `TradePlanModel` |
 | MODIFY | `packages/api/src/zorivest_api/routes/plans.py` | Add to request/response schemas + `_to_response()` |
 | MODIFY | `mcp-server/src/tools/trade-planning-tools.ts` | Add fields to plan tool schemas |
-| MODIFY | `ui/src/renderer/src/features/planning/TradePlanPage.tsx` | Show shares field (readonly, from calculator) |
-| MODIFY | `ui/src/renderer/src/features/planning/PositionCalculatorModal.tsx` | Write-back `shares` to plan form |
+| MODIFY | `ui/src/renderer/src/features/planning/TradePlanPage.tsx` | Add readonly `position_size` display; `shares_planned` stays editable (MEU-70b) |
+| MODIFY | `ui/src/renderer/src/features/planning/PositionCalculatorModal.tsx` | Write-back `shares_planned` + `position_size` to plan form |
 
 ---
 

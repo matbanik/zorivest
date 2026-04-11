@@ -103,6 +103,19 @@ class SqlAlchemyWatchlistRepository:
         )
         return [_item_model_to_entity(m) for m in models]
 
+    def update_item(self, item: WatchlistItem) -> None:
+        model = (
+            self._session.query(WatchlistItemModel)
+            .filter_by(watchlist_id=item.watchlist_id, ticker=item.ticker)
+            .first()
+        )
+        if model is None:
+            raise ValueError(
+                f"Item '{item.ticker}' not found in watchlist {item.watchlist_id}"
+            )
+        model.notes = item.notes
+        self._session.flush()
+
 
 # ── Mappers ──────────────────────────────────────────────────────────────
 

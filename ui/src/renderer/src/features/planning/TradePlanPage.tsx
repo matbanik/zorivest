@@ -1,4 +1,4 @@
-import { useState, useCallback, useMemo } from 'react'
+import { useState, useCallback, useMemo, useEffect } from 'react'
 import { useQuery, useQueryClient } from '@tanstack/react-query'
 import { apiFetch } from '@/lib/api'
 import { useStatusBar } from '@/hooks/useStatusBar'
@@ -29,6 +29,7 @@ export interface TradePlan {
     executed_at?: string | null
     cancelled_at?: string | null
     shares_planned?: number | null
+    position_size?: number | null
 }
 
 // T3: Account type for dropdown — matches AccountResponse from GET /api/v1/accounts
@@ -84,6 +85,7 @@ const NEW_PLAN: Partial<TradePlan> = {
     linked_trade_id: null,
     account_id: null,
     shares_planned: null,
+    position_size: null,
 }
 
 // ── R:R and Risk Computation ─────────────────────────────────────────────
@@ -261,6 +263,7 @@ export default function TradePlanPage({ onOpenCalculator }: TradePlanPageProps) 
             timeframe: form.timeframe,
             account_id: form.account_id || null,
             shares_planned: form.shares_planned || null,
+            position_size: form.position_size || null,
             // R1: persist the linked trade selection on saves
             linked_trade_id: linkedTradeId || form.linked_trade_id || null,
         }
@@ -342,6 +345,25 @@ export default function TradePlanPage({ onOpenCalculator }: TradePlanPageProps) 
             },
         }))
     }, [form.ticker, form.entry_price, form.stop_loss, form.target_price])
+
+    // MEU-70a Sub-MEU C: Listen for calculator-apply event (AC-22)
+    useEffect(() => {
+        const handler = (e: Event) => {
+            const detail = (e as CustomEvent)?.detail
+            if (!detail || typeof detail.shares_planned !== 'number') return
+            // Only apply if a plan is being edited
+            setForm((prev) => {
+                if (!prev.ticker && !prev.id) return prev // no plan loaded
+                return {
+                    ...prev,
+                    shares_planned: detail.shares_planned,
+                    position_size: detail.position_size ?? null,
+                }
+            })
+        }
+        window.addEventListener('zorivest:calculator-apply', handler)
+        return () => window.removeEventListener('zorivest:calculator-apply', handler)
+    }, [])
 
     const isDetailOpen = isCreating || selectedPlan !== null
 
@@ -641,6 +663,18 @@ export default function TradePlanPage({ onOpenCalculator }: TradePlanPageProps) 
                                         📋 Copy from Calc
                                     </button>
                                 </div>
+                            </div>
+
+                            {/* MEU-70a Sub-MEU C: Readonly position_size display (AC-20) */}
+                            <div>
+                                <label className="block text-xs text-fg-muted mb-1">Position Size</label>
+                                <input
+                                    data-testid="plan-position-size"
+                                    type="text"
+                                    readOnly
+                                    value={form.position_size != null ? `$${form.position_size.toLocaleString('en-US', { minimumFractionDigits: 2, maximumFractionDigits: 2 })}` : '—'}
+                                    className="w-full px-3 py-1.5 text-sm rounded-md bg-bg-elevated border border-bg-subtle text-fg-muted cursor-not-allowed font-mono"
+                                />
                             </div>
 
                             {/* Conditions */}

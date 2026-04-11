@@ -278,6 +278,10 @@ class WatchlistRepository(Protocol):
 
     def get_items(self, watchlist_id: int) -> list[WatchlistItem]: ...
 
+    def update_item(self, item: WatchlistItem) -> None:
+        """Update an existing watchlist item (e.g. notes)."""
+        ...
+
 
 class EmailProviderRepository(Protocol):
     """Repository for email provider configuration (single-row). MEU-73."""

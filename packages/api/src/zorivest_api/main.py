@@ -40,6 +40,8 @@ from zorivest_api.routes.scheduling import scheduling_router
 from zorivest_api.routes.scheduler import scheduler_router
 from zorivest_api.routes.mcp_toolsets import mcp_toolsets_router  # MEU-46a
 from zorivest_api.routes.email_settings import email_settings_router  # MEU-73
+from zorivest_api.routes.config import config_router  # MEU-75
+from zorivest_api.routes.backups import backup_router  # MEU-74
 from zorivest_api.schemas.common import ErrorEnvelope
 from zorivest_api.auth.auth_service import AuthService
 from zorivest_api.services.mcp_guard import McpGuardService
@@ -127,6 +129,8 @@ TAGS_METADATA = [
         "description": "Pipeline policies, execution, run history, scheduler status",
     },
     {"name": "scheduler", "description": "Power events, scheduler lifecycle"},
+    {"name": "backups", "description": "Database backup, restore, verify, history"},
+    {"name": "config", "description": "Config export/import with security filtering"},
 ]
 
 
@@ -160,6 +164,7 @@ async def lifespan(app: FastAPI) -> AsyncGenerator[None, None]:
         "ALTER TABLE accounts ADD COLUMN is_archived BOOLEAN DEFAULT 0",  # MEU-37 AC-1
         "ALTER TABLE accounts ADD COLUMN is_system BOOLEAN DEFAULT 0",  # MEU-37 AC-2
         "ALTER TABLE trade_plans ADD COLUMN shares_planned INTEGER",  # Position size
+        "ALTER TABLE trade_plans ADD COLUMN position_size REAL",  # MEU-70a: dollar value
     ]
     with engine.connect() as conn:
         for _stmt in _inline_migrations:
@@ -353,6 +358,8 @@ def create_app() -> FastAPI:
     app.include_router(scheduling_router)  # MEU-89
     app.include_router(scheduler_router)  # MEU-89
     app.include_router(mcp_toolsets_router)  # MEU-46a
+    app.include_router(config_router)  # MEU-75
+    app.include_router(backup_router)  # MEU-74
 
     return app
 

@@ -139,6 +139,7 @@ class TradePlan:
     images: list[ImageAttachment] = field(default_factory=list)
     account_id: Optional[str] = None  # FK → Account, nullable
     shares_planned: Optional[int] = None  # Position size (shares/contracts)
+    position_size: Optional[float] = None  # Total dollar value (shares × entry_price)
     executed_at: Optional[datetime] = None  # T5: when status → executed
     cancelled_at: Optional[datetime] = None  # T5: when status → cancelled
 

@@ -246,7 +246,15 @@ class MarketDataService:
         """Fetch a quote from Yahoo Finance (no API key required).
 
         URL: https://query1.finance.yahoo.com/v8/finance/chart/{ticker}?range=1d&interval=1d
-        Returns the regularMarketPrice from the chart meta.
+        Returns regularMarketPrice, computed change/change_pct, and volume
+        from the chart meta object.
+
+        Fields extracted:
+        - price: meta.regularMarketPrice
+        - previous_close: meta.chartPreviousClose
+        - change: price - previous_close (computed, None if no previous_close)
+        - change_pct: (change / previous_close) * 100 (computed, None if no previous_close)
+        - volume: meta.regularMarketVolume (None if absent)
         """
         url = (
             f"https://query1.finance.yahoo.com/v8/finance/chart/{ticker}"
@@ -269,10 +277,28 @@ class MarketDataService:
         if price is None:
             return None
 
+        price_f = float(price)
+        previous_close = meta.get("chartPreviousClose")
+
+        # Compute change fields from previousClose (graceful None if missing)
+        change: float | None = None
+        change_pct: float | None = None
+        if previous_close is not None:
+            prev_f = float(previous_close)
+            change = price_f - prev_f
+            change_pct = (change / prev_f * 100) if prev_f != 0 else 0.0
+
+        # Extract volume (None if absent, 0 is preserved)
+        raw_volume = meta.get("regularMarketVolume")
+        volume: int | None = int(raw_volume) if raw_volume is not None else None
+
         return MarketQuote(
             ticker=ticker,
-            price=float(price),
-            previous_close=meta.get("chartPreviousClose"),
+            price=price_f,
+            previous_close=previous_close,
+            change=change,
+            change_pct=change_pct,
+            volume=volume,
             provider="Yahoo Finance",
         )
 

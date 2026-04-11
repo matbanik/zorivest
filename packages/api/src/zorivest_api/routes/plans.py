@@ -62,6 +62,7 @@ class CreatePlanRequest(BaseModel):
     timeframe: str = "intraday"
     account_id: Optional[str] = None
     shares_planned: Optional[int] = None
+    position_size: Optional[float] = None
     # MCP short-name aliases (05d-mcp-trade-planning.md)
     entry: Optional[float] = None
     stop: Optional[float] = None
@@ -102,6 +103,7 @@ class UpdatePlanRequest(BaseModel):
     linked_trade_id: Optional[str] = None
     account_id: Optional[str] = None
     shares_planned: Optional[int] = None
+    position_size: Optional[float] = None
 
 
 class PlanResponse(BaseModel):
@@ -122,6 +124,7 @@ class PlanResponse(BaseModel):
     linked_trade_id: Optional[str] = None
     account_id: Optional[str] = None
     shares_planned: Optional[int] = None
+    position_size: Optional[float] = None
     created_at: str
     updated_at: str
     executed_at: Optional[str] = None  # T5: when status → executed
@@ -287,6 +290,7 @@ def _to_response(plan: object) -> dict:
         "linked_trade_id": plan.linked_trade_id,  # type: ignore[attr-defined]
         "account_id": plan.account_id,  # type: ignore[attr-defined]
         "shares_planned": getattr(plan, "shares_planned", None),  # type: ignore[attr-defined]
+        "position_size": getattr(plan, "position_size", None),  # type: ignore[attr-defined]
         "created_at": plan.created_at.isoformat() if plan.created_at else "",  # type: ignore[attr-defined]
         "updated_at": plan.updated_at.isoformat() if plan.updated_at else "",  # type: ignore[attr-defined]
         "executed_at": plan.executed_at.isoformat()  # type: ignore[attr-defined]

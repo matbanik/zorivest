@@ -143,6 +143,7 @@ class ReportService:
             linked_trade_id=plan_data.get("linked_trade_id"),
             account_id=plan_data.get("account_id"),
             shares_planned=plan_data.get("shares_planned"),
+            position_size=plan_data.get("position_size"),
             created_at=now,
             updated_at=now,
         )

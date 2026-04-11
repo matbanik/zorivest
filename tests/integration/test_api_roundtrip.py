@@ -185,3 +185,63 @@ class TestGuardRoundTrip:
         data = client.get("/api/v1/mcp-guard/status").json()
         assert "is_locked" in data
         assert isinstance(data["is_locked"], bool)
+
+
+# ── Watchlist item notes PATCH ──────────────────────────────────────────
+
+
+class TestWatchlistItemNotesRoundTrip:
+    """Bug-fix: PATCH endpoint for updating watchlist item notes."""
+
+    def test_patch_item_notes(self, client: TestClient) -> None:
+        # Create watchlist + add ticker
+        r = client.post("/api/v1/watchlists/", json={"name": "Notes Test"})
+        assert r.status_code == 201
+        wl_id = r.json()["id"]
+        r2 = client.post(
+            f"/api/v1/watchlists/{wl_id}/items",
+            json={"ticker": "AAPL", "notes": "Old notes"},
+        )
+        assert r2.status_code == 201
+
+        # PATCH notes
+        r3 = client.patch(
+            f"/api/v1/watchlists/{wl_id}/items/AAPL",
+            json={"notes": "New notes"},
+        )
+        assert r3.status_code == 200, f"Expected 200, got {r3.status_code}: {r3.text}"
+        assert r3.json()["notes"] == "New notes"
+
+    def test_patch_nonexistent_ticker_returns_404(self, client: TestClient) -> None:
+        r = client.post("/api/v1/watchlists/", json={"name": "Notes 404"})
+        wl_id = r.json()["id"]
+        r2 = client.patch(
+            f"/api/v1/watchlists/{wl_id}/items/NOTEXIST",
+            json={"notes": "Nope"},
+        )
+        assert r2.status_code == 404
+
+
+# ── Market Data stub shape ──────────────────────────────────────────────
+
+
+class TestMarketDataStubShape:
+    """Bug-fix: StubMarketDataService must return full MarketQuote fields."""
+
+    def test_quote_has_required_fields(self, client: TestClient) -> None:
+        r = client.get("/api/v1/market-data/quote?ticker=AAPL")
+        assert r.status_code == 200, f"Expected 200, got {r.status_code}: {r.text}"
+        data = r.json()
+        # Must have all fields the GUI expects
+        assert "ticker" in data, "Missing 'ticker'"
+        assert "price" in data, "Missing 'price'"
+        assert "change" in data, "Missing 'change'"
+        assert "change_pct" in data, "Missing 'change_pct'"
+        assert "volume" in data, "Missing 'volume'"
+        assert "provider" in data, "Missing 'provider'"
+
+    def test_quote_change_fields_are_numeric_or_none(self, client: TestClient) -> None:
+        data = client.get("/api/v1/market-data/quote?ticker=AAPL").json()
+        # change/change_pct should be numeric (not missing from dict)
+        assert isinstance(data["change"], (int, float, type(None)))
+        assert isinstance(data["change_pct"], (int, float, type(None)))

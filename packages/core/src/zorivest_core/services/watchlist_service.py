@@ -175,3 +175,37 @@ class WatchlistService:
                 msg = f"Watchlist {watchlist_id} not found"
                 raise ValueError(msg)
             return self.uow.watchlists.get_items(watchlist_id)
+
+    def update_item_notes(
+        self,
+        watchlist_id: int,
+        ticker: str,
+        notes: str,
+    ) -> WatchlistItem:
+        """Update the notes for a specific ticker in a watchlist.
+
+        Raises:
+            ValueError: If watchlist not found.
+            ValueError: If ticker not found in watchlist.
+        """
+        with self.uow:
+            wl = self.uow.watchlists.get(watchlist_id)
+            if wl is None:
+                msg = f"Watchlist {watchlist_id} not found"
+                raise ValueError(msg)
+
+            items = self.uow.watchlists.get_items(watchlist_id)
+            target = None
+            for item in items:
+                if item.ticker.upper() == ticker.upper():
+                    target = item
+                    break
+
+            if target is None:
+                msg = f"Ticker '{ticker}' not found in watchlist {watchlist_id}"
+                raise ValueError(msg)
+
+            updated = replace(target, notes=notes)
+            self.uow.watchlists.update_item(updated)
+            self.uow.commit()
+            return updated

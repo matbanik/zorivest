@@ -143,6 +143,16 @@ export default function PositionCalculatorModal({ isOpen, onClose }: PositionCal
         setSelectedAccount('')  // MEU-71b: reset account selection
     }, [])
 
+    // MEU-70a Sub-MEU C (AC-21): Dispatch calculator results to Trade Plan
+    const handleApplyToPlan = useCallback(() => {
+        window.dispatchEvent(new CustomEvent('zorivest:calculator-apply', {
+            detail: {
+                shares_planned: result.shares,
+                position_size: result.positionValue,
+            },
+        }))
+    }, [result.shares, result.positionValue])
+
     if (!isOpen) return null
 
     return (
@@ -339,6 +349,13 @@ export default function PositionCalculatorModal({ isOpen, onClose }: PositionCal
                             className="px-4 py-1.5 text-sm rounded-md border border-bg-subtle bg-bg text-fg-muted hover:text-fg cursor-pointer"
                         >
                             Reset
+                        </button>
+                        <button
+                            data-testid="calc-apply-to-plan-btn"
+                            onClick={handleApplyToPlan}
+                            className="px-4 py-1.5 text-sm rounded-md border border-accent/30 bg-accent/5 text-accent hover:bg-accent/10 cursor-pointer transition-colors"
+                        >
+                            📋 Apply to Plan
                         </button>
                         <button
                             onClick={onClose}

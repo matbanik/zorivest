@@ -15,6 +15,8 @@ from __future__ import annotations
 
 from typing import Any
 
+from zorivest_core.application.market_dtos import MarketQuote
+
 
 class StubAnalyticsService:
     """Stub analytics service — returns properly shaped defaults.
@@ -184,8 +186,15 @@ class StubMarketDataService:
     No __getattr__ — explicit methods only.
     """
 
-    async def get_quote(self, ticker: str) -> dict[str, Any]:
-        return {"ticker": ticker, "price": 0.0, "provider": "stub"}
+    async def get_quote(self, ticker: str) -> MarketQuote:
+        return MarketQuote(
+            ticker=ticker,
+            price=0.0,
+            change=0.0,
+            change_pct=0.0,
+            volume=0,
+            provider="stub",
+        )
 
     async def get_news(self, ticker: Any = None, count: int = 5) -> list:
         return []

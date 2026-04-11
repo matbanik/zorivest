@@ -283,6 +283,7 @@ describe('MEU-48: WatchlistPage', () => {
         mockApiFetch.mockImplementation((url: string) => {
             if (url === '/api/v1/watchlists/') return Promise.resolve(MOCK_WATCHLISTS)
             if (url === '/api/v1/watchlists/1') return Promise.resolve(MOCK_WATCHLISTS[0])
+            if (url.includes('/api/v1/settings/')) return Promise.resolve({ value: false })
             return Promise.resolve({})
         })
     })
@@ -311,8 +312,8 @@ describe('MEU-48: WatchlistPage', () => {
         fireEvent.click(screen.getByTestId('watchlist-card-1'))
         await waitFor(() => {
             expect(screen.getByTestId('watchlist-detail-panel')).toBeInTheDocument()
-            expect(screen.getByTestId('watchlist-item-AAPL')).toBeInTheDocument()
-            expect(screen.getByTestId('watchlist-item-MSFT')).toBeInTheDocument()
+            expect(screen.getByTestId('watchlist-row-AAPL')).toBeInTheDocument()
+            expect(screen.getByTestId('watchlist-row-MSFT')).toBeInTheDocument()
         })
     })
 
@@ -323,6 +324,7 @@ describe('MEU-48: WatchlistPage', () => {
             }
             if (url === '/api/v1/watchlists/') return Promise.resolve(MOCK_WATCHLISTS)
             if (url === '/api/v1/watchlists/1') return Promise.resolve(MOCK_WATCHLISTS[0])
+            if (url.includes('/api/v1/settings/')) return Promise.resolve({ value: false })
             return Promise.resolve({})
         })
         render(<WatchlistPage />, { wrapper: createWrapper() })
@@ -348,6 +350,7 @@ describe('MEU-48: WatchlistPage', () => {
             if (opts?.method === 'DELETE') return Promise.resolve(undefined)
             if (url === '/api/v1/watchlists/') return Promise.resolve(MOCK_WATCHLISTS)
             if (url === '/api/v1/watchlists/1') return Promise.resolve(MOCK_WATCHLISTS[0])
+            if (url.includes('/api/v1/settings/')) return Promise.resolve({ value: false })
             return Promise.resolve({})
         })
         render(<WatchlistPage />, { wrapper: createWrapper() })
@@ -373,6 +376,7 @@ describe('MEU-48: WatchlistPage', () => {
                 return Promise.resolve({ id: 2, name: 'New List', description: '', items: [] })
             }
             if (url === '/api/v1/watchlists/') return Promise.resolve(MOCK_WATCHLISTS)
+            if (url.includes('/api/v1/settings/')) return Promise.resolve({ value: false })
             return Promise.resolve({})
         })
         render(<WatchlistPage />, { wrapper: createWrapper() })
@@ -711,6 +715,7 @@ describe('MEU-70 T1: W3 — Better watchlist display', () => {
         mockApiFetch.mockImplementation((url: string) => {
             if (url === '/api/v1/watchlists/') return Promise.resolve(MOCK_WATCHLISTS)
             if (url === '/api/v1/watchlists/1') return Promise.resolve(MOCK_WATCHLISTS[0])
+            if (url.includes('/api/v1/settings/')) return Promise.resolve({ value: false })
             return Promise.resolve({})
         })
     })
@@ -1093,6 +1098,236 @@ describe('MEU-71b: Calculator Account Dropdown', () => {
         expect((screen.getByTestId('calc-account-size') as HTMLInputElement).value).toBe('60000')
     })
 
+})
+
+// ─── MEU-70a Sub-MEU C: Calculator Write-Back + Readonly position_size ────
+
+describe('MEU-70a Sub-MEU C: AC-20 — Readonly position_size display', () => {
+    const PLAN_WITH_POSITION = {
+        ...MOCK_PLANS[0],
+        shares_planned: 100,
+        position_size: 19000.0, // 100 shares × $190 entry
+    }
+
+    beforeEach(() => {
+        vi.clearAllMocks()
+        mockApiFetch.mockImplementation((url: string) => {
+            if (url.includes('/api/v1/trade-plans')) return Promise.resolve([PLAN_WITH_POSITION])
+            if (url.includes('/api/v1/accounts')) return Promise.resolve([])
+            return Promise.resolve({})
+        })
+    })
+
+    it('should display position_size as readonly when plan has a value', async () => {
+        render(<TradePlanPage />, { wrapper: createWrapper() })
+        await waitFor(() => expect(screen.getByText('AAPL')).toBeInTheDocument())
+        fireEvent.click(screen.getByTestId('plan-card-1'))
+        await waitFor(() => {
+            const posField = screen.getByTestId('plan-position-size')
+            expect(posField).toBeInTheDocument()
+            expect(posField).toHaveAttribute('readonly')
+            // Should show formatted value $19,000.00
+            expect(posField).toHaveValue('$19,000.00')
+        })
+    })
+
+    it('should show "—" when position_size is null', async () => {
+        const planNoPosition = { ...MOCK_PLANS[0], shares_planned: null, position_size: null }
+        mockApiFetch.mockImplementation((url: string) => {
+            if (url.includes('/api/v1/trade-plans')) return Promise.resolve([planNoPosition])
+            if (url.includes('/api/v1/accounts')) return Promise.resolve([])
+            return Promise.resolve({})
+        })
+        render(<TradePlanPage />, { wrapper: createWrapper() })
+        await waitFor(() => expect(screen.getByText('AAPL')).toBeInTheDocument())
+        fireEvent.click(screen.getByTestId('plan-card-1'))
+        await waitFor(() => {
+            const posField = screen.getByTestId('plan-position-size')
+            expect(posField).toHaveValue('—')
+        })
+    })
+
+    it('should keep shares_planned editable (no regression from MEU-70b)', async () => {
+        render(<TradePlanPage />, { wrapper: createWrapper() })
+        await waitFor(() => expect(screen.getByText('AAPL')).toBeInTheDocument())
+        fireEvent.click(screen.getByTestId('plan-card-1'))
+        await waitFor(() => {
+            const sharesInput = screen.getByTestId('plan-shares-planned')
+            expect(sharesInput).not.toHaveAttribute('readonly')
+            expect(sharesInput).toHaveValue(100)
+        })
+    })
+})
+
+describe('MEU-70a Sub-MEU C: AC-21 — Apply to Plan button in Calculator', () => {
+    it('should render "Apply to Plan" button in calculator results section', () => {
+        render(<PositionCalculatorModal isOpen={true} onClose={vi.fn()} />, { wrapper: createWrapper() })
+        expect(screen.getByTestId('calc-apply-to-plan-btn')).toBeInTheDocument()
+    })
+
+    it('should dispatch zorivest:calculator-apply event with shares and position_size on click', () => {
+        const spy = vi.fn()
+        window.addEventListener('zorivest:calculator-apply', spy)
+
+        render(<PositionCalculatorModal isOpen={true} onClose={vi.fn()} />, { wrapper: createWrapper() })
+        // Set up calculator inputs: $100k, 1% risk, entry=100, stop=98, target=106
+        fireEvent.change(screen.getByTestId('calc-account-select'), { target: { value: '' } })
+        fireEvent.change(screen.getByTestId('calc-account-size'), { target: { value: '100000' } })
+        fireEvent.change(screen.getByTestId('calc-entry-price'), { target: { value: '100' } })
+        fireEvent.change(screen.getByTestId('calc-stop-price'), { target: { value: '98' } })
+        fireEvent.change(screen.getByTestId('calc-target-price'), { target: { value: '106' } })
+
+        fireEvent.click(screen.getByTestId('calc-apply-to-plan-btn'))
+
+        expect(spy).toHaveBeenCalledTimes(1)
+        const event = spy.mock.calls[0][0] as CustomEvent
+        // shares = floor(1000/2) = 500, positionValue = 500 * 100 = 50000
+        expect(event.detail).toEqual({
+            shares_planned: 500,
+            position_size: 50000,
+        })
+
+        window.removeEventListener('zorivest:calculator-apply', spy)
+    })
+})
+
+describe('MEU-70a Sub-MEU C: AC-22 — TradePlanPage calculator-apply listener', () => {
+    beforeEach(() => {
+        vi.clearAllMocks()
+        mockApiFetch.mockImplementation((url: string) => {
+            if (url.includes('/api/v1/trade-plans')) return Promise.resolve(MOCK_PLANS)
+            if (url.includes('/api/v1/accounts')) return Promise.resolve([])
+            return Promise.resolve({})
+        })
+    })
+
+    it('should populate shares_planned and position_size when calculator-apply fires', async () => {
+        render(<TradePlanPage />, { wrapper: createWrapper() })
+        await waitFor(() => expect(screen.getByText('AAPL')).toBeInTheDocument())
+        // Open a plan to edit
+        fireEvent.click(screen.getByTestId('plan-card-1'))
+        await waitFor(() => expect(screen.getByTestId('plan-shares-planned')).toBeInTheDocument())
+
+        // Simulate calculator-apply event
+        act(() => {
+            window.dispatchEvent(new CustomEvent('zorivest:calculator-apply', {
+                detail: { shares_planned: 250, position_size: 47500 },
+            }))
+        })
+
+        await waitFor(() => {
+            // shares_planned should be populated (editable field)
+            const sharesInput = screen.getByTestId('plan-shares-planned') as HTMLInputElement
+            expect(parseInt(sharesInput.value)).toBe(250)
+            // position_size should be populated (readonly field)
+            const posField = screen.getByTestId('plan-position-size') as HTMLInputElement
+            expect(posField.value).toBe('$47,500.00')
+        })
+    })
+
+    it('should ignore calculator-apply event with no payload', async () => {
+        render(<TradePlanPage />, { wrapper: createWrapper() })
+        await waitFor(() => expect(screen.getByText('AAPL')).toBeInTheDocument())
+        fireEvent.click(screen.getByTestId('plan-card-1'))
+        await waitFor(() => expect(screen.getByTestId('plan-shares-planned')).toBeInTheDocument())
+
+        const sharesBefore = (screen.getByTestId('plan-shares-planned') as HTMLInputElement).value
+
+        // Fire event with no detail
+        act(() => {
+            window.dispatchEvent(new CustomEvent('zorivest:calculator-apply', { detail: null }))
+        })
+
+        // shares_planned should be unchanged
+        const sharesAfter = (screen.getByTestId('plan-shares-planned') as HTMLInputElement).value
+        expect(sharesAfter).toBe(sharesBefore)
+    })
+
+    it('should ignore calculator-apply when no plan is being edited', async () => {
+        render(<TradePlanPage />, { wrapper: createWrapper() })
+        await waitFor(() => expect(screen.getByText('AAPL')).toBeInTheDocument())
+        // Do NOT click a plan card — no plan selected
+
+        // This should not throw or crash
+        act(() => {
+            window.dispatchEvent(new CustomEvent('zorivest:calculator-apply', {
+                detail: { shares_planned: 100, position_size: 19000 },
+            }))
+        })
+
+        // Page should still be intact
+        expect(screen.getByTestId('trade-plan-page')).toBeInTheDocument()
+    })
+})
+
+describe('MEU-70a Sub-MEU C: AC-23 — Applied values in PUT save', () => {
+    beforeEach(() => {
+        vi.clearAllMocks()
+        mockApiFetch.mockImplementation((url: string, opts?: Record<string, unknown>) => {
+            if (opts?.method === 'PUT') return Promise.resolve({ id: 1 })
+            if (url.includes('/api/v1/trade-plans')) return Promise.resolve(MOCK_PLANS)
+            if (url.includes('/api/v1/accounts')) return Promise.resolve([])
+            return Promise.resolve({})
+        })
+    })
+
+    it('should include position_size in PUT payload after calculator-apply', async () => {
+        render(<TradePlanPage />, { wrapper: createWrapper() })
+        await waitFor(() => expect(screen.getByText('AAPL')).toBeInTheDocument())
+        fireEvent.click(screen.getByTestId('plan-card-1'))
+        await waitFor(() => expect(screen.getByTestId('plan-shares-planned')).toBeInTheDocument())
+
+        // Apply calculator result
+        act(() => {
+            window.dispatchEvent(new CustomEvent('zorivest:calculator-apply', {
+                detail: { shares_planned: 300, position_size: 57000 },
+            }))
+        })
+
+        // Save
+        fireEvent.click(screen.getByTestId('plan-save-btn'))
+        await waitFor(() => {
+            const putCalls = mockApiFetch.mock.calls.filter(
+                (c: unknown[]) =>
+                    (c[0] as string).includes('/api/v1/trade-plans/') &&
+                    (c[1] as RequestInit)?.method === 'PUT',
+            )
+            expect(putCalls.length).toBeGreaterThanOrEqual(1)
+            const body = JSON.parse((putCalls[0][1] as RequestInit).body as string)
+            expect(body.shares_planned).toBe(300)
+            expect(body.position_size).toBe(57000)
+        })
+    })
+})
+
+// ─── MEU-71b (continued): Calculator Account Integration ──────────────────
+
+describe('MEU-71b (continued): Calculator Account Dropdown', () => {
+    const MOCK_ACCOUNTS_ENRICHED = [
+        {
+            account_id: 'ACC001',
+            name: 'Main Trading',
+            account_type: 'broker',
+            latest_balance: 50000.0,
+            latest_balance_date: '2025-03-15T00:00:00',
+        },
+        {
+            account_id: 'ACC002',
+            name: 'IRA',
+            account_type: 'retirement',
+            latest_balance: 25000.0,
+            latest_balance_date: '2025-03-10T00:00:00',
+        },
+    ]
+
+    beforeEach(() => {
+        vi.clearAllMocks()
+        mockApiFetch.mockImplementation((url: string) => {
+            if (url.includes('/api/v1/accounts')) return Promise.resolve(MOCK_ACCOUNTS_ENRICHED)
+            return Promise.resolve({})
+        })
+    })
+
     it('AC-5: changing account reverts balance to API value', async () => {
         render(<PositionCalculatorModal isOpen={true} onClose={vi.fn()} />, { wrapper: createWrapper() })
 
@@ -1116,5 +1351,352 @@ describe('MEU-71b: Calculator Account Dropdown', () => {
         await waitFor(() => {
             expect((screen.getByTestId('calc-account-size') as HTMLInputElement).value).toBe('25000')
         })
+    })
+})
+
+// ─── Bug-Fix: WatchlistTable renders market data from API quote shape ──────
+
+import WatchlistTable, { type MarketQuote as WTMarketQuote } from '../WatchlistTable'
+
+describe('Bug-Fix: WatchlistTable renders market data', () => {
+    const items = [
+        { id: 1, watchlist_id: 1, ticker: 'AAPL', added_at: '2026-03-20T10:00:00Z', notes: 'Watch for earnings' },
+        { id: 2, watchlist_id: 1, ticker: 'MSFT', added_at: '2026-03-20T10:00:00Z', notes: '' },
+    ]
+
+    // This is what the API returns after the fix — price maps to last_price
+    const quotes: Record<string, WTMarketQuote> = {
+        AAPL: { last_price: 190.50, change: 2.50, change_pct: 1.33, volume: 45300000, symbol: 'AAPL' },
+        MSFT: { last_price: 420.00, change: -3.20, change_pct: -0.76, volume: 22100000, symbol: 'MSFT' },
+    }
+
+    it('should display last_price when quote data is available', () => {
+        render(
+            <WatchlistTable items={items} quotes={quotes} colorblind={false} />,
+            { wrapper: createWrapper() },
+        )
+        expect(screen.getByTestId('watchlist-row-AAPL')).toHaveTextContent('190.50')
+        expect(screen.getByTestId('watchlist-row-MSFT')).toHaveTextContent('420.00')
+    })
+
+    it('should display change values with arrows', () => {
+        render(
+            <WatchlistTable items={items} quotes={quotes} colorblind={false} />,
+            { wrapper: createWrapper() },
+        )
+        // AAPL has positive change → ▲
+        const aaplRow = screen.getByTestId('watchlist-row-AAPL')
+        expect(aaplRow).toHaveTextContent('▲')
+        expect(aaplRow).toHaveTextContent('+2.50')
+        // MSFT has negative change → ▼
+        const msftRow = screen.getByTestId('watchlist-row-MSFT')
+        expect(msftRow).toHaveTextContent('▼')
+    })
+
+    it('should display volume formatted', () => {
+        render(
+            <WatchlistTable items={items} quotes={quotes} colorblind={false} />,
+            { wrapper: createWrapper() },
+        )
+        expect(screen.getByTestId('watchlist-row-AAPL')).toHaveTextContent('45.3M')
+    })
+
+    it('should show "—" when quote is null (fallback)', () => {
+        render(
+            <WatchlistTable items={items} quotes={{ AAPL: null, MSFT: null }} colorblind={false} />,
+            { wrapper: createWrapper() },
+        )
+        // All data cells should show em-dash
+        const aaplRow = screen.getByTestId('watchlist-row-AAPL')
+        // Price, Chg $, Chg %, Volume should all show "—"
+        const cells = aaplRow.querySelectorAll('td.wl-num')
+        cells.forEach((cell) => {
+            expect(cell.textContent).toBe('—')
+        })
+    })
+})
+
+// ─── Bug-Fix: Colorblind toggle applies to table data cells ─────────────────
+
+describe('Bug-Fix: Colorblind toggle changes cell colors', () => {
+    const items = [
+        { id: 1, watchlist_id: 1, ticker: 'AAPL', added_at: '2026-03-20T10:00:00Z', notes: '' },
+    ]
+
+    const quotesUp: Record<string, WTMarketQuote> = {
+        AAPL: { last_price: 190.50, change: 2.50, change_pct: 1.33, volume: 45300000, symbol: 'AAPL' },
+    }
+
+    it('should use green (#26A69A) for positive change in normal mode', () => {
+        render(
+            <WatchlistTable items={items} quotes={quotesUp} colorblind={false} />,
+            { wrapper: createWrapper() },
+        )
+        const row = screen.getByTestId('watchlist-row-AAPL')
+        const changeCells = row.querySelectorAll('td.wl-num')
+        // Chg $ cell (index 1) should have green color
+        expect((changeCells[1] as HTMLElement).style.color).toBe('rgb(38, 166, 154)')
+    })
+
+    it('should use blue (#2962FF) for positive change in colorblind mode', () => {
+        render(
+            <WatchlistTable items={items} quotes={quotesUp} colorblind={true} />,
+            { wrapper: createWrapper() },
+        )
+        const row = screen.getByTestId('watchlist-row-AAPL')
+        const changeCells = row.querySelectorAll('td.wl-num')
+        // Chg $ cell (index 1) should have blue color
+        expect((changeCells[1] as HTMLElement).style.color).toBe('rgb(41, 98, 255)')
+    })
+})
+
+// ─── Bug-Fix: WatchlistTable inline notes editing ───────────────────────────
+
+describe('Bug-Fix: WatchlistTable inline notes editing', () => {
+    const items = [
+        { id: 1, watchlist_id: 1, ticker: 'AAPL', added_at: '2026-03-20T10:00:00Z', notes: 'Watch for earnings' },
+        { id: 2, watchlist_id: 1, ticker: 'MSFT', added_at: '2026-03-20T10:00:00Z', notes: '' },
+    ]
+
+    it('should display actual notes text (not icon) for items with notes', () => {
+        const mockUpdateNotes = vi.fn()
+        render(
+            <WatchlistTable items={items} quotes={{}} colorblind={false} onUpdateNotes={mockUpdateNotes} />,
+            { wrapper: createWrapper() },
+        )
+        const notesEl = screen.getByTestId('edit-notes-AAPL')
+        expect(notesEl).toBeInTheDocument()
+        expect(notesEl.textContent).toBe('Watch for earnings')
+        expect(notesEl.className).toContain('wl-notes-text')
+    })
+
+    it('should display "—" placeholder for items without notes', () => {
+        const mockUpdateNotes = vi.fn()
+        render(
+            <WatchlistTable items={items} quotes={{}} colorblind={false} onUpdateNotes={mockUpdateNotes} />,
+            { wrapper: createWrapper() },
+        )
+        const placeholderEl = screen.getByTestId('edit-notes-MSFT')
+        expect(placeholderEl.textContent).toBe('—')
+        expect(placeholderEl.className).toContain('wl-notes-placeholder')
+    })
+
+    it('should open inline editor when clicking notes text', () => {
+        const mockUpdateNotes = vi.fn()
+        render(
+            <WatchlistTable items={items} quotes={{}} colorblind={false} onUpdateNotes={mockUpdateNotes} />,
+            { wrapper: createWrapper() },
+        )
+        fireEvent.click(screen.getByTestId('edit-notes-AAPL'))
+        expect(screen.getByTestId('notes-input-AAPL')).toBeInTheDocument()
+    })
+
+    it('should show inline input pre-filled with existing notes', () => {
+        const mockUpdateNotes = vi.fn()
+        render(
+            <WatchlistTable items={items} quotes={{}} colorblind={false} onUpdateNotes={mockUpdateNotes} />,
+            { wrapper: createWrapper() },
+        )
+        fireEvent.click(screen.getByTestId('edit-notes-AAPL'))
+        const input = screen.getByTestId('notes-input-AAPL') as HTMLInputElement
+        expect(input.value).toBe('Watch for earnings')
+    })
+
+    it('should call onUpdateNotes when saving edited notes', async () => {
+        const mockUpdateNotes = vi.fn()
+        render(
+            <WatchlistTable items={items} quotes={{}} colorblind={false} onUpdateNotes={mockUpdateNotes} />,
+            { wrapper: createWrapper() },
+        )
+        fireEvent.click(screen.getByTestId('edit-notes-AAPL'))
+        const input = screen.getByTestId('notes-input-AAPL')
+        fireEvent.change(input, { target: { value: 'Updated earnings note' } })
+        fireEvent.click(screen.getByTestId('save-notes-AAPL'))
+        expect(mockUpdateNotes).toHaveBeenCalledWith('AAPL', 'Updated earnings note')
+    })
+
+    it('should allow clicking placeholder to add notes for items without notes', () => {
+        const mockUpdateNotes = vi.fn()
+        render(
+            <WatchlistTable items={items} quotes={{}} colorblind={false} onUpdateNotes={mockUpdateNotes} />,
+            { wrapper: createWrapper() },
+        )
+        // MSFT has no notes — click placeholder to start editing
+        const placeholder = screen.getByTestId('edit-notes-MSFT')
+        expect(placeholder).toBeInTheDocument()
+        fireEvent.click(placeholder)
+        expect(screen.getByTestId('notes-input-MSFT')).toBeInTheDocument()
+    })
+})
+
+// ─── Redesign Coverage: Freshness rendering ─────────────────────────────────
+
+describe('Redesign: WatchlistTable freshness rendering', () => {
+    const items = [
+        { id: 1, watchlist_id: 1, ticker: 'AAPL', added_at: '2026-03-20T10:00:00Z', notes: '' },
+    ]
+    const quotes: Record<string, WTMarketQuote> = {
+        AAPL: { last_price: 190.50, change: 2.50, change_pct: 1.33, volume: 45300000, symbol: 'AAPL' },
+    }
+
+    it('should render freshness text from lastQuoteTime prop', () => {
+        // Use a very recent timestamp so formatFreshness returns "Just now"
+        const recentTime = new Date().toISOString()
+        render(
+            <WatchlistTable
+                items={items}
+                quotes={quotes}
+                colorblind={false}
+                lastQuoteTime={recentTime}
+            />,
+            { wrapper: createWrapper() },
+        )
+        const freshness = screen.getByTestId('watchlist-freshness')
+        expect(freshness).toBeInTheDocument()
+        expect(freshness.textContent).toBe('Just now')
+    })
+
+    it('should show "No data" when lastQuoteTime is null', () => {
+        render(
+            <WatchlistTable
+                items={items}
+                quotes={quotes}
+                colorblind={false}
+                lastQuoteTime={null}
+            />,
+            { wrapper: createWrapper() },
+        )
+        const freshness = screen.getByTestId('watchlist-freshness')
+        expect(freshness).toBeInTheDocument()
+        expect(freshness.textContent).toBe('No data')
+    })
+})
+
+// ─── Redesign Coverage: Colorblind toggle persistence ───────────────────────
+
+describe('Redesign: Colorblind toggle persistence via Settings API', () => {
+    beforeEach(() => {
+        vi.clearAllMocks()
+        let storedColorblind = false
+        mockApiFetch.mockImplementation((url: string, opts?: Record<string, unknown>) => {
+            // Watchlist data
+            if (url === '/api/v1/watchlists/') return Promise.resolve(MOCK_WATCHLISTS)
+            if (url === '/api/v1/watchlists/1') return Promise.resolve(MOCK_WATCHLISTS[0])
+            // Settings: PUT colorblind mode — update stored value
+            if (url === '/api/v1/settings/ui.watchlist.colorblind_mode' && opts?.method === 'PUT') {
+                const body = JSON.parse(opts.body as string)
+                storedColorblind = body.value === true || body.value === 'true'
+                return Promise.resolve({ value: storedColorblind })
+            }
+            // Settings: GET colorblind mode — return stored value
+            if (url === '/api/v1/settings/ui.watchlist.colorblind_mode') {
+                return Promise.resolve({ value: storedColorblind })
+            }
+            // Market data quotes
+            if (url.includes('/api/v1/market-data/quote')) {
+                return Promise.resolve({ ticker: 'AAPL', price: 190.50, change: 2.50, change_pct: 1.33, volume: 45300000, provider: 'yahoo', timestamp: new Date().toISOString() })
+            }
+            return Promise.resolve({})
+        })
+    })
+
+    it('should render toggle showing "Colorblind: Off" initially', async () => {
+        render(<WatchlistPage />, { wrapper: createWrapper() })
+        await waitFor(() => {
+            expect(screen.getByText('Tech Stocks')).toBeInTheDocument()
+        })
+        fireEvent.click(screen.getByTestId('watchlist-card-1'))
+        await waitFor(() => {
+            const toggle = screen.getByTestId('colorblind-toggle')
+            expect(toggle).toBeInTheDocument()
+            expect(toggle.textContent).toContain('Colorblind: Off')
+        })
+    })
+
+    it('should call Settings API PUT when toggle is clicked', async () => {
+        render(<WatchlistPage />, { wrapper: createWrapper() })
+        await waitFor(() => {
+            expect(screen.getByText('Tech Stocks')).toBeInTheDocument()
+        })
+        fireEvent.click(screen.getByTestId('watchlist-card-1'))
+        await waitFor(() => {
+            expect(screen.getByTestId('colorblind-toggle')).toBeInTheDocument()
+        })
+
+        // Click toggle to enable colorblind mode
+        fireEvent.click(screen.getByTestId('colorblind-toggle'))
+
+        // Verify PUT was called with the new value
+        await waitFor(() => {
+            const putCalls = mockApiFetch.mock.calls.filter(
+                (call: unknown[]) =>
+                    call[0] === '/api/v1/settings/ui.watchlist.colorblind_mode' &&
+                    (call[1] as Record<string, unknown>)?.method === 'PUT',
+            )
+            expect(putCalls.length).toBeGreaterThanOrEqual(1)
+        })
+
+        // Verify toggle text changed
+        await waitFor(() => {
+            const toggle = screen.getByTestId('colorblind-toggle')
+            expect(toggle.textContent).toContain('Colorblind: On')
+        })
+    })
+})
+
+// ─── Redesign Coverage: Quote polling cadence ───────────────────────────────
+
+describe('Redesign: Quote polling cadence (5s interval)', () => {
+    beforeEach(() => {
+        vi.clearAllMocks()
+    })
+
+    it('should fire additional quote fetches after 5s polling interval', async () => {
+        vi.useFakeTimers({ shouldAdvanceTime: true })
+
+        let quoteFetchCount = 0
+        mockApiFetch.mockImplementation((url: string) => {
+            if (url === '/api/v1/watchlists/') return Promise.resolve(MOCK_WATCHLISTS)
+            if (url === '/api/v1/watchlists/1') return Promise.resolve(MOCK_WATCHLISTS[0])
+            if (url.includes('/api/v1/settings/')) return Promise.resolve({ value: false })
+            if (url.includes('/api/v1/market-data/quote')) {
+                quoteFetchCount++
+                return Promise.resolve({
+                    ticker: 'AAPL', price: 190.50, change: 2.50,
+                    change_pct: 1.33, volume: 45300000, provider: 'yahoo',
+                    timestamp: new Date().toISOString(),
+                })
+            }
+            return Promise.resolve({})
+        })
+
+        render(<WatchlistPage />, { wrapper: createWrapper() })
+
+        // Select the watchlist to trigger quote fetching
+        await act(async () => {
+            await vi.advanceTimersByTimeAsync(100)
+        })
+        await waitFor(() => {
+            expect(screen.getByText('Tech Stocks')).toBeInTheDocument()
+        })
+        fireEvent.click(screen.getByTestId('watchlist-card-1'))
+
+        // Wait for initial staggered fetches (4000 + jitter ms)
+        await act(async () => {
+            await vi.advanceTimersByTimeAsync(5500)
+        })
+
+        const initialCount = quoteFetchCount
+        expect(initialCount).toBeGreaterThan(0) // Initial fetch completed
+
+        // Advance by 6s to trigger at least one polling cycle (5s interval + jitter)
+        await act(async () => {
+            await vi.advanceTimersByTimeAsync(6000)
+        })
+
+        // Verify additional fetches were fired by the polling interval
+        expect(quoteFetchCount).toBeGreaterThan(initialCount)
+
+        vi.useRealTimers()
     })
 })

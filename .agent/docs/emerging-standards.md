@@ -514,3 +514,52 @@ Decisions made based on web research (UX Stack Exchange, Nielsen Norman Group, I
   })
   ```
 - **Rule of thumb:** `page.request` is for testing the app's own API behavior (verifying CORS, auth headers). `fetch()` is for seeding test fixtures that should not be subject to the app's security policies.
+
+---
+
+## Test Infrastructure Standards
+
+### G18 — Shared Hook Mock Inventory
+- **Severity:** 🟡 Medium
+- **Applies to:** GUI (Unit Tests)
+- **Rule:** When adding a shared hook (e.g., `usePersistedState`, `useNotifications`) to an existing component, audit ALL existing test blocks that render that component and update their API mocks to handle the hook's endpoint. Unknown endpoints returning `{}` cause React Query "data cannot be undefined" warnings that mask real failures.
+- **Origin:** 2026-04-11 MEU-70a continuation — `usePersistedState('ui.watchlist.colorblind_mode')` was added to `WatchlistPage.tsx`. Only the new redesign tests had the settings API mock. Five existing test blocks returned `{}` for unmatched URLs, causing `.value` to be `undefined` → React Query warnings.
+- **Bad example:** Add `usePersistedState` to component → only mock settings API in new tests → 5 existing tests emit warnings → warnings mask real failures
+- **Good example:**
+  ```bash
+  # After adding a shared hook to a component:
+  rg "render(<WatchlistPage" tests/ --files-with-matches
+  # For each file: add settings API handler to mockApiFetch before the catch-all
+  ```
+  ```ts
+  mockApiFetch.mockImplementation((url: string) => {
+      if (url === '/api/v1/watchlists/') return Promise.resolve(MOCK_WATCHLISTS)
+      if (url.includes('/api/v1/settings/')) return Promise.resolve({ value: false })
+      return Promise.resolve({})
+  })
+  ```
+- **Checklist for adding shared hooks:**
+  1. [ ] `rg` all test files rendering the component
+  2. [ ] Add mock handler for the hook's API endpoint to each `beforeEach` or per-test mock
+  3. [ ] Verify no React Query warnings in test output after change
+
+### G19 — Bug-Fix TDD Protocol
+- **Severity:** 🔴 Critical
+- **Applies to:** All layers
+- **Rule:** Bug reports ALWAYS require Red→Green TDD. Write a failing test that reproduces the bug BEFORE touching production code. The test must fail for the exact reason the bug exists (not a setup issue). Never go directly from "user reports bug" to "fix code."
+- **Origin:** 2026-04-11 MEU-70a continuation — User reported 5 WatchlistPage bugs (colorblind toggle, notes editing, market data display). Agent initially jumped straight to fixing production code. User had to explicitly correct: "perform TDD do not just adjust the code!" — adding ~30 minutes of rework.
+- **Bad example:**
+  ```
+  User: "Colorblind toggle only changes button color, not table cells"
+  Agent: *immediately edits WatchlistTable.tsx to fix getChangeColor()*
+  ```
+- **Good example:**
+  ```
+  User: "Colorblind toggle only changes button color, not table cells"
+  Agent:
+  1. Write test: render WatchlistTable with colorblind=true, assert cell uses blue (#2962FF) not green (#26A69A)
+  2. Run test → RED (actual: green, expected: blue) — confirms bug reproduction
+  3. Fix getChangeColor() to read colorblind prop
+  4. Run test → GREEN
+  ```
+- **Why this matters:** Bug-fix tests serve as regression guards. Without them, the same bug can be silently reintroduced in future refactors. The test IS the documentation of what broke.
