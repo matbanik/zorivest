@@ -11,30 +11,29 @@ from __future__ import annotations
 import os
 
 import pytest
+from fastapi import FastAPI
 from fastapi.testclient import TestClient
 
-# Set dev-unlock before importing app (lifespan reads it)
-os.environ["ZORIVEST_DEV_UNLOCK"] = "1"
-
-from zorivest_api.main import app  # noqa: E402
+from zorivest_api.main import create_app
 
 
-@pytest.fixture(autouse=True, scope="module")
-def _cleanup_dev_unlock():
-    """Ensure ZORIVEST_DEV_UNLOCK is removed after this module runs.
+@pytest.fixture(scope="module")
+def app():
+    """Create a fresh app with ZORIVEST_DEV_UNLOCK for this module only.
 
-    The env var is set at module import time (line 17) so the module-level
-    ``app = create_app()`` picks it up.  Without cleanup, later test modules
-    that call ``create_app()`` inherit a truthy ``db_unlocked``, causing
-    mode-gating assertions to fail (e.g. test_api_foundation.py).
+    Each module gets its own ``create_app()`` instance so that lifespan
+    reads the env var at fixture setup — not at import time.  This prevents
+    cross-module env var leakage (TEST-ISOLATION-2).
     """
-    yield
+    os.environ["ZORIVEST_DEV_UNLOCK"] = "1"
+    _app = create_app()
+    yield _app
     os.environ.pop("ZORIVEST_DEV_UNLOCK", None)
 
 
 @pytest.fixture()
-def client():
-    """TestClient with startup/shutdown lifespan."""
+def client(app: FastAPI):
+    """TestClient with startup/shutdown lifespan from module's app."""
     with TestClient(app) as c:
         yield c
 

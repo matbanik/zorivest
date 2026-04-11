@@ -75,14 +75,12 @@
 - **Fix:** Added module-scoped `autouse` cleanup fixtures in `test_api_roundtrip.py` and `test_gui_api_seams.py`, plus a defensive `autouse` clear in `test_api_foundation.py::TestAppStateWiring`. Full suite now passes (1718 passed, 15 skipped, excluding pre-existing `test_market_data_service.py` drift).
 
 ### [TEST-ISOLATION-2] — test_api_roundtrip.py::test_dev_unlock_sets_db_unlocked fails in full suite
-- **Severity:** Low (test-only, passes in isolation)
+- **Severity:** ~~Low~~ → Resolved (2026-04-11)
 - **Component:** tests (integration)
 - **Discovered:** 2026-04-11 (Codex review of MEU-TS2/TS3)
-- **Status:** Open
+- **Status:** ✅ **Resolved 2026-04-11 (MEU-TI2)**
 - **Root cause:** `test_api_accounts_integration.py` runs before `test_api_roundtrip.py` in full suite. Both modules set `ZORIVEST_DEV_UNLOCK=1` at import time and share the same module-level `app` singleton from `zorivest_api.main`. The accounts module's cleanup fixture removes the env var after its tests, but the `app` lifespan has already run. When the roundtrip module's `TestClient(app)` creates a new lifespan context, the env var is already gone — the app initializes with `db_unlocked=False`.
-- **Evidence:** Test passes in isolation (`pytest tests/integration/test_api_roundtrip.py` → 16/16), fails in suite context (`pytest tests/` → `assert False is True`).
-- **Workaround:** Run integration tests in isolation or skip in full suite. Not blocking any MEU work.
-- **Fix path:** Refactor integration tests to use per-module app factory (`create_app()`) instead of sharing a module-level singleton import. Each test module should create its own `app` instance in a module-scoped fixture.
+- **Fix:** Refactored all 3 integration test modules (`test_api_roundtrip.py`, `test_api_accounts_integration.py`, `test_gui_api_seams.py`) to use `create_app()` factory in module-scoped fixtures instead of importing the `app` singleton. Each module now creates its own app instance with isolated env var lifecycle. Full integration suite: 165 passed, 0 failed.
 
 ### [TEST-DRIFT-MDS] — 5 tests in test_market_data_service.py fail due to wiring changes
 - **Severity:** Medium
