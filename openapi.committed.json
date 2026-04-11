@@ -1954,6 +1954,18 @@
         "title": "UpdateAccountRequest",
         "type": "object"
       },
+      "UpdateItemNotesRequest": {
+        "additionalProperties": false,
+        "properties": {
+          "notes": {
+            "default": "",
+            "title": "Notes",
+            "type": "string"
+          }
+        },
+        "title": "UpdateItemNotesRequest",
+        "type": "object"
+      },
       "UpdatePlanRequest": {
         "additionalProperties": false,
         "properties": {
@@ -7882,6 +7894,64 @@
           }
         },
         "summary": "Remove Ticker",
+        "tags": [
+          "watchlists"
+        ]
+      },
+      "patch": {
+        "description": "Update notes for a specific ticker in a watchlist.",
+        "operationId": "patch_watchlist_item_notes_api_v1_watchlists__watchlist_id__items__ticker__patch",
+        "parameters": [
+          {
+            "in": "path",
+            "name": "watchlist_id",
+            "required": true,
+            "schema": {
+              "title": "Watchlist Id",
+              "type": "integer"
+            }
+          },
+          {
+            "in": "path",
+            "name": "ticker",
+            "required": true,
+            "schema": {
+              "title": "Ticker",
+              "type": "string"
+            }
+          }
+        ],
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/UpdateItemNotesRequest"
+              }
+            }
+          },
+          "required": true
+        },
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "schema": {}
+              }
+            },
+            "description": "Successful Response"
+          },
+          "422": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HTTPValidationError"
+                }
+              }
+            },
+            "description": "Validation Error"
+          }
+        },
+        "summary": "Patch Watchlist Item Notes",
         "tags": [
           "watchlists"
         ]
