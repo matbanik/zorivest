@@ -189,3 +189,73 @@ class TestGetWatchlistItemLoadFailure:
             assert data["error"] == "internal_error"
         finally:
             no_raise_client.app.state.watchlist_service.get_items = original_get_items  # type: ignore[union-attr]
+
+
+# ── Boundary Validation (MEU-BV7) ──────────────────────────────────────
+
+
+class TestWatchlistBoundaryValidation:
+    """BV7: Boundary hardening negative tests for watchlist write surfaces.
+
+    Verifies extra="forbid", StrippedStr + min_length=1 per
+    implementation-plan.md §MEU-BV7.
+    """
+
+    # AC-1: CreateWatchlistRequest extra fields → 422
+    def test_create_extra_field_422(self, client: TestClient) -> None:
+        resp = client.post(BASE + "/", json={"name": "Good", "sneaky": True})
+        assert resp.status_code == 422
+
+    # AC-2: UpdateWatchlistRequest extra fields → 422
+    def test_update_extra_field_422(self, client: TestClient) -> None:
+        create_resp = client.post(BASE + "/", json={"name": "Target"})
+        wl_id = create_resp.json()["id"]
+        resp = client.put(f"{BASE}/{wl_id}", json={"name": "Ok", "sneaky": True})
+        assert resp.status_code == 422
+
+    # AC-3: AddTickerRequest extra fields → 422
+    def test_add_ticker_extra_field_422(self, client: TestClient) -> None:
+        create_resp = client.post(BASE + "/", json={"name": "Tickers"})
+        wl_id = create_resp.json()["id"]
+        resp = client.post(
+            f"{BASE}/{wl_id}/items", json={"ticker": "AAPL", "sneaky": True}
+        )
+        assert resp.status_code == 422
+
+    # AC-4: Blank name on create → 422
+    def test_create_blank_name_422(self, client: TestClient) -> None:
+        resp = client.post(BASE + "/", json={"name": ""})
+        assert resp.status_code == 422
+
+    # AC-5: Whitespace-only name on create → 422
+    def test_create_whitespace_name_422(self, client: TestClient) -> None:
+        resp = client.post(BASE + "/", json={"name": "   "})
+        assert resp.status_code == 422
+
+    # AC-6: Blank ticker on add → 422
+    def test_add_blank_ticker_422(self, client: TestClient) -> None:
+        create_resp = client.post(BASE + "/", json={"name": "TickerBlank"})
+        wl_id = create_resp.json()["id"]
+        resp = client.post(f"{BASE}/{wl_id}/items", json={"ticker": ""})
+        assert resp.status_code == 422
+
+    # AC-7: Whitespace-only ticker on add → 422
+    def test_add_whitespace_ticker_422(self, client: TestClient) -> None:
+        create_resp = client.post(BASE + "/", json={"name": "TickerWS"})
+        wl_id = create_resp.json()["id"]
+        resp = client.post(f"{BASE}/{wl_id}/items", json={"ticker": "   "})
+        assert resp.status_code == 422
+
+    # AC-8: Blank name on update → 422 (create/update parity)
+    def test_update_blank_name_422(self, client: TestClient) -> None:
+        create_resp = client.post(BASE + "/", json={"name": "UpdateBlank"})
+        wl_id = create_resp.json()["id"]
+        resp = client.put(f"{BASE}/{wl_id}", json={"name": ""})
+        assert resp.status_code == 422
+
+    # AC-9: Whitespace-only name on update → 422 (create/update parity)
+    def test_update_whitespace_name_422(self, client: TestClient) -> None:
+        create_resp = client.post(BASE + "/", json={"name": "UpdateWS"})
+        wl_id = create_resp.json()["id"]
+        resp = client.put(f"{BASE}/{wl_id}", json={"name": "   "})
+        assert resp.status_code == 422

@@ -92,6 +92,8 @@ vi.mock('@/hooks/useAccounts', () => ({
     useDeleteAccount: () => ({ mutate: vi.fn(), isPending: false }),
     useBalanceHistory: () => ({ data: [], isLoading: false }),
     useAddBalance: () => ({ mutate: vi.fn(), isPending: false }),
+    useArchiveAccount: () => ({ mutate: vi.fn(), isPending: false }),
+    useArchivedAccounts: () => ({ accounts: [], isLoading: false, isFetching: false, error: null, refetch: vi.fn() }),
 }))
 
 // Mock AccountContext

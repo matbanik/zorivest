@@ -14,6 +14,7 @@
         "type": "string"
       },
       "AddTickerRequest": {
+        "additionalProperties": false,
         "properties": {
           "notes": {
             "default": "",
@@ -21,6 +22,7 @@
             "type": "string"
           },
           "ticker": {
+            "minLength": 1,
             "title": "Ticker",
             "type": "string"
           }
@@ -428,6 +430,7 @@
         "type": "object"
       },
       "CreateWatchlistRequest": {
+        "additionalProperties": false,
         "properties": {
           "description": {
             "default": "",
@@ -435,6 +438,7 @@
             "type": "string"
           },
           "name": {
+            "minLength": 1,
             "title": "Name",
             "type": "string"
           }
@@ -933,6 +937,7 @@
         "type": "string"
       },
       "PolicyCreateRequest": {
+        "additionalProperties": false,
         "description": "Request body for creating or updating a policy.",
         "properties": {
           "policy_json": {
@@ -1380,6 +1385,7 @@
         "type": "object"
       },
       "RunTriggerRequest": {
+        "additionalProperties": false,
         "description": "Request body for triggering a pipeline run.",
         "properties": {
           "dry_run": {
@@ -1973,6 +1979,20 @@
         "title": "UpdateReportRequest",
         "type": "object"
       },
+      "UpdateSettingRequest": {
+        "additionalProperties": false,
+        "description": "Request body for PUT /settings/{key} \u2014 single-key write.",
+        "properties": {
+          "value": {
+            "title": "Value"
+          }
+        },
+        "required": [
+          "value"
+        ],
+        "title": "UpdateSettingRequest",
+        "type": "object"
+      },
       "UpdateTradeRequest": {
         "additionalProperties": false,
         "properties": {
@@ -2083,6 +2103,7 @@
         "type": "object"
       },
       "UpdateWatchlistRequest": {
+        "additionalProperties": false,
         "properties": {
           "description": {
             "anyOf": [
@@ -2098,6 +2119,7 @@
           "name": {
             "anyOf": [
               {
+                "minLength": 1,
                 "type": "string"
               },
               {
@@ -3520,6 +3542,40 @@
       }
     },
     "/api/v1/images/{image_id}": {
+      "delete": {
+        "description": "Delete an image by ID.\n\nReturns 204 on success, 404 if image does not exist.",
+        "operationId": "delete_image_api_v1_images__image_id__delete",
+        "parameters": [
+          {
+            "in": "path",
+            "name": "image_id",
+            "required": true,
+            "schema": {
+              "title": "Image Id",
+              "type": "integer"
+            }
+          }
+        ],
+        "responses": {
+          "204": {
+            "description": "Successful Response"
+          },
+          "422": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HTTPValidationError"
+                }
+              }
+            },
+            "description": "Validation Error"
+          }
+        },
+        "summary": "Delete Image",
+        "tags": [
+          "trades"
+        ]
+      },
       "get": {
         "description": "Get image metadata.",
         "operationId": "get_image_metadata_api_v1_images__image_id__get",
@@ -4913,6 +4969,7 @@
             "schema": {
               "anyOf": [
                 {
+                  "minLength": 1,
                   "type": "string"
                 },
                 {
@@ -4945,6 +5002,7 @@
             "schema": {
               "anyOf": [
                 {
+                  "minLength": 1,
                   "type": "string"
                 },
                 {
@@ -5430,9 +5488,7 @@
           "content": {
             "application/json": {
               "schema": {
-                "additionalProperties": true,
-                "title": "Body",
-                "type": "object"
+                "$ref": "#/components/schemas/UpdateSettingRequest"
               }
             }
           },
@@ -6730,7 +6786,7 @@
         ]
       },
       "post": {
-        "description": "Upload an image and attach it to a trade.\n\nSource: 04a-api-trades.md \u00a7Image Upload\nThe service layer normalizes to image/webp after standardization.",
+        "description": "Upload an image and attach it to a trade.\n\nSource: 04a-api-trades.md \u00a7Image Upload\nValidates the image (magic bytes, 10 MB size limit), converts to WebP,\nextracts real dimensions, and stores via the service layer.",
         "operationId": "upload_trade_image_api_v1_trades__exec_id__images_post",
         "parameters": [
           {

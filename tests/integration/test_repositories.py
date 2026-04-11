@@ -18,7 +18,9 @@ from zorivest_core.domain.entities import (
 )
 from zorivest_core.domain.enums import (
     AccountType,
+    ConvictionLevel,
     ImageOwnerType,
+    PlanStatus,
     TradeAction,
 )
 from zorivest_core.domain.trades.identity import trade_fingerprint
@@ -407,8 +409,8 @@ class TestTradePlanRepository:
         plan = TradePlan(
             id=0,
             ticker="AAPL",
-            direction="BOT",
-            conviction="high",
+            direction=TradeAction.BOT,
+            conviction=ConvictionLevel.HIGH,
             strategy_name="Gap & Go",
             strategy_description="Long after gap up",
             entry_price=200.0,
@@ -418,7 +420,7 @@ class TestTradePlanRepository:
             exit_conditions="Target hit or EOD",
             timeframe="intraday",
             risk_reward_ratio=3.0,
-            status="draft",
+            status=PlanStatus.DRAFT,
             created_at=datetime(2026, 3, 12),
             updated_at=datetime(2026, 3, 12),
         )
@@ -445,8 +447,8 @@ class TestTradePlanRepository:
             plan = TradePlan(
                 id=0,
                 ticker=f"T{i}",
-                direction="BOT",
-                conviction="medium",
+                direction=TradeAction.BOT,
+                conviction=ConvictionLevel.MEDIUM,
                 strategy_name="Test",
                 strategy_description="",
                 entry_price=100.0,
@@ -456,7 +458,7 @@ class TestTradePlanRepository:
                 exit_conditions="",
                 timeframe="swing",
                 risk_reward_ratio=2.0,
-                status="draft",
+                status=PlanStatus.DRAFT,
                 created_at=datetime(2026, 3, 12),
                 updated_at=datetime(2026, 3, 12),
             )
@@ -473,8 +475,8 @@ class TestTradePlanRepository:
         plan = TradePlan(
             id=0,
             ticker="AAPL",
-            direction="BOT",
-            conviction="high",
+            direction=TradeAction.BOT,
+            conviction=ConvictionLevel.HIGH,
             strategy_name="Gap & Go",
             strategy_description="Long gap",
             entry_price=200.0,
@@ -484,7 +486,7 @@ class TestTradePlanRepository:
             exit_conditions="Target or EOD",
             timeframe="intraday",
             risk_reward_ratio=3.0,
-            status="draft",
+            status=PlanStatus.DRAFT,
             created_at=datetime(2026, 3, 12),
             updated_at=datetime(2026, 3, 12),
         )
@@ -496,7 +498,9 @@ class TestTradePlanRepository:
 
         from dataclasses import replace
 
-        updated = replace(saved, status="active", conviction="max")
+        updated = replace(
+            saved, status=PlanStatus.ACTIVE, conviction=ConvictionLevel.MAX
+        )
         repo.update(updated)
         session.commit()
 
@@ -512,8 +516,8 @@ class TestTradePlanRepository:
         plan = TradePlan(
             id=0,
             ticker="SPY",
-            direction="SLD",
-            conviction="medium",
+            direction=TradeAction.SLD,
+            conviction=ConvictionLevel.MEDIUM,
             strategy_name="Breakdown",
             strategy_description="Short below support",
             entry_price=600.0,
@@ -523,7 +527,7 @@ class TestTradePlanRepository:
             exit_conditions="Cover at target",
             timeframe="intraday",
             risk_reward_ratio=3.0,
-            status="draft",
+            status=PlanStatus.DRAFT,
             created_at=datetime(2026, 3, 12),
             updated_at=datetime(2026, 3, 12),
         )

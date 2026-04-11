@@ -48,11 +48,11 @@ def test_AC_F2_params_validates_required_fields():
 
     # Should fail without provider
     with pytest.raises(ValidationError):
-        FetchStep.Params(data_type="ohlcv")
+        FetchStep.Params(data_type="ohlcv")  # type: ignore[reportCallIssue]
 
     # Should fail without data_type
     with pytest.raises(ValidationError):
-        FetchStep.Params(provider="ibkr")
+        FetchStep.Params(provider="ibkr")  # type: ignore[reportCallIssue]
 
 
 # ---------------------------------------------------------------------------
@@ -412,9 +412,9 @@ def test_AC_F14_pipeline_state_repo_get():
             entity_key="AAPL",
         )
         assert found is not None
-        assert found.last_cursor == "2025-06-15T00:00:00Z"
-        assert found.last_hash == "abc123"
-        assert found.provider_id == "ibkr"
+        assert found.last_cursor == "2025-06-15T00:00:00Z"  # type: ignore[reportGeneralTypeIssues]
+        assert found.last_hash == "abc123"  # type: ignore[reportGeneralTypeIssues]
+        assert found.provider_id == "ibkr"  # type: ignore[reportGeneralTypeIssues]
 
 
 # ---------------------------------------------------------------------------

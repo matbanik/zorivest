@@ -31,7 +31,7 @@ def engine():
 def service(engine) -> WatchlistService:
     """WatchlistService backed by the shared in-memory SQLite engine."""
     uow = SqlAlchemyUnitOfWork(engine)
-    return WatchlistService(uow)
+    return WatchlistService(uow)  # type: ignore[reportArgumentType]
 
 
 # ── AC-2: CRUD ──────────────────────────────────────────────────────────

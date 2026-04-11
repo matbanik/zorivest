@@ -255,6 +255,7 @@ class TestGetPolicy:
     async def test_get_existing(self) -> None:
         svc, _, _ = _make_service()
         result = await svc.create_policy(_sample_policy_json())
+        assert result.policy is not None
         policy = await svc.get_policy(result.policy["id"])
         assert policy is not None
 
@@ -270,6 +271,7 @@ class TestUpdatePolicy:
     async def test_update_resets_approval(self) -> None:
         svc, _, store = _make_service()
         result = await svc.create_policy(_sample_policy_json())
+        assert result.policy is not None
         pid = result.policy["id"]
         # Manually approve
         store._data[pid]["approved"] = True
@@ -292,6 +294,7 @@ class TestDeletePolicy:
     async def test_delete_removes(self) -> None:
         svc, _, _ = _make_service()
         result = await svc.create_policy(_sample_policy_json())
+        assert result.policy is not None
         pid = result.policy["id"]
         await svc.delete_policy(pid)
         assert await svc.get_policy(pid) is None
@@ -302,6 +305,7 @@ class TestApprovePolicy:
     async def test_approve_sets_flag(self) -> None:
         svc, _, _ = _make_service()
         result = await svc.create_policy(_sample_policy_json())
+        assert result.policy is not None
         pid = result.policy["id"]
         approved = await svc.approve_policy(pid)
         assert approved is not None
@@ -329,6 +333,7 @@ class TestTriggerRun:
     async def test_trigger_approved_policy(self) -> None:
         svc, _, store = _make_service()
         result = await svc.create_policy(_sample_policy_json())
+        assert result.policy is not None
         pid = result.policy["id"]
         # Approve the policy
         await svc.approve_policy(pid)
@@ -353,6 +358,7 @@ class TestTriggerRun:
     async def test_trigger_unapproved_blocks(self) -> None:
         svc, _, store = _make_service()
         result = await svc.create_policy(_sample_policy_json())
+        assert result.policy is not None
         pid = result.policy["id"]
         # Policy is not approved — guardrails should block
         svc._guardrails._policies = FakePolicyLookup(
@@ -390,6 +396,7 @@ class TestPatchSchedule:
         svc, _, store = _make_service()
         # Create and approve a policy
         result = await svc.create_policy(_sample_policy_json())
+        assert result.policy is not None
         pid = result.policy["id"]
         await svc.approve_policy(pid)
         assert store._data[pid]["approved"] is True

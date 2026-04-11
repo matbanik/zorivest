@@ -244,3 +244,35 @@ class TestSettingsPutSingleKey:
         data = resp.json()
         assert "detail" in data
         assert "errors" in data["detail"]
+
+
+# ── Boundary Validation (MEU-BV8) ──────────────────────────────────────
+
+
+class TestSettingsBoundaryValidation:
+    """BV8: Boundary hardening negative tests for settings write surfaces.
+
+    Verifies empty-body guard, extra="forbid" on UpdateSettingRequest per
+    implementation-plan.md §MEU-BV8.
+    """
+
+    # AC-1: Empty dict on bulk PUT → 422
+    def test_bulk_put_empty_dict_422(self, client: TestClient) -> None:
+        resp = client.put("/api/v1/settings", json={})
+        assert resp.status_code == 422
+
+    # AC-2: UpdateSettingRequest extra fields → 422
+    def test_single_put_extra_field_422(self, client: TestClient) -> None:
+        resp = client.put(
+            "/api/v1/settings/ui.theme",
+            json={"value": "dark", "sneaky": True},
+        )
+        assert resp.status_code == 422
+
+    # AC-3: UpdateSettingRequest missing value → 422
+    def test_single_put_no_value_422(self, client: TestClient) -> None:
+        resp = client.put(
+            "/api/v1/settings/ui.theme",
+            json={},
+        )
+        assert resp.status_code == 422

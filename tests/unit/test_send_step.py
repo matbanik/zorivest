@@ -52,7 +52,7 @@ def test_ac_s3_params_requires_channel():
     from zorivest_core.pipeline_steps.send_step import SendStep
 
     with pytest.raises(ValidationError):
-        SendStep.Params(recipients=["test@example.com"])
+        SendStep.Params(recipients=["test@example.com"])  # type: ignore[reportCallIssue]
 
     p = SendStep.Params(channel="email", recipients=["test@example.com"])
     assert p.channel == "email"
@@ -123,7 +123,7 @@ async def test_ac_s6_execute_fails_unknown_channel():
     )
 
     assert result.status.value == "failed"
-    assert "carrier_pigeon" in result.error
+    assert "carrier_pigeon" in result.error  # type: ignore[reportOperatorIssue]
 
 
 # ---------------------------------------------------------------------------
@@ -509,7 +509,7 @@ def test_ac_s18_delivery_repo_get_by_dedup_key():
         # Known key
         result = repo.get_by_dedup_key("known-key")
         assert result is not None
-        assert result.dedup_key == "known-key"
+        assert result.dedup_key == "known-key"  # type: ignore[reportGeneralTypeIssues]
 
 
 # ---------------------------------------------------------------------------
@@ -555,11 +555,11 @@ def test_ac_s19_delivery_repo_create():
         # Verify persisted
         delivery = session.get(ReportDeliveryModel, delivery_id)
         assert delivery is not None
-        assert delivery.channel == "email"
-        assert delivery.recipient == "test@example.com"
-        assert delivery.status == "sent"
-        assert delivery.dedup_key == "unique-key-123"
-        assert delivery.report_id == "rpt-1"
+        assert delivery.channel == "email"  # type: ignore[reportGeneralTypeIssues]
+        assert delivery.recipient == "test@example.com"  # type: ignore[reportGeneralTypeIssues]
+        assert delivery.status == "sent"  # type: ignore[reportGeneralTypeIssues]
+        assert delivery.dedup_key == "unique-key-123"  # type: ignore[reportGeneralTypeIssues]
+        assert delivery.report_id == "rpt-1"  # type: ignore[reportGeneralTypeIssues]
 
 
 # ---------------------------------------------------------------------------

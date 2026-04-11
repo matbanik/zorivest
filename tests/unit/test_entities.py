@@ -11,8 +11,21 @@ import ast
 import inspect
 from datetime import datetime
 from decimal import Decimal
+from typing import TYPE_CHECKING
 
 import pytest
+
+if TYPE_CHECKING:
+    from zorivest_core.domain.entities import (
+        Account,
+        BalanceSnapshot,
+        ImageAttachment,
+        Trade,
+        TradePlan,
+        TradeReport,
+        Watchlist,
+        WatchlistItem,
+    )
 
 pytestmark = pytest.mark.unit
 
@@ -20,7 +33,7 @@ pytestmark = pytest.mark.unit
 # ── Helpers ──────────────────────────────────────────────────────────────
 
 
-def _make_trade(**overrides: object) -> object:
+def _make_trade(**overrides: object) -> Trade:
     """Construct a Trade with sensible defaults. Stays within test file."""
     from zorivest_core.domain.entities import Trade
     from zorivest_core.domain.enums import TradeAction
@@ -38,7 +51,7 @@ def _make_trade(**overrides: object) -> object:
     return Trade(**defaults)
 
 
-def _make_account(**overrides: object) -> object:
+def _make_account(**overrides: object) -> Account:
     """Construct an Account with sensible defaults."""
     from zorivest_core.domain.entities import Account
     from zorivest_core.domain.enums import AccountType
@@ -52,7 +65,7 @@ def _make_account(**overrides: object) -> object:
     return Account(**defaults)
 
 
-def _make_image_attachment(**overrides: object) -> object:
+def _make_image_attachment(**overrides: object) -> ImageAttachment:
     """Construct an ImageAttachment with sensible defaults."""
     from zorivest_core.domain.entities import ImageAttachment
     from zorivest_core.domain.enums import ImageOwnerType
@@ -71,7 +84,7 @@ def _make_image_attachment(**overrides: object) -> object:
     return ImageAttachment(**defaults)
 
 
-def _make_balance_snapshot(**overrides: object) -> object:
+def _make_balance_snapshot(**overrides: object) -> BalanceSnapshot:
     """Construct a BalanceSnapshot with sensible defaults."""
     from zorivest_core.domain.entities import BalanceSnapshot
 
@@ -379,7 +392,7 @@ class TestModuleIntegrity:
 # ── MEU-52: TradeReport entity ──────────────────────────────────────────
 
 
-def _make_trade_report(**overrides: object) -> object:
+def _make_trade_report(**overrides: object) -> TradeReport:
     """Construct a TradeReport with sensible defaults. Stays within test file."""
     from zorivest_core.domain.entities import TradeReport
 
@@ -519,7 +532,7 @@ class TestEmotionalState:
 # ── MEU-66: TradePlan entity ──────────────────────────────────────────────
 
 
-def _make_trade_plan(**overrides: object) -> object:
+def _make_trade_plan(**overrides: object) -> TradePlan:
     """Construct a TradePlan with sensible defaults."""
     from zorivest_core.domain.entities import TradePlan
     from zorivest_core.domain.enums import ConvictionLevel, PlanStatus, TradeAction
@@ -661,7 +674,7 @@ class TestPlanStatus:
 # ── MEU-68: Watchlist entity ─────────────────────────────────────────────
 
 
-def _make_watchlist(**overrides: object) -> object:
+def _make_watchlist(**overrides: object) -> Watchlist:
     """Construct a Watchlist with sensible defaults."""
     from zorivest_core.domain.entities import Watchlist
 
@@ -676,7 +689,7 @@ def _make_watchlist(**overrides: object) -> object:
     return Watchlist(**defaults)  # type: ignore[arg-type]
 
 
-def _make_watchlist_item(**overrides: object) -> object:
+def _make_watchlist_item(**overrides: object) -> WatchlistItem:
     """Construct a WatchlistItem with sensible defaults."""
     from zorivest_core.domain.entities import WatchlistItem
 

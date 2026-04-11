@@ -14,6 +14,11 @@ from unittest.mock import MagicMock
 import pytest
 
 from zorivest_core.domain.entities import TradeReport
+from zorivest_core.domain.enums import (
+    ConvictionLevel,
+    PlanStatus,
+    TradeAction,
+)
 
 pytestmark = pytest.mark.unit
 
@@ -123,6 +128,7 @@ class TestReportServiceGetForTrade:
 
         svc = ReportService(uow)
         result = svc.get_for_trade("T001")
+        assert result is not None
         assert result == expected
         assert result.trade_id == "T001"
         assert result.setup_quality == 4
@@ -247,8 +253,8 @@ class TestPlanServiceCreate:
         uow.trade_plans.get.return_value = TradePlan(
             id=1,
             ticker="AAPL",
-            direction="BOT",
-            conviction="high",
+            direction=TradeAction.BOT,
+            conviction=ConvictionLevel.HIGH,
             strategy_name="Gap & Go",
             strategy_description="Long after gap up",
             entry_price=200.0,
@@ -258,7 +264,7 @@ class TestPlanServiceCreate:
             exit_conditions="Target hit or EOD",
             timeframe="intraday",
             risk_reward_ratio=3.0,
-            status="draft",
+            status=PlanStatus.DRAFT,
             created_at=datetime(2026, 3, 12),
             updated_at=datetime(2026, 3, 12),
         )
@@ -286,8 +292,8 @@ class TestPlanServiceGet:
         expected = TradePlan(
             id=1,
             ticker="SPY",
-            direction="SLD",
-            conviction="medium",
+            direction=TradeAction.SLD,
+            conviction=ConvictionLevel.MEDIUM,
             strategy_name="Breakdown",
             strategy_description="Short below support",
             entry_price=600.0,
@@ -297,7 +303,7 @@ class TestPlanServiceGet:
             exit_conditions="Cover at target",
             timeframe="intraday",
             risk_reward_ratio=3.0,
-            status="active",
+            status=PlanStatus.ACTIVE,
             created_at=datetime(2026, 3, 12),
             updated_at=datetime(2026, 3, 12),
         )
@@ -305,6 +311,7 @@ class TestPlanServiceGet:
 
         svc = ReportService(uow)
         result = svc.get_plan(1)
+        assert result is not None
         assert result == expected
         assert result.ticker == "SPY"
         assert result.direction == "SLD"
@@ -349,8 +356,8 @@ class TestPlanServiceUpdate:
         existing = TradePlan(
             id=1,
             ticker="AAPL",
-            direction="BOT",
-            conviction="high",
+            direction=TradeAction.BOT,
+            conviction=ConvictionLevel.HIGH,
             strategy_name="Gap & Go",
             strategy_description="Long gap",
             entry_price=200.0,
@@ -360,7 +367,7 @@ class TestPlanServiceUpdate:
             exit_conditions="Target or EOD",
             timeframe="intraday",
             risk_reward_ratio=3.0,
-            status="draft",
+            status=PlanStatus.DRAFT,
             created_at=datetime(2026, 3, 12),
             updated_at=datetime(2026, 3, 12),
         )
@@ -399,8 +406,8 @@ class TestPlanServiceLink:
         existing = TradePlan(
             id=1,
             ticker="AAPL",
-            direction="BOT",
-            conviction="high",
+            direction=TradeAction.BOT,
+            conviction=ConvictionLevel.HIGH,
             strategy_name="Gap & Go",
             strategy_description="Long gap",
             entry_price=200.0,
@@ -410,7 +417,7 @@ class TestPlanServiceLink:
             exit_conditions="Target or EOD",
             timeframe="intraday",
             risk_reward_ratio=3.0,
-            status="active",
+            status=PlanStatus.ACTIVE,
             created_at=datetime(2026, 3, 12),
             updated_at=datetime(2026, 3, 12),
         )
@@ -443,8 +450,8 @@ class TestPlanServiceLink:
         uow.trade_plans.get.return_value = TradePlan(
             id=1,
             ticker="AAPL",
-            direction="BOT",
-            conviction="high",
+            direction=TradeAction.BOT,
+            conviction=ConvictionLevel.HIGH,
             strategy_name="Gap & Go",
             strategy_description="Long gap",
             entry_price=200.0,
@@ -454,7 +461,7 @@ class TestPlanServiceLink:
             exit_conditions="Target or EOD",
             timeframe="intraday",
             risk_reward_ratio=3.0,
-            status="active",
+            status=PlanStatus.ACTIVE,
             created_at=datetime(2026, 3, 12),
             updated_at=datetime(2026, 3, 12),
         )
@@ -477,8 +484,8 @@ class TestPlanServiceDedup:
         existing = TradePlan(
             id=1,
             ticker="AAPL",
-            direction="BOT",
-            conviction="high",
+            direction=TradeAction.BOT,
+            conviction=ConvictionLevel.HIGH,
             strategy_name="Gap & Go",
             strategy_description="Long gap",
             entry_price=200.0,
@@ -488,7 +495,7 @@ class TestPlanServiceDedup:
             exit_conditions="EOD",
             timeframe="intraday",
             risk_reward_ratio=3.0,
-            status="active",
+            status=PlanStatus.ACTIVE,
             created_at=datetime(2026, 3, 12),
             updated_at=datetime(2026, 3, 12),
         )
@@ -519,8 +526,8 @@ class TestPlanServiceDelete:
         uow.trade_plans.get.return_value = TradePlan(
             id=1,
             ticker="AAPL",
-            direction="BOT",
-            conviction="high",
+            direction=TradeAction.BOT,
+            conviction=ConvictionLevel.HIGH,
             strategy_name="Gap & Go",
             strategy_description="Long gap",
             entry_price=200.0,
@@ -530,7 +537,7 @@ class TestPlanServiceDelete:
             exit_conditions="EOD",
             timeframe="intraday",
             risk_reward_ratio=3.0,
-            status="draft",
+            status=PlanStatus.DRAFT,
             created_at=datetime(2026, 3, 12),
             updated_at=datetime(2026, 3, 12),
         )

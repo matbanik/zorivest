@@ -85,7 +85,7 @@ class TestPolicyRepository:
 
         policy = repo.get_by_id(pid)
         assert policy is not None
-        assert policy.name == "daily-report"
+        assert policy.name == "daily-report"  # type: ignore[reportGeneralTypeIssues]
 
     def test_get_by_name(self, session):
         repo = PolicyRepository(session)
@@ -94,7 +94,7 @@ class TestPolicyRepository:
 
         policy = repo.get_by_name("unique-name")
         assert policy is not None
-        assert policy.name == "unique-name"
+        assert policy.name == "unique-name"  # type: ignore[reportGeneralTypeIssues]
 
     def test_list_all_with_enabled_filter(self, session):
         repo = PolicyRepository(session)
@@ -110,7 +110,7 @@ class TestPolicyRepository:
 
         enabled = repo.list_all(enabled_only=True)
         assert len(enabled) == 1
-        assert enabled[0].name == "active"
+        assert enabled[0].name == "active"  # type: ignore[reportGeneralTypeIssues]
 
     def test_update(self, session):
         repo = PolicyRepository(session)
@@ -121,8 +121,9 @@ class TestPolicyRepository:
         session.commit()
 
         policy = repo.get_by_id(pid)
-        assert policy.approved is True
-        assert policy.approved_hash == "abc"
+        assert policy is not None
+        assert policy.approved is True  # type: ignore[reportGeneralTypeIssues]
+        assert policy.approved_hash == "abc"  # type: ignore[reportGeneralTypeIssues]
 
     def test_delete(self, session):
         repo = PolicyRepository(session)
@@ -158,7 +159,7 @@ class TestPipelineRunRepository:
 
         run = run_repo.get_by_id(rid)
         assert run is not None
-        assert run.status == "running"
+        assert run.status == "running"  # type: ignore[reportGeneralTypeIssues]
 
     def test_find_zombies(self, session):
         _, run_repo, pid = self._setup(session)
@@ -183,7 +184,7 @@ class TestPipelineRunRepository:
 
         zombies = run_repo.find_zombies()
         assert len(zombies) == 1
-        assert zombies[0].status == "running"
+        assert zombies[0].status == "running"  # type: ignore[reportGeneralTypeIssues]
 
     def test_list_by_policy(self, session):
         _, run_repo, pid = self._setup(session)
@@ -215,8 +216,9 @@ class TestPipelineRunRepository:
         session.commit()
 
         run = run_repo.get_by_id(rid)
-        assert run.status == "success"
-        assert run.duration_ms == 1500
+        assert run is not None
+        assert run.status == "success"  # type: ignore[reportGeneralTypeIssues]
+        assert run.duration_ms == 1500  # type: ignore[reportGeneralTypeIssues]
 
     def test_list_recent(self, session):
         _, run_repo, pid = self._setup(session)
@@ -251,7 +253,7 @@ class TestReportRepository:
 
         report = repo.get_by_id(rid)
         assert report is not None
-        assert report.name == "Daily P&L"
+        assert report.name == "Daily P&L"  # type: ignore[reportGeneralTypeIssues]
 
     def test_get_versions_empty(self, session):
         repo = ReportRepository(session)
@@ -286,7 +288,7 @@ class TestFetchCacheRepository:
 
         cached = repo.get_cached("ibkr", "quotes", "AAPL")
         assert cached is not None
-        assert cached.payload_json == '{"price": 150}'
+        assert cached.payload_json == '{"price": 150}'  # type: ignore[reportGeneralTypeIssues]
 
     def test_upsert_update(self, session):
         repo = FetchCacheRepository(session)
@@ -311,8 +313,9 @@ class TestFetchCacheRepository:
         session.commit()
 
         cached = repo.get_cached("ibkr", "quotes", "AAPL")
-        assert cached.payload_json == '{"price": 155}'
-        assert cached.content_hash == "h2"
+        assert cached is not None
+        assert cached.payload_json == '{"price": 155}'  # type: ignore[reportGeneralTypeIssues]
+        assert cached.content_hash == "h2"  # type: ignore[reportGeneralTypeIssues]
 
     def test_invalidate(self, session):
         repo = FetchCacheRepository(session)

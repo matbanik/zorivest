@@ -433,7 +433,7 @@ class TestTimeoutHandling:
                 _step("slow_step", type="fake_slow"),
             )
             # Override timeout to 0.1s for fast test
-            policy.steps[0].timeout = 0.1
+            policy.steps[0].timeout = 0.1  # type: ignore[reportAttributeAccessIssue]
             result = _run(runner, policy, trigger_type="manual", policy_id="pid1")
 
             assert result["status"] == "failed"
@@ -537,16 +537,16 @@ class TestPersistenceWithUoW:
             # Verify pipeline_runs row was created
             run_row = uow.pipeline_runs.get_by_id(result["run_id"])
             assert run_row is not None
-            assert run_row.status == "success"
+            assert run_row.status == "success"  # type: ignore[reportGeneralTypeIssues]
 
             # Verify pipeline_steps row was created
             from zorivest_infra.database.models import PipelineStepModel
 
             steps = (
-                uow._session.query(PipelineStepModel)
+                uow._session.query(PipelineStepModel)  # type: ignore[reportOptionalMemberAccess]
                 .filter_by(run_id=result["run_id"])
                 .all()
             )
             assert len(steps) >= 1
-            assert steps[0].step_id == "step_a"
-            assert steps[0].status == "success"
+            assert steps[0].step_id == "step_a"  # type: ignore[reportGeneralTypeIssues]
+            assert steps[0].status == "success"  # type: ignore[reportGeneralTypeIssues]

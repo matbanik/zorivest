@@ -10,7 +10,7 @@ from __future__ import annotations
 
 import asyncio
 from typing import Any
-from unittest.mock import AsyncMock, MagicMock
+from unittest.mock import AsyncMock, MagicMock, patch
 
 import pytest
 
@@ -160,10 +160,15 @@ def _make_setting(
 # ── get_quote tests ─────────────────────────────────────────────────────
 
 
+@patch.object(
+    MarketDataService, "_yahoo_quote", side_effect=Exception("Yahoo disabled in test")
+)
 class TestGetQuote:
     """Tests for MarketDataService.get_quote."""
 
-    def test_returns_quote_from_first_enabled_provider(self) -> None:
+    def test_returns_quote_from_first_enabled_provider(
+        self, _mock_yahoo: MagicMock
+    ) -> None:
         """AC-1: Returns MarketQuote from the first enabled provider with key."""
         settings = [_make_setting("Alpha Vantage")]
         response = FakeHttpResponse(
@@ -178,7 +183,7 @@ class TestGetQuote:
         assert result.ticker == "AAPL"
         assert result.price == pytest.approx(181.18)
 
-    def test_fallback_to_next_provider_on_error(self) -> None:
+    def test_fallback_to_next_provider_on_error(self, _mock_yahoo: MagicMock) -> None:
         """AC-2: Falls through to next provider on HTTP error."""
         settings = [
             _make_setting("Alpha Vantage"),
@@ -199,7 +204,9 @@ class TestGetQuote:
         assert result.price == pytest.approx(181.18)
         assert result.provider == "Finnhub"
 
-    def test_raises_market_data_error_when_all_providers_fail(self) -> None:
+    def test_raises_market_data_error_when_all_providers_fail(
+        self, _mock_yahoo: MagicMock
+    ) -> None:
         """AC-3: Raises MarketDataError when all providers fail."""
         settings = [
             _make_setting("Alpha Vantage"),
@@ -213,7 +220,7 @@ class TestGetQuote:
         with pytest.raises(MarketDataError, match="All providers failed"):
             asyncio.run(svc.get_quote("AAPL"))
 
-    def test_skips_disabled_providers(self) -> None:
+    def test_skips_disabled_providers(self, _mock_yahoo: MagicMock) -> None:
         """Only enabled providers with keys are tried."""
         settings = [
             _make_setting("Alpha Vantage", enabled=False),
@@ -228,7 +235,7 @@ class TestGetQuote:
 
         assert result.provider == "Finnhub"
 
-    def test_skips_providers_without_api_key(self) -> None:
+    def test_skips_providers_without_api_key(self, _mock_yahoo: MagicMock) -> None:
         """Providers without API keys are skipped."""
         settings = [
             _make_setting("Alpha Vantage", api_key=""),
@@ -293,10 +300,15 @@ class TestGetSecFilings:
 # ── Rate limiter tests ──────────────────────────────────────────────────
 
 
+@patch.object(
+    MarketDataService, "_yahoo_quote", side_effect=Exception("Yahoo disabled in test")
+)
 class TestRateLimiting:
     """AC-8: Rate limiter integration."""
 
-    def test_rate_limiter_called_before_http_request(self) -> None:
+    def test_rate_limiter_called_before_http_request(
+        self, _mock_yahoo: MagicMock
+    ) -> None:
         """Rate limiter wait_if_needed() is called before every HTTP request."""
         settings = [_make_setting("Alpha Vantage")]
         response = FakeHttpResponse(
@@ -313,8 +325,8 @@ class TestRateLimiting:
         # Access the rate limiter through the service's internal state
         rate_limiter_called = False
         for limiter in svc._rate_limiters.values():
-            if hasattr(limiter.wait_if_needed, "assert_called"):
-                limiter.wait_if_needed.assert_called()
+            if hasattr(limiter.wait_if_needed, "assert_called"):  # type: ignore[reportAttributeAccessIssue]
+                limiter.wait_if_needed.assert_called()  # type: ignore[reportAttributeAccessIssue]
                 rate_limiter_called = True
         assert rate_limiter_called, "No rate limiter was called"
 

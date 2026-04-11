@@ -26,6 +26,14 @@ class SettingResponse(BaseModel):
     value_type: str
 
 
+class UpdateSettingRequest(BaseModel):
+    """Request body for PUT /settings/{key} — single-key write."""
+
+    model_config = {"extra": "forbid"}
+
+    value: Any
+
+
 @settings_router.get("", dependencies=[Depends(require_unlocked_db)])
 async def get_all_settings(
     service: Any = Depends(get_settings_service),
@@ -86,6 +94,10 @@ async def update_settings(
     All-or-nothing: no settings are written if any key fails.
     Body: {"key1": "value1", "key2": "value2"}
     """
+    if not body:
+        raise HTTPException(
+            422, detail={"errors": {"body": ["Settings body must not be empty"]}}
+        )
     try:
         return service.bulk_upsert(body)
     except SettingsValidationError as e:
@@ -95,7 +107,7 @@ async def update_settings(
 @settings_router.put("/{key}", dependencies=[Depends(require_unlocked_db)])
 async def update_single_setting(
     key: str,
-    body: dict[str, Any],
+    body: UpdateSettingRequest,
     service: Any = Depends(get_settings_service),
 ) -> dict[str, Any]:
     """Upsert a single setting by key.
@@ -105,8 +117,7 @@ async def update_single_setting(
 
     Source: MEU-51 prereq (usePersistedState hook contract)
     """
-    value = body.get("value")
     try:
-        return service.bulk_upsert({key: value})
+        return service.bulk_upsert({key: body.value})
     except SettingsValidationError as e:
         raise HTTPException(422, detail={"errors": e.per_key_errors})

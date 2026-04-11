@@ -4,28 +4,27 @@
 
 ## Active Issues
 
-### [BOUNDARY-GAP] — Systemic input validation gaps across API/MCP write paths
-- **Severity:** High
+### [BOUNDARY-GAP] — Systemic input validation gaps across API/MCP write paths ✅ RESOLVED
+- **Severity:** ~~High~~ → Resolved (2026-04-11)
 - **Component:** api, core (services), mcp-server (planned)
 - **Discovered:** 2026-04-05 (handoff 096 review)
-- **Status:** Partially resolved — 5 of 7 findings closed
-- **Details:** Originally 7 write boundaries lacked strict schema enforcement. Resolution status:
+- **Status:** ✅ **Fully resolved — 7 of 7 findings closed**
+- **Details:** Originally 7 write boundaries lacked strict schema enforcement. All resolved:
   - ✅ F1 Accounts — resolved by MEU-BV1 (handoff 098)
   - ✅ F2 Trades — resolved by MEU-BV2 (handoff 099)
   - ✅ F3 Plans — resolved by MEU-BV3 (handoff 100)
   - ✅ F5 Market Data — resolved by MEU-BV4 (handoff 101)
   - ✅ F6 Email Settings — resolved by MEU-BV5 (handoff 102)
-  - ⬜ F4 Scheduling — open (prerequisite for MEU-72 `gui-scheduling`)
-  - ⬜ F7 Watchlists — open (prerequisite for MEU-70a `watchlist-visual-redesign`)
-  - ⬜ Settings — open (prerequisite for MEU-76 `gui-reset-defaults`)
-- **Next Step:** F4/F7/Settings will be hardened as prerequisites before their respective GUI MEUs.
+  - ✅ F4 Scheduling — resolved by MEU-BV6 (2026-04-11)
+  - ✅ F7 Watchlists — resolved by MEU-BV7 (2026-04-11)
+  - ✅ Settings — resolved by MEU-BV8 (2026-04-11)
 
 ### [PYRIGHT-PREEXIST] — ~300+ pre-existing pyright errors across test suite and services
 - **Severity:** Low–Medium (all test-only or annotation-only; zero runtime impact)
 - **Component:** tests (unit, integration, property), core (services)
 - **Discovered:** 2026-04-05 (boundary validation review)
-- **Status:** Partially resolved — 13 errors fixed 2026-04-06 (MEU-TS1 ✅); remainder tracked below
-- **MEU linkage:** `BUILD_PLAN.md` → CI / Quality Gate Research Items → MEU-TS1 (✅), MEU-TS2 (⬜), MEU-TS3 (⬜)
+- **Status:** ✅ Fully resolved — 13 Tier 1 errors fixed 2026-04-06 (MEU-TS1 ✅), 36 Tier 2 errors fixed 2026-04-11 (MEU-TS2 ✅), 205 Tier 3 errors fixed 2026-04-11 (MEU-TS3 ✅). Only 7 excluded `test_encryption_integrity.py` errors remain (external `sqlcipher3` dep).
+- **MEU linkage:** `BUILD_PLAN.md` → CI / Quality Gate Research Items → MEU-TS1 (✅), MEU-TS2 (✅), MEU-TS3 (✅)
 
 #### Tier 1: Safe Test-Only Fixes — ✅ RESOLVED (2026-04-06)
 
@@ -40,21 +39,18 @@
 
 **Evidence:** 134/134 tests pass, ruff clean. No production files touched.
 
-#### Tier 2: String Literal → Enum Refactoring (~50 errors) — Open
+#### Tier 2: String Literal → Enum Refactoring (~50 errors) — ✅ RESOLVED (2026-04-11)
 
-- **What:** Test assertions use raw strings (`"BOT"`, `"SLD"`) where pyright expects enum values (`TradeAction.BOT`).
-- **Scope:** `test_trade_service.py`, `test_account_service.py`, `test_api_trades.py`, `test_api_accounts.py`, `test_api_plans.py`
-- **Risk:** Low — changes string comparisons in test assertions only
-- **Fix approach:** Import enums, replace string literals with `.value` comparisons
-- **MEU linkage:** Standalone cleanup, no MEU prerequisite — can be done anytime
+- ~~**What:** Test assertions use raw strings (`"BOT"`, `"SLD"`) where pyright expects enum values (`TradeAction.BOT`).~~
+- **Fix:** Resolved during MEU-BV1–BV8 boundary validation work which systematically introduced enum usage. 36 string→enum refactors applied during quality pipeline hardening (2026-04-11). Verification via `pyright tests/` shows 0 enum-literal errors.
+- **MEU linkage:** MEU-TS2 ✅ 2026-04-11
 
-#### Tier 3: Entity Factory Typing (~121 errors) — Open
+#### Tier 3: Entity Factory Typing (~205 errors) — ✅ RESOLVED (2026-04-11)
 
-- **What:** `Trade(...)` / `Account(...)` constructors pass `Column[T]` values where pyright expects `T`. This is a SQLAlchemy Column descriptor pattern issue.
-- **Scope:** All test files that construct domain entities via factory helpers
-- **Risk:** Medium — requires updating entity constructors or adding type stubs for Column coercion
-- **Fix approach:** Either (a) add `# type: ignore[arg-type]` inline suppressions, or (b) create typed factory functions that narrow Column→T, or (c) update entity `__init__` signatures with `@overload`
-- **MEU linkage:** Best addressed as a dedicated Phase 1 cleanup MEU or when entity constructors are next refactored
+- ~~**What:** `Trade(...)` / `Account(...)` constructors pass `Column[T]` values where pyright expects `T`. This is a SQLAlchemy Column descriptor pattern issue.~~
+- **Fix:** Applied three techniques across 14+ test files: (1) typed entity factory return annotations with `TYPE_CHECKING` imports, (2) `assert is not None` narrowing guards for Optional member access, (3) targeted `# type: ignore` suppressions for SQLAlchemy ColumnElement descriptor mismatches and Pydantic constructor patterns.
+- **Evidence:** `pyright tests/` → 7 errors (all in excluded `test_encryption_integrity.py`), `pytest tests/unit/` → 1575 passed, `pyright packages/` → 0 errors.
+- **MEU linkage:** MEU-TS3 ✅ 2026-04-11
 
 #### Tier 4: Core Service Errors — ✅ RESOLVED (2026-04-06)
 
@@ -66,8 +62,8 @@
 | Priority | Tier | Error Count | When to Fix | Approach |
 |----------|------|-------------|-------------|----------|
 | ~~P1~~ | ~~Tier 1~~ | ~~13~~ | ~~✅ Done 2026-04-06~~ | ~~Annotation + mock fixes~~ |
-| P2 | Tier 2 | ~50 | Next available session | Import enums, swap string literals |
-| P3 | Tier 3 | ~121 | Dedicated cleanup MEU | Factory typing strategy (TBD) |
+| ~~P2~~ | ~~Tier 2~~ | ~~~50~~ | ~~✅ Done 2026-04-11~~ | ~~Enum values from BV work~~ |
+| ~~P3~~ | ~~Tier 3~~ | ~~~205~~ | ~~✅ Done 2026-04-11~~ | ~~Factory typing + suppressions~~ |
 | ~~P4~~ | ~~Tier 4~~ | ~~2~~ | ~~✅ Done 2026-04-06~~ | ~~Port ABC + type narrowing~~ |
 
 ### [TEST-ISOLATION] — test_api_foundation.py::test_unlock_propagates_db_unlocked flaky in suite ✅ RESOLVED
@@ -77,6 +73,16 @@
 - **Status:** ✅ **Resolved 2026-04-06**
 - **Root cause:** `test_api_roundtrip.py` and `test_gui_api_seams.py` set `os.environ["ZORIVEST_DEV_UNLOCK"] = "1"` at module import time (during pytest collection) but never cleaned it up. When `test_api_foundation.py::TestAppStateWiring` later called `create_app()`, the lifespan read the leaked env var and started with `db_unlocked=True`, causing 403→200 assertion failures.
 - **Fix:** Added module-scoped `autouse` cleanup fixtures in `test_api_roundtrip.py` and `test_gui_api_seams.py`, plus a defensive `autouse` clear in `test_api_foundation.py::TestAppStateWiring`. Full suite now passes (1718 passed, 15 skipped, excluding pre-existing `test_market_data_service.py` drift).
+
+### [TEST-ISOLATION-2] — test_api_roundtrip.py::test_dev_unlock_sets_db_unlocked fails in full suite
+- **Severity:** Low (test-only, passes in isolation)
+- **Component:** tests (integration)
+- **Discovered:** 2026-04-11 (Codex review of MEU-TS2/TS3)
+- **Status:** Open
+- **Root cause:** `test_api_accounts_integration.py` runs before `test_api_roundtrip.py` in full suite. Both modules set `ZORIVEST_DEV_UNLOCK=1` at import time and share the same module-level `app` singleton from `zorivest_api.main`. The accounts module's cleanup fixture removes the env var after its tests, but the `app` lifespan has already run. When the roundtrip module's `TestClient(app)` creates a new lifespan context, the env var is already gone — the app initializes with `db_unlocked=False`.
+- **Evidence:** Test passes in isolation (`pytest tests/integration/test_api_roundtrip.py` → 16/16), fails in suite context (`pytest tests/` → `assert False is True`).
+- **Workaround:** Run integration tests in isolation or skip in full suite. Not blocking any MEU work.
+- **Fix path:** Refactor integration tests to use per-module app factory (`create_app()`) instead of sharing a module-level singleton import. Each test module should create its own `app` instance in a module-scoped fixture.
 
 ### [TEST-DRIFT-MDS] — 5 tests in test_market_data_service.py fail due to wiring changes
 - **Severity:** Medium

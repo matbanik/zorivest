@@ -199,9 +199,9 @@ class TestRelationships:
         assert run.policy is policy
         assert run in policy.runs
         # Value: verify FK and status values persisted correctly
-        assert run.policy_id == policy.id
-        assert run.status == "pending"
-        assert run.trigger_type == "manual"
+        assert run.policy_id == policy.id  # type: ignore[reportGeneralTypeIssues]
+        assert run.status == "pending"  # type: ignore[reportGeneralTypeIssues]
+        assert run.trigger_type == "manual"  # type: ignore[reportGeneralTypeIssues]
 
     def test_step_run_relationship(self, session):
         policy = self._create_policy(session)
@@ -228,10 +228,10 @@ class TestRelationships:
         assert step.run is run
         assert step in run.steps
         # Value: verify step fields persisted correctly
-        assert step.step_id == "fetch_data"
-        assert step.step_type == "fetch"
-        assert step.status == "pending"
-        assert step.run_id == run.id
+        assert step.step_id == "fetch_data"  # type: ignore[reportGeneralTypeIssues]
+        assert step.step_type == "fetch"  # type: ignore[reportGeneralTypeIssues]
+        assert step.status == "pending"  # type: ignore[reportGeneralTypeIssues]
+        assert step.run_id == run.id  # type: ignore[reportGeneralTypeIssues]
 
     def test_run_fk_constraint(self, session):
         """FK to non-existent policy should fail."""
@@ -313,9 +313,9 @@ class TestPipelineStateModel:
         session.add_all([s1, s2])
         session.commit()  # Should not raise
         # Value: verify both states persisted with distinct entity_keys
-        assert s1.entity_key == "AAPL"
-        assert s2.entity_key == "MSFT"
-        assert s1.id != s2.id
+        assert s1.entity_key == "AAPL"  # type: ignore[reportGeneralTypeIssues]
+        assert s2.entity_key == "MSFT"  # type: ignore[reportGeneralTypeIssues]
+        assert s1.id != s2.id  # type: ignore[reportGeneralTypeIssues]
         loaded_s1 = session.get(PipelineStateModel, s1.id)
         loaded_s2 = session.get(PipelineStateModel, s2.id)
         assert loaded_s1 is not None
@@ -366,7 +366,7 @@ class TestAuditLogModel:
         session.add(a1)
         session.commit()
         assert isinstance(a1.id, int)
-        assert a1.id >= 1
+        assert a1.id >= 1  # type: ignore[reportGeneralTypeIssues]
 
 
 # ── AC-9, AC-10: Report cascade + dedup_key ──────────────────────────────
@@ -401,9 +401,9 @@ class TestReportModels:
         session.commit()
         assert version in report.versions
         # Value: verify version fields
-        assert version.report_id == report.id
-        assert version.version == 1
-        assert version.spec_json == '{"old": true}'
+        assert version.report_id == report.id  # type: ignore[reportGeneralTypeIssues]
+        assert version.version == 1  # type: ignore[reportGeneralTypeIssues]
+        assert version.spec_json == '{"old": true}'  # type: ignore[reportGeneralTypeIssues]
 
     def test_report_delivery_relationship(self, session):
         report = self._create_report(session)
@@ -419,10 +419,10 @@ class TestReportModels:
         session.commit()
         assert delivery in report.deliveries
         # Value: verify delivery fields
-        assert delivery.report_id == report.id
-        assert delivery.channel == "email"
-        assert delivery.recipient == "user@example.com"
-        assert delivery.status == "pending"
+        assert delivery.report_id == report.id  # type: ignore[reportGeneralTypeIssues]
+        assert delivery.channel == "email"  # type: ignore[reportGeneralTypeIssues]
+        assert delivery.recipient == "user@example.com"  # type: ignore[reportGeneralTypeIssues]
+        assert delivery.status == "pending"  # type: ignore[reportGeneralTypeIssues]
 
     def test_dedup_key_unique(self, session):
         report = self._create_report(session)
@@ -506,10 +506,10 @@ class TestReportVersioningTrigger:
         assert len(versions) == 0
 
         # Update the report → trigger should fire
-        report.version = 2
-        report.spec_json = '{"v2": true}'
-        report.snapshot_json = '{"data": 2}'
-        report.snapshot_hash = "hash2"
+        report.version = 2  # type: ignore[reportAttributeAccessIssue]
+        report.spec_json = '{"v2": true}'  # type: ignore[reportAttributeAccessIssue]
+        report.snapshot_json = '{"data": 2}'  # type: ignore[reportAttributeAccessIssue]
+        report.snapshot_hash = "hash2"  # type: ignore[reportAttributeAccessIssue]
         session.commit()
 
         # Trigger should have inserted old version
@@ -542,7 +542,7 @@ class TestAuditAppendOnlyTriggers:
         session.add(entry)
         session.commit()
 
-        entry.action = "policy.delete"
+        entry.action = "policy.delete"  # type: ignore[reportAttributeAccessIssue]
         with pytest.raises(IntegrityError, match="append-only.*UPDATE"):
             session.commit()
 

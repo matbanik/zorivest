@@ -31,7 +31,9 @@ from zorivest_core.domain.entities import (
 )
 from zorivest_core.domain.enums import (
     AccountType,
+    ConvictionLevel,
     ImageOwnerType,
+    PlanStatus,
     TradeAction,
 )
 from zorivest_core.domain.market_provider_settings import MarketProviderSettings
@@ -73,8 +75,8 @@ def _plan(ticker: str = "AAPL") -> TradePlan:
     return TradePlan(
         id=0,
         ticker=ticker,
-        direction="BOT",
-        conviction="high",
+        direction=TradeAction.BOT,
+        conviction=ConvictionLevel.HIGH,
         strategy_name="Gap & Go",
         strategy_description="Long after gap up",
         entry_price=200.0,
@@ -84,7 +86,7 @@ def _plan(ticker: str = "AAPL") -> TradePlan:
         exit_conditions="Target hit or EOD",
         timeframe="intraday",
         risk_reward_ratio=3.0,
-        status="draft",
+        status=PlanStatus.DRAFT,
         created_at=datetime(2026, 3, 12),
         updated_at=datetime(2026, 3, 12),
     )
@@ -495,7 +497,9 @@ class TestTradePlanRepoContract:
 
         from dataclasses import replace
 
-        updated = replace(plan, status="active", conviction="max")
+        updated = replace(
+            plan, status=PlanStatus.ACTIVE, conviction=ConvictionLevel.MAX
+        )
         self.repo.update(updated)
         self.session.flush()
 

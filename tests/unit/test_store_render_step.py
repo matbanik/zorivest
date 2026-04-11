@@ -183,7 +183,7 @@ def test_AC_SR9_store_report_params():
     assert p.report_name == "Daily P&L"
 
     with pytest.raises(ValidationError):
-        StoreReportStep.Params()  # Missing report_name
+        StoreReportStep.Params()  # type: ignore[reportCallIssue]  # Missing report_name
 
 
 # ---------------------------------------------------------------------------
@@ -302,8 +302,8 @@ def test_AC_SR14_live_uow_report_snapshot():
 
         report = uow.reports.get_by_id(report_id)
         assert report is not None
-        assert report.snapshot_json == '{"data": [1, 2, 3]}'
-        assert report.snapshot_hash == "abc123hash"
+        assert report.snapshot_json == '{"data": [1, 2, 3]}'  # type: ignore[reportGeneralTypeIssues]
+        assert report.snapshot_hash == "abc123hash"  # type: ignore[reportGeneralTypeIssues]
 
 
 # ---------------------------------------------------------------------------
@@ -333,8 +333,9 @@ def test_AC_SR15_report_repo_snapshot_fields():
         session.commit()
 
         report = repo.get_by_id(report_id)
-        assert report.snapshot_json == '{"snapshot": true}'
-        assert report.snapshot_hash == "deadbeef"
+        assert report is not None
+        assert report.snapshot_json == '{"snapshot": true}'  # type: ignore[reportGeneralTypeIssues]
+        assert report.snapshot_hash == "deadbeef"  # type: ignore[reportGeneralTypeIssues]
 
 
 # ---------------------------------------------------------------------------
@@ -509,7 +510,7 @@ async def test_AC_SR17_render_step_execute_produces_html():
 
     # With 'both' format and no Playwright, step reports failure
     assert result.status.value == "failed"
-    assert "PDF" in result.error
+    assert "PDF" in result.error  # type: ignore[reportOperatorIssue]
     html = result.output["html"]
     assert html is not None
     assert "<!DOCTYPE html>" in html

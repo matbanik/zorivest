@@ -1,6 +1,6 @@
 # Current Focus — Zorivest
 
-> Last updated: 2026-04-10
+> Last updated: 2026-04-11
 
 ## Active Phase
 
@@ -8,7 +8,7 @@
 
 ## Current Priority
 
-ACON Context Compression Phase 1 complete. Next: MEU-48 calculator ticker auto-fill or next P2 item per build plan.
+Pyright Test Suite Cleanup complete — PYRIGHT-PREEXIST fully resolved (TS1+TS2+TS3 ✅). Next: MEU-48 calculator ticker auto-fill or next P2 item per build plan.
 
 
 ### Dependency Chain
@@ -34,7 +34,9 @@ MEU-90a/b/c/d  ← service-wiring ✅ DONE (keys → encrypted DB, real provider
 3. ✅ **MEU-90b** — real `ProviderConnectionService` wired (API key encryption + DB persistence)
 4. ✅ **agents-terminal-optimization-infra** — P0 block in AGENTS.md, terminal-preflight SKILL.md, workflow amendments (2026-03-25)
 5. ✅ **ACON Context Compression Phase 1** — Template v2.0→2.1, cache boundary, verbosity tiers, test output compression, delta-only code sections (2026-04-10)
-6. **Next:** MEU-48 calculator ticker auto-fill (unblocked) or next P2 item per build plan
+6. ✅ **Boundary Validation Phase 2** — MEU-BV6/BV7/BV8 complete, BOUNDARY-GAP fully resolved 7/7 (2026-04-11)
+7. ✅ **Pyright Test Suite Cleanup** — MEU-TS2/TS3 complete, PYRIGHT-PREEXIST fully resolved (2026-04-11)
+8. **Next:** MEU-48 calculator ticker auto-fill (unblocked) or next P2 item per build plan
 
 ## Archived Files (pomera_notes)
 

@@ -14,7 +14,9 @@ from datetime import datetime
 from typing import Any
 
 from fastapi import APIRouter, Depends, HTTPException, Query
-from pydantic import BaseModel, Field
+from pydantic import BaseModel, Field, field_validator
+from pydantic.functional_validators import BeforeValidator
+from typing import Annotated
 
 from zorivest_api.dependencies import get_scheduling_service
 
@@ -25,10 +27,28 @@ scheduling_router = APIRouter(prefix="/api/v1/scheduling", tags=["scheduling"])
 # ── Request/Response Models ─────────────────────────────────────────────
 
 
+def _strip_whitespace(v: object) -> object:
+    """Strip leading/trailing whitespace so min_length=1 rejects blank strings."""
+    return v.strip() if isinstance(v, str) else v
+
+
+StrippedStr = Annotated[str, BeforeValidator(_strip_whitespace)]
+
+
 class PolicyCreateRequest(BaseModel):
     """Request body for creating or updating a policy."""
 
+    model_config = {"extra": "forbid"}
+
     policy_json: dict[str, Any] = Field(..., description="Full PolicyDocument JSON")
+
+    @field_validator("policy_json")
+    @classmethod
+    def policy_json_must_be_non_empty(cls, v: dict[str, Any]) -> dict[str, Any]:
+        if not v:
+            msg = "policy_json must not be empty"
+            raise ValueError(msg)
+        return v
 
 
 class PolicyResponse(BaseModel):
@@ -97,6 +117,8 @@ class SchedulerStatusResponse(BaseModel):
 
 class RunTriggerRequest(BaseModel):
     """Request body for triggering a pipeline run."""
+
+    model_config = {"extra": "forbid"}
 
     dry_run: bool = False
 
@@ -280,12 +302,21 @@ async def get_step_types() -> list[dict[str, Any]]:
 @scheduling_router.patch("/policies/{policy_id}/schedule")
 async def patch_policy_schedule(
     policy_id: str,
-    cron_expression: str | None = None,
+    cron_expression: str | None = Query(default=None, min_length=1),
     enabled: bool | None = None,
-    timezone: str | None = None,
+    timezone: str | None = Query(default=None, min_length=1),
     service: Any = Depends(get_scheduling_service),
 ) -> Any:
     """Patch schedule fields without round-tripping the full policy document."""
+    # Strip whitespace and reject blank-after-strip strings
+    if cron_expression is not None:
+        cron_expression = cron_expression.strip()
+        if not cron_expression:
+            raise HTTPException(422, detail="cron_expression must not be blank")
+    if timezone is not None:
+        timezone = timezone.strip()
+        if not timezone:
+            raise HTTPException(422, detail="timezone must not be blank")
     result = await service.patch_schedule(policy_id, cron_expression, enabled, timezone)
     if result is None:
         raise HTTPException(404, detail="Policy not found")

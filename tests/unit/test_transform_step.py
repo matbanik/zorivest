@@ -46,7 +46,7 @@ def test_AC_T2_params_validates_required_target_table():
 
     # Should fail without target_table
     with pytest.raises(ValidationError):
-        TransformStep.Params()
+        TransformStep.Params()  # type: ignore[reportCallIssue]
 
 
 # ---------------------------------------------------------------------------
@@ -405,7 +405,7 @@ async def test_AC_T14b_transform_step_execute_quality_gate_rejects():
     )
 
     assert result.status.value == "failed"
-    assert "Quality" in result.error
+    assert "Quality" in result.error  # type: ignore[reportOperatorIssue]
     assert result.output["records_valid"] == 1
     assert result.output["records_quarantined"] == 9
 

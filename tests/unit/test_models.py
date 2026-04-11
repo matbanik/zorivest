@@ -127,8 +127,8 @@ class TestModelInsert:
 
             loaded = session.get(TradeModel, "E001")
             assert loaded is not None
-            assert loaded.instrument == "AAPL"
-            assert loaded.account_id == "ACC001"
+            assert loaded.instrument == "AAPL"  # type: ignore[reportGeneralTypeIssues]
+            assert loaded.account_id == "ACC001"  # type: ignore[reportGeneralTypeIssues]
 
     def test_insert_image(self) -> None:
         engine = _engine()
@@ -149,11 +149,11 @@ class TestModelInsert:
             # Value: verify fields persisted correctly
             loaded = session.get(ImageModel, img.id)
             assert loaded is not None
-            assert loaded.owner_type == "trade"
-            assert loaded.owner_id == "E001"
-            assert loaded.mime_type == "image/webp"
-            assert loaded.width == 800
-            assert loaded.height == 600
+            assert loaded.owner_type == "trade"  # type: ignore[reportGeneralTypeIssues]
+            assert loaded.owner_id == "E001"  # type: ignore[reportGeneralTypeIssues]
+            assert loaded.mime_type == "image/webp"  # type: ignore[reportGeneralTypeIssues]
+            assert loaded.width == 800  # type: ignore[reportGeneralTypeIssues]
+            assert loaded.height == 600  # type: ignore[reportGeneralTypeIssues]
 
 
 class TestRelationships:
@@ -238,4 +238,4 @@ class TestMarketProviderSettingModel:
 
             loaded = session.get(MarketProviderSettingModel, "alpaca")
             assert loaded is not None
-            assert loaded.encrypted_api_secret == "ENC:secret-data"
+            assert loaded.encrypted_api_secret == "ENC:secret-data"  # type: ignore[reportGeneralTypeIssues]

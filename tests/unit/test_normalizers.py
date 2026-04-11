@@ -158,7 +158,7 @@ def sec_filing_data() -> list:
 
 
 @pytest.fixture()
-def benzinga_news_data() -> dict:
+def benzinga_news_data() -> list:  # type: ignore[reportReturnType]
     """Benzinga /news response."""
     return [
         {
@@ -488,7 +488,7 @@ class TestNormalizeBenzingaNews:
     """Tests for normalize_benzinga_news."""
 
     def test_multiple_articles(self, benzinga_news_data: dict) -> None:
-        results = normalize_benzinga_news(benzinga_news_data)
+        results = normalize_benzinga_news(benzinga_news_data)  # type: ignore[reportArgumentType]
 
         assert len(results) == 2
         assert all(isinstance(r, MarketNewsItem) for r in results)

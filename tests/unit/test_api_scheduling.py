@@ -550,3 +550,61 @@ class TestLiveExecution:
             assert "status" in result, f"Result missing 'status': {result}"
             # Steps array proves step execution was attempted
             assert "steps" in result, f"Result missing 'steps': {result}"
+
+
+# ── Boundary Validation (MEU-BV6) ──────────────────────────────────────
+
+
+class TestSchedulingBoundaryValidation:
+    """BV6: Boundary hardening negative tests for scheduling write surfaces.
+
+    Verifies extra="forbid", Query(min_length=1), and non-empty dict
+    validation per implementation-plan.md §MEU-BV6.
+    """
+
+    # AC-1: PolicyCreateRequest extra fields → 422
+    def test_create_policy_extra_field_422(self, client) -> None:
+        resp = client.post(
+            "/api/v1/scheduling/policies",
+            json={"policy_json": {"name": "Test"}, "sneaky": True},
+        )
+        assert resp.status_code == 422
+
+    def test_update_policy_extra_field_422(self, client) -> None:
+        resp = client.put(
+            "/api/v1/scheduling/policies/test-id",
+            json={"policy_json": {"name": "Updated"}, "sneaky": True},
+        )
+        assert resp.status_code == 422
+
+    # AC-2: RunTriggerRequest extra fields → 422
+    def test_trigger_run_extra_field_422(self, client) -> None:
+        resp = client.post(
+            "/api/v1/scheduling/policies/test-id/run",
+            json={"dry_run": False, "extra": 1},
+        )
+        assert resp.status_code == 422
+
+    # AC-3: Blank cron_expression query param → 422
+    def test_patch_blank_cron_expression_422(self, client) -> None:
+        resp = client.patch(
+            "/api/v1/scheduling/policies/test-id/schedule",
+            params={"cron_expression": "  "},
+        )
+        assert resp.status_code == 422
+
+    # AC-4: Blank timezone query param → 422
+    def test_patch_blank_timezone_422(self, client) -> None:
+        resp = client.patch(
+            "/api/v1/scheduling/policies/test-id/schedule",
+            params={"timezone": "  "},
+        )
+        assert resp.status_code == 422
+
+    # AC-5: Empty policy_json dict → 422
+    def test_create_policy_empty_policy_json_422(self, client) -> None:
+        resp = client.post(
+            "/api/v1/scheduling/policies",
+            json={"policy_json": {}},
+        )
+        assert resp.status_code == 422

@@ -9,7 +9,9 @@ from __future__ import annotations
 from typing import Optional
 
 from fastapi import APIRouter, Depends, HTTPException, Query
-from pydantic import BaseModel
+from pydantic import BaseModel, Field
+from pydantic.functional_validators import BeforeValidator
+from typing import Annotated
 
 from zorivest_api.dependencies import get_watchlist_service
 
@@ -19,18 +21,32 @@ watchlist_router = APIRouter(prefix="/api/v1/watchlists", tags=["watchlists"])
 # ── Request/Response schemas ────────────────────────────────────────────
 
 
+def _strip_whitespace(v: object) -> object:
+    """Strip leading/trailing whitespace so min_length=1 rejects blank strings."""
+    return v.strip() if isinstance(v, str) else v
+
+
+StrippedStr = Annotated[str, BeforeValidator(_strip_whitespace)]
+
+
 class CreateWatchlistRequest(BaseModel):
-    name: str
+    model_config = {"extra": "forbid"}
+
+    name: StrippedStr = Field(min_length=1)
     description: str = ""
 
 
 class UpdateWatchlistRequest(BaseModel):
-    name: Optional[str] = None
+    model_config = {"extra": "forbid"}
+
+    name: Optional[StrippedStr] = Field(default=None, min_length=1)
     description: Optional[str] = None
 
 
 class AddTickerRequest(BaseModel):
-    ticker: str
+    model_config = {"extra": "forbid"}
+
+    ticker: StrippedStr = Field(min_length=1)
     notes: str = ""
 
 
