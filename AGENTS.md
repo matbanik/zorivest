@@ -254,6 +254,15 @@ When implementing a Manageable Execution Unit (MEU):
 >
 > **Context window checkpoint**: If context window exceeds ~80% capacity, save state to `pomera_notes`, complete the current MEU's handoff, and notify human with remaining work. This is a planned checkpoint, not early termination.
 
+### Context Compression Rules
+
+All handoff artifacts, review artifacts, and evidence bundles must follow the compression rules in [`.agent/docs/context-compression.md`](file:///p:/zorivest/.agent/docs/context-compression.md):
+
+1. **Test Output Compression** — Only output failing test names, assertion messages, and relevant stack frames. Summarize passing tests as `{N} passed`. Never include full verbose output of passing tests.
+2. **Delta-Only Code Sections** — Use unified diff blocks (` ```diff `) instead of full file contents in Changed Files sections. Do not inline full source code.
+3. **Cache Boundary** — Do not place dynamic content (timestamps, test results, quality gate numbers) above the `<!-- CACHE BOUNDARY -->` marker in handoff templates.
+4. **Verbosity Tiers** — Respect the `verbosity` field in handoff YAML and `requested_verbosity` in review YAML. Default is `standard` (~2,000 tokens).
+
 ## Pre-Handoff Self-Review (Mandatory)
 
 > Before any completion claim or handoff submission, adopt the reviewer mindset. This protocol was distilled from analysis of 7 critical review handoffs (37+ passes) where 10 recurring patterns caused 4-11 passes per project.

@@ -4,7 +4,8 @@ review_mode: "{plan | handoff | multi-handoff}"
 target_plan: "docs/execution/plans/{plan-path}/implementation-plan.md"
 verdict: "pending"
 findings_count: 0
-template_version: "2.0"
+template_version: "2.1"
+requested_verbosity: "standard"
 agent: "{reviewer-agent}"
 ---
 

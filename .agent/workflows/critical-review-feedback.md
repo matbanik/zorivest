@@ -441,9 +441,11 @@ If that file already exists, append a new dated review update section. Do not fo
 
 The workflow is incomplete until the canonical review handoff exists and is readable at the correct path for the detected review mode.
 
-> **Start from** [`.agent/context/handoffs/REVIEW-TEMPLATE.md`](file:///p:/zorivest/.agent/context/handoffs/REVIEW-TEMPLATE.md) (v2.0)
+> **Start from** [`.agent/context/handoffs/REVIEW-TEMPLATE.md`](file:///p:/zorivest/.agent/context/handoffs/REVIEW-TEMPLATE.md) (v2.1)
 >
 > For review artifacts, use the review template (not the handoff template). The Rolling Summary Header enables each recheck to start with a compact prior-pass table for context continuity.
+>
+> **Verbosity control**: Set `requested_verbosity` in the review YAML frontmatter to control how much detail the implementing agent should include in correction responses. See `.agent/docs/context-compression.md §Verbosity Tiers` for tier definitions.
 
 Fill the template sections:
 - `Findings` table with severity-ranked findings and file:line references

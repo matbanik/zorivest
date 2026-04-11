@@ -1,6 +1,6 @@
 # Current Focus — Zorivest
 
-> Last updated: 2026-03-23
+> Last updated: 2026-04-10
 
 ## Active Phase
 
@@ -8,8 +8,8 @@
 
 ## Current Priority
 
-Complete post-MEU-65 closeout deliverables (reflection, metrics, commit messages). MEU-90a/b
-persistence wiring cluster is done; real `ProviderConnectionService` is now wired in `main.py`.
+ACON Context Compression Phase 1 complete. Next: MEU-48 calculator ticker auto-fill or next P2 item per build plan.
+
 
 ### Dependency Chain
 
@@ -33,7 +33,8 @@ MEU-90a/b/c/d  ← service-wiring ✅ DONE (keys → encrypted DB, real provider
 2. ✅ **MEU-90a** — `SqlAlchemyUnitOfWork` wired into FastAPI lifespan
 3. ✅ **MEU-90b** — real `ProviderConnectionService` wired (API key encryption + DB persistence)
 4. ✅ **agents-terminal-optimization-infra** — P0 block in AGENTS.md, terminal-preflight SKILL.md, workflow amendments (2026-03-25)
-5. **Next:** MEU-48 calculator ticker auto-fill (unblocked) or next P2 item per build plan
+5. ✅ **ACON Context Compression Phase 1** — Template v2.0→2.1, cache boundary, verbosity tiers, test output compression, delta-only code sections (2026-04-10)
+6. **Next:** MEU-48 calculator ticker auto-fill (unblocked) or next P2 item per build plan
 
 ## Archived Files (pomera_notes)
 

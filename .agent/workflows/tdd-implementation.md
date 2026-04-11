@@ -62,6 +62,8 @@ pytest tests/unit/test_{module}.py -x --tb=short -v
 
 Save the failure output — you will include it in the handoff FAIL_TO_PASS table.
 
+> **Test output compression**: When recording Red phase output, capture only the failing test names, assertion messages, and relevant stack frames. Do not record passing test details. Summarize passing tests as `{N} passed`. See `.agent/docs/context-compression.md §Test Output Compression`.
+
 ### 4. Green Phase — Implement
 
 > ⚠️ **Test Immutability**: Once tests are written in Red phase, do NOT modify test assertions or expected values. If a test expectation is wrong, fix the *implementation*, not the *test*. Only test setup/fixture changes are allowed.
@@ -82,6 +84,8 @@ Run tests to confirm they PASS:
 ```bash
 pytest tests/unit/test_{module}.py -x --tb=short -v
 ```
+
+> **Test output compression**: When recording Green phase output for the handoff, include only: (1) the summary line (`{N} passed`), (2) any remaining failures with their assertion messages. Do not include verbose output of passing tests. See `.agent/docs/context-compression.md §Test Output Compression`.
 
 ### 5. Quality Checks
 

@@ -28,14 +28,25 @@ Example: `.agent/context/handoffs/001-2026-03-06-calculator-bp01s1.3.md`
 
 ## Template
 
-> **Start from** [`.agent/context/handoffs/TEMPLATE.md`](file:///p:/zorivest/.agent/context/handoffs/TEMPLATE.md) (v2.0)
+> **Start from** [`.agent/context/handoffs/TEMPLATE.md`](file:///p:/zorivest/.agent/context/handoffs/TEMPLATE.md) (v2.1)
 >
 > Copy the template, fill all placeholder fields, and ensure:
-> - YAML frontmatter `seq`, `date`, `project`, `meu`, `status`, `action_required` are populated
+> - YAML frontmatter `seq`, `date`, `project`, `meu`, `status`, `action_required`, `verbosity` are populated
 > - `action_required` is set to `VALIDATE_AND_APPROVE` for new handoffs
+> - `verbosity` defaults to `standard` unless explicitly overridden
 > - AC table has source labels for every criterion
+> - `<!-- CACHE BOUNDARY -->` marker separates the stable prefix from variable content
 > - Evidence section has FAIL_TO_PASS table and Commands Executed table
 > - Codex Validation Report section is left blank for the reviewer
+
+### Context Compression Rules (v2.1)
+
+All handoffs must follow the compression rules defined in [`.agent/docs/context-compression.md`](file:///p:/zorivest/.agent/docs/context-compression.md):
+
+- **Test output**: Only failing test names, assertion messages, and relevant stack frames. Summarize passing tests as `{N} passed`.
+- **Code sections**: Use unified diff blocks (` ```diff `) instead of full file contents.
+- **Cache boundary**: Do not place dynamic content (timestamps, test results, quality gate numbers) above the `<!-- CACHE BOUNDARY -->` marker.
+- **Verbosity**: Respect the `verbosity` YAML field. Default is `standard` (~2,000 tokens).
 
 ## Live Runtime Probe Requirements
 

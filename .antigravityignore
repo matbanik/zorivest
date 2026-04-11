@@ -1,0 +1,36 @@
+# Heavy dependency / generated dirs
+node_modules/
+.venv/
+venv/
+dist/
+build/
+ui/out/
+ui/playwright-report/
+ui/test-results/
+
+# Git internals & caches
+.git/
+.ruff_cache/
+.pytest_cache/
+.hypothesis/
+
+# Binary / data files
+*.db
+*.db-shm
+*.db-wal
+*.so
+*.dat
+*.egg
+
+# Logs & OS junk
+*.log
+Thumbs.db
+Desktop.ini
+
+# Large lock files
+uv.lock
+
+# Inspiration / reference material (not code)
+_inspiration/
+poc/
+reports/

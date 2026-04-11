@@ -5,7 +5,8 @@ project: "{project-slug}"
 meu: "{MEU-ID}"
 status: "draft"
 action_required: "VALIDATE_AND_APPROVE"
-template_version: "2.0"
+template_version: "2.1"
+verbosity: "standard"
 plan_source: "docs/execution/plans/{YYYY-MM-DD}-{project-slug}/implementation-plan.md"
 build_plan_section: "bp{NN}s{X.Y}"
 agent: "{agent-name}"
@@ -35,9 +36,15 @@ predecessor: "{previous-handoff-filename or none}"
 | AC-1 | {criterion} | {Spec\|Local Canon\|Research-backed\|Human-approved} | {test file:function} | ⬜ |
 | AC-2 | {criterion} | {source} | {test reference} | ⬜ |
 
+<!-- CACHE BOUNDARY -->
+<!-- Content above this line is stable across revision passes (KV cache prefix). -->
+<!-- Content below this line changes between passes (evidence, results, corrections). -->
+
 ---
 
 ## Evidence
+
+> **Test output rule**: Include only failing test names, assertion messages, and relevant stack frames. Summarize passing tests as `{N} passed`. See `.agent/docs/context-compression.md` for full rules.
 
 ### FAIL_TO_PASS
 
@@ -64,9 +71,20 @@ anti-placeholder: 0 matches
 
 ## Changed Files
 
+> **Delta-only rule**: Show unified diff blocks (` ```diff `) for modifications. Do not inline full source code. See `.agent/docs/context-compression.md §Delta-Only Code Sections`.
+
 | File | Action | Lines | Summary |
 |------|--------|-------|---------|
 | {path} | {new\|modified\|deleted} | {range} | {what changed} |
+
+_For each modified file, include a fenced diff excerpt showing the key changes:_
+
+```diff
+ unchanged context line
+-old_line_removed
++new_line_added
+ unchanged context line
+```
 
 ---
 
