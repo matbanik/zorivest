@@ -1169,7 +1169,7 @@ describe('MEU-70a Sub-MEU C: AC-21 — Apply to Plan button in Calculator', () =
         const spy = vi.fn()
         window.addEventListener('zorivest:calculator-apply', spy)
 
-        render(<PositionCalculatorModal isOpen={true} onClose={vi.fn()} />, { wrapper: createWrapper() })
+        render(<PositionCalculatorModal isOpen={true} onClose={vi.fn()} fromPlanContext={true} />, { wrapper: createWrapper() })
         // Set up calculator inputs: $100k, 1% risk, entry=100, stop=98, target=106
         fireEvent.change(screen.getByTestId('calc-account-select'), { target: { value: '' } })
         fireEvent.change(screen.getByTestId('calc-account-size'), { target: { value: '100000' } })
