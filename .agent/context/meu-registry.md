@@ -175,6 +175,7 @@ P2.75 (broker adapters): MEU-96 → MEU-99
 |-----|------|:------:|-------------|:------|
 | MEU-47a | `screenshot-wiring` | 16.1 | Wire ScreenshotPanel to image REST API (useQuery/useMutation + DELETE route + ImageService.delete_image) | ✅ 2026-04-07 |
 | MEU-70a | `watchlist-redesign-plan-size` | 06i | Watchlist visual redesign (professional data table, dark palette, colorblind toggle) + `position_size` full-stack propagation + calculator write-back (65 tests) | ✅ 2026-04-11 |
+| MEU-72 | `gui-scheduling` | 35b | Scheduling & Pipeline GUI: policy list+detail, CodeMirror JSON editor, cron preview, run history, execution controls, default TZ setting, MCP toolset loading | ⏳ 2026-04-12 (pending Codex) |
 
 ## Phase-Exit Criteria (Updated)
 

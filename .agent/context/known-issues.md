@@ -13,12 +13,6 @@
 - **Details:** `TestGetQuote` (4 tests) + `TestRateLimiting` (1 test) fail because test setup doesn't match post-wiring service constructor.
 - **Workaround:** Fix when market data service tests are next touched.
 
-### ~~[PLAN-NOSIZE]~~ — Resolved by MEU-70a (2026-04-11)
-- **Severity:** Medium
-- **Component:** core / api / mcp-server / ui
-- **Discovered:** 2026-03-20
-- **Status:** ✅ Resolved — position_size field full-stack propagation complete
-- **Resolution:** Domain entity, SQLAlchemy model, API schemas, MCP tool, GUI readonly display + calculator write-back all implemented. See handoff 111.
 
 ### [STUB-RETIRE] — stubs.py contains legacy stubs that should be retired progressively
 - **Severity:** Low (technical debt)
@@ -27,6 +21,22 @@
 - **Status:** Phase 1 cleaned (4 dead scheduling stubs deleted); Phase 2 tracked
 - **Phase 2 blocked on:** `StubAnalyticsService` (MEU-104–116), `StubReviewService` (MEU-110), `StubTaxService` (MEU-123–126). Each retires when its real service is implemented.
 - **Roadmap:** [09a §Stub Retirement Roadmap](../docs/build-plan/09a-persistence-integration.md)
+
+### [SCHED-PIPELINE-WIRING] — Pipeline runtime wiring incomplete for end-to-end execution
+- **Severity:** High
+- **Component:** api / core / infrastructure
+- **Discovered:** 2026-04-11
+- **Status:** Open — requires full discovery MEU
+- **Details:** `PipelineRunner` is not wired to real services in `main.py`. Missing: (1) `provider_adapter` injection for `FetchStep` (Yahoo Finance, etc.), (2) `smtp_config` passthrough from Settings DB for `SendStep`, (3) `delivery_repository` for deduplication. A real policy execution would fail at `FetchStep` with `ValueError: provider_adapter required`. Domain layer is complete; gap is in runtime wiring.
+- **Next steps:** Complete discovery for all scheduling/policy use cases discussed in build-plan section 06e. Full re-review of `_inspiration` files for pipeline integration patterns. Create a new MEU for pipeline runtime wiring.
+
+### [MCP-TOOLDISCOVERY] — MCP tool descriptions lack workflow context and examples for AI discoverability
+- **Severity:** Medium
+- **Component:** mcp-server
+- **Discovered:** 2026-04-12
+- **Status:** Open — requires full audit of all 9 toolsets
+- **Details:** Server instructions and tool descriptions are too terse for AI agents to discover and correctly use multi-step workflows. Confirmed gaps in scheduling toolset: (1) server instructions say only "Automated task scheduling" — no mention of policy CRUD or pipeline execution, (2) `run_pipeline` description doesn't explain the approval prerequisite or error return shape, (3) `create_policy` has no example of the expected `policy_json` structure, (4) `pipeline://policies/schema` and `pipeline://step-types` MCP resources aren't referenced in any tool description, (5) no workflow guidance for the `create → approve → run` lifecycle. Similar gaps likely exist across `accounts`, `trade-analytics`, `trade-planning`, `market-data`, and other toolsets.
+- **Next steps:** Full audit of all toolset descriptions against their actual API contracts. Improve server instructions with toolset workflow summaries. Add `policy_json` examples to `create_policy`. Reference MCP resources from tool descriptions. Ensure all tool descriptions include prerequisite state, return shape hints, and error conditions.
 
 ## Mitigated / Workaround Applied
 

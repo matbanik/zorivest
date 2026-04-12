@@ -1185,6 +1185,10 @@ describe('MEU-70a Sub-MEU C: AC-21 — Apply to Plan button in Calculator', () =
         expect(event.detail).toEqual({
             shares_planned: 500,
             position_size: 50000,
+            account_id: undefined,
+            entry: 100,
+            stop: 98,
+            target: 106,
         })
 
         window.removeEventListener('zorivest:calculator-apply', spy)

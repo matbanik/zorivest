@@ -449,7 +449,12 @@ class PolicyModel(Base):
     updated_at = Column(DateTime, nullable=True)
     created_by = Column(String(128), default="")
 
-    runs = relationship("PipelineRunModel", back_populates="policy")
+    runs = relationship(
+        "PipelineRunModel", back_populates="policy", cascade="all, delete-orphan"
+    )
+    states = relationship(
+        "PipelineStateModel", back_populates="policy", cascade="all, delete-orphan"
+    )
 
 
 class PipelineRunModel(Base):
@@ -515,6 +520,7 @@ class PipelineStateModel(Base):
 
     id = Column(String(36), primary_key=True, default=lambda: str(uuid.uuid4()))
     policy_id = Column(String(36), ForeignKey("policies.id"), nullable=False)
+    policy = relationship("PolicyModel", back_populates="states")
     provider_id = Column(String(64), nullable=False)
     data_type = Column(String(64), nullable=False)
     entity_key = Column(String(128), nullable=False)

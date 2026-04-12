@@ -342,13 +342,60 @@ class TestPowerEvent:
         assert resp.status_code == 200
         assert resp.json()["status"] == "acknowledged"
 
-    def test_unknown_event(self, client) -> None:
+    def test_unknown_event_type_returns_422(self, client) -> None:
+        """AC-A2: Unknown event_type rejected by Literal validation."""
         resp = client.post(
             "/api/v1/scheduler/power-event",
-            json={"event_type": "unknown", "timestamp": "2026-03-18T12:00:00Z"},
+            json={"event_type": "shutdown", "timestamp": "2026-03-18T12:00:00Z"},
         )
-        assert resp.status_code == 200
-        assert resp.json()["status"] == "unknown_event"
+        assert resp.status_code == 422
+
+
+# ── Power Event BV Hardening (MEU-72 Sub-MEU A) ───────────────────────
+
+
+class TestPowerEventBoundaryValidation:
+    """BV hardening for PowerEventRequest (scheduler.py).
+
+    AC-A1: extra fields → 422
+    AC-A2: invalid event_type → 422
+    """
+
+    def test_extra_field_returns_422(self, client) -> None:
+        """AC-A1: PowerEventRequest rejects extra fields."""
+        resp = client.post(
+            "/api/v1/scheduler/power-event",
+            json={
+                "event_type": "resume",
+                "timestamp": "2026-03-18T12:00:00Z",
+                "extra": "bad",
+            },
+        )
+        assert resp.status_code == 422
+
+    def test_invalid_event_type_returns_422(self, client) -> None:
+        """AC-A2: PowerEventRequest rejects unknown event_type."""
+        resp = client.post(
+            "/api/v1/scheduler/power-event",
+            json={"event_type": "reboot", "timestamp": "2026-03-18T12:00:00Z"},
+        )
+        assert resp.status_code == 422
+
+    def test_blank_timestamp_returns_422(self, client) -> None:
+        """AC-A2: PowerEventRequest rejects blank timestamp."""
+        resp = client.post(
+            "/api/v1/scheduler/power-event",
+            json={"event_type": "resume", "timestamp": ""},
+        )
+        assert resp.status_code == 422
+
+    def test_whitespace_only_timestamp_returns_422(self, client) -> None:
+        """AC-A2: PowerEventRequest rejects whitespace-only timestamp."""
+        resp = client.post(
+            "/api/v1/scheduler/power-event",
+            json={"event_type": "resume", "timestamp": "   "},
+        )
+        assert resp.status_code == 422
 
 
 # ── Live Wiring (R3) ───────────────────────────────────────────────────
@@ -608,3 +655,76 @@ class TestSchedulingBoundaryValidation:
             json={"policy_json": {}},
         )
         assert resp.status_code == 422
+
+
+class TestGuiPolicyTemplateContract:
+    """Contract tests: GUI default policy template must match PolicyDocument schema.
+
+    These validate the exact payload shape that SchedulingLayout.handleCreate sends.
+    If this fails, the +New button will produce a 422 in the GUI.
+    """
+
+    def test_gui_default_template_is_valid_policy_document(self) -> None:
+        """The GUI default template must parse into a valid PolicyDocument."""
+        from zorivest_core.domain.pipeline import PolicyDocument
+
+        # This is the EXACT payload SchedulingLayout.handleCreate sends
+        # (without the outer { policy_json: ... } wrapper — that's the API envelope)
+        gui_template = {
+            "schema_version": 1,
+            "name": "new-policy-test",
+            "trigger": {
+                "cron_expression": "0 8 * * 1-5",
+                "timezone": "UTC",
+                "enabled": True,
+            },
+            "steps": [
+                {
+                    "id": "step_1",
+                    "type": "fetch",
+                    "params": {},
+                },
+            ],
+        }
+        # Must not raise
+        doc = PolicyDocument(**gui_template)
+        assert doc.name == "new-policy-test"
+        assert doc.trigger.cron_expression == "0 8 * * 1-5"
+        assert len(doc.steps) == 1
+        assert doc.steps[0].id == "step_1"
+
+    def test_old_gui_template_would_fail(self) -> None:
+        """The old GUI template (schedule/pipeline) must NOT validate.
+
+        Regression guard: ensures we never revert to the broken shape.
+        """
+        from zorivest_core.domain.pipeline import PolicyDocument
+
+        old_template = {
+            "name": "new-policy-test",
+            "schedule": {"cron": "0 8 * * 1-5", "timezone": "UTC"},
+            "pipeline": {"steps": []},
+        }
+        import pytest as _pytest
+
+        with _pytest.raises(Exception):
+            PolicyDocument(**old_template)
+
+    def test_empty_steps_fails_validation(self) -> None:
+        """PolicyDocument requires at least one step (min_length=1)."""
+        from zorivest_core.domain.pipeline import PolicyDocument
+
+        template = {
+            "schema_version": 1,
+            "name": "new-policy-test",
+            "trigger": {
+                "cron_expression": "0 8 * * 1-5",
+                "timezone": "UTC",
+                "enabled": True,
+            },
+            "steps": [],
+        }
+        import pytest as _pytest
+
+        with _pytest.raises(Exception):
+            PolicyDocument(**template)

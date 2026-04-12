@@ -36,7 +36,7 @@ export function createStaticEntries(
             keywords: ['home', 'overview', 'dashboard', 'broker', 'bank', 'balance'],
             icon: LayoutDashboard,
             action: () => navigate('/'),
-            shortcut: 'Ctrl+1',
+            shortcut: 'Ctrl+Shift+1',
         },
         {
             id: 'nav:trades',
@@ -45,7 +45,7 @@ export function createStaticEntries(
             keywords: ['executions', 'positions', 'journal', 'review'],
             icon: ArrowLeftRight,
             action: () => navigate('/trades'),
-            shortcut: 'Ctrl+2',
+            shortcut: 'Ctrl+Shift+2',
         },
         {
             id: 'nav:planning',
@@ -54,7 +54,7 @@ export function createStaticEntries(
             keywords: ['plans', 'thesis', 'strategy', 'watchlists', 'tickers'],
             icon: CalendarClock,
             action: () => navigate('/planning'),
-            shortcut: 'Ctrl+3',
+            shortcut: 'Ctrl+Shift+3',
         },
         {
             id: 'nav:scheduling',
@@ -63,7 +63,7 @@ export function createStaticEntries(
             keywords: ['schedules', 'cron', 'pipeline', 'report', 'jobs'],
             icon: Calendar,
             action: () => navigate('/scheduling'),
-            shortcut: 'Ctrl+4',
+            shortcut: 'Ctrl+Shift+4',
         },
         {
             id: 'nav:settings',
@@ -72,7 +72,7 @@ export function createStaticEntries(
             keywords: ['config', 'preferences', 'theme', 'display'],
             icon: Settings,
             action: () => navigate('/settings'),
-            shortcut: 'Ctrl+,',
+            shortcut: 'Ctrl+Shift+5',
         },
 
         // ── Actions (3) — per spec; stubs until backing features exist ──

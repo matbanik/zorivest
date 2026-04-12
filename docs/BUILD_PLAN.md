@@ -259,16 +259,16 @@ Domain → Infrastructure → Services → REST API → MCP Server → GUI → D
 | MEU-68 | `watchlist` | 33 | [03](build-plan/03-service-layer.md) | Watchlist entity + service | ✅ |
 | MEU-69 | `plan-watchlist-mcp` | 34 | [05d](build-plan/05d-mcp-trade-planning.md) | TradePlan + Watchlist MCP tools | ✅ |
 | MEU-70 | `gui-planning` | 35 | [06c](build-plan/06c-gui-planning.md) | Planning GUI (plan cards, watchlists) | ✅ |
-| MEU-70a | `watchlist-visual-redesign` | 35.1 | [06i](build-plan/06i-gui-watchlist-visual.md) | Watchlist visual redesign (Level 1: dark palette, price columns, tabular figures, gain/loss arrows) + [PLAN-NOSIZE] full-stack `position_size`/`shares_planned` field · ~~`[BOUNDARY-GAP]` F7 prerequisite~~ satisfied · Depends on: MEU-65 ✅, MEU-70 ✅ | ⬜ |
+| MEU-70a | `watchlist-visual-redesign` | 35.1 | [06i](build-plan/06i-gui-watchlist-visual.md) | Watchlist visual redesign (Level 1: dark palette, price columns, tabular figures, gain/loss arrows) + [PLAN-NOSIZE] full-stack `position_size`/`shares_planned` field · ~~`[BOUNDARY-GAP]` F7 prerequisite~~ satisfied · Depends on: MEU-65 ✅, MEU-70 ✅ | ✅ |
 | MEU-70b | `planning-ux-polish` | 35.2 | [06c §ux](build-plan/06c-gui-planning.md) | Trade Planner UX polish: segmented status buttons (no dropdown), conditional Link-to-Trade grayout, picker selection label feedback, editable `shares_planned` field · Frontend-only | ✅ |
-| MEU-71 | `account-entity-api` | 35a.0 | [06d](build-plan/06d-gui-accounts.md) | Account entity + service + REST API; FK constraints already exist at infra layer (no Alembic migration needed); balance history + portfolio total endpoints | ⏸ |
+| MEU-71 | `account-entity-api` | 35a.0 | [06d](build-plan/06d-gui-accounts.md) | Account entity + service + REST API; FK constraints already exist at infra layer (no Alembic migration needed); balance history + portfolio total endpoints | ✅ |
 | MEU-71a | `account-gui` | 35a.1 | [06d](build-plan/06d-gui-accounts.md) | Account Management GUI (list, add, edit, balance display); accounts dropdown in Trade Planner form · Depends on MEU-71 | ✅ |
-| MEU-71b | `calculator-account-integration` | 35a.2 | [06h](build-plan/06h-gui-calculator.md) | Position Calculator pulls account balance from selected account for risk % calculation · Depends on MEU-71 | ⏸ |
-| MEU-72 | `gui-scheduling` | 35b | [06e](build-plan/06e-gui-scheduling.md) | Scheduling GUI · ⚠️ **`[BOUNDARY-GAP]` F4 prerequisite:** harden `scheduling.py` routes (5 write endpoints lack Pydantic schema enforcement: `extra="forbid"`, `StrippedStr`, enum constraints) before building GUI — apply BV pattern from MEU-BV1–BV3 | ⬜ |
+| MEU-71b | `calculator-account-integration` | 35a.2 | [06h](build-plan/06h-gui-calculator.md) | Position Calculator pulls account balance from selected account for risk % calculation · Depends on MEU-71 ✅ | ✅ |
+| MEU-72 | `gui-scheduling` | 35b | [06e](build-plan/06e-gui-scheduling.md) | Scheduling GUI · ✅ ~~`[BOUNDARY-GAP]` F4 prerequisite~~ resolved by MEU-BV6 (2026-04-11) | ⏳ |
 | MEU-73 | `gui-email-settings` | 35c | [06f §email](build-plan/06f-gui-settings.md) | Email Provider Settings GUI · ✅ `[BOUNDARY-GAP]` F6 resolved by MEU-BV5 (handoff 102) | ✅ |
 | MEU-74 | `gui-backup-restore` | 35d | [06f §backup](build-plan/06f-gui-settings.md) | Backup & Restore Settings GUI · **E2E Wave 3**: `backup-restore` tests (+2 = 16) | ⬜ |
 | MEU-75 | `gui-config-export` | 35e | [06f §export](build-plan/06f-gui-settings.md) | Config Export/Import GUI | ⬜ |
-| MEU-76 | `gui-reset-defaults` | 35f | [06f §reset](build-plan/06f-gui-settings.md) | Reset to Default on settings pages · ⚠️ **`[BOUNDARY-GAP]` prerequisite:** harden `settings.py` PUT routes (Pydantic schema enforcement, `extra="forbid"`) before implementing reset-to-defaults — apply BV pattern from MEU-BV1–BV3 | ⬜ |
+| MEU-76 | `gui-reset-defaults` | 35f | [06f §reset](build-plan/06f-gui-settings.md) | Reset to Default on settings pages · ✅ ~~`[BOUNDARY-GAP]` prerequisite~~ resolved by MEU-BV8 (2026-04-11) | ⬜ |
 
 ---
 

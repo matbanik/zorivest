@@ -358,6 +358,10 @@ export default function TradePlanPage({ onOpenCalculator }: TradePlanPageProps) 
                     ...prev,
                     shares_planned: detail.shares_planned,
                     position_size: detail.position_size ?? null,
+                    ...(detail.account_id ? { account_id: detail.account_id } : {}),
+                    ...(detail.entry ? { entry: detail.entry } : {}),
+                    ...(detail.stop ? { stop: detail.stop } : {}),
+                    ...(detail.target ? { target: detail.target } : {}),
                 }
             })
         }

@@ -31,7 +31,7 @@ def client(app):
     return TestClient(app)
 
 
-# ── AC-1: App factory returns FastAPI with 7 tags ───────────────────────
+# ── AC-1: App factory returns FastAPI with expected tags ─────────────────────
 
 
 class TestAppFactory:
@@ -45,12 +45,12 @@ class TestAppFactory:
         assert app.title is not None
         assert len(app.routes) > 0
 
-    def test_app_has_seven_tags(self) -> None:
-        """AC-1: App has 7 tags in openapi_tags."""
+    def test_app_has_expected_tags(self) -> None:
+        """AC-1: App has expected tags in openapi_tags."""
         app = create_app()
         tags = app.openapi_tags or []
-        assert len(tags) == 10, (
-            f"Expected 10 tags, got {len(tags)}: {[t['name'] for t in tags]}"
+        assert len(tags) == 12, (
+            f"Expected 12 tags, got {len(tags)}: {[t['name'] for t in tags]}"
         )
 
 

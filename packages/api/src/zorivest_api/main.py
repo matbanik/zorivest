@@ -229,6 +229,9 @@ async def lifespan(app: FastAPI) -> AsyncGenerator[None, None]:
         uow=uow, encryption=_encryption
     )  # MEU-73
 
+    # ── Register pipeline step types (auto-registration via __init_subclass__) ──
+    import zorivest_core.pipeline_steps  # noqa: F401 — triggers step registration
+
     # ── Scheduling adapters (bridge async dict protocols → sync ORM repos) ──
     audit_adapter = AuditCounterAdapter(uow)
     policy_adapter = PolicyStoreAdapter(uow)

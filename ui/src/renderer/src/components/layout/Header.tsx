@@ -16,7 +16,7 @@ export default function Header({ onCommandPaletteToggle }: HeaderProps) {
                     className="text-xs text-fg-muted px-1.5 py-0.5 border border-bg-elevated rounded hover:bg-bg-elevated hover:text-fg transition-colors cursor-pointer"
                     aria-label="Open command palette"
                 >
-                    Ctrl+K
+                    <span className="text-xs text-fg-muted mr-1">Settings:</span> Ctrl+K
                 </button>
             </div>
         </header>

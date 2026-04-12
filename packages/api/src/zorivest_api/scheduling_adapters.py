@@ -99,6 +99,9 @@ class PolicyStoreAdapter:
         self, policy_id: str, data: dict[str, Any]
     ) -> dict[str, Any] | None:
         filtered = {k: v for k, v in data.items() if k in self._UPDATE_KEYS}
+        # SchedulingService passes policy_json as a dict; repo expects JSON string
+        if "policy_json" in filtered and isinstance(filtered["policy_json"], dict):
+            filtered["policy_json"] = json.dumps(filtered["policy_json"])
         self._uow.policies.update(policy_id, **filtered)
         self._uow.commit()
         model = self._uow.policies.get_by_id(policy_id)

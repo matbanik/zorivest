@@ -1,7 +1,7 @@
 # tests/unit/test_settings_registry.py
 """Tests for SettingSpec, Sensitivity, SETTINGS_REGISTRY, and seed_defaults (MEU-17).
 
-AC-17.1: SETTINGS_REGISTRY contains exactly 27 entries
+AC-17.1: SETTINGS_REGISTRY contains exactly 28 entries
 AC-17.2: Every entry has valid value_type
 AC-17.3: Every entry has valid category
 AC-17.4: seed_defaults() populates all 26 rows
@@ -24,7 +24,15 @@ from zorivest_infra.database.models import AppDefaultModel, Base
 from zorivest_infra.database.seed_defaults import seed_defaults
 
 VALID_VALUE_TYPES = {"str", "int", "float", "bool", "json"}
-VALID_CATEGORIES = {"dialog", "logging", "display", "backup", "ui", "notification"}
+VALID_CATEGORIES = {
+    "dialog",
+    "logging",
+    "display",
+    "backup",
+    "ui",
+    "notification",
+    "scheduling",
+}
 
 
 def _engine():
@@ -38,10 +46,10 @@ def _engine():
 
 
 class TestRegistryCount:
-    """AC-17.1: SETTINGS_REGISTRY contains exactly 27 entries."""
+    """AC-17.1: SETTINGS_REGISTRY contains exactly 28 entries."""
 
     def test_registry_has_26_entries(self) -> None:
-        assert len(SETTINGS_REGISTRY) == 27
+        assert len(SETTINGS_REGISTRY) == 28
 
 
 # ── AC-17.2: Value types ─────────────────────────────────────────────────
@@ -91,10 +99,11 @@ class TestCategories:
                 "backup",
                 "ui",
                 "notification",
+                "scheduling",
             ), f"Setting '{key}' prefix '{key_prefix}' unexpected"
 
     def test_all_categories_represented(self) -> None:
-        """All 6 expected categories appear at least once."""
+        """All 7 expected categories appear at least once."""
         categories = {spec.category for spec in SETTINGS_REGISTRY.values()}
         assert categories == VALID_CATEGORIES
 
@@ -103,7 +112,7 @@ class TestCategories:
 
 
 class TestSeedDefaults:
-    """AC-17.4: seed_defaults() populates app_defaults with all 27 rows."""
+    """AC-17.4: seed_defaults() populates app_defaults with all 28 rows."""
 
     def test_seed_populates_all_rows(self) -> None:
         engine = _engine()
@@ -111,7 +120,7 @@ class TestSeedDefaults:
             seed_defaults(session, SETTINGS_REGISTRY)
             session.commit()
             count = session.query(AppDefaultModel).count()
-            assert count == 27
+            assert count == 28
 
     def test_seed_values_match_registry(self) -> None:
         """Seeded values match the registry's hardcoded_default."""
@@ -156,7 +165,7 @@ class TestIdempotentSeeding:
             seed_defaults(session, SETTINGS_REGISTRY)
             session.commit()
             count = session.query(AppDefaultModel).count()
-            assert count == 27
+            assert count == 28
 
     def test_seed_updates_existing_on_rerun(self) -> None:
         """Re-seeding updates value/description if the registry changed."""

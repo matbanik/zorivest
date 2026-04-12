@@ -10,12 +10,21 @@ MEU: MEU-89 (scheduling-api-mcp)
 
 from __future__ import annotations
 
-from typing import Any
+from typing import Annotated, Any, Literal
 
 from fastapi import APIRouter, Depends
-from pydantic import BaseModel
+from pydantic import BaseModel, Field
+from pydantic.functional_validators import BeforeValidator
 
 from zorivest_api.dependencies import get_scheduler_service
+
+
+def _strip_whitespace(v: object) -> object:
+    """Strip leading/trailing whitespace so min_length=1 rejects blank strings."""
+    return v.strip() if isinstance(v, str) else v
+
+
+StrippedStr = Annotated[str, BeforeValidator(_strip_whitespace)]
 
 
 scheduler_router = APIRouter(prefix="/api/v1/scheduler", tags=["scheduler"])
@@ -24,8 +33,10 @@ scheduler_router = APIRouter(prefix="/api/v1/scheduler", tags=["scheduler"])
 class PowerEventRequest(BaseModel):
     """OS power event from Electron IPC."""
 
-    event_type: str  # "suspend" | "resume"
-    timestamp: str  # ISO 8601
+    model_config = {"extra": "forbid"}
+
+    event_type: Literal["suspend", "resume"]
+    timestamp: StrippedStr = Field(..., min_length=1)
 
 
 @scheduler_router.post("/power-event")

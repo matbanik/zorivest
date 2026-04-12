@@ -1,0 +1,842 @@
+/**
+ * Tests for Scheduling & Pipeline feature.
+ *
+ * Sub-MEU A: Hook tests (useSchedulingPolicies, mutations, cache invalidation)
+ * Sub-MEU B: Component tests (SchedulingLayout, PolicyList, PolicyDetail, CronPreview)
+ * Sub-MEU C: RunHistory tests
+ *
+ * Test pattern follows trades.test.tsx (vi.hoisted mock, QueryClient wrapper).
+ * MEU: MEU-72 (gui-scheduling)
+ */
+
+import { describe, it, expect, vi, beforeEach } from 'vitest'
+import { render, screen, waitFor, fireEvent } from '@testing-library/react'
+import '@testing-library/jest-dom/vitest'
+import React from 'react'
+import { QueryClient, QueryClientProvider } from '@tanstack/react-query'
+import { renderHook, act } from '@testing-library/react'
+
+// ─── Mocks ────────────────────────────────────────────────────────────────────
+
+const { mockApiFetch } = vi.hoisted(() => ({
+    mockApiFetch: vi.fn(),
+}))
+
+vi.mock('@/lib/api', () => ({
+    apiFetch: (...args: any[]) => mockApiFetch(...args),
+}))
+
+vi.mock('@/hooks/useStatusBar', () => ({
+    useStatusBar: () => ({ message: 'Ready', setStatus: vi.fn() }),
+    StatusBarProvider: ({ children }: { children: React.ReactNode }) => <>{children}</>,
+}))
+
+// Import after mocks
+import {
+    useSchedulingPolicies,
+    useCreatePolicy,
+    useDeletePolicy,
+    useApprovePolicy,
+    useTriggerRun,
+    usePatchSchedule,
+    schedulingKeys,
+} from '../hooks'
+import type { Policy, PolicyListResponse } from '../api'
+
+// ─── Test Data ────────────────────────────────────────────────────────────────
+
+const MOCK_POLICY: Policy = {
+    id: 'pol-001',
+    name: 'daily-import',
+    schema_version: 1,
+    enabled: true,
+    approved: true,
+    approved_at: '2026-03-18T12:00:00Z',
+    content_hash: 'abc123',
+    policy_json: {
+        name: 'daily-import',
+        trigger: { cron_expression: '0 6 * * 1-5', timezone: 'America/New_York' },
+        steps: [{ id: 'step_1', type: 'fetch', params: {} }],
+    },
+    created_at: '2026-03-17T12:00:00Z',
+    updated_at: '2026-03-18T12:00:00Z',
+    next_run: '2026-03-19T06:00:00Z',
+}
+
+const MOCK_POLICY_2: Policy = {
+    id: 'pol-002',
+    name: 'weekly-report',
+    schema_version: 1,
+    enabled: false,
+    approved: false,
+    approved_at: null,
+    content_hash: 'def456',
+    policy_json: {
+        name: 'weekly-report',
+        trigger: { cron_expression: '0 8 * * 1', timezone: 'UTC' },
+        steps: [{ id: 'step_1', type: 'fetch', params: {} }],
+    },
+    created_at: '2026-03-17T12:00:00Z',
+    updated_at: null,
+    next_run: null,
+}
+
+const MOCK_POLICIES_RESPONSE: PolicyListResponse = {
+    policies: [MOCK_POLICY, MOCK_POLICY_2],
+    total: 2,
+}
+
+// ─── Helpers ──────────────────────────────────────────────────────────────────
+
+function createWrapper() {
+    const queryClient = new QueryClient({
+        defaultOptions: { queries: { retry: false } },
+    })
+    return function Wrapper({ children }: { children: React.ReactNode }) {
+        return (
+            <QueryClientProvider client={queryClient}>
+                {children}
+            </QueryClientProvider>
+        )
+    }
+}
+
+// ═══════════════════════════════════════════════════════════════════════════════
+// Sub-MEU A: Hook Tests
+// ═══════════════════════════════════════════════════════════════════════════════
+
+describe('useSchedulingPolicies', () => {
+    beforeEach(() => {
+        mockApiFetch.mockReset()
+    })
+
+    it('AC-A4: fetches typed policy list', async () => {
+        mockApiFetch.mockResolvedValueOnce(MOCK_POLICIES_RESPONSE)
+
+        const { result } = renderHook(() => useSchedulingPolicies(), {
+            wrapper: createWrapper(),
+        })
+
+        expect(result.current.isLoading).toBe(true)
+
+        await waitFor(() => {
+            expect(result.current.isLoading).toBe(false)
+        })
+
+        expect(result.current.policies).toHaveLength(2)
+        expect(result.current.total).toBe(2)
+        expect(result.current.policies[0].name).toBe('daily-import')
+        expect(result.current.policies[1].name).toBe('weekly-report')
+        expect(result.current.error).toBeNull()
+    })
+
+    it('returns empty array on error', async () => {
+        mockApiFetch.mockRejectedValueOnce(new Error('Network error'))
+
+        const { result } = renderHook(() => useSchedulingPolicies(), {
+            wrapper: createWrapper(),
+        })
+
+        await waitFor(() => {
+            expect(result.current.isLoading).toBe(false)
+        })
+
+        expect(result.current.policies).toEqual([])
+        expect(result.current.error).toBe('Network error')
+    })
+})
+
+describe('useCreatePolicy', () => {
+    beforeEach(() => {
+        mockApiFetch.mockReset()
+    })
+
+    it('AC-A5: invalidates cache on success', async () => {
+        mockApiFetch.mockResolvedValueOnce(MOCK_POLICY)
+
+        const queryClient = new QueryClient({
+            defaultOptions: { queries: { retry: false } },
+        })
+        const invalidateSpy = vi.spyOn(queryClient, 'invalidateQueries')
+
+        const wrapper = ({ children }: { children: React.ReactNode }) => (
+            <QueryClientProvider client={queryClient}>
+                {children}
+            </QueryClientProvider>
+        )
+
+        const { result } = renderHook(() => useCreatePolicy(), { wrapper })
+
+        await act(async () => {
+            result.current.mutate({ policy_json: { name: 'new-policy' } })
+        })
+
+        await waitFor(() => {
+            expect(result.current.isSuccess).toBe(true)
+        })
+
+        expect(invalidateSpy).toHaveBeenCalledWith(
+            expect.objectContaining({ queryKey: schedulingKeys.all }),
+        )
+    })
+})
+
+describe('useDeletePolicy', () => {
+    beforeEach(() => {
+        mockApiFetch.mockReset()
+    })
+
+    it('AC-A5: invalidates cache on delete', async () => {
+        mockApiFetch.mockResolvedValueOnce(undefined)
+
+        const queryClient = new QueryClient({
+            defaultOptions: { queries: { retry: false } },
+        })
+        const invalidateSpy = vi.spyOn(queryClient, 'invalidateQueries')
+
+        const wrapper = ({ children }: { children: React.ReactNode }) => (
+            <QueryClientProvider client={queryClient}>
+                {children}
+            </QueryClientProvider>
+        )
+
+        const { result } = renderHook(() => useDeletePolicy(), { wrapper })
+
+        await act(async () => {
+            result.current.mutate('pol-001')
+        })
+
+        await waitFor(() => {
+            expect(result.current.isSuccess).toBe(true)
+        })
+
+        expect(invalidateSpy).toHaveBeenCalledWith(
+            expect.objectContaining({ queryKey: schedulingKeys.all }),
+        )
+    })
+})
+
+describe('useApprovePolicy', () => {
+    beforeEach(() => {
+        mockApiFetch.mockReset()
+    })
+
+    it('AC-A5: invalidates list + detail on approve', async () => {
+        mockApiFetch.mockResolvedValueOnce({ ...MOCK_POLICY, approved: true })
+
+        const queryClient = new QueryClient({
+            defaultOptions: { queries: { retry: false } },
+        })
+        const invalidateSpy = vi.spyOn(queryClient, 'invalidateQueries')
+
+        const wrapper = ({ children }: { children: React.ReactNode }) => (
+            <QueryClientProvider client={queryClient}>
+                {children}
+            </QueryClientProvider>
+        )
+
+        const { result } = renderHook(() => useApprovePolicy(), { wrapper })
+
+        await act(async () => {
+            result.current.mutate('pol-001')
+        })
+
+        await waitFor(() => {
+            expect(result.current.isSuccess).toBe(true)
+        })
+
+        expect(invalidateSpy).toHaveBeenCalledWith(
+            expect.objectContaining({ queryKey: schedulingKeys.all }),
+        )
+        expect(invalidateSpy).toHaveBeenCalledWith(
+            expect.objectContaining({ queryKey: schedulingKeys.detail('pol-001') }),
+        )
+    })
+})
+
+describe('useTriggerRun', () => {
+    beforeEach(() => {
+        mockApiFetch.mockReset()
+    })
+
+    it('AC-A5: invalidates run list on trigger', async () => {
+        mockApiFetch.mockResolvedValueOnce({
+            run_id: 'run-001',
+            policy_id: 'pol-001',
+            status: 'pending',
+            trigger_type: 'manual',
+            started_at: null,
+            completed_at: null,
+            duration_ms: null,
+            error: null,
+            dry_run: false,
+        })
+
+        const queryClient = new QueryClient({
+            defaultOptions: { queries: { retry: false } },
+        })
+        const invalidateSpy = vi.spyOn(queryClient, 'invalidateQueries')
+
+        const wrapper = ({ children }: { children: React.ReactNode }) => (
+            <QueryClientProvider client={queryClient}>
+                {children}
+            </QueryClientProvider>
+        )
+
+        const { result } = renderHook(() => useTriggerRun(), { wrapper })
+
+        await act(async () => {
+            result.current.mutate({ policyId: 'pol-001', payload: { dry_run: false } })
+        })
+
+        await waitFor(() => {
+            expect(result.current.isSuccess).toBe(true)
+        })
+
+        expect(invalidateSpy).toHaveBeenCalledWith(
+            expect.objectContaining({ queryKey: schedulingKeys.runs('pol-001') }),
+        )
+    })
+})
+
+describe('usePatchSchedule', () => {
+    beforeEach(() => {
+        mockApiFetch.mockReset()
+    })
+
+    it('AC-A5: invalidates list + detail on patch', async () => {
+        mockApiFetch.mockResolvedValueOnce({ ...MOCK_POLICY, enabled: false })
+
+        const queryClient = new QueryClient({
+            defaultOptions: { queries: { retry: false } },
+        })
+        const invalidateSpy = vi.spyOn(queryClient, 'invalidateQueries')
+
+        const wrapper = ({ children }: { children: React.ReactNode }) => (
+            <QueryClientProvider client={queryClient}>
+                {children}
+            </QueryClientProvider>
+        )
+
+        const { result } = renderHook(() => usePatchSchedule(), { wrapper })
+
+        await act(async () => {
+            result.current.mutate({
+                policyId: 'pol-001',
+                params: { enabled: false },
+            })
+        })
+
+        await waitFor(() => {
+            expect(result.current.isSuccess).toBe(true)
+        })
+
+        expect(invalidateSpy).toHaveBeenCalledWith(
+            expect.objectContaining({ queryKey: schedulingKeys.all }),
+        )
+        expect(invalidateSpy).toHaveBeenCalledWith(
+            expect.objectContaining({ queryKey: schedulingKeys.detail('pol-001') }),
+        )
+    })
+})
+
+describe('schedulingKeys', () => {
+    it('AC-A3: key factory produces consistent keys', () => {
+        expect(schedulingKeys.all).toEqual(['scheduling-policies'])
+        expect(schedulingKeys.detail('pol-001')).toEqual(['scheduling-policies', 'pol-001'])
+        expect(schedulingKeys.runs('pol-001')).toEqual(['scheduling-runs', 'pol-001'])
+        expect(schedulingKeys.runDetail('run-001')).toEqual(['scheduling-run-detail', 'run-001'])
+        expect(schedulingKeys.schedulerStatus).toEqual(['scheduler-status'])
+    })
+})
+
+// ═══════════════════════════════════════════════════════════════════════════════
+// Sub-MEU B: Component Tests
+// ═══════════════════════════════════════════════════════════════════════════════
+
+import PolicyList from '../PolicyList'
+import PolicyDetail from '../PolicyDetail'
+import CronPreview from '../CronPreview'
+import RunHistory from '../RunHistory'
+import type { PipelineRun } from '../api'
+import { SCHEDULING_TEST_IDS } from '../test-ids'
+
+describe('PolicyList', () => {
+    const defaultProps = {
+        policies: [MOCK_POLICY, MOCK_POLICY_2],
+        selectedPolicyId: null,
+        onSelect: vi.fn(),
+        onCreate: vi.fn(),
+        isLoading: false,
+        error: null,
+    }
+
+    it('AC-B1: renders policy list with data-testid', () => {
+        render(<PolicyList {...defaultProps} />, { wrapper: createWrapper() })
+
+        expect(screen.getByTestId(SCHEDULING_TEST_IDS.POLICY_LIST)).toBeInTheDocument()
+        expect(screen.getAllByTestId(SCHEDULING_TEST_IDS.POLICY_ITEM)).toHaveLength(2)
+    })
+
+    it('AC-B1: renders policy names', () => {
+        render(<PolicyList {...defaultProps} />, { wrapper: createWrapper() })
+
+        const names = screen.getAllByTestId(SCHEDULING_TEST_IDS.POLICY_NAME)
+        expect(names[0]).toHaveTextContent('daily-import')
+        expect(names[1]).toHaveTextContent('weekly-report')
+    })
+
+    it('AC-B1: renders 3-state status icons (Scheduled / Draft)', () => {
+        render(<PolicyList {...defaultProps} />, { wrapper: createWrapper() })
+
+        const statuses = screen.getAllByTestId(SCHEDULING_TEST_IDS.POLICY_STATUS)
+        // MOCK_POLICY: approved=true, enabled=true → Scheduled (✅)
+        expect(statuses[0]).toHaveTextContent('✅')
+        // MOCK_POLICY_2: approved=false, enabled=false → Draft (📝)
+        expect(statuses[1]).toHaveTextContent('📝')
+    })
+
+    it('shows empty state when no policies', () => {
+        render(
+            <PolicyList {...defaultProps} policies={[]} />,
+            { wrapper: createWrapper() },
+        )
+
+        expect(screen.getByTestId(SCHEDULING_TEST_IDS.EMPTY_STATE)).toBeInTheDocument()
+    })
+
+    it('shows loading state', () => {
+        render(
+            <PolicyList {...defaultProps} isLoading={true} />,
+            { wrapper: createWrapper() },
+        )
+
+        expect(screen.getByTestId(SCHEDULING_TEST_IDS.LOADING_STATE)).toBeInTheDocument()
+    })
+
+    it('shows error state', () => {
+        render(
+            <PolicyList {...defaultProps} error="Failed to fetch" />,
+            { wrapper: createWrapper() },
+        )
+
+        expect(screen.getByTestId(SCHEDULING_TEST_IDS.ERROR_STATE)).toHaveTextContent('Failed to fetch')
+    })
+
+    it('calls onSelect when policy clicked', () => {
+        const onSelect = vi.fn()
+        render(
+            <PolicyList {...defaultProps} onSelect={onSelect} />,
+            { wrapper: createWrapper() },
+        )
+
+        fireEvent.click(screen.getAllByTestId(SCHEDULING_TEST_IDS.POLICY_ITEM)[0])
+        expect(onSelect).toHaveBeenCalledWith(MOCK_POLICY)
+    })
+
+    it('calls onCreate when + New clicked', () => {
+        const onCreate = vi.fn()
+        render(
+            <PolicyList {...defaultProps} onCreate={onCreate} />,
+            { wrapper: createWrapper() },
+        )
+
+        fireEvent.click(screen.getByTestId(SCHEDULING_TEST_IDS.POLICY_CREATE_BTN))
+        expect(onCreate).toHaveBeenCalled()
+    })
+
+    it('highlights selected policy', () => {
+        render(
+            <PolicyList {...defaultProps} selectedPolicyId="pol-001" />,
+            { wrapper: createWrapper() },
+        )
+
+        const items = screen.getAllByTestId(SCHEDULING_TEST_IDS.POLICY_ITEM)
+        expect(items[0].className).toContain('bg-accent-purple')
+    })
+})
+
+describe('CronPreview', () => {
+    it('AC-B2: shows human-readable cron', () => {
+        render(<CronPreview expression="0 8 * * 1-5" />)
+
+        const preview = screen.getByTestId(SCHEDULING_TEST_IDS.POLICY_CRON_PREVIEW)
+        expect(preview).toBeInTheDocument()
+        // cronstrue converts to something like "At 08:00 AM, Monday through Friday"
+        expect(preview.textContent).toContain('8')
+    })
+
+    it('AC-B2: shows error for invalid cron', () => {
+        render(<CronPreview expression="invalid-cron" />)
+
+        const preview = screen.getByTestId(SCHEDULING_TEST_IDS.POLICY_CRON_PREVIEW)
+        expect(preview).toHaveTextContent('Invalid cron expression')
+    })
+
+    it('does not render for empty expression', () => {
+        const { container } = render(<CronPreview expression="" />)
+        expect(container.firstChild).toBeNull()
+    })
+})
+
+// ═══════════════════════════════════════════════════════════════════════════════
+// Sub-MEU B.2: PolicyDetail Action Tests
+// ═══════════════════════════════════════════════════════════════════════════════
+
+// Mock CodeMirror — PolicyDetail uses @codemirror/* which doesn't work in jsdom
+// Must use vi.hoisted since vi.mock factories are hoisted above variable declarations
+const { MockEditorView } = vi.hoisted(() => {
+    const ctor = vi.fn().mockImplementation(() => ({
+        state: { doc: { toString: () => '{"name":"test","trigger":{"cron_expression":"0 8 * * *","timezone":"UTC"},"steps":[{"id":"s1","type":"fetch","params":{}}]}' } },
+        destroy: vi.fn(),
+    }))
+    // Static method used in EditorView.theme(...)
+    ;(ctor as any).theme = vi.fn().mockReturnValue([])
+    return { MockEditorView: ctor }
+})
+
+vi.mock('@codemirror/view', () => ({
+    EditorView: MockEditorView,
+    keymap: { of: vi.fn().mockReturnValue([]) },
+}))
+vi.mock('@codemirror/state', () => ({
+    EditorState: { create: vi.fn().mockReturnValue({}) },
+}))
+vi.mock('@codemirror/lang-json', () => ({ json: vi.fn().mockReturnValue([]) }))
+vi.mock('@codemirror/theme-one-dark', () => ({ oneDark: [] }))
+vi.mock('codemirror', () => ({ basicSetup: [] }))
+
+describe('PolicyDetail', () => {
+    const defaultHandlers = {
+        onSave: vi.fn(),
+        onApprove: vi.fn(),
+        onDelete: vi.fn(),
+        onTriggerRun: vi.fn(),
+        onPatchSchedule: vi.fn(),
+        onRename: vi.fn(),
+        isSaving: false,
+    }
+
+    beforeEach(() => {
+        vi.clearAllMocks()
+    })
+
+    // Approved + enabled = scheduled state
+    const APPROVED_POLICY = { ...MOCK_POLICY, approved: true, enabled: true }
+    // Draft = not approved
+    const DRAFT_POLICY = { ...MOCK_POLICY_2, approved: false, enabled: false }
+
+    it('AC-C1: Test Run calls onTriggerRun(true) — always dry-run', () => {
+        render(
+            <PolicyDetail policy={APPROVED_POLICY} {...defaultHandlers} />,
+            { wrapper: createWrapper() },
+        )
+
+        fireEvent.click(screen.getByTestId(SCHEDULING_TEST_IDS.TEST_RUN_BTN))
+        expect(defaultHandlers.onTriggerRun).toHaveBeenCalledWith(true)
+    })
+
+    it('AC-C2: Run Now requires two clicks (confirmation pattern)', () => {
+        render(
+            <PolicyDetail policy={APPROVED_POLICY} {...defaultHandlers} />,
+            { wrapper: createWrapper() },
+        )
+
+        const btn = screen.getByTestId(SCHEDULING_TEST_IDS.RUN_NOW_BTN)
+
+        // First click — shows confirmation
+        fireEvent.click(btn)
+        expect(defaultHandlers.onTriggerRun).not.toHaveBeenCalled()
+        expect(btn.textContent).toBe('Confirm Run')
+
+        // Second click — executes
+        fireEvent.click(btn)
+        expect(defaultHandlers.onTriggerRun).toHaveBeenCalledWith(false)
+    })
+
+    it('AC-C2: Test Run and Run Now disabled for draft policies', () => {
+        render(
+            <PolicyDetail policy={DRAFT_POLICY} {...defaultHandlers} />,
+            { wrapper: createWrapper() },
+        )
+
+        expect(screen.getByTestId(SCHEDULING_TEST_IDS.TEST_RUN_BTN)).toBeDisabled()
+        expect(screen.getByTestId(SCHEDULING_TEST_IDS.RUN_NOW_BTN)).toBeDisabled()
+    })
+
+    it('AC-B6: Delete triggers window.confirm dialog', () => {
+        const confirmSpy = vi.spyOn(window, 'confirm').mockReturnValue(true)
+
+        render(
+            <PolicyDetail policy={APPROVED_POLICY} {...defaultHandlers} />,
+            { wrapper: createWrapper() },
+        )
+
+        fireEvent.click(screen.getByTestId(SCHEDULING_TEST_IDS.POLICY_DELETE_BTN))
+
+        expect(confirmSpy).toHaveBeenCalledWith(
+            expect.stringContaining('Delete policy'),
+        )
+        expect(defaultHandlers.onDelete).toHaveBeenCalled()
+        confirmSpy.mockRestore()
+    })
+
+    it('AC-B6: Delete cancelled when user declines confirmation', () => {
+        const confirmSpy = vi.spyOn(window, 'confirm').mockReturnValue(false)
+
+        render(
+            <PolicyDetail policy={APPROVED_POLICY} {...defaultHandlers} />,
+            { wrapper: createWrapper() },
+        )
+
+        fireEvent.click(screen.getByTestId(SCHEDULING_TEST_IDS.POLICY_DELETE_BTN))
+
+        expect(confirmSpy).toHaveBeenCalled()
+        expect(defaultHandlers.onDelete).not.toHaveBeenCalled()
+        confirmSpy.mockRestore()
+    })
+
+    it('AC-B8: State pill click calls onApprove for draft policies', () => {
+        render(
+            <PolicyDetail policy={DRAFT_POLICY} {...defaultHandlers} />,
+            { wrapper: createWrapper() },
+        )
+
+        fireEvent.click(screen.getByTestId('policy-state-pill-inline'))
+        expect(defaultHandlers.onApprove).toHaveBeenCalled()
+    })
+
+    it('AC-B8: State pill click calls onPatchSchedule for ready policies', () => {
+        const readyPolicy = { ...MOCK_POLICY, approved: true, enabled: false }
+
+        render(
+            <PolicyDetail policy={readyPolicy} {...defaultHandlers} />,
+            { wrapper: createWrapper() },
+        )
+
+        fireEvent.click(screen.getByTestId('policy-state-pill-inline'))
+        expect(defaultHandlers.onPatchSchedule).toHaveBeenCalledWith({ enabled: true })
+    })
+})
+
+// ═══════════════════════════════════════════════════════════════════════════════
+// Sub-MEU C: RunHistory Tests
+// ═══════════════════════════════════════════════════════════════════════════════
+
+const MOCK_RUNS: PipelineRun[] = [
+    {
+        run_id: 'run-001',
+        policy_id: 'pol-001',
+        status: 'completed',
+        trigger_type: 'scheduled',
+        started_at: '2026-03-18T08:00:00Z',
+        completed_at: '2026-03-18T08:00:12Z',
+        duration_ms: 12300,
+        error: null,
+        dry_run: false,
+    },
+    {
+        run_id: 'run-002',
+        policy_id: 'pol-001',
+        status: 'failed',
+        trigger_type: 'manual',
+        started_at: '2026-03-17T08:00:00Z',
+        completed_at: '2026-03-17T08:00:04Z',
+        duration_ms: 4100,
+        error: 'API rate limit exceeded',
+        dry_run: false,
+    },
+]
+
+describe('RunHistory', () => {
+    beforeEach(() => {
+        mockApiFetch.mockReset()
+    })
+
+    it('AC-C1: renders run history table with data-testid', () => {
+        render(
+            <RunHistory runs={MOCK_RUNS} isLoading={false} />,
+            { wrapper: createWrapper() },
+        )
+
+        expect(screen.getByTestId(SCHEDULING_TEST_IDS.RUN_HISTORY_TABLE)).toBeInTheDocument()
+        expect(screen.getAllByTestId(SCHEDULING_TEST_IDS.RUN_HISTORY_ROW)).toHaveLength(2)
+    })
+
+    it('AC-C1: shows status icons', () => {
+        render(
+            <RunHistory runs={MOCK_RUNS} isLoading={false} />,
+            { wrapper: createWrapper() },
+        )
+
+        const rows = screen.getAllByTestId(SCHEDULING_TEST_IDS.RUN_HISTORY_ROW)
+        expect(rows[0]).toHaveTextContent('✅')
+        expect(rows[1]).toHaveTextContent('❌')
+    })
+
+    it('AC-C1: shows duration', () => {
+        render(
+            <RunHistory runs={MOCK_RUNS} isLoading={false} />,
+            { wrapper: createWrapper() },
+        )
+
+        const rows = screen.getAllByTestId(SCHEDULING_TEST_IDS.RUN_HISTORY_ROW)
+        expect(rows[0]).toHaveTextContent('12.3s')
+        expect(rows[1]).toHaveTextContent('4.1s')
+    })
+
+    it('AC-C1: shows error details for failed runs', () => {
+        render(
+            <RunHistory runs={MOCK_RUNS} isLoading={false} />,
+            { wrapper: createWrapper() },
+        )
+
+        expect(screen.getByText('API rate limit exceeded')).toBeInTheDocument()
+    })
+
+    it('shows empty state when no runs', () => {
+        render(
+            <RunHistory runs={[]} isLoading={false} />,
+            { wrapper: createWrapper() },
+        )
+
+        expect(screen.getByText(/No runs yet/i)).toBeInTheDocument()
+    })
+
+    it('shows loading state', () => {
+        render(
+            <RunHistory runs={[]} isLoading={true} />,
+            { wrapper: createWrapper() },
+        )
+
+        expect(screen.getByText(/Loading run history/i)).toBeInTheDocument()
+    })
+})
+
+// ═══════════════════════════════════════════════════════════════════════════════
+// Sub-MEU B: SchedulingLayout Integration Test
+// ═══════════════════════════════════════════════════════════════════════════════
+
+describe('SchedulingLayout', () => {
+    beforeEach(() => {
+        mockApiFetch.mockReset()
+    })
+
+    it('AC-B3: renders root container with data-testid', async () => {
+        // Mock policies list
+        mockApiFetch.mockImplementation((url: string) => {
+            if (url.includes('/policies')) {
+                return Promise.resolve(MOCK_POLICIES_RESPONSE)
+            }
+            if (url.includes('/scheduler/status')) {
+                return Promise.resolve({ running: true, job_count: 2, jobs: [] })
+            }
+            return Promise.resolve({})
+        })
+
+        // Import SchedulingLayout dynamically to ensure mocks are in place
+        const { default: SchedulingLayout } = await import('../SchedulingLayout')
+
+        render(<SchedulingLayout />, { wrapper: createWrapper() })
+
+        expect(screen.getByTestId(SCHEDULING_TEST_IDS.ROOT)).toBeInTheDocument()
+    })
+
+    it('AC-B3: shows empty state when no policy selected', async () => {
+        mockApiFetch.mockImplementation((url: string) => {
+            if (url.includes('/policies')) {
+                return Promise.resolve(MOCK_POLICIES_RESPONSE)
+            }
+            if (url.includes('/scheduler/status')) {
+                return Promise.resolve({ running: true, job_count: 2, jobs: [] })
+            }
+            return Promise.resolve({})
+        })
+
+        const { default: SchedulingLayout } = await import('../SchedulingLayout')
+
+        render(<SchedulingLayout />, { wrapper: createWrapper() })
+
+        await waitFor(() => {
+            expect(screen.getByText('Scheduling & Pipelines')).toBeInTheDocument()
+        })
+    })
+
+    it('AC-B3: +New button sends valid PolicyDocument payload to API', async () => {
+        // Track all API calls to capture the create POST
+        const capturedCalls: Array<[string, Record<string, unknown>]> = []
+        mockApiFetch.mockImplementation((url: string, init?: Record<string, unknown>) => {
+            capturedCalls.push([url, init ?? {}])
+            if (url.includes('/policies') && init?.method === 'POST') {
+                // Simulate successful creation
+                return Promise.resolve({
+                    id: 'new-id',
+                    name: 'new-policy',
+                    schema_version: 1,
+                    enabled: true,
+                    approved: false,
+                    approved_at: null,
+                    content_hash: 'newhash',
+                    policy_json: {},
+                    created_at: '2026-03-18T00:00:00Z',
+                    updated_at: null,
+                    next_run: null,
+                })
+            }
+            if (url.includes('/policies')) {
+                return Promise.resolve({ policies: [], total: 0 })
+            }
+            if (url.includes('/scheduler/status')) {
+                return Promise.resolve({ running: true, job_count: 0, jobs: [] })
+            }
+            return Promise.resolve({})
+        })
+
+        const { default: SchedulingLayout } = await import('../SchedulingLayout')
+        render(<SchedulingLayout />, { wrapper: createWrapper() })
+
+        // Wait for initial load, then click +New
+        await waitFor(() => {
+            expect(screen.getByTestId(SCHEDULING_TEST_IDS.POLICY_CREATE_BTN)).toBeInTheDocument()
+        })
+        fireEvent.click(screen.getByTestId(SCHEDULING_TEST_IDS.POLICY_CREATE_BTN))
+
+        // Wait for the mutation to fire
+        await waitFor(() => {
+            const postCall = capturedCalls.find(
+                ([url, init]) => url.includes('/policies') && init?.method === 'POST',
+            )
+            expect(postCall).toBeDefined()
+        })
+
+        // Extract and validate the POST body
+        const postCall = capturedCalls.find(
+            ([url, init]) => url.includes('/policies') && init?.method === 'POST',
+        )!
+        const body = JSON.parse(postCall[1].body as string)
+
+        // Contract: must wrap in { policy_json: {...} }
+        expect(body).toHaveProperty('policy_json')
+        const policyJson = body.policy_json
+
+        // Contract: PolicyDocument requires these fields
+        expect(policyJson).toHaveProperty('name')
+        expect(policyJson).toHaveProperty('trigger')
+        expect(policyJson).toHaveProperty('steps')
+
+        // Contract: TriggerConfig requires cron_expression (not 'cron' or 'schedule')
+        expect(policyJson.trigger).toHaveProperty('cron_expression')
+        expect(policyJson.trigger.cron_expression).toBeTruthy()
+
+        // Contract: steps must be non-empty array (min_length=1)
+        expect(Array.isArray(policyJson.steps)).toBe(true)
+        expect(policyJson.steps.length).toBeGreaterThanOrEqual(1)
+
+        // Contract: each step needs id and type
+        const step = policyJson.steps[0]
+        expect(step).toHaveProperty('id')
+        expect(step).toHaveProperty('type')
+        // Step id must match pattern ^[a-z][a-z0-9_]*$
+        expect(step.id).toMatch(/^[a-z][a-z0-9_]*$/)
+    })
+})

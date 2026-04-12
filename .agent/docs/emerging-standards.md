@@ -75,6 +75,27 @@ Living reference of implementation standards discovered during development sessi
 - **Bad example:** Test in dynamic mode that succeeds whether field exists or not
 - **Good example:** Test in static mode where missing field causes middleware to block → test fails → proves schema preserved the field
 
+### M7 — Tool Description Workflow Context
+- **Severity:** 🟡 Medium
+- **Applies to:** MCP
+- **Rule:** MCP tool descriptions and server instructions must include workflow ordering, prerequisite state, return shape examples, and error conditions. An AI agent reading only the tool list should be able to discover the correct multi-step workflow without external documentation.
+- **Origin:** 2026-04-12 — AI agent could not discover how to use scheduling tools. `run_pipeline` didn't mention the approval prerequisite. `create_policy` had no example of the expected JSON shape. Server instructions said only "Automated task scheduling" with no mention of the `create → approve → run` lifecycle. MCP resources (`pipeline://policies/schema`, `pipeline://step-types`) existed but were not referenced in any tool description.
+- **Bad example:** `description: "Trigger a manual pipeline run for an approved policy."` — doesn't explain what "approved" means, what happens on failure, or what the return shape looks like
+- **Good example:**
+  ```typescript
+  description: "Trigger a manual pipeline run. Prerequisite: policy must have "
+      + "approved=true (use approve_policy tool first). Returns {run_id, status, "
+      + "error}. Status is 'running'|'success'|'failed'. For policy JSON schema, "
+      + "see pipeline://policies/schema resource.\n\n"
+      + "Workflow: create_policy → approve_policy → run_pipeline → get_run_detail",
+  ```
+- **Checklist for new toolsets:**
+  1. [ ] Server instructions include 1-line workflow summary for the toolset
+  2. [ ] Each tool description mentions prerequisite state (if any)
+  3. [ ] Create/update tools include example JSON shape or reference an MCP resource
+  4. [ ] Execution tools mention possible return statuses and error shapes
+  5. [ ] MCP resources are referenced from the tools that consume them
+
 ---
 
 ## GUI Standards

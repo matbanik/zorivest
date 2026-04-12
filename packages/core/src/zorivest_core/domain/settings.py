@@ -251,6 +251,15 @@ SETTINGS_REGISTRY: dict[str, SettingSpec] = {
         category="ui",
         description="Use colorblind-friendly palette for watchlist gain/loss colors",
     ),
+    # ── Scheduling (1 entry) ────────────────────────────────────────────
+    "scheduling.default_timezone": SettingSpec(
+        key="scheduling.default_timezone",
+        value_type="str",
+        hardcoded_default="UTC",
+        category="scheduling",
+        description="Default timezone for new scheduling policies",
+        max_length=64,
+    ),
     # ── Notifications (4 entries) ─────────────────────────────────────────
     "notification.success.enabled": SettingSpec(
         key="notification.success.enabled",

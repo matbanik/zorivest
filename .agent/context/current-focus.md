@@ -1,6 +1,6 @@
 # Current Focus — Zorivest
 
-> Last updated: 2026-04-11
+> Last updated: 2026-04-12
 
 ## Active Phase
 
@@ -8,18 +8,12 @@
 
 ## Current Priority
 
-MEU-70a Watchlist Redesign + Plan Size Propagation complete. Next: select next MEU per build-priority-matrix.md.
-
-## Dependency Chain
-
-```
-MEU-70a  ← watchlist-redesign-plan-size ✅ DONE (2026-04-11)
-  └── [PLAN-NOSIZE] ✅ RESOLVED
-```
+MEU-72 Scheduling GUI complete — pending Codex validation (handoff 112).
 
 ## Next Steps
 
-- [ ] Select next MEU per build-priority-matrix.md
+- [ ] Trigger Codex validation for handoff 112
+- [ ] Select next MEU per build-priority-matrix.md after validation
 
 ## Blockers
 

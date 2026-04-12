@@ -157,7 +157,18 @@ export default function AccountsHome() {
     const createAccount = useCreateAccount()
     const [showCreateForm, setShowCreateForm] = useState(false)
     const [typeFilter, setTypeFilter] = useState<string>('ALL')
-    const [sortBy, setSortBy] = useState<'last_used' | 'name' | 'balance'>('last_used')
+    const [sortBy, setSortBy] = useState<'last_used' | 'name' | 'balance' | 'type' | 'institution' | 'portfolio'>('last_used')
+    const [sortDir, setSortDir] = useState<'asc' | 'desc'>('desc')
+
+    // Column sort handler — toggles direction, or resets to default when clicking a new column
+    const handleColumnSort = useCallback((col: typeof sortBy) => {
+        if (sortBy === col) {
+            setSortDir((prev) => (prev === 'asc' ? 'desc' : 'asc'))
+        } else {
+            setSortBy(col)
+            setSortDir(col === 'name' || col === 'type' || col === 'institution' ? 'asc' : 'desc')
+        }
+    }, [sortBy])
 
     // Resolve MRU account objects from IDs
     const mruAccounts = mruAccountIds
@@ -190,32 +201,41 @@ export default function AccountsHome() {
 
     // Filter + sort accounts
     const filteredAccounts = useMemo(() => {
-        // Archived mode: show archived accounts from the dedicated query
-        if (isArchivedMode) {
-            return [...archivedAccounts].sort((a, b) => {
-                if (sortBy === 'name') return a.name.localeCompare(b.name)
-                if (sortBy === 'balance') return (b.latest_balance ?? 0) - (a.latest_balance ?? 0)
-                const dateA = a.latest_balance_date ?? ''
-                const dateB = b.latest_balance_date ?? ''
-                return dateB.localeCompare(dateA)
-            })
-        }
+        const source = isArchivedMode ? archivedAccounts : (
+            typeFilter === 'ALL' ? accounts : accounts.filter((a) => a.account_type === typeFilter)
+        )
 
-        let filtered = typeFilter === 'ALL'
-            ? accounts
-            : accounts.filter((a) => a.account_type === typeFilter)
-
-        filtered = [...filtered].sort((a, b) => {
-            if (sortBy === 'name') return a.name.localeCompare(b.name)
-            if (sortBy === 'balance') return (b.latest_balance ?? 0) - (a.latest_balance ?? 0)
-            // 'last_used' — sort by latest_balance_date descending
-            const dateA = a.latest_balance_date ?? ''
-            const dateB = b.latest_balance_date ?? ''
-            return dateB.localeCompare(dateA)
+        const sorted = [...source].sort((a, b) => {
+            let cmp = 0
+            switch (sortBy) {
+                case 'name':
+                    cmp = a.name.localeCompare(b.name)
+                    break
+                case 'type':
+                    cmp = (a.account_type ?? '').localeCompare(b.account_type ?? '')
+                    break
+                case 'institution':
+                    cmp = (a.institution ?? '').localeCompare(b.institution ?? '')
+                    break
+                case 'balance':
+                    cmp = (a.latest_balance ?? 0) - (b.latest_balance ?? 0)
+                    break
+                case 'portfolio': {
+                    const pctA = portfolioTotal > 0 && a.latest_balance !== null ? a.latest_balance / portfolioTotal : 0
+                    const pctB = portfolioTotal > 0 && b.latest_balance !== null ? b.latest_balance / portfolioTotal : 0
+                    cmp = pctA - pctB
+                    break
+                }
+                case 'last_used':
+                default:
+                    cmp = (a.latest_balance_date ?? '').localeCompare(b.latest_balance_date ?? '')
+                    break
+            }
+            return sortDir === 'desc' ? -cmp : cmp
         })
 
-        return filtered
-    }, [accounts, archivedAccounts, typeFilter, sortBy, isArchivedMode])
+        return sorted
+    }, [accounts, archivedAccounts, typeFilter, sortBy, sortDir, isArchivedMode, portfolioTotal])
 
     return (
         <div data-testid="accounts-page" className="flex h-full gap-4">
@@ -277,19 +297,7 @@ export default function AccountsHome() {
                             <option value="ARCHIVED">📦 Archived</option>
                         </select>
                     </label>
-                    <label className="flex items-center gap-1 text-xs text-fg-muted">
-                        Sort:
-                        <select
-                            data-testid="sort-select"
-                            className="rounded border border-border bg-bg px-1.5 py-0.5 text-xs"
-                            value={sortBy}
-                            onChange={(e) => setSortBy(e.target.value as 'last_used' | 'name' | 'balance')}
-                        >
-                            <option value="last_used">Last Used</option>
-                            <option value="name">Name</option>
-                            <option value="balance">Balance</option>
-                        </select>
-                    </label>
+
                     <div className="ml-auto flex items-baseline gap-2">
                         <span className="text-sm font-semibold text-fg tabular-nums">
                             Portfolio: {currencyFmt.format(portfolioTotal)}
@@ -308,24 +316,25 @@ export default function AccountsHome() {
                     >
                         <thead className="border-b border-border bg-bg-subtle">
                             <tr>
-                                <th className="px-3 py-2 text-xs font-medium text-fg-muted uppercase tracking-wide">
-                                    Type
-                                </th>
-                                <th className="px-3 py-2 text-xs font-medium text-fg-muted uppercase tracking-wide">
-                                    Name
-                                </th>
-                                <th className="px-3 py-2 text-xs font-medium text-fg-muted uppercase tracking-wide">
-                                    Institution
-                                </th>
-                                <th className="px-3 py-2 text-xs font-medium text-fg-muted uppercase tracking-wide text-right">
-                                    Balance
-                                </th>
-                                <th className="px-3 py-2 text-xs font-medium text-fg-muted uppercase tracking-wide">
-                                    Last Used
-                                </th>
-                                <th className="px-3 py-2 text-xs font-medium text-fg-muted uppercase tracking-wide text-right">
-                                    Portfolio %
-                                </th>
+                                {[
+                                    { key: 'type' as const, label: 'Type', align: '' },
+                                    { key: 'name' as const, label: 'Name', align: '' },
+                                    { key: 'institution' as const, label: 'Institution', align: '' },
+                                    { key: 'balance' as const, label: 'Balance', align: 'text-right' },
+                                    { key: 'last_used' as const, label: 'Last Used', align: '' },
+                                    { key: 'portfolio' as const, label: 'Portfolio %', align: 'text-right' },
+                                ].map((col) => (
+                                    <th
+                                        key={col.key}
+                                        className={`px-3 py-2 text-xs font-medium text-fg-muted uppercase tracking-wide cursor-pointer select-none hover:text-fg transition-colors ${col.align}`}
+                                        onClick={() => handleColumnSort(col.key)}
+                                    >
+                                        {col.label}
+                                        {sortBy === col.key && (
+                                            <span className="ml-1">{sortDir === 'asc' ? '↑' : '↓'}</span>
+                                        )}
+                                    </th>
+                                ))}
                             </tr>
                         </thead>
                         <tbody>

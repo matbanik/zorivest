@@ -9,9 +9,11 @@ import TickerAutocomplete from '@/components/TickerAutocomplete'
 interface PositionCalculatorModalProps {
     isOpen: boolean
     onClose: () => void
+    /** When true, the "Apply to Plan" button is enabled (opened from Trade Plan form). */
+    fromPlanContext?: boolean
 }
 
-export default function PositionCalculatorModal({ isOpen, onClose }: PositionCalculatorModalProps) {
+export default function PositionCalculatorModal({ isOpen, onClose, fromPlanContext = false }: PositionCalculatorModalProps) {
     const [accountSize, setAccountSize] = useState<number>(0)
     const [riskPercent, setRiskPercent] = useState<number>(1)
     const [entryPrice, setEntryPrice] = useState<number>(0)
@@ -149,9 +151,13 @@ export default function PositionCalculatorModal({ isOpen, onClose }: PositionCal
             detail: {
                 shares_planned: result.shares,
                 position_size: result.positionValue,
+                account_id: selectedAccount === '__ALL__' || selectedAccount === '' ? undefined : selectedAccount,
+                entry: entryPrice || undefined,
+                stop: stopPrice || undefined,
+                target: targetPrice || undefined,
             },
         }))
-    }, [result.shares, result.positionValue])
+    }, [result.shares, result.positionValue, selectedAccount, entryPrice, stopPrice, targetPrice])
 
     if (!isOpen) return null
 
@@ -353,7 +359,13 @@ export default function PositionCalculatorModal({ isOpen, onClose }: PositionCal
                         <button
                             data-testid="calc-apply-to-plan-btn"
                             onClick={handleApplyToPlan}
-                            className="px-4 py-1.5 text-sm rounded-md border border-accent/30 bg-accent/5 text-accent hover:bg-accent/10 cursor-pointer transition-colors"
+                            disabled={!fromPlanContext}
+                            className={`px-4 py-1.5 text-sm rounded-md border transition-colors ${
+                                fromPlanContext
+                                    ? 'border-accent/30 bg-accent/5 text-accent hover:bg-accent/10 cursor-pointer'
+                                    : 'border-bg-subtle bg-bg text-fg-muted/50 cursor-not-allowed'
+                            }`}
+                            title={fromPlanContext ? 'Apply values to Trade Plan' : 'Open from Trade Plan to use this'}
                         >
                             📋 Apply to Plan
                         </button>

@@ -1,4 +1,4 @@
-import { useCallback } from 'react'
+import { useCallback, useState, useEffect } from 'react'
 import { useNavigate } from '@tanstack/react-router'
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query'
 import { apiFetch } from '@/lib/api'
@@ -11,19 +11,90 @@ interface GuardStatusResponse {
     calls_per_hour?: number
 }
 
+// Common IANA timezones for dropdown
+const COMMON_TIMEZONES = [
+    'America/New_York',
+    'America/Chicago',
+    'America/Denver',
+    'America/Los_Angeles',
+    'America/Anchorage',
+    'Pacific/Honolulu',
+    'America/Toronto',
+    'America/Vancouver',
+    'Europe/London',
+    'Europe/Berlin',
+    'Europe/Paris',
+    'Europe/Zurich',
+    'Europe/Moscow',
+    'Asia/Tokyo',
+    'Asia/Shanghai',
+    'Asia/Hong_Kong',
+    'Asia/Singapore',
+    'Asia/Kolkata',
+    'Asia/Dubai',
+    'Australia/Sydney',
+    'Pacific/Auckland',
+    'UTC',
+] as const
+
 /**
- * Settings Layout — full settings page with MCP Status panel and MCP Guard controls.
+ * Settings Layout — full settings page with timezone, theme, MCP Status panel, and MCP Guard controls.
  *
  * Required data-testids (from test-ids.ts):
  *   - settings-page: root element
  *   - mcp-guard-lock-toggle: lock/unlock toggle button
  *   - mcp-guard-status: guard status indicator
+ *   - default-timezone-select: timezone dropdown
  */
 export default function SettingsLayout() {
     const queryClient = useQueryClient()
     const { setStatus } = useStatusBar()
     const [theme, setTheme] = useTheme()
 
+    // ── Default Timezone ────────────────────────────────────────────────────
+    const { data: savedTimezone } = useQuery<{ value: string | null }>({
+        queryKey: ['settings', 'scheduling.default_timezone'],
+        queryFn: async () => {
+            try {
+                return await apiFetch('/api/v1/settings/scheduling.default_timezone')
+            } catch {
+                return { value: null }
+            }
+        },
+    })
+
+    const [timezone, setTimezoneLocal] = useState<string>('')
+
+    // Sync local state from server when data arrives
+    useEffect(() => {
+        if (savedTimezone?.value) {
+            setTimezoneLocal(savedTimezone.value)
+        }
+    }, [savedTimezone])
+
+    const timezoneMutation = useMutation({
+        mutationFn: async (tz: string) => {
+            await apiFetch('/api/v1/settings/scheduling.default_timezone', {
+                method: 'PUT',
+                headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify({ value: tz }),
+            })
+        },
+        onSuccess: () => {
+            setStatus('Default timezone saved', 3000)
+            queryClient.invalidateQueries({ queryKey: ['settings', 'scheduling.default_timezone'] })
+        },
+        onError: (err: Error) => {
+            setStatus(`Failed to save timezone: ${err.message}`, 5000)
+        },
+    })
+
+    const handleTimezoneChange = useCallback((tz: string) => {
+        setTimezoneLocal(tz)
+        timezoneMutation.mutate(tz)
+    }, [timezoneMutation])
+
+    // ── MCP Guard ────────────────────────────────────────────────────────────
     const { data: guardStatus } = useQuery<GuardStatusResponse>({
         queryKey: ['mcp-guard-status'],
         queryFn: () => apiFetch('/api/v1/mcp-guard/status'),
@@ -92,6 +163,31 @@ export default function SettingsLayout() {
                     </div>
                     <span className="text-fg-muted group-hover:text-fg transition-colors">›</span>
                 </button>
+            </div>
+
+            {/* Default Timezone */}
+            <div className="bg-bg-elevated rounded-lg border border-bg-subtle p-4">
+                <h3 className="text-base font-semibold text-fg mb-3">Default timezone</h3>
+                <div className="flex items-center gap-4">
+                    <span className="text-sm text-fg-muted">Timezone</span>
+                    <select
+                        data-testid="default-timezone-select"
+                        className="rounded border border-border bg-bg px-2 py-1.5 text-sm text-fg min-w-[220px]"
+                        value={timezone}
+                        onChange={(e) => handleTimezoneChange(e.target.value)}
+                    >
+                        <option value="">Select timezone…</option>
+                        {COMMON_TIMEZONES.map((tz) => (
+                            <option key={tz} value={tz}>{tz.replace(/_/g, ' ')}</option>
+                        ))}
+                    </select>
+                    {timezoneMutation.isPending && (
+                        <span className="text-xs text-fg-muted">Saving…</span>
+                    )}
+                </div>
+                <p className="text-xs text-fg-muted mt-2">
+                    Used as the default for new scheduling policies.
+                </p>
             </div>
 
             {/* Theme Toggle */}

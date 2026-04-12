@@ -1279,13 +1279,19 @@
         "type": "object"
       },
       "PowerEventRequest": {
+        "additionalProperties": false,
         "description": "OS power event from Electron IPC.",
         "properties": {
           "event_type": {
+            "enum": [
+              "suspend",
+              "resume"
+            ],
             "title": "Event Type",
             "type": "string"
           },
           "timestamp": {
+            "minLength": 1,
             "title": "Timestamp",
             "type": "string"
           }
