@@ -311,7 +311,21 @@ Domain → Infrastructure → Services → REST API → MCP Server → GUI → D
 
 ---
 
+### P2.5b — Backend Services Wiring & Quality
+
+> Prerequisite: P2.5a (MEU-90a ✅), Phase 8 (MEU-65a ✅), Phase 9 steps (MEU-85/88 ✅), Email (MEU-73 ✅)
+> Unblocks: End-to-end pipeline execution, MEU-72 "Run Now"/"Test Run" functionality
+> Resolves: [SCHED-PIPELINE-WIRING], partial [STUB-RETIRE], [MCP-TOOLDISCOVERY]
+
+| MEU | Slug | Matrix Item | Build Plan Ref | Description | Status |
+|-----|------|:-----------:|----------------|-------------|:------:|
+| MEU-PW1 | `pipeline-runtime-wiring` | 49.4 | [09 §runner](build-plan/09-scheduling.md), [06e](build-plan/06e-gui-scheduling.md) | Expand `PipelineRunner.__init__` with 8 keyword params (7 wired to real services, `provider_adapter` accepted as `None` slot for PW2); create `DbWriteAdapter` bridging `write_dispositions.py`; add `get_smtp_runtime_config()` to `EmailProviderService` (key remapping + password decryption); wire `delivery_repository`, `report_repository`, `pipeline_state_repo`, `db_connection`, `template_engine`, `smtp_config` in `main.py`; delete dead stubs (`StubMarketDataService`, `StubProviderConnectionService`); integration test for dependency wiring verification · Depends on: MEU-90a ✅, MEU-85 ✅, MEU-88 ✅, MEU-65a ✅, MEU-73 ✅ | ✅ |
+| MEU-TD1 | `mcp-tool-discovery-audit` | 5.I | [05](build-plan/05-mcp-server.md) | Audit all 9 MCP toolset descriptions; enrich server instructions with workflow summaries; add `policy_json` examples to `create_policy`; reference MCP resources from tool descriptions; add prerequisite state, return shape, and error conditions · Parallel with any MEU | ⬜ |
+
+---
+
 ### P2.6 — Service Daemon (Phase 10)
+
 
 > Source: [10-service-daemon.md](build-plan/10-service-daemon.md)
 
@@ -506,12 +520,13 @@ Domain → Infrastructure → Services → REST API → MCP Server → GUI → D
 | P2 | MEU-66 → MEU-76 | 15 | 7 |
 | P2.5 — Phase 9 | MEU-77 → MEU-90 | 14 | 14 |
 | P2.5a — Integration | MEU-90a → MEU-90d | 4 | 3 + 1 🚫 |
+| P2.5b — Wiring & Quality | MEU-PW1, MEU-TD1 | 2 | 0 |
 | P2.6 — Phase 10 | MEU-91 → MEU-95 | 5 | 0 |
 | P2.75 — Expansion | MEU-96 → MEU-122 | 27 | 2 |
 | P3 — Tax | MEU-123 → MEU-156 | 34 | 0 |
 | Phase 7 | MEU-157 | 1 | 0 |
 | Research | MEU-158 → MEU-170, MEU-TS1 → MEU-TS3 | 16 | 1 |
-| **Total** | | **186** | **97 + 1 🚫** |
+| **Total** | | **188** | **97 + 1 🚫** |
 
 ---
 

@@ -88,6 +88,9 @@ from zorivest_api.scheduling_adapters import (
     StepStoreAdapter,
     AuditCounterAdapter,
 )
+from zorivest_infra.adapters.db_write_adapter import DbWriteAdapter
+from zorivest_infra.security.sql_sandbox import create_sandboxed_connection
+from zorivest_infra.rendering.template_engine import create_template_engine
 
 # ── Tag metadata ────────────────────────────────────────────────────────
 
@@ -238,7 +241,27 @@ async def lifespan(app: FastAPI) -> AsyncGenerator[None, None]:
     run_adapter = RunStoreAdapter(uow)
     step_adapter = StepStoreAdapter(uow)
     guardrails = PipelineGuardrails(audit_adapter, policy_adapter)
-    pipeline_runner = PipelineRunner(uow, RefResolver(), ConditionEvaluator())
+    # ── Pipeline runtime wiring (MEU-PW1) ──────────────────────────────
+    # Extract db_path from URL for sandboxed read-only connection
+    _db_path = db_url.replace("sqlite:///", "")
+    _sandboxed_conn = create_sandboxed_connection(_db_path)
+    _template_engine = create_template_engine()
+    _db_write_adapter = DbWriteAdapter(session=uow._session)  # noqa: SLF001
+    _smtp_runtime_config = app.state.email_provider_service.get_smtp_runtime_config()
+
+    pipeline_runner = PipelineRunner(
+        uow,
+        RefResolver(),
+        ConditionEvaluator(),
+        delivery_repository=uow.deliveries,
+        smtp_config=_smtp_runtime_config,
+        provider_adapter=None,  # Deferred to MEU-PW2
+        db_writer=_db_write_adapter,
+        db_connection=_sandboxed_conn,
+        report_repository=uow.reports,
+        template_engine=_template_engine,
+        pipeline_state_repo=uow.pipeline_state,
+    )
     scheduler_svc = SchedulerService(
         pipeline_runner=pipeline_runner,
         policy_repo=policy_adapter,

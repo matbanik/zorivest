@@ -114,3 +114,12 @@
 ### [DOC-STALESLUG] — `09a-persistence-integration.md` references stale MEU-90b slug ✅ RESOLVED
 - **Severity:** Low → Resolved (2026-03-22)
 - **Fix:** Updated slug references in `09a-persistence-integration.md` and `08-market-data.md`.
+
+---
+
+### [TEST-DRIFT-MDS] — 5 tests in test_market_data_service.py fail due to wiring changes ✅ RESOLVED
+- **Severity:** ~~Medium~~ → Resolved (2026-04-12)
+- **Component:** tests (unit)
+- **Discovered:** 2026-04-05
+- **Status:** ✅ **Resolved — silently fixed during MEU-65a market data service wiring**
+- **Verification:** `pytest tests/unit/test_market_data_service.py` → 13 passed in 0.30s (2026-04-12)

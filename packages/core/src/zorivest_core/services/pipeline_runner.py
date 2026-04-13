@@ -55,12 +55,24 @@ class PipelineRunner:
         *,
         delivery_repository: Any | None = None,
         smtp_config: Any | None = None,
+        provider_adapter: Any | None = None,
+        db_writer: Any | None = None,
+        db_connection: Any | None = None,
+        report_repository: Any | None = None,
+        template_engine: Any | None = None,
+        pipeline_state_repo: Any | None = None,
     ) -> None:
         self.uow = uow
         self.ref_resolver = ref_resolver
         self.condition_evaluator = condition_evaluator
         self._delivery_repository = delivery_repository
         self._smtp_config = smtp_config
+        self._provider_adapter = provider_adapter
+        self._db_writer = db_writer
+        self._db_connection = db_connection
+        self._report_repository = report_repository
+        self._template_engine = template_engine
+        self._pipeline_state_repo = pipeline_state_repo
 
     async def run(
         self,
@@ -91,11 +103,19 @@ class PipelineRunner:
         run_log = structlog.get_logger().bind(run_id=run_id, policy=policy.name)
 
         # Build initial outputs with injected service dependencies
-        initial_outputs: dict[str, Any] = {}
-        if self._delivery_repository is not None:
-            initial_outputs["delivery_repository"] = self._delivery_repository
-        if self._smtp_config is not None:
-            initial_outputs["smtp_config"] = self._smtp_config
+        _dep_map: dict[str, Any | None] = {
+            "delivery_repository": self._delivery_repository,
+            "smtp_config": self._smtp_config,
+            "provider_adapter": self._provider_adapter,
+            "db_writer": self._db_writer,
+            "db_connection": self._db_connection,
+            "report_repository": self._report_repository,
+            "template_engine": self._template_engine,
+            "pipeline_state_repo": self._pipeline_state_repo,
+        }
+        initial_outputs: dict[str, Any] = {
+            k: v for k, v in _dep_map.items() if v is not None
+        }
 
         context = StepContext(
             run_id=run_id,

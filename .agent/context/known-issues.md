@@ -5,30 +5,16 @@
 
 ## Active Issues
 
-### [TEST-DRIFT-MDS] — 5 tests in test_market_data_service.py fail due to wiring changes
-- **Severity:** Medium
-- **Component:** tests (unit)
-- **Discovered:** 2026-04-05
-- **Status:** Open — pre-existing since MEU-91 (market data service wiring)
-- **Details:** `TestGetQuote` (4 tests) + `TestRateLimiting` (1 test) fail because test setup doesn't match post-wiring service constructor.
-- **Workaround:** Fix when market data service tests are next touched.
-
 
 ### [STUB-RETIRE] — stubs.py contains legacy stubs that should be retired progressively
 - **Severity:** Low (technical debt)
 - **Component:** api (`stubs.py`), tests
 - **Discovered:** 2026-03-19
-- **Status:** Phase 1 cleaned (4 dead scheduling stubs deleted); Phase 2 tracked
-- **Phase 2 blocked on:** `StubAnalyticsService` (MEU-104–116), `StubReviewService` (MEU-110), `StubTaxService` (MEU-123–126). Each retires when its real service is implemented.
+- **Status:** Phase 1+2 cleaned; Phase 3 tracked
+- **Phase 2 resolved (MEU-PW1, 2026-04-12):** `StubMarketDataService` and `StubProviderConnectionService` deleted. `MarketQuote` import removed from stubs.py.
+- **Phase 3 blocked on:** `StubAnalyticsService` (MEU-104–116), `StubReviewService` (MEU-110), `StubTaxService` (MEU-123–126). Each retires when its real service is implemented.
 - **Roadmap:** [09a §Stub Retirement Roadmap](../docs/build-plan/09a-persistence-integration.md)
 
-### [SCHED-PIPELINE-WIRING] — Pipeline runtime wiring incomplete for end-to-end execution
-- **Severity:** High
-- **Component:** api / core / infrastructure
-- **Discovered:** 2026-04-11
-- **Status:** Open — requires full discovery MEU
-- **Details:** `PipelineRunner` is not wired to real services in `main.py`. Missing: (1) `provider_adapter` injection for `FetchStep` (Yahoo Finance, etc.), (2) `smtp_config` passthrough from Settings DB for `SendStep`, (3) `delivery_repository` for deduplication. A real policy execution would fail at `FetchStep` with `ValueError: provider_adapter required`. Domain layer is complete; gap is in runtime wiring.
-- **Next steps:** Complete discovery for all scheduling/policy use cases discussed in build-plan section 06e. Full re-review of `_inspiration` files for pipeline integration patterns. Create a new MEU for pipeline runtime wiring.
 
 ### [MCP-TOOLDISCOVERY] — MCP tool descriptions lack workflow context and examples for AI discoverability
 - **Severity:** Medium
@@ -104,6 +90,8 @@
 | PYRIGHT-PREEXIST | 2026-04-11 | TS1+TS2+TS3 all tiers resolved |
 | TEST-ISOLATION | 2026-04-06 | Cleanup fixtures added |
 | TEST-ISOLATION-2 | 2026-04-11 | Per-module app factory |
+| TEST-DRIFT-MDS | 2026-04-12 | All 13 market data service tests pass (silently fixed by MEU-65a) |
+| SCHED-PIPELINE-WIRING | 2026-04-12 | Pipeline runtime wiring complete (MEU-PW1) |
 | SCHED-WALPICKLE | 2026-03-19 | Module-level callback extraction |
 | SCHED-RUNREPO | 2026-03-19 | Key translation in adapter |
 | MCP-CONFIRM | 2026-03-19 | Added confirmation_token to schema |

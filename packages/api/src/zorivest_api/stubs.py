@@ -2,20 +2,18 @@
 
 Phase 1 stubs (InMemoryRepo, StubUnitOfWork) have been retired — MEU-90a.
 McpGuardService moved to zorivest_api.services.mcp_guard — MEU-90a.
+StubMarketDataService retired — MEU-91 (replaced by real MarketDataService).
+StubProviderConnectionService retired — MEU-65 (replaced by real ProviderConnectionService).
 
 Retained stubs (blocked on future MEUs):
 - StubAnalyticsService          — MEU-118 expansion-api
 - StubReviewService             — MEU-118 expansion-api
 - StubTaxService                — MEU-148 tax-api
-- StubMarketDataService         — Service-wiring MEU (post-MEU-61)
-- StubProviderConnectionService — Service-wiring MEU (post-MEU-60)
 """
 
 from __future__ import annotations
 
 from typing import Any
-
-from zorivest_core.application.market_dtos import MarketQuote
 
 
 class StubAnalyticsService:
@@ -175,54 +173,3 @@ class StubTaxService:
             "findings": [],
             "severity_summary": {"error": 0, "warning": 0, "info": 0},
         }
-
-
-class StubMarketDataService:
-    """Stub market data service — returns empty defaults for all endpoints.
-
-    Source: 08-market-data.md §8.3b
-    Ships shaped responses so the API routes resolve without real providers.
-    Replaced by real MarketDataService when Phase 8 providers are configured.
-    No __getattr__ — explicit methods only.
-    """
-
-    async def get_quote(self, ticker: str) -> MarketQuote:
-        return MarketQuote(
-            ticker=ticker,
-            price=0.0,
-            change=0.0,
-            change_pct=0.0,
-            volume=0,
-            provider="stub",
-        )
-
-    async def get_news(self, ticker: Any = None, count: int = 5) -> list:
-        return []
-
-    async def search_ticker(self, query: str) -> list:
-        return []
-
-    async def get_sec_filings(self, ticker: str) -> list:
-        return []
-
-
-class StubProviderConnectionService:
-    """Stub provider connection service — returns empty defaults.
-
-    Source: 08-market-data.md §8.3a
-    Ships shaped responses so provider management routes resolve.
-    Replaced by real ProviderConnectionService when Phase 8 integrates.
-    No __getattr__ — explicit methods only.
-    """
-
-    async def list_providers(self) -> list:
-        return []
-
-    async def configure_provider(self, name: str, **kwargs: Any) -> None:
-        pass
-
-    async def test_connection(self, name: str) -> tuple[bool, str]:
-        return (True, "stub connection — no providers configured")
-
-    async def remove_api_key(self, name: str) -> None:
-        pass

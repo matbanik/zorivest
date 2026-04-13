@@ -18,7 +18,6 @@ import pytest
 from fastapi.testclient import TestClient
 
 from zorivest_api.main import create_app
-from zorivest_api.stubs import StubProviderConnectionService
 from zorivest_core.services.provider_connection_service import ProviderConnectionService
 
 
@@ -30,11 +29,6 @@ class TestProviderConnectionServiceNotStubbed:
         app = create_app()
         with TestClient(app) as _:  # triggers lifespan; client not needed
             svc = app.state.provider_connection_service
-            # Should NOT be the stub
-            assert not isinstance(svc, StubProviderConnectionService), (
-                "StubProviderConnectionService is still wired — "
-                "replace it with ProviderConnectionService(uow, ...) in main.py lifespan"
-            )
             # Should be the real service
             assert isinstance(svc, ProviderConnectionService), (
                 "app.state.provider_connection_service must be ProviderConnectionService"

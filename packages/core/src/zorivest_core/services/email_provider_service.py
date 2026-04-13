@@ -135,3 +135,48 @@ class EmailProviderService:
             }
         except Exception as exc:  # noqa: BLE001
             return {"success": False, "message": str(exc)}
+
+    def get_smtp_runtime_config(self) -> dict[str, str | int]:
+        """Return SMTP config dict for pipeline SendStep injection.
+
+        Performs key remapping from ORM model fields to the contract
+        expected by SendStep (send_step.py L108-111):
+          smtp_host → host
+          from_email → sender
+
+        Password is Fernet-decrypted from stored bytes.
+        Missing config returns safe defaults with all 5 keys.
+        """
+        with self._uow:
+            row = self._repo().get()
+
+        if row is None:
+            return {
+                "host": "localhost",
+                "port": 587,
+                "sender": "noreply@zorivest.local",
+                "username": "",
+                "password": "",
+            }
+
+        # Decrypt password if present
+        password = ""
+        if row.password_encrypted:
+            enc_bytes: bytes = bytes(row.password_encrypted)
+            try:
+                password = self._decrypt_password(enc_bytes)
+            except Exception:  # noqa: BLE001
+                # Invalid Fernet token (plaintext, wrong key, or corrupt data)
+                # — fall back to empty string rather than crashing app startup
+                password = ""
+
+        # Sender falls back to username when from_email is absent
+        sender = str(row.from_email) if row.from_email else str(row.username)
+
+        return {
+            "host": str(row.smtp_host) if row.smtp_host else "localhost",
+            "port": int(row.port) if row.port else 587,
+            "sender": sender,
+            "username": str(row.username) if row.username else "",
+            "password": password,
+        }

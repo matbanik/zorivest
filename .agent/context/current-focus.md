@@ -4,16 +4,16 @@
 
 ## Active Phase
 
-**Phase 6 — GUI Feature Wiring (in progress)**
+**Phase 9 — Scheduling & Pipeline Engine (in progress)**
 
 ## Current Priority
 
-MEU-72 Scheduling GUI complete — pending Codex validation (handoff 112).
+MEU-PW1 Pipeline Runtime Wiring — all review passes complete, verdict `approved`.
 
 ## Next Steps
 
-- [ ] Trigger Codex validation for handoff 112
-- [ ] Select next MEU per build-priority-matrix.md after validation
+- [ ] MEU-TD1 (MCP Tool Discovery Audit) — next in pipeline wiring project
+- [ ] MEU-PW2 (Fetch Step Integration) — depends on PW1 ✅
 
 ## Blockers
 

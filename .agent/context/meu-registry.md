@@ -126,6 +126,14 @@
 | MEU-83 | `pipeline-runner` | 42 | PipelineRunner (async executor with persistence/resume/zombie) | ✅ approved |
 | MEU-84 | `ref-resolver` | 43 | RefResolver + ConditionEvaluator (param resolution + skip logic) | ✅ approved |
 
+## Phase 9: Scheduling & Pipeline Engine — Pipeline Integration (P2.5b)
+
+| MEU | Slug | Matrix | Description | Status |
+|-----|------|:------:|-------------|:------:|
+| MEU-PW1 | `pipeline-runtime-wiring` | 49.4 | Expand PipelineRunner constructor; DbWriteAdapter; SMTP bridge; wire main.py; delete dead stubs → 4/5 steps operational | ⬜ planned |
+| MEU-PW2 | `fetch-step-integration` | 49.5 | MarketDataProviderAdapter; cache impl; rate limiter; HTTP cache revalidation → 5/5 steps operational. Depends on PW1. | ⬜ planned |
+| MEU-PW3 | `market-data-schemas` | 49.6 | 4 SQLAlchemy models + 3 Pandera schemas + field mappings → data quality hardening. Independent. | ⬜ planned |
+
 ## Execution Order
 
 Phase 1: MEU-1 → MEU-2 → MEU-3 → MEU-4 → MEU-5 → MEU-6 → MEU-7 → MEU-8 → MEU-9 → MEU-10 → MEU-11
@@ -137,6 +145,7 @@ Phase 4: MEU-23 → MEU-24 → MEU-25 → MEU-26 → MEU-27 → MEU-28 → MEU-2
 Phase 5: MEU-31 → MEU-32 → MEU-33 → MEU-34 → MEU-35 → MEU-36 → MEU-37 → MEU-38 → MEU-39 → MEU-40 → MEU-41 → MEU-42
 Phase 8: MEU-56 → MEU-57 → MEU-58 → MEU-59 → MEU-62 → MEU-60
 Phase 9 (domain foundation): MEU-77 → MEU-78 → MEU-79 → MEU-80
+Phase 9 (pipeline integration): MEU-PW1 → MEU-PW2 (PW3 independent)
 P2.75 (broker adapters): MEU-96 → MEU-99
 
 ## P2.75 — Expansion: Broker Adapters & Import
@@ -181,6 +190,13 @@ P2.75 (broker adapters): MEU-96 → MEU-99
 
 - Phase 6 (foundation): MEU-43..45 ✅ (shell + commands + window state) → Phase 6 features unblocked
 - Phase 6 (features): MEU-46a, MEU-50, MEU-51 ✅ (MCP proxy, command palette, state persistence)
+
+## P2.5b: Backend Services Wiring & Quality
+
+| MEU | Slug | Matrix | Description | Status |
+|-----|------|:------:|-------------|:------:|
+| MEU-PW1 | `pipeline-runtime-wiring` | 49.4 | Expand `PipelineRunner.__init__` (6 new kwargs); create `DbWriteAdapter`; add `get_smtp_runtime_config()` to `EmailProviderService`; wire 7 runtime deps in `main.py` (`provider_adapter=None` until PW2); delete dead stubs (`StubMarketDataService`, `StubProviderConnectionService`); integration test verifying all wired deps | ✅ 2026-04-12 |
+| MEU-TD1 | `mcp-tool-discovery-audit` | 5.I | Audit all 9 MCP toolset descriptions; enrich workflow context, examples, resource references | ⬜ planned |
 
 ## Research-Enhanced: Workspace Setup (Tier 2, after Phase 9 domain)
 

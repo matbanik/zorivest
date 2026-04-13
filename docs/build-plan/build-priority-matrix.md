@@ -123,6 +123,9 @@
 | **47** | `SendStep` + async email + delivery tracking | ✅ Yes | aiosmtplib, idempotent dedup, local file |
 | **48** | Scheduling REST API (16 endpoints) + MCP tools (6 tools + 2 resources) | ✅ Yes | Policy CRUD, run trigger, scheduler status |
 | **49** | Security guardrails (rate limits, approval flow, audit trail) | ✅ Yes | Human-in-the-loop, hash-based re-approval |
+| **49.4** | Pipeline runtime wiring (MEU-PW1) | ✅ Yes | Expand `PipelineRunner` constructor (6 new params); create `DbWriteAdapter`; add `get_smtp_runtime_config()` to `EmailProviderService`; wire all services in `main.py`; delete dead stubs. Makes 4/5 step types operational. |
+| **49.5** | Fetch step integration (MEU-PW2) | ✅ Yes | Create `MarketDataProviderAdapter` (new service); implement `_check_cache()` with FRESHNESS_TTL; integrate `PipelineRateLimiter`; connect `fetch_with_cache()` HTTP revalidation. Makes 5/5 step types operational. Depends on PW1. |
+| **49.6** | Market data schemas (MEU-PW3) | ✅ Yes | 4 SQLAlchemy models (`market_ohlcv/quotes/news/fundamentals`); 3 Pandera schemas; field mappings for non-OHLCV types. Data quality hardening — independent of PW1/PW2. |
 
 ---
 
