@@ -132,7 +132,7 @@
 |-----|------|:------:|-------------|:------:|
 | MEU-PW1 | `pipeline-runtime-wiring` | 49.4 | Expand PipelineRunner constructor; DbWriteAdapter; SMTP bridge; wire main.py; delete dead stubs → 4/5 steps operational | ✅ 2026-04-12 |
 | MEU-PW2 | `fetch-step-integration` | 49.5 | MarketDataProviderAdapter; cache impl; rate limiter; HTTP cache revalidation → 5/5 steps operational. Depends on PW1. | ✅ 2026-04-13 |
-| MEU-PW3 | `market-data-schemas` | 49.6 | 4 SQLAlchemy models + 3 Pandera schemas + field mappings → data quality hardening. Independent. | ⬜ planned |
+| MEU-PW3 | `market-data-schemas` | 49.6 | 4 SQLAlchemy models + 3 Pandera schemas + field mappings → data quality hardening. Independent. | ✅ complete |
 
 ## Execution Order
 

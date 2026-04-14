@@ -1,11 +1,10 @@
-# packages/infrastructure/src/zorivest_infra/market_data/field_mappings.py
 """Field mapping registry for market data transformations (§9.5a–b).
 
 Maps provider-specific field names to canonical schema fields.
 Unmapped fields are captured in the ``_extra`` key.
 
 Spec: 09-scheduling.md §9.5a–b
-MEU: 86
+MEU: 86, PW3
 """
 
 from __future__ import annotations
@@ -13,9 +12,10 @@ from __future__ import annotations
 from typing import Any
 
 
-# Canonical OHLCV field mappings per provider.
+# Canonical field mappings per provider.
 # Key: (provider, data_type) → dict of {source_field: canonical_field}
 FIELD_MAPPINGS: dict[tuple[str, str], dict[str, str]] = {
+    # ── OHLCV ──────────────────────────────────────────────────────────
     ("generic", "ohlcv"): {
         "o": "open",
         "h": "high",
@@ -41,6 +41,62 @@ FIELD_MAPPINGS: dict[tuple[str, str], dict[str, str]] = {
         "vw": "vwap",
         "n": "trade_count",
         "t": "timestamp",
+    },
+    # ── Quote ──────────────────────────────────────────────────────────
+    ("generic", "quote"): {
+        "bid": "bid",
+        "ask": "ask",
+        "last": "last",
+        "volume": "volume",
+        "timestamp": "timestamp",
+    },
+    ("yahoo", "quote"): {
+        "regularMarketBid": "bid",
+        "regularMarketAsk": "ask",
+        "regularMarketPrice": "last",
+        "regularMarketVolume": "volume",
+    },
+    ("polygon", "quote"): {
+        "bidPrice": "bid",
+        "askPrice": "ask",
+        "lastTrade": "last",
+        "volume": "volume",
+    },
+    # ── News ───────────────────────────────────────────────────────────
+    ("generic", "news"): {
+        "headline": "headline",
+        "source": "source",
+        "url": "url",
+        "published_at": "published_at",
+        "sentiment": "sentiment",
+    },
+    ("yahoo", "news"): {
+        "title": "headline",
+        "publisher": "source",
+        "link": "url",
+        "providerPublishTime": "published_at",
+    },
+    ("polygon", "news"): {
+        "title": "headline",
+        "publisher": "source",
+        "article_url": "url",
+        "published_utc": "published_at",
+    },
+    # ── Fundamentals ───────────────────────────────────────────────────
+    ("generic", "fundamentals"): {
+        "metric": "metric",
+        "value": "value",
+        "period": "period",
+    },
+    ("yahoo", "fundamentals"): {
+        "shortName": "metric",
+        "raw": "value",
+        "fiscalQuarter": "period",
+    },
+    ("polygon", "fundamentals"): {
+        "label": "metric",
+        "value": "value",
+        "fiscal_period": "period",
     },
 }
 

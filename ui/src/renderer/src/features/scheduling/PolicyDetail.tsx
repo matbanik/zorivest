@@ -323,9 +323,18 @@ export default function PolicyDetail({
 
                 {/* ── Policy document (JSON editor) ── */}
                 <div className="space-y-2">
-                    <h4 className="text-xs font-semibold text-fg-muted uppercase tracking-wider">
-                        Policy document
-                    </h4>
+                    <div className="flex items-baseline gap-3">
+                        <h4 className="text-xs font-semibold text-fg-muted uppercase tracking-wider shrink-0">
+                            Policy document
+                        </h4>
+                        <div className="text-[11px] text-fg-muted/50 flex items-baseline gap-2 flex-wrap">
+                            <span>Schema v{policy.schema_version} · Hash: {policy.content_hash.slice(0, 8)}</span>
+                            <span>Created: {new Date(policy.created_at).toLocaleString()}</span>
+                            {policy.updated_at && (
+                                <span>Updated: {new Date(policy.updated_at).toLocaleString()}</span>
+                            )}
+                        </div>
+                    </div>
                     <div
                         data-testid={SCHEDULING_TEST_IDS.POLICY_JSON_EDITOR}
                         ref={editorRef}
@@ -410,17 +419,7 @@ export default function PolicyDetail({
                     </div>
                 </div>
 
-                {/* ── Metadata ── */}
-                <div className="text-xs text-fg-muted/60 space-y-0.5 pt-2">
-                    <div>Schema v{policy.schema_version} · Hash: {policy.content_hash.slice(0, 8)}</div>
-                    <div>Created: {new Date(policy.created_at).toLocaleString()}</div>
-                    {policy.updated_at && (
-                        <div>Updated: {new Date(policy.updated_at).toLocaleString()}</div>
-                    )}
-                    {policy.approved_at && (
-                        <div>Approved: {new Date(policy.approved_at).toLocaleString()}</div>
-                    )}
-                </div>
+
             </div>
         </div>
     )

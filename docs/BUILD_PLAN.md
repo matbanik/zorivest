@@ -521,13 +521,13 @@ Domain → Infrastructure → Services → REST API → MCP Server → GUI → D
 | P2 | MEU-66 → MEU-76 | 15 | 7 |
 | P2.5 — Phase 9 | MEU-77 → MEU-90 | 14 | 14 |
 | P2.5a — Integration | MEU-90a → MEU-90d | 4 | 3 + 1 🚫 |
-| P2.5b — Wiring & Quality | MEU-PW1, MEU-PW2, MEU-TD1 | 3 | 0 |
+| P2.5b — Wiring & Quality | MEU-PW1, MEU-PW2, MEU-PW3, MEU-TD1 | 4 | 1 |
 | P2.6 — Phase 10 | MEU-91 → MEU-95 | 5 | 0 |
 | P2.75 — Expansion | MEU-96 → MEU-122 | 27 | 2 |
 | P3 — Tax | MEU-123 → MEU-156 | 34 | 0 |
 | Phase 7 | MEU-157 | 1 | 0 |
 | Research | MEU-158 → MEU-170, MEU-TS1 → MEU-TS3 | 16 | 1 |
-| **Total** | | **188** | **97 + 1 🚫** |
+| **Total** | | **189** | **98 + 1 🚫** |
 
 ---
 

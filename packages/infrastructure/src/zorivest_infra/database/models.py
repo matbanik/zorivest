@@ -2,7 +2,7 @@
 
 Source: 02-infrastructure.md §2.1, 09-scheduling.md §9.2
 
-Contains all 30 model classes + Base. Financial columns use Numeric(15,6)
+Contains all 35 model classes + Base. Financial columns use Numeric(15,6)
 per the precision warning in the spec. Display-only columns use Float.
 """
 
@@ -16,6 +16,7 @@ from sqlalchemy import (
     DateTime,
     Float,
     ForeignKey,
+    Index,
     Integer,
     LargeBinary,
     Numeric,
@@ -618,6 +619,96 @@ class AuditLogModel(Base):
     resource_id = Column(String(36), nullable=False)
     details_json = Column(Text, nullable=True)
     created_at = Column(DateTime, nullable=False)
+
+
+# ── Market Data Models (§9.5a–c, MEU-PW3) ─────────────────────────────────
+
+
+class MarketOHLCVModel(Base):
+    """Historical OHLCV price bars (§9.5a)."""
+
+    __tablename__ = "market_ohlcv"
+    __table_args__ = (
+        UniqueConstraint(
+            "ticker", "timestamp", "provider", name="uq_ohlcv_ticker_ts_provider"
+        ),
+        Index("ix_ohlcv_ticker_timestamp", "ticker", "timestamp"),
+    )
+
+    id = Column(Integer, primary_key=True, autoincrement=True)
+    ticker = Column(String(16), nullable=False)
+    timestamp = Column(DateTime, nullable=False)
+    open = Column(Numeric(15, 6), nullable=False)
+    high = Column(Numeric(15, 6), nullable=False)
+    low = Column(Numeric(15, 6), nullable=False)
+    close = Column(Numeric(15, 6), nullable=False)
+    volume = Column(Integer, nullable=False)
+    vwap = Column(Numeric(15, 6), nullable=True)
+    trade_count = Column(Integer, nullable=True)
+    adjusted_close = Column(Numeric(15, 6), nullable=True)
+    provider = Column(String(32), nullable=False)
+    data_type = Column(String(32), nullable=True)
+    fetched_at = Column(DateTime, nullable=True)
+
+
+class MarketQuoteModel(Base):
+    """Real-time / delayed quotes (§9.5a)."""
+
+    __tablename__ = "market_quotes"
+    __table_args__ = (Index("ix_quote_ticker_timestamp", "ticker", "timestamp"),)
+
+    id = Column(Integer, primary_key=True, autoincrement=True)
+    ticker = Column(String(16), nullable=False)
+    bid = Column(Numeric(15, 6), nullable=True)
+    ask = Column(Numeric(15, 6), nullable=True)
+    last = Column(Numeric(15, 6), nullable=False)
+    volume = Column(Integer, nullable=True)
+    timestamp = Column(DateTime, nullable=False)
+    provider = Column(String(32), nullable=False)
+
+
+class MarketNewsModel(Base):
+    """Market news articles (§9.5a)."""
+
+    __tablename__ = "market_news"
+    __table_args__ = (
+        UniqueConstraint("url", "provider", name="uq_news_url_provider"),
+        Index("ix_news_ticker_published", "ticker", "published_at"),
+    )
+
+    id = Column(Integer, primary_key=True, autoincrement=True)
+    ticker = Column(String(16), nullable=True)
+    headline = Column(String(512), nullable=False)
+    summary = Column(Text, nullable=True)
+    source = Column(String(128), nullable=False)
+    url = Column(String(2048), nullable=False)
+    published_at = Column(DateTime, nullable=False)
+    sentiment = Column(Float, nullable=True)
+    provider = Column(String(32), nullable=False)
+
+
+class MarketFundamentalsModel(Base):
+    """Fundamental financial metrics (§9.5a)."""
+
+    __tablename__ = "market_fundamentals"
+    __table_args__ = (
+        UniqueConstraint(
+            "ticker",
+            "metric",
+            "period",
+            "provider",
+            name="uq_fund_ticker_metric_period_provider",
+        ),
+        Index("ix_fund_ticker_metric", "ticker", "metric"),
+    )
+
+    id = Column(Integer, primary_key=True, autoincrement=True)
+    ticker = Column(String(16), nullable=False)
+    metric = Column(String(64), nullable=False)
+    value = Column(Numeric(15, 6), nullable=False)
+    period = Column(String(16), nullable=False)
+    provider = Column(String(32), nullable=False)
+    fetched_at = Column(DateTime, nullable=True)
 
 
 # ── Scheduling Triggers (§9.2h, §9.2i) ───────────────────────────────────

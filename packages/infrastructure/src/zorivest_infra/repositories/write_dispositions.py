@@ -31,6 +31,8 @@ TABLE_ALLOWLIST: dict[str, set[str]] = {
         "timestamp",
         "provider",
         "data_type",
+        "adjusted_close",
+        "fetched_at",
     },
     "market_quotes": {
         "ticker",

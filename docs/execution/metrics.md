@@ -50,6 +50,7 @@
 | 2026-04-12 | MEU-72 | ~250 | ~5 min | 35 | pending Codex review | 7/7 | 95% | ~180 min | 4-sub-MEU scheduling GUI: BV hardening, schedule page (list+detail+CodeMirror+CRUD), pipeline execution+history, stabilization (TZ settings, keyboard shortcuts, account sorting, calculator apply-to-plan, delete fix, MCP `--toolsets all`). Added M7 (Tool Description Workflow Context). Known issues: SCHED-PIPELINE-WIRING, MCP-TOOLDISCOVERY. |
 | 2026-04-12 | MEU-PW1 | ~60 | ~5 min | 33 | pending Codex review | 7/7 | 95% | ~60 min | Pipeline runtime wiring: PipelineRunner constructor (6 kwargs), DbWriteAdapter, get_smtp_runtime_config(), main.py wiring (7 deps), 2 dead stubs deleted. Strengthened AC-2 tests + run()-based integration test proving deps reach step context. 8/8 MEU gate, 0 OpenAPI drift. Resolved [SCHED-PIPELINE-WIRING]. |
 | 2026-04-13 | MEU-PW2 | ~40 | ~5 min | 12 | pending Codex review | 7/7 | 95% | ~45 min | Fetch step integration: MarketDataProviderAdapter, MarketDataAdapterPort, FetchAdapterResult TypedDict, _check_cache with TTL+market-closed, cache upsert, entity_key, warnings field, main.py wiring (8→9 kwargs). ProviderConfig→rate limit extraction caught at runtime. 1926 tests, 8/8 MEU gate. |
+| 2026-04-14 | MEU-PW3 | ~30 | ~5 min | 67 | pending Codex review | 7/7 | 95% | ~45 min | Market data schemas: 4 ORM models, 3 Pandera schemas, 9 field mappings, SCHEMA_REGISTRY. Fixed latent validate_dataframe() NaN bug (Pandera uses float('nan') for column-level errors). 8/8 MEU gate, 0 regressions. |
 
 ## Measurement Definitions
 

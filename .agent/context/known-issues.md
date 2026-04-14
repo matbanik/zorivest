@@ -5,6 +5,10 @@
 
 ## Active Issues
 
+### [SCHED-TZDISPLAY] — Policy timestamps display in UTC instead of user's configured timezone
+- **Severity:** Medium | **Component:** ui (Scheduling page) | **Discovered:** 2026-04-13 | **Status:** Open
+- **Details:** Policy detail and run-history timestamps render in UTC even when user has `America/New_York` configured. Backend stores UTC (correct). Fix is UI-only: create shared `formatTimestamp()` utility using `date-fns-tz` `formatInTimeZone()` with the IANA timezone from Settings.
+
 
 ### [STUB-RETIRE] — stubs.py contains legacy stubs that should be retired progressively
 - **Severity:** Low (technical debt)
@@ -23,6 +27,45 @@
 - **Status:** Open — requires full audit of all 9 toolsets
 - **Details:** Server instructions and tool descriptions are too terse for AI agents to discover and correctly use multi-step workflows. Confirmed gaps in scheduling toolset: (1) server instructions say only "Automated task scheduling" — no mention of policy CRUD or pipeline execution, (2) `run_pipeline` description doesn't explain the approval prerequisite or error return shape, (3) `create_policy` has no example of the expected `policy_json` structure, (4) `pipeline://policies/schema` and `pipeline://step-types` MCP resources aren't referenced in any tool description, (5) no workflow guidance for the `create → approve → run` lifecycle. Similar gaps likely exist across `accounts`, `trade-analytics`, `trade-planning`, `market-data`, and other toolsets.
 - **Next steps:** Full audit of all toolset descriptions against their actual API contracts. Improve server instructions with toolset workflow summaries. Add `policy_json` examples to `create_policy`. Reference MCP resources from tool descriptions. Ensure all tool descriptions include prerequisite state, return shape hints, and error conditions.
+
+### [PIPE-CHARMAP] — Pipeline runs crash with `'charmap' codec can't encode characters` on Windows
+- **Severity:** High | **Component:** core (`pipeline_runner.py`, `scheduling_service.py`) | **Discovered:** 2026-04-14 | **Status:** Open
+- **Details:** `UnicodeEncodeError` on structlog writes to `sys.stderr` (cp1252 default on Windows). No `structlog.configure()` exists in codebase. Triggers at `scheduling_service.py:325` and `pipeline_runner.py:202` when exception messages contain non-ASCII chars. Secondary: `pipeline_runner.py:354` `json.dumps(result.output)` fails on `bytes` objects from HTTP responses.
+- **Evidence:** Run `bd00011c`, failed at 2026-04-14T03:19:31Z, duration_ms=346, steps array empty.
+- **Fix:** Set `PYTHONUTF8=1` env var, or add explicit `structlog.configure()` with UTF-8 safe output. Also handle `bytes` in `_persist_step` before `json.dumps()`.
+- **Workaround:** `$env:PYTHONUTF8=1` before starting backend.
+
+
+### [PIPE-ZOMBIE] — Pipeline runs get stuck permanently in "running" state (zombie runs)
+- **Severity:** High | **Component:** core (`scheduling_service.py`, `pipeline_runner.py`) | **Discovered:** 2026-04-14 | **Status:** Open
+- **Details:** Three interacting problems:
+  1. **Dual-write:** `SchedulingService.trigger_run()` (line 306) creates a run record, then `PipelineRunner.run()` creates a SECOND record with different `run_id`. Only the inner one gets finalized — the outer one stays "running" forever.
+  2. **Timeout ineffective:** `asyncio.timeout(step_def.timeout)` at `pipeline_runner.py:268` can't cancel httpx when the underlying TCP connection hangs on Windows.
+  3. **No zombie recovery:** No periodic scan or endpoint to detect/clean runs stuck past expected max duration.
+- **Evidence:** Run `8696adce` stuck at `status="running"` since 2026-04-14T03:19:31Z (>6 min), steps array empty.
+- **Fix:** (a) Eliminate dual writes — pass `run_id` into runner or remove outer record creation. (b) Add zombie recovery endpoint/periodic scan. (c) Set httpx `timeout` as `httpx.Timeout(connect=10, read=30, write=10, pool=10)` for explicit per-phase control.
+
+
+### [PIPE-URLBUILD] — MarketDataProviderAdapter._build_url() uses hardcoded URL patterns that don't match provider APIs
+- **Severity:** High | **Component:** infrastructure (`market_data_adapter.py`) | **Discovered:** 2026-04-14 | **Status:** Open
+- **Details:** Three sub-issues in `_build_url()` and `_do_fetch()`:
+  1. **Criteria key mismatch:** Policy sends `tickers: ["AAPL", "MSFT"]` but `_build_url()` reads `criteria.get("symbol", "")` → empty string → URL like `…/quote?symbol=` → Yahoo hangs.
+  2. **Missing provider headers:** `_do_fetch()` → `fetch_with_cache()` doesn't pass `headers_template` (UA, Referer) from registry → Yahoo returns 403/captcha.
+  3. **Generic URL patterns:** Same `{base_url}/quote?symbol=` template for all 14 providers. Yahoo uses `symbols=` (plural, comma-sep), Finnhub uses single-symbol, Polygon uses snapshot endpoints.
+- **Root cause:** `_build_url()` was a skeleton from MEU-PW2, never provider-specialized.
+- **Fix:** Refactor to per-provider URL builders, pass `headers_template` into `fetch_with_cache()`, support `tickers` list → comma-joined `symbols=` param.
+
+
+### [PIPE-NOCANCEL] — No mechanism to cancel a running pipeline run (API, GUI, or internal)
+- **Severity:** High | **Component:** core, api, ui (Scheduling page) | **Discovered:** 2026-04-14 | **Status:** Open
+- **Details:** Zero cancellation infrastructure exists. No cancel endpoint, no `asyncio.Task` tracking in `PipelineRunner`, no `CancelledError` handling, no GUI cancel button. Once a run starts, the only way to stop it is to kill the backend process. This directly causes zombie runs (see PIPE-ZOMBIE) — a stuck fetch step runs indefinitely with no user intervention path.
+- **Research-backed fix approach** (sources: Prefect docs, Temporal docs, Azure Data Factory REST API, REST API design best practices, React AbortController patterns):
+  1. **Backend — Task registry:** `PipelineRunner` must store `asyncio.Task` references in a `dict[str, asyncio.Task]` keyed by `run_id`. This enables `task.cancel()` which raises `CancelledError` inside the step's `await`.
+  2. **Backend — Cancelling state:** Add `"cancelling"` to `PipelineStatus` enum as an intermediate status (Prefect pattern: run → cancelling → cancelled). Set on cancel request; runner checks this between steps and after `CancelledError`.
+  3. **Backend — Cancel endpoint:** `POST /api/v1/scheduling/runs/{run_id}/cancel` (Azure Data Factory pattern). Idempotent — calling on already-cancelled/completed run returns 200. Sets status to `"cancelling"`, calls `task.cancel()`, waits up to grace period (default 30s per Prefect), then force-kills via `asyncio.Task.cancel()`.
+  4. **Backend — Per-step token check:** Before each step execution in the runner loop, check `if run_status == "cancelling": break`. This provides cooperative cancellation at step boundaries even if `asyncio.Task.cancel()` can't interrupt a blocked I/O call (PIPE-ZOMBIE problem 2).
+  5. **GUI — Cancel button:** Run detail page: red "Cancel Run" button visible when `status === "running"`. On click → confirmation dialog → `POST .../cancel` → button changes to "Cancelling…" (disabled) → poll/SSE until status reaches `"cancelled"` or `"failed"`. UX: don't show error toast on user-initiated cancel (AbortController pattern).
+  6. **GUI — Run list indicator:** Show `🔴 Cancelling` badge in run history table during the intermediate state.
 
 ## Mitigated / Workaround Applied
 
