@@ -1,20 +1,10 @@
-# Current Focus — Zorivest
-
-> Last updated: 2026-04-12
-
-## Active Phase
-
-**Phase 9 — Scheduling & Pipeline Engine (in progress)**
+# Current Focus
 
 ## Current Priority
 
-MEU-PW1 Pipeline Runtime Wiring — all review passes complete, verdict `approved`.
+MEU-PW2 corrections complete. All 4 Codex findings resolved with regressions. Ready for re-review.
 
 ## Next Steps
 
-- [ ] MEU-TD1 (MCP Tool Discovery Audit) — next in pipeline wiring project
-- [ ] MEU-PW2 (Fetch Step Integration) — depends on PW1 ✅
-
-## Blockers
-
-None currently.
+1. Submit to Codex for re-review validation
+2. If approved → proceed to MEU-PW3 (`market-data-schemas`) or MEU-TD1 (`MCP tool discovery`)

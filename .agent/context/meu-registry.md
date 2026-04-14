@@ -130,8 +130,8 @@
 
 | MEU | Slug | Matrix | Description | Status |
 |-----|------|:------:|-------------|:------:|
-| MEU-PW1 | `pipeline-runtime-wiring` | 49.4 | Expand PipelineRunner constructor; DbWriteAdapter; SMTP bridge; wire main.py; delete dead stubs → 4/5 steps operational | ⬜ planned |
-| MEU-PW2 | `fetch-step-integration` | 49.5 | MarketDataProviderAdapter; cache impl; rate limiter; HTTP cache revalidation → 5/5 steps operational. Depends on PW1. | ⬜ planned |
+| MEU-PW1 | `pipeline-runtime-wiring` | 49.4 | Expand PipelineRunner constructor; DbWriteAdapter; SMTP bridge; wire main.py; delete dead stubs → 4/5 steps operational | ✅ 2026-04-12 |
+| MEU-PW2 | `fetch-step-integration` | 49.5 | MarketDataProviderAdapter; cache impl; rate limiter; HTTP cache revalidation → 5/5 steps operational. Depends on PW1. | ✅ 2026-04-13 |
 | MEU-PW3 | `market-data-schemas` | 49.6 | 4 SQLAlchemy models + 3 Pandera schemas + field mappings → data quality hardening. Independent. | ⬜ planned |
 
 ## Execution Order
@@ -196,6 +196,7 @@ P2.75 (broker adapters): MEU-96 → MEU-99
 | MEU | Slug | Matrix | Description | Status |
 |-----|------|:------:|-------------|:------:|
 | MEU-PW1 | `pipeline-runtime-wiring` | 49.4 | Expand `PipelineRunner.__init__` (6 new kwargs); create `DbWriteAdapter`; add `get_smtp_runtime_config()` to `EmailProviderService`; wire 7 runtime deps in `main.py` (`provider_adapter=None` until PW2); delete dead stubs (`StubMarketDataService`, `StubProviderConnectionService`); integration test verifying all wired deps | ✅ 2026-04-12 |
+| MEU-PW2 | `fetch-step-integration` | 49.5 | Create `MarketDataProviderAdapter` + `MarketDataAdapterPort`; implement `FetchStep._check_cache` with TTL + market-hours extension; add entity_key computation + cache upsert after fetch; add `warnings` field to `FetchResult`; wire adapter/rate-limiter/cache-repo in `main.py` (PipelineRunner 8→9 kwargs); update PW1 contract tests; 5 integration tests | ✅ 2026-04-13 |
 | MEU-TD1 | `mcp-tool-discovery-audit` | 5.I | Audit all 9 MCP toolset descriptions; enrich workflow context, examples, resource references | ⬜ planned |
 
 ## Research-Enhanced: Workspace Setup (Tier 2, after Phase 9 domain)

@@ -23,6 +23,61 @@ logger = structlog.get_logger()
 # This global lets us use a picklable module-level function instead.
 _scheduler_instance: SchedulerService | None = None
 
+# Cron standard: 0=Sun, 1=Mon, ..., 6=Sat, 7=Sun
+# APScheduler:   0=Mon, 1=Tue, ..., 5=Sat, 6=Sun
+# Using day names avoids numeric ambiguity entirely.
+_CRON_DOW_TO_NAME = {
+    "0": "sun",
+    "1": "mon",
+    "2": "tue",
+    "3": "wed",
+    "4": "thu",
+    "5": "fri",
+    "6": "sat",
+    "7": "sun",
+}
+
+
+def _cron_dow_to_apscheduler(cron_dow: str) -> str:
+    """Convert standard cron day-of-week field to APScheduler day names.
+
+    Standard cron uses 0=Sunday, 1=Monday, ..., 6=Saturday (7=Sunday).
+    APScheduler uses 0=Monday, ..., 6=Sunday.  Passing cron numbers
+    directly causes an off-by-one: ``1-5`` would mean Tue-Sat instead
+    of Mon-Fri.
+
+    Converting to unambiguous day names (mon, tue, ...) avoids the
+    mismatch entirely.  Non-numeric values (mon, tue, ``*``) pass through.
+    """
+    import re
+
+    # Already uses names or wildcard — pass through
+    if re.search(r"[a-zA-Z*]", cron_dow):
+        return cron_dow
+
+    def _convert_single(val: str) -> str:
+        return _CRON_DOW_TO_NAME.get(val, val)
+
+    # Handle comma-separated lists: "1,3,5"
+    parts = cron_dow.split(",")
+    converted = []
+    for part in parts:
+        if "-" in part:
+            # Handle ranges: "1-5" → "mon-fri"
+            lo, hi = part.split("-", 1)
+            converted.append(f"{_convert_single(lo)}-{_convert_single(hi)}")
+        elif "/" in part:
+            # Handle step: "1-5/2" → "mon-fri/2"
+            range_part, step = part.split("/", 1)
+            if "-" in range_part:
+                lo, hi = range_part.split("-", 1)
+                converted.append(f"{_convert_single(lo)}-{_convert_single(hi)}/{step}")
+            else:
+                converted.append(f"{_convert_single(range_part)}/{step}")
+        else:
+            converted.append(_convert_single(part))
+    return ",".join(converted)
+
 
 async def _execute_policy_callback(policy_id: str) -> None:
     """Module-level APScheduler job callback (picklable).
@@ -144,7 +199,7 @@ class SchedulerService:
                 hour=parts[1],
                 day=parts[2],
                 month=parts[3],
-                day_of_week=parts[4],
+                day_of_week=_cron_dow_to_apscheduler(parts[4]),
                 timezone=timezone,
             )
             # Use module-level function ref (picklable) instead of bound method.

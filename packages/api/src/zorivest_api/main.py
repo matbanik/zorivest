@@ -91,6 +91,8 @@ from zorivest_api.scheduling_adapters import (
 from zorivest_infra.adapters.db_write_adapter import DbWriteAdapter
 from zorivest_infra.security.sql_sandbox import create_sandboxed_connection
 from zorivest_infra.rendering.template_engine import create_template_engine
+from zorivest_infra.market_data.market_data_adapter import MarketDataProviderAdapter
+from zorivest_infra.market_data.pipeline_rate_limiter import PipelineRateLimiter
 
 # ── Tag metadata ────────────────────────────────────────────────────────
 
@@ -249,18 +251,30 @@ async def lifespan(app: FastAPI) -> AsyncGenerator[None, None]:
     _db_write_adapter = DbWriteAdapter(session=uow._session)  # noqa: SLF001
     _smtp_runtime_config = app.state.email_provider_service.get_smtp_runtime_config()
 
+    # ── Fetch step wiring (MEU-PW2) ──────────────────────────────────────
+    _rate_limits: dict[str, tuple[float, float]] = {
+        name: (float(cfg.default_rate_limit), 1.0)
+        for name, cfg in PROVIDER_REGISTRY.items()
+    }
+    _pipeline_rate_limiter = PipelineRateLimiter(_rate_limits)
+    _market_data_adapter = MarketDataProviderAdapter(
+        http_client=_http_client,
+        rate_limiter=_pipeline_rate_limiter,
+    )
+
     pipeline_runner = PipelineRunner(
         uow,
         RefResolver(),
         ConditionEvaluator(),
         delivery_repository=uow.deliveries,
         smtp_config=_smtp_runtime_config,
-        provider_adapter=None,  # Deferred to MEU-PW2
+        provider_adapter=_market_data_adapter,
         db_writer=_db_write_adapter,
         db_connection=_sandboxed_conn,
         report_repository=uow.reports,
         template_engine=_template_engine,
         pipeline_state_repo=uow.pipeline_state,
+        fetch_cache_repo=uow.fetch_cache,
     )
     scheduler_svc = SchedulerService(
         pipeline_runner=pipeline_runner,

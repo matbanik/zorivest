@@ -3,7 +3,7 @@
 from __future__ import annotations
 
 from pathlib import Path
-from typing import Any, Optional, Protocol
+from typing import Any, Optional, Protocol, TypedDict
 
 from zorivest_core.domain.enums import BrokerType
 from zorivest_core.domain.import_types import ImportResult, RawExecution
@@ -399,3 +399,38 @@ class MarketDataPort(Protocol):
     async def search_ticker(self, query: str) -> list[TickerSearchResult]: ...
 
     async def get_sec_filings(self, ticker: str) -> list[SecFiling]: ...
+
+
+# ── Phase 9: Pipeline Market Data Adapter Port (MEU-PW2) ────────────────
+
+
+class FetchAdapterResult(TypedDict):
+    """Structured result from pipeline market data adapter.
+
+    Carries content and cache metadata for FetchStep to upsert
+    into FetchCacheRepository.
+    """
+
+    content: bytes
+    cache_status: str  # "miss" | "hit" | "revalidated"
+    etag: str | None
+    last_modified: str | None
+
+
+class MarketDataAdapterPort(Protocol):
+    """Pipeline-facing protocol for market data fetching.
+
+    Distinct from MarketDataPort (GUI layer). This port is used by
+    FetchStep to fetch raw market data with cache revalidation support.
+    """
+
+    async def fetch(
+        self,
+        *,
+        provider: str,
+        data_type: str,
+        criteria: dict[str, Any],
+        cached_content: bytes | None = None,
+        cached_etag: str | None = None,
+        cached_last_modified: str | None = None,
+    ) -> FetchAdapterResult: ...

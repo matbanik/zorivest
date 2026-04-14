@@ -320,6 +320,7 @@ Domain → Infrastructure → Services → REST API → MCP Server → GUI → D
 | MEU | Slug | Matrix Item | Build Plan Ref | Description | Status |
 |-----|------|:-----------:|----------------|-------------|:------:|
 | MEU-PW1 | `pipeline-runtime-wiring` | 49.4 | [09 §runner](build-plan/09-scheduling.md), [06e](build-plan/06e-gui-scheduling.md) | Expand `PipelineRunner.__init__` with 8 keyword params (7 wired to real services, `provider_adapter` accepted as `None` slot for PW2); create `DbWriteAdapter` bridging `write_dispositions.py`; add `get_smtp_runtime_config()` to `EmailProviderService` (key remapping + password decryption); wire `delivery_repository`, `report_repository`, `pipeline_state_repo`, `db_connection`, `template_engine`, `smtp_config` in `main.py`; delete dead stubs (`StubMarketDataService`, `StubProviderConnectionService`); integration test for dependency wiring verification · Depends on: MEU-90a ✅, MEU-85 ✅, MEU-88 ✅, MEU-65a ✅, MEU-73 ✅ | ✅ |
+| MEU-PW2 | `fetch-step-integration` | 49.5 | [09 §9.4](build-plan/09-scheduling.md) | Create `MarketDataProviderAdapter` + `MarketDataAdapterPort`; implement `FetchStep._check_cache` with TTL + market-hours extension; add cache upsert after fetch; wire adapter/rate-limiter/cache-repo in `main.py`; update PW1 contract tests 8→9 kwargs · Depends on: MEU-PW1 ✅ | ✅ |
 | MEU-TD1 | `mcp-tool-discovery-audit` | 5.I | [05](build-plan/05-mcp-server.md) | Audit all 9 MCP toolset descriptions; enrich server instructions with workflow summaries; add `policy_json` examples to `create_policy`; reference MCP resources from tool descriptions; add prerequisite state, return shape, and error conditions · Parallel with any MEU | ⬜ |
 
 ---
@@ -520,7 +521,7 @@ Domain → Infrastructure → Services → REST API → MCP Server → GUI → D
 | P2 | MEU-66 → MEU-76 | 15 | 7 |
 | P2.5 — Phase 9 | MEU-77 → MEU-90 | 14 | 14 |
 | P2.5a — Integration | MEU-90a → MEU-90d | 4 | 3 + 1 🚫 |
-| P2.5b — Wiring & Quality | MEU-PW1, MEU-TD1 | 2 | 0 |
+| P2.5b — Wiring & Quality | MEU-PW1, MEU-PW2, MEU-TD1 | 3 | 0 |
 | P2.6 — Phase 10 | MEU-91 → MEU-95 | 5 | 0 |
 | P2.75 — Expansion | MEU-96 → MEU-122 | 27 | 2 |
 | P3 — Tax | MEU-123 → MEU-156 | 34 | 0 |

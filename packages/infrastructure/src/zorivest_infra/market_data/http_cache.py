@@ -20,6 +20,7 @@ async def fetch_with_cache(
     cached_content: bytes | None = None,
     cached_etag: str | None = None,
     cached_last_modified: str | None = None,
+    timeout: int = 30,
 ) -> dict[str, Any]:
     """Fetch URL content with HTTP cache revalidation.
 
@@ -36,7 +37,7 @@ async def fetch_with_cache(
     if cached_last_modified:
         headers["If-Modified-Since"] = cached_last_modified
 
-    response = await client.get(url, headers=headers)
+    response = await client.get(url, headers=headers, timeout=timeout)
 
     if response.status_code == 304 and cached_content is not None:
         # Not Modified — cached data is still valid

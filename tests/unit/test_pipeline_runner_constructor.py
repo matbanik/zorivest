@@ -60,11 +60,12 @@ class TestConstructorSignature:
             report_repository=MagicMock(),
             template_engine=MagicMock(),
             pipeline_state_repo=MagicMock(),
+            fetch_cache_repo=MagicMock(),
         )
         assert runner is not None
 
     def test_all_kwargs_default_to_none(self) -> None:
-        """All 8 kwargs default to None when not provided."""
+        """All 9 kwargs default to None when not provided."""
         runner = _make_runner()
         assert runner._delivery_repository is None
         assert runner._smtp_config is None
@@ -74,6 +75,7 @@ class TestConstructorSignature:
         assert runner._report_repository is None
         assert runner._template_engine is None
         assert runner._pipeline_state_repo is None
+        assert runner._fetch_cache_repo is None
 
     def test_unknown_kwarg_raises_type_error(self) -> None:
         """Negative: unknown keyword argument raises TypeError."""
@@ -91,6 +93,7 @@ class TestConstructorSignature:
         report_repo = MagicMock()
         tmpl = MagicMock()
         ps_repo = MagicMock()
+        fc_repo = MagicMock()
 
         runner = _make_runner(
             delivery_repository=delivery_repo,
@@ -101,6 +104,7 @@ class TestConstructorSignature:
             report_repository=report_repo,
             template_engine=tmpl,
             pipeline_state_repo=ps_repo,
+            fetch_cache_repo=fc_repo,
         )
 
         assert runner._delivery_repository is delivery_repo
@@ -111,6 +115,7 @@ class TestConstructorSignature:
         assert runner._report_repository is report_repo
         assert runner._template_engine is tmpl
         assert runner._pipeline_state_repo is ps_repo
+        assert runner._fetch_cache_repo is fc_repo
 
 
 # ── AC-2: initial_outputs populated when run() is called ────────────────
@@ -159,7 +164,7 @@ class TestInitialOutputsInjection:
 
     @pytest.mark.asyncio()
     async def test_all_non_none_deps_injected_into_context(self) -> None:
-        """When all 8 deps are provided, all 8 appear in context.outputs."""
+        """When all 9 deps are provided, all 9 appear in context.outputs."""
         delivery_repo = MagicMock()
         smtp = {"host": "h"}
         provider = MagicMock()
@@ -168,6 +173,7 @@ class TestInitialOutputsInjection:
         report_repo = MagicMock()
         tmpl = MagicMock()
         ps_repo = MagicMock()
+        fc_repo = MagicMock()
 
         runner = _make_runner(
             delivery_repository=delivery_repo,
@@ -178,6 +184,7 @@ class TestInitialOutputsInjection:
             report_repository=report_repo,
             template_engine=tmpl,
             pipeline_state_repo=ps_repo,
+            fetch_cache_repo=fc_repo,
         )
 
         _InspectorStep, step_def, captured_outputs = _make_inspector_step()
@@ -187,7 +194,7 @@ class TestInitialOutputsInjection:
         result = await runner.run(policy, trigger_type="manual")
 
         assert result["status"] == "success"
-        # Assert ALL 8 dependency keys are present in context.outputs
+        # Assert ALL 9 dependency keys are present in context.outputs
         expected_keys = {
             "delivery_repository",
             "smtp_config",
@@ -197,6 +204,7 @@ class TestInitialOutputsInjection:
             "report_repository",
             "template_engine",
             "pipeline_state_repo",
+            "fetch_cache_repo",
         }
         assert set(captured_outputs.keys()) == expected_keys
         # Assert each value is the exact object we injected
@@ -208,6 +216,7 @@ class TestInitialOutputsInjection:
         assert captured_outputs["report_repository"] is report_repo
         assert captured_outputs["template_engine"] is tmpl
         assert captured_outputs["pipeline_state_repo"] is ps_repo
+        assert captured_outputs["fetch_cache_repo"] is fc_repo
 
     @pytest.mark.asyncio()
     async def test_none_deps_excluded_from_initial_outputs(self) -> None:

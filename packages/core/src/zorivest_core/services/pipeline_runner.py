@@ -61,6 +61,7 @@ class PipelineRunner:
         report_repository: Any | None = None,
         template_engine: Any | None = None,
         pipeline_state_repo: Any | None = None,
+        fetch_cache_repo: Any | None = None,
     ) -> None:
         self.uow = uow
         self.ref_resolver = ref_resolver
@@ -73,6 +74,7 @@ class PipelineRunner:
         self._report_repository = report_repository
         self._template_engine = template_engine
         self._pipeline_state_repo = pipeline_state_repo
+        self._fetch_cache_repo = fetch_cache_repo
 
     async def run(
         self,
@@ -112,6 +114,7 @@ class PipelineRunner:
             "report_repository": self._report_repository,
             "template_engine": self._template_engine,
             "pipeline_state_repo": self._pipeline_state_repo,
+            "fetch_cache_repo": self._fetch_cache_repo,
         }
         initial_outputs: dict[str, Any] = {
             k: v for k, v in _dep_map.items() if v is not None

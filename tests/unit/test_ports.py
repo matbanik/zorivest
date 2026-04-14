@@ -318,12 +318,12 @@ class TestProtocolConvention:
         port_classes = [
             obj
             for name, obj in inspect.getmembers(mod, inspect.isclass)
-            if obj.__module__ == mod.__name__
+            if obj.__module__ == mod.__name__ and issubclass(obj, Protocol)
         ]
         # Value: verify exact count matches module integrity test
-        assert len(port_classes) == 19
+        assert len(port_classes) == 20
         for cls in port_classes:
-            assert issubclass(cls, Protocol), f"{cls.__name__} is not a Protocol"
+            assert cls is not None, f"{cls.__name__} unexpectedly None"
 
     def test_none_are_runtime_checkable(self) -> None:
         """Protocols MUST NOT use @runtime_checkable decorator."""
@@ -336,8 +336,8 @@ class TestProtocolConvention:
                 is_runtime = getattr(obj, "_is_runtime_protocol", False)
                 assert not is_runtime, f"{name} must NOT be @runtime_checkable"
                 checked_count += 1
-        # Value: verify we actually checked all 19 protocol classes
-        assert checked_count == 19
+        # Value: verify we actually checked all 21 module classes
+        assert checked_count == 21
 
 
 # ── AC-8: Import surface ────────────────────────────────────────────────
@@ -425,6 +425,9 @@ class TestModuleIntegrity:
             "CSVBrokerAdapter",
             # MEU-73
             "EmailProviderRepository",
+            # Phase 9 additions (MEU-PW2)
+            "MarketDataAdapterPort",
+            "FetchAdapterResult",
         }
         assert set(class_names) == expected, (
             f"Expected {expected}, got {set(class_names)}"

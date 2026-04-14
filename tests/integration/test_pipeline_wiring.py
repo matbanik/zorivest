@@ -50,12 +50,12 @@ class TestPipelineRuntimeWiring:
             "password",
         }
 
-    def test_pipeline_runner_provider_adapter_is_none(
+    def test_pipeline_runner_provider_adapter_is_wired(
         self, app_with_runner: tuple
     ) -> None:
-        """provider_adapter is None (deferred to MEU-PW2)."""
+        """provider_adapter is wired as MarketDataProviderAdapter (MEU-PW2)."""
         _, runner = app_with_runner
-        assert runner._provider_adapter is None
+        assert runner._provider_adapter is not None
 
     def test_pipeline_runner_has_db_writer(self, app_with_runner: tuple) -> None:
         """db_writer is wired as DbWriteAdapter."""
@@ -177,20 +177,19 @@ class TestPipelineRunnerExecution:
 
         assert result["status"] == "success"
 
-        # Verify ALL 7 non-None wired dependencies reached the step context
+        # Verify ALL 9 non-None wired dependencies reached the step context
         expected_keys = {
             "delivery_repository",
             "smtp_config",
+            "provider_adapter",
             "db_writer",
             "db_connection",
             "report_repository",
             "template_engine",
             "pipeline_state_repo",
+            "fetch_cache_repo",
         }
         actual_dep_keys = set(captured_outputs.keys()) & expected_keys
         assert actual_dep_keys == expected_keys, (
             f"Missing dependency keys in context.outputs: {expected_keys - actual_dep_keys}"
         )
-
-        # provider_adapter is None (deferred to PW2), so must NOT be in outputs
-        assert "provider_adapter" not in captured_outputs
