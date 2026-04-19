@@ -95,6 +95,7 @@ class PipelineRunner:
         self._template_engine = template_engine
         self._pipeline_state_repo = pipeline_state_repo
         self._fetch_cache_repo = fetch_cache_repo
+        self._active_tasks: dict[str, asyncio.Task[Any]] = {}
 
     async def run(
         self,
@@ -174,8 +175,19 @@ class PipelineRunner:
         run_error: str | None = None
         skipping = resume_from is not None
 
+        # §9B.5c: Register current task for cooperative cancellation
+        task = asyncio.current_task()
+        if task and run_id:
+            self._active_tasks[run_id] = task
+
         try:
             for step_def in policy.steps:
+                # §9B.5c: Cooperative cancellation check at step boundary
+                if await self._is_cancelling(run_id):
+                    final_status = PipelineStatus.CANCELLED
+                    run_error = "Pipeline cancelled by user"
+                    break
+
                 # Resume logic: skip until we reach the resume step
                 if skipping:
                     if step_def.id == resume_from:
@@ -231,6 +243,9 @@ class PipelineRunner:
             final_status = PipelineStatus.FAILED
             run_error = str(exc)
             run_log.exception("pipeline_unhandled_error")
+        finally:
+            # §9B.5c: Clean up active task tracking
+            self._active_tasks.pop(run_id, None)
 
         duration_ms = int((time.monotonic() - run_start) * 1000)
 
@@ -443,6 +458,61 @@ class PipelineRunner:
         if row is not None and row.output_json:
             return json.loads(row.output_json)
         return None
+
+    # ── Cancellation (§9B.5) ────────────────────────────────────────────
+
+    async def cancel_run(self, run_id: str, grace_seconds: float = 30.0) -> bool:
+        """Cancel a running pipeline.
+
+        Per spec §9B.5c:
+        1. Set status to CANCELLING (cooperative cancellation at step boundaries)
+        2. If still running after grace_seconds, force-cancel via asyncio.Task.cancel()
+        3. Return True if cancellation was initiated
+
+        Idempotent: calling on already-cancelled/completed run returns True.
+
+        Args:
+            run_id: The pipeline run ID to cancel.
+            grace_seconds: Time to wait for cooperative cancellation before force.
+
+        Returns:
+            True if cancellation was initiated or run is already complete.
+        """
+        task = self._active_tasks.get(run_id)
+        if task is None:
+            # Run is not active — may be completed or not found
+            # Idempotent: return True per spec
+            return True
+
+        # Set status to CANCELLING for cooperative step-boundary check
+        await self._update_run_status(run_id, PipelineStatus.CANCELLING)
+
+        # Wait for cooperative cancellation within grace period
+        try:
+            await asyncio.wait_for(asyncio.shield(task), timeout=grace_seconds)
+        except asyncio.TimeoutError:
+            # Force cancel — cooperative check didn't stop it in time
+            task.cancel()
+            try:
+                await task
+            except asyncio.CancelledError:
+                pass
+        except asyncio.CancelledError:
+            pass
+
+        return True
+
+    async def _is_cancelling(self, run_id: str) -> bool:
+        """Check if a run has been marked for cancellation.
+
+        Queries the DB for the run's current status. Returns True if
+        the status is CANCELLING, enabling cooperative cancellation
+        at step boundaries.
+        """
+        if self.uow is None:
+            return False
+        run = self.uow.pipeline_runs.get_by_id(run_id)
+        return run is not None and run.status == PipelineStatus.CANCELLING.value
 
     # ── Zombie Recovery (§9.3e) ───────────────────────────────────────────
 

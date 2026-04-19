@@ -21,6 +21,7 @@ async def fetch_with_cache(
     cached_etag: str | None = None,
     cached_last_modified: str | None = None,
     timeout: int | float | Any = 30,
+    extra_headers: dict[str, str] | None = None,
 ) -> dict[str, Any]:
     """Fetch URL content with HTTP cache revalidation.
 
@@ -28,10 +29,18 @@ async def fetch_with_cache(
     sends conditional request. On 304, returns cached data with
     cache_status='revalidated'.
 
+    Args:
+        extra_headers: Provider-specific headers (auth tokens, User-Agent)
+            to include in every request. Merged with cache headers.
+
     Returns:
         Dict with keys: content, cache_status, etag, last_modified
     """
     headers: dict[str, str] = {}
+    # Merge provider-specific headers first (auth tokens, User-Agent, etc.)
+    if extra_headers:
+        headers.update(extra_headers)
+    # Cache revalidation headers override any provider headers
     if cached_etag:
         headers["If-None-Match"] = cached_etag
     if cached_last_modified:

@@ -182,6 +182,7 @@ class PipelineStatus(StrEnum):  # §9.1a
 
     PENDING = "pending"
     RUNNING = "running"
+    CANCELLING = "cancelling"
     SUCCESS = "success"
     FAILED = "failed"
     SKIPPED = "skipped"

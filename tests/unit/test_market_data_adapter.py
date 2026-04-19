@@ -297,3 +297,168 @@ async def test_AC6_last_modified_headers_passed():
 
     assert result["cache_status"] == "revalidated"
     assert result["content"] == cached_data
+
+
+# ---------------------------------------------------------------------------
+# AC-PW6-7: Adapter uses URL builder dispatch (Finding 1 correction)
+# ---------------------------------------------------------------------------
+
+
+@pytest.mark.asyncio
+async def test_AC7_adapter_dispatches_through_url_builder():
+    """Adapter.fetch() uses get_url_builder() to construct URLs — not legacy _build_url().
+
+    Proves the builder registry is wired into the live fetch path.
+    """
+    from unittest.mock import patch as mock_patch
+
+    from zorivest_infra.market_data.market_data_adapter import (
+        MarketDataProviderAdapter,
+    )
+
+    mock_client = AsyncMock()
+    mock_response = MagicMock()
+    mock_response.status_code = 200
+    mock_response.content = b'{"c": 150.0}'
+    mock_response.headers = {}
+    mock_client.get.return_value = mock_response
+
+    mock_rate_limiter = AsyncMock()
+
+    async def _passthrough(provider, func, *a, **kw):
+        return await func(*a, **kw)
+
+    mock_rate_limiter.execute_with_limits = AsyncMock(side_effect=_passthrough)
+
+    adapter = MarketDataProviderAdapter(
+        http_client=mock_client,
+        rate_limiter=mock_rate_limiter,
+    )
+
+    with mock_patch(
+        "zorivest_infra.market_data.market_data_adapter.get_url_builder"
+    ) as mock_get_builder:
+        mock_builder = MagicMock()
+        mock_builder.build_url.return_value = (
+            "https://finnhub.io/api/v1/quote?symbol=AAPL"
+        )
+        mock_get_builder.return_value = mock_builder
+
+        await adapter.fetch(
+            provider="Finnhub",
+            data_type="quote",
+            criteria={"symbol": "AAPL"},
+        )
+
+        mock_get_builder.assert_called_once_with("Finnhub")
+        mock_builder.build_url.assert_called_once()
+
+
+@pytest.mark.asyncio
+async def test_AC7_adapter_resolves_tickers_from_criteria():
+    """Adapter resolves 'tickers' key from criteria into URL — not legacy 'symbol' key.
+
+    When criteria has {"tickers": ["AAPL", "MSFT"]}, the final URL must contain
+    the tickers (not be empty like the legacy _build_url produced).
+    """
+    from zorivest_infra.market_data.market_data_adapter import (
+        MarketDataProviderAdapter,
+    )
+
+    mock_client = AsyncMock()
+    mock_response = MagicMock()
+    mock_response.status_code = 200
+    mock_response.content = b'{"results": []}'
+    mock_response.headers = {}
+    mock_client.get.return_value = mock_response
+
+    mock_rate_limiter = AsyncMock()
+
+    async def _passthrough(provider, func, *a, **kw):
+        return await func(*a, **kw)
+
+    mock_rate_limiter.execute_with_limits = AsyncMock(side_effect=_passthrough)
+
+    adapter = MarketDataProviderAdapter(
+        http_client=mock_client,
+        rate_limiter=mock_rate_limiter,
+    )
+
+    await adapter.fetch(
+        provider="Yahoo Finance",
+        data_type="quote",
+        criteria={"tickers": ["AAPL", "MSFT"]},
+    )
+
+    # Verify the exact URL matches the build-plan spec:
+    # Yahoo quote: {base_url}/v6/finance/quote?symbols=AAPL,MSFT
+    # base_url from registry: https://query1.finance.yahoo.com
+    call_args = mock_client.get.call_args
+    url_used = call_args[0][0]
+    assert url_used == (
+        "https://query1.finance.yahoo.com/v6/finance/quote?symbols=AAPL,MSFT"
+    ), f"Yahoo quote URL mismatch: {url_used}"
+
+
+# ---------------------------------------------------------------------------
+# AC-PW6-8: Adapter forwards headers_template from provider config
+# ---------------------------------------------------------------------------
+
+
+@pytest.mark.asyncio
+async def test_AC8_adapter_forwards_provider_headers():
+    """Adapter passes headers_template from provider config to fetch_with_cache().
+
+    The Finnhub config has headers_template={"X-Finnhub-Token": "{api_key}"},
+    which must be forwarded as extra_headers to the HTTP layer.
+    """
+    from unittest.mock import patch as mock_patch
+
+    from zorivest_infra.market_data.market_data_adapter import (
+        MarketDataProviderAdapter,
+    )
+
+    mock_client = AsyncMock()
+    mock_response = MagicMock()
+    mock_response.status_code = 200
+    mock_response.content = b'{"c": 150.0}'
+    mock_response.headers = {}
+    mock_client.get.return_value = mock_response
+
+    mock_rate_limiter = AsyncMock()
+
+    async def _passthrough(provider, func, *a, **kw):
+        return await func(*a, **kw)
+
+    mock_rate_limiter.execute_with_limits = AsyncMock(side_effect=_passthrough)
+
+    adapter = MarketDataProviderAdapter(
+        http_client=mock_client,
+        rate_limiter=mock_rate_limiter,
+    )
+
+    with mock_patch(
+        "zorivest_infra.market_data.market_data_adapter.fetch_with_cache"
+    ) as mock_fetch:
+        mock_fetch.return_value = {
+            "content": b'{"c": 150.0}',
+            "cache_status": "miss",
+            "etag": None,
+            "last_modified": None,
+        }
+
+        await adapter.fetch(
+            provider="Finnhub",
+            data_type="quote",
+            criteria={"symbol": "AAPL"},
+        )
+
+        # fetch_with_cache should have been called with extra_headers
+        mock_fetch.assert_called_once()
+        call_kwargs = mock_fetch.call_args[1]
+        assert "extra_headers" in call_kwargs, (
+            f"fetch_with_cache must receive extra_headers kwarg. Got: {list(call_kwargs.keys())}"
+        )
+        headers = call_kwargs["extra_headers"]
+        assert isinstance(headers, dict)
+        assert "X-Finnhub-Token" in headers

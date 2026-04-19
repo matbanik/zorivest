@@ -215,6 +215,8 @@ P2.75 (broker adapters): MEU-96 → MEU-99
 |-----|------|:------:|-------------|:------:|
 | MEU-PW1 | `pipeline-runtime-wiring` | 49.4 | Expand `PipelineRunner.__init__` (6 new kwargs); create `DbWriteAdapter`; add `get_smtp_runtime_config()` to `EmailProviderService`; wire 7 runtime deps in `main.py` (`provider_adapter=None` until PW2); delete dead stubs (`StubMarketDataService`, `StubProviderConnectionService`); integration test verifying all wired deps | ✅ 2026-04-12 |
 | MEU-PW2 | `fetch-step-integration` | 49.5 | Create `MarketDataProviderAdapter` + `MarketDataAdapterPort`; implement `FetchStep._check_cache` with TTL + market-hours extension; add entity_key computation + cache upsert after fetch; add `warnings` field to `FetchResult`; wire adapter/rate-limiter/cache-repo in `main.py` (PipelineRunner 8→9 kwargs); update PW1 contract tests; 5 integration tests | ✅ 2026-04-13 |
+| MEU-PW6 | `url-builders` | 9B.4 | Registry-based URL builder dispatch: `YahooUrlBuilder`, `PolygonUrlBuilder`, `FinnhubUrlBuilder`, `GenericUrlBuilder`; `get_url_builder()` factory; `_resolve_tickers()` helper; 22 unit tests | ✅ 2026-04-19 |
+| MEU-PW7 | `pipeline-cancellation` | 9B.5 | `PipelineStatus.CANCELLING` enum; `PipelineRunner._active_tasks` + `cancel_run()`; `SchedulingService.cancel_run()` delegation; `POST /runs/{run_id}/cancel` endpoint with UUID regex validation (422/404/200); 15 unit tests; OpenAPI spec updated | ✅ 2026-04-19 |
 | MEU-TD1 | `mcp-tool-discovery-audit` | 5.I | Audit all 9 MCP toolset descriptions; enrich workflow context, examples, resource references | ⬜ planned |
 
 ## P2.6: Service Daemon & Tray Icon (Phase 10)

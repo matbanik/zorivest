@@ -2,9 +2,10 @@
 """MarketDataProviderAdapter — concrete adapter for pipeline market data fetching (MEU-PW2).
 
 Implements MarketDataAdapterPort from core. Handles:
-- URL construction per data_type using provider registry configs
+- URL construction per data_type using provider-specific URL builders (MEU-PW6)
 - Rate limiting via PipelineRateLimiter.execute_with_limits()
 - HTTP cache revalidation via fetch_with_cache()
+- Provider header forwarding from headers_template
 - Returns FetchAdapterResult dict
 
 Spec: 09-scheduling.md §9.4, implementation-plan.md Component 2
@@ -20,6 +21,7 @@ import httpx
 from zorivest_core.application.ports import FetchAdapterResult
 from zorivest_infra.market_data.http_cache import fetch_with_cache
 from zorivest_infra.market_data.provider_registry import PROVIDER_REGISTRY
+from zorivest_infra.market_data.url_builders import get_url_builder, resolve_tickers
 
 logger = structlog.get_logger()
 
@@ -31,7 +33,8 @@ class MarketDataProviderAdapter:
     """Concrete pipeline adapter for market data fetching.
 
     Routes HTTP calls through PipelineRateLimiter and fetch_with_cache.
-    Constructs provider-specific URLs per data_type.
+    Constructs provider-specific URLs via URL builder registry (MEU-PW6).
+    Forwards provider headers_template to the HTTP layer.
     """
 
     def __init__(
@@ -85,7 +88,13 @@ class MarketDataProviderAdapter:
             available = sorted(PROVIDER_REGISTRY.keys())
             raise KeyError(f"Unknown provider '{provider}'. Available: {available}")
 
-        url = self._build_url(config, data_type, criteria)
+        # MEU-PW6: Use URL builder dispatch instead of legacy _build_url()
+        tickers = resolve_tickers(criteria)
+        builder = get_url_builder(provider)
+        url = builder.build_url(config.base_url, data_type, tickers, criteria)
+
+        # Extract provider headers from config, forwarded to HTTP layer
+        extra_headers = dict(config.headers_template) if config.headers_template else {}
 
         # Route HTTP call through rate limiter
         result: dict[str, Any] = await self._rate_limiter.execute_with_limits(
@@ -95,6 +104,7 @@ class MarketDataProviderAdapter:
             cached_content=cached_content,
             cached_etag=cached_etag,
             cached_last_modified=cached_last_modified,
+            extra_headers=extra_headers,
         )
 
         return FetchAdapterResult(
@@ -111,6 +121,7 @@ class MarketDataProviderAdapter:
         cached_content: bytes | None = None,
         cached_etag: str | None = None,
         cached_last_modified: str | None = None,
+        extra_headers: dict[str, str] | None = None,
     ) -> dict[str, Any]:
         """Execute the HTTP fetch with cache revalidation."""
         return await fetch_with_cache(
@@ -120,37 +131,5 @@ class MarketDataProviderAdapter:
             cached_etag=cached_etag,
             cached_last_modified=cached_last_modified,
             timeout=self._timeout,
+            extra_headers=extra_headers,
         )
-
-    def _build_url(
-        self,
-        config: Any,
-        data_type: str,
-        criteria: dict[str, Any],
-    ) -> str:
-        """Build provider-specific URL for the given data_type and criteria.
-
-        Uses the provider's base_url and constructs appropriate endpoint
-        based on data_type. Symbol is extracted from criteria.
-        """
-        base_url = config.base_url.rstrip("/")
-        symbol = criteria.get("symbol", "")
-
-        if data_type == "ohlcv":
-            # Date range from criteria
-            date_range = criteria.get("date_range", {})
-            start = date_range.get("start_date", "")
-            end = date_range.get("end_date", "")
-            return f"{base_url}/aggs/ticker/{symbol}/range/1/day/{start}/{end}"
-
-        elif data_type == "quote":
-            return f"{base_url}/quote?symbol={symbol}"
-
-        elif data_type == "news":
-            return f"{base_url}/news?symbol={symbol}"
-
-        elif data_type == "fundamentals":
-            return f"{base_url}/fundamentals?symbol={symbol}"
-
-        # Should not reach here due to validation above
-        raise ValueError(f"Unhandled data_type: {data_type}")  # pragma: no cover

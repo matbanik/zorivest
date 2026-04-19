@@ -2,10 +2,9 @@
 
 ## Current Priority
 
-[WF-SEGREGATE] complete — 4 mode-specific workflows created, 2 legacy deleted, 11 cross-references updated, HARD STOP compliance validated, issue archived.
+MEU-PW6 + MEU-PW7 execution corrections complete — all critical review findings resolved (F1-F3). 2072 tests pass, 0 failures.
 
 ## Next Steps
 
-1. Submit PW4+PW5 handoffs (116, 117) to Codex for final validation review
-2. If approved → proceed to MEU-PW6 (`provider-url-builders`) and MEU-PW7 (`pipeline-cancellation`)
-3. MEU-PW8 (`pipeline-e2e-test-harness`) depends on PW6+PW7 completion
+1. Submit corrections handoff (120) for final validation
+2. MEU-PW8 (`pipeline-e2e-test-harness`) is next in dependency order

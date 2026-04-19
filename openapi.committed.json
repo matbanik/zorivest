@@ -5631,6 +5631,52 @@
         ]
       }
     },
+    "/api/v1/scheduling/runs/{run_id}/cancel": {
+      "post": {
+        "description": "Cancel a running pipeline.\n\nIdempotent: calling on already-cancelled/completed run returns 200.\nReturns 404 if run_id not found, 422 if run_id is not a valid UUID.",
+        "operationId": "cancel_run_api_v1_scheduling_runs__run_id__cancel_post",
+        "parameters": [
+          {
+            "in": "path",
+            "name": "run_id",
+            "required": true,
+            "schema": {
+              "pattern": "^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$",
+              "title": "Run Id",
+              "type": "string"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "additionalProperties": true,
+                  "title": "Response Cancel Run Api V1 Scheduling Runs  Run Id  Cancel Post",
+                  "type": "object"
+                }
+              }
+            },
+            "description": "Successful Response"
+          },
+          "422": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HTTPValidationError"
+                }
+              }
+            },
+            "description": "Validation Error"
+          }
+        },
+        "summary": "Cancel Run",
+        "tags": [
+          "scheduling"
+        ]
+      }
+    },
     "/api/v1/scheduling/runs/{run_id}/steps": {
       "get": {
         "description": "Get step-level execution detail for a run.",

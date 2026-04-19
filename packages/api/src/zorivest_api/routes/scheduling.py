@@ -13,7 +13,7 @@ from __future__ import annotations
 from datetime import datetime
 from typing import Any
 
-from fastapi import APIRouter, Depends, HTTPException, Query
+from fastapi import APIRouter, Depends, HTTPException, Path, Query
 from pydantic import BaseModel, Field, field_validator
 from pydantic.functional_validators import BeforeValidator
 from typing import Annotated
@@ -218,6 +218,27 @@ async def trigger_pipeline(
     if result.error:
         raise HTTPException(400, detail=result.error)
     return result.run
+
+
+@scheduling_router.post("/runs/{run_id}/cancel")
+async def cancel_run(
+    run_id: str = Path(
+        ...,
+        pattern=r"^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$",
+    ),
+    service: Any = Depends(get_scheduling_service),
+) -> dict[str, Any]:
+    """Cancel a running pipeline.
+
+    Idempotent: calling on already-cancelled/completed run returns 200.
+    Returns 404 if run_id not found, 422 if run_id is not a valid UUID.
+    """
+    result = await service.cancel_run(run_id)
+    if result.error and "not found" in result.error.lower():
+        raise HTTPException(404, detail=result.error)
+    if result.error:
+        raise HTTPException(400, detail=result.error)
+    return {"run_id": run_id, "status": result.run.get("status", "cancelling")}
 
 
 # ── Run History ─────────────────────────────────────────────────────────

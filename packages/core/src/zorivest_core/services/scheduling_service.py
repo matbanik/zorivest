@@ -353,6 +353,33 @@ class SchedulingService:
 
         return RunResult(run=result)
 
+    async def cancel_run(self, run_id: str) -> RunResult:
+        """Cancel a running pipeline run.
+
+        Per spec §9B.5e:
+        - Returns RunResult(error="Run not found") if run_id doesn't exist.
+        - For terminal states (success/failed/cancelled), returns the run
+          idempotently without calling runner.cancel_run().
+        - For non-terminal states, delegates to PipelineRunner.cancel_run().
+        """
+        run = await self._runs.get_by_id(run_id)
+        if not run:
+            return RunResult(error="Run not found")
+
+        status = run.get("status", "")
+        if status in ("success", "failed", "cancelled"):
+            # Already terminal — return current state idempotently
+            return RunResult(run=run)
+
+        if self._runner is not None:
+            await self._runner.cancel_run(run_id)
+
+        await self._audit.log("pipeline.cancel", "pipeline_run", run_id)
+
+        # Re-fetch updated status
+        updated_run = await self._runs.get_by_id(run_id)
+        return RunResult(run=updated_run)
+
     # ── Run History ────────────────────────────────────────────────────
 
     async def get_policy_runs(

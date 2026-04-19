@@ -149,11 +149,9 @@ PROVIDER_REGISTRY: dict[str, ProviderConfig] = {
     # ── Free providers — no API key required ──────────────────────────────
     "Yahoo Finance": ProviderConfig(
         name="Yahoo Finance",
-        # Use the search API (v1/finance/search) instead of chart API (v8/finance/chart).
-        # The chart endpoint is aggressively rate-limited (HTTP 429) from server-side
-        # clients even with browser-like UA headers. The search endpoint is
-        # significantly more permissive for connectivity probes.
-        base_url="https://query1.finance.yahoo.com/v1/finance",
+        # Yahoo API paths span multiple version prefixes (/v1, /v6, /v8),
+        # so base_url must be the bare domain — builders construct full paths.
+        base_url="https://query1.finance.yahoo.com",
         auth_method=AuthMethod.NONE,
         auth_param_name="",
         headers_template={
@@ -161,7 +159,7 @@ PROVIDER_REGISTRY: dict[str, ProviderConfig] = {
             "Accept": "*/*",
             "Referer": "https://finance.yahoo.com/",
         },
-        test_endpoint="/search?q=AAPL&quotesCount=1&newsCount=0",
+        test_endpoint="/v1/finance/search?q=AAPL&quotesCount=1&newsCount=0",
         default_rate_limit=100,  # ~2000 req/hr; conservative limit
         signup_url="https://pypi.org/project/yfinance/",
         response_validator_key="quotes",
