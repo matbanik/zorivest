@@ -20,7 +20,7 @@ async def fetch_with_cache(
     cached_content: bytes | None = None,
     cached_etag: str | None = None,
     cached_last_modified: str | None = None,
-    timeout: int = 30,
+    timeout: int | float | Any = 30,
 ) -> dict[str, Any]:
     """Fetch URL content with HTTP cache revalidation.
 

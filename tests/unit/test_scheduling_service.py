@@ -409,3 +409,143 @@ class TestPatchSchedule:
         assert patched is not None
         assert patched["approved"] is False
         assert patched.get("approved_hash") is None
+
+
+# ── MEU-PW5: Dual-Write Elimination (SchedulingService side) ──────────
+
+
+class TestTriggerRunPassesRunId:
+    """PW5 AC-3: trigger_run() creates the run record, passes run_id
+    to the runner, and does NOT finalize after the runner returns."""
+
+    @pytest.mark.asyncio
+    async def test_runner_receives_exact_run_id(self) -> None:
+        """The run_id passed to runner.run() must be the SAME run_id
+        that trigger_run() created in the run store."""
+        svc, _, store = _make_service()
+        result = await svc.create_policy(_sample_policy_json())
+        assert result.policy is not None
+        pid = result.policy["id"]
+        await svc.approve_policy(pid)
+
+        svc._guardrails._policies = FakePolicyLookup(
+            {
+                pid: FakeApprovalPolicy(
+                    id=pid,
+                    approved=True,
+                    approved_hash=store._data[pid]["content_hash"],
+                )
+            }
+        )
+
+        run_result = await svc.trigger_run(pid)
+        assert run_result.run is not None
+        assert run_result.error is None
+
+        # The run store captured exactly one record — extract its run_id
+        run_store: FakeRunStore = svc._runs  # type: ignore[assignment]
+        assert len(run_store._data) == 1, (
+            f"Expected 1 run record, found {len(run_store._data)}"
+        )
+        created_run_id = run_store._data[0]["run_id"]
+
+        # The runner must have received the EXACT same run_id as a kwarg
+        call_kwargs = svc._runner.run.call_args
+        assert "run_id" in call_kwargs.kwargs, (
+            "runner.run() was not called with run_id keyword argument"
+        )
+        assert call_kwargs.kwargs["run_id"] == created_run_id, (
+            f"run_id mismatch: store has {created_run_id!r}, "
+            f"runner received {call_kwargs.kwargs['run_id']!r}"
+        )
+
+    @pytest.mark.asyncio
+    async def test_no_duplicate_finalization(self) -> None:
+        """trigger_run() must NOT create duplicate records or perform
+        scheduler-side status updates after the runner returns.
+        The runner owns finalization (pending→running→success/failed)."""
+        svc, _, store = _make_service()
+        result = await svc.create_policy(_sample_policy_json())
+        assert result.policy is not None
+        pid = result.policy["id"]
+        await svc.approve_policy(pid)
+
+        svc._guardrails._policies = FakePolicyLookup(
+            {
+                pid: FakeApprovalPolicy(
+                    id=pid,
+                    approved=True,
+                    approved_hash=store._data[pid]["content_hash"],
+                )
+            }
+        )
+
+        # Spy on the run store's update method to detect scheduler-side writes
+        run_store: FakeRunStore = svc._runs  # type: ignore[assignment]
+        original_update = run_store.update
+        update_calls: list[tuple[str, dict[str, Any]]] = []
+
+        async def tracking_update(
+            run_id: str, data: dict[str, Any]
+        ) -> dict[str, Any] | None:
+            update_calls.append((run_id, data))
+            return await original_update(run_id, data)
+
+        run_store.update = tracking_update  # type: ignore[assignment]
+
+        run_result = await svc.trigger_run(pid)
+        assert run_result.run is not None
+
+        # 1. Exactly ONE run record in store — no dual-write
+        assert len(run_store._data) == 1, (
+            f"Dual-write detected: expected 1 run record, found {len(run_store._data)}"
+        )
+
+        # 2. Runner was called exactly once
+        assert svc._runner.run.call_count == 1
+
+        # 3. The run store's update() method must NOT have been called
+        #    on the happy path — the scheduler only calls _runs.update()
+        #    in the exception fallback. This proves no scheduler-side finalization.
+        assert len(update_calls) == 0, (
+            f"Scheduler-side finalization detected: _runs.update() was called "
+            f"{len(update_calls)} time(s) with {update_calls}"
+        )
+
+
+class TestTriggerRunInitialStatus:
+    """PW5 AC-4: trigger_run() initial run status is 'pending'."""
+
+    @pytest.mark.asyncio
+    async def test_initial_status_is_pending(self) -> None:
+        """The run record created by trigger_run() must start as 'pending'."""
+        svc, _, store = _make_service()
+        result = await svc.create_policy(_sample_policy_json())
+        assert result.policy is not None
+        pid = result.policy["id"]
+        await svc.approve_policy(pid)
+
+        svc._guardrails._policies = FakePolicyLookup(
+            {
+                pid: FakeApprovalPolicy(
+                    id=pid,
+                    approved=True,
+                    approved_hash=store._data[pid]["content_hash"],
+                )
+            }
+        )
+
+        # Override the runner to capture the initial status before it runs
+        initial_statuses = []
+        original_create = svc._runs.create
+
+        async def capture_create(data):
+            initial_statuses.append(data.get("status"))
+            return await original_create(data)
+
+        svc._runs.create = capture_create
+
+        run_result = await svc.trigger_run(pid)
+        assert run_result.run is not None
+        assert len(initial_statuses) >= 1
+        assert initial_statuses[0] == "pending"

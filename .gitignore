@@ -25,6 +25,7 @@ Desktop.ini
 # Misc
 *.log
 docs/_todo_considerations.txt
+openwhispr-main/
 
 # SQLite databases (runtime + test artifacts)
 *.db

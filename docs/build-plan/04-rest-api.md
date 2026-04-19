@@ -25,6 +25,8 @@ tags_metadata = [
     {"name": "analytics", "description": "Quantitative analysis: expectancy, drawdown, SQN, fees, mistakes"},
     {"name": "tax",       "description": "Simulate, estimate, wash sales, lots, quarterly, harvest"},
     {"name": "system",    "description": "Health, version, logging, MCP guard, service lifecycle"},
+    {"name": "dashboard", "description": "Home dashboard aggregation endpoints"},
+    {"name": "monetization", "description": "Subscription, licensing, OAuth, BYOK, usage metering"},
 ]
 
 app = FastAPI(
@@ -104,6 +106,8 @@ from zorivest_api.routes.identifiers import identifiers_router
 from zorivest_api.routes.mistakes import mistakes_router
 from zorivest_api.routes.fees import fees_router
 from zorivest_api.routes.calculator import calculator_router
+from zorivest_api.routes.dashboard import dashboard_router
+from zorivest_api.routes.monetization import monetization_router
 
 app.include_router(trade_router)       # /api/v1/trades
 app.include_router(plan_router)        # /api/v1/trade-plans
@@ -122,6 +126,8 @@ app.include_router(mistakes_router)    # /api/v1/mistakes
 app.include_router(fees_router)        # /api/v1/fees
 app.include_router(calculator_router)  # /api/v1/calculator
 app.include_router(tax_router)         # /api/v1/tax
+app.include_router(dashboard_router)   # /api/v1/dashboard
+app.include_router(monetization_router) # /api/v1/monetization
 app.include_router(guard_router)       # /api/v1/mcp-guard
 app.include_router(log_router)         # /api/v1/logs
 app.include_router(version_router)     # /api/v1/version
@@ -316,4 +322,110 @@ Each sub-file contains a **Consumer Notes** section documenting which MCP tools 
 - Analytics routes (expectancy, drawdown, SQN, fees, mistakes, calculator) — [04e](04e-api-analytics.md)
 - Tax routes (simulate, estimate, wash sales, lots, quarterly, harvest) — [04f](04f-api-tax.md)
 - System routes (logging, MCP guard, version, health, service lifecycle) — [04g](04g-api-system.md)
+- Dashboard routes (6 aggregation endpoints) — [06j](06j-gui-home.md)
+- Monetization routes (11 endpoints: license, OAuth, BYOK, usage) — [11](11-monetization.md)
 - E2E tests using `TestClient` — in each sub-file
+
+---
+
+## WebSocket Infrastructure
+
+> MEU: [MEU-174](../BUILD_PLAN.md) (`websocket-infrastructure`) | Priority: P2.5
+
+FastAPI WebSocket endpoint for bidirectional real-time events. The Electron main process bridges WebSocket messages to the renderer via IPC.
+
+### Architecture
+
+```
+┌──────────────────┐   WebSocket    ┌───────────────────┐   IPC    ┌──────────────────┐
+│  Python Backend  │ ============▶ │ Electron Main Proc │ ======▶ │  React Renderer  │
+│  (FastAPI)        │  ws://8765  │ (WebSocketBridge)  │  IPC   │  (useWebSocket)  │
+└──────────────────┘              └────────────────────┘        └──────────────────┘
+```
+
+### Event Types
+
+| Channel | Direction | Payload | Consumers |
+|---------|-----------|---------|----------|
+| `pnl.tick` | Server → Client | `{ account_id, unrealized_pnl, timestamp }` | Dashboard, Floating P&L widget |
+| `trade.update` | Server → Client | `{ trade_id, status, last_price }` | Dashboard active trades, trade detail |
+| `notification` | Server → Client | `{ id, type, title, body, severity }` | Tray icon badge, notification center |
+| `scheduler.event` | Server → Client | `{ run_id, status, policy_id }` | Scheduling page, dashboard jobs |
+
+### Python Server
+
+```python
+# packages/api/src/zorivest_api/ws/connection_manager.py
+
+from fastapi import WebSocket
+import asyncio
+
+class ConnectionManager:
+    """Manages active WebSocket connections."""
+
+    def __init__(self) -> None:
+        self._connections: list[WebSocket] = []
+
+    async def connect(self, ws: WebSocket) -> None:
+        await ws.accept()
+        self._connections.append(ws)
+
+    def disconnect(self, ws: WebSocket) -> None:
+        self._connections.remove(ws)
+
+    async def broadcast(self, channel: str, payload: dict) -> None:
+        """Send event to all connected clients."""
+        message = {"channel": channel, "data": payload}
+        for conn in list(self._connections):
+            try:
+                await conn.send_json(message)
+            except Exception:
+                self.disconnect(conn)
+```
+
+### Electron Bridge
+
+```typescript
+// ui/src/main/ws/WebSocketBridge.ts
+
+import WebSocket from 'ws';
+import { BrowserWindow, ipcMain } from 'electron';
+
+export class WebSocketBridge {
+  private ws: WebSocket | null = null;
+  private unreadCount = 0;
+
+  constructor(
+    private backendUrl: string,
+    private mainWindow: BrowserWindow,
+  ) {}
+
+  connect(): void {
+    this.ws = new WebSocket(`${this.backendUrl.replace('http', 'ws')}/ws`);
+
+    this.ws.on('message', (data: string) => {
+      const event = JSON.parse(data);
+      // Forward to renderer via IPC
+      this.mainWindow.webContents.send('ws-event', event);
+
+      if (event.channel === 'notification') {
+        this.unreadCount++;
+        this.emit('notification', event.data);
+      }
+    });
+
+    this.ws.on('close', () => {
+      // Auto-reconnect after 3 seconds
+      setTimeout(() => this.connect(), 3000);
+    });
+  }
+
+  getUnreadCount(): number {
+    return this.unreadCount;
+  }
+
+  resetUnreadCount(): void {
+    this.unreadCount = 0;
+  }
+}
+```

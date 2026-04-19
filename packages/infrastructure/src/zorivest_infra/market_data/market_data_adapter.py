@@ -15,6 +15,7 @@ from __future__ import annotations
 from typing import Any
 
 import structlog
+import httpx
 
 from zorivest_core.application.ports import FetchAdapterResult
 from zorivest_infra.market_data.http_cache import fetch_with_cache
@@ -38,11 +39,13 @@ class MarketDataProviderAdapter:
         *,
         http_client: Any,
         rate_limiter: Any,
-        timeout: int = 30,
+        timeout: httpx.Timeout | None = None,
     ) -> None:
         self._http_client = http_client
         self._rate_limiter = rate_limiter
-        self._timeout = timeout
+        self._timeout = timeout or httpx.Timeout(
+            connect=10.0, read=30.0, write=10.0, pool=10.0
+        )
 
     async def fetch(
         self,

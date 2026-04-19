@@ -1,6 +1,6 @@
 # Build Priority Matrix
 
-> Part of [Zorivest Build Plan](../BUILD_PLAN.md) — The 136-item build order across all priority levels.
+> Part of [Zorivest Build Plan](../BUILD_PLAN.md) — The build order across all priority levels (202 items).
 
 ---
 
@@ -100,6 +100,8 @@
 | **35d** | Backup & Restore Settings GUI ([06f](06f-gui-settings.md)) | Manual | Manual backup, restore, verify, auto-backup config |
 | **35e** | Config Export/Import GUI ([06f](06f-gui-settings.md)) | Manual | JSON export download, import with preview diff |
 | **35f** | Reset to Default on settings pages ([06f](06f-gui-settings.md)) | Manual | Source indicator, per-setting reset, bulk reset |
+| **35g** | `DashboardService` + 6 REST endpoints ([03](03-service-layer.md), [06j](06j-gui-home.md)) | ✅ Yes | Read-only aggregation of accounts, trades, plans, watchlists, jobs |
+| **35h** | Home Dashboard GUI ([06j](06j-gui-home.md)) | Manual | Default startup route `/`, skeleton loading, settings (toggle/reorder sections), nav rail update |
 
 ---
 
@@ -126,6 +128,7 @@
 | **49.4** | Pipeline runtime wiring (MEU-PW1) | ✅ Yes | Expand `PipelineRunner` constructor (6 new params); create `DbWriteAdapter`; add `get_smtp_runtime_config()` to `EmailProviderService`; wire all services in `main.py`; delete dead stubs. Makes 4/5 step types operational. |
 | **49.5** | Fetch step integration (MEU-PW2) | ✅ Yes | Create `MarketDataProviderAdapter` (new service); implement `_check_cache()` with FRESHNESS_TTL; integrate `PipelineRateLimiter`; connect `fetch_with_cache()` HTTP revalidation. Makes 5/5 step types operational. Depends on PW1. |
 | **49.6** | Market data schemas (MEU-PW3) | ✅ Yes | 4 SQLAlchemy models (`market_ohlcv/quotes/news/fundamentals`); 3 Pandera schemas; field mappings for non-OHLCV types. Data quality hardening — independent of PW1/PW2. |
+| **49.7** | WebSocket infrastructure (MEU-174) | ✅ Yes | FastAPI `ConnectionManager` + `/ws` endpoint; Electron `WebSocketBridge` (main → renderer relay); event routing (`pnl.tick`, `trade.update`, `notification`). Foundation for real-time dashboard updates and tray icon badge count. |
 
 ---
 
@@ -140,6 +143,8 @@
 | **49c** | Service REST endpoints (`/service/status`, `/service/graceful-shutdown`) | ✅ Yes | `TestClient`: process metrics, graceful restart |
 | **49d** | Service MCP tools (`zorivest_service_status`, `_restart`, `_logs`) | ✅ Yes | Vitest: reachable/unreachable, restart polling, log listing |
 | **49e** | Service Manager GUI (Settings panel) + installer hooks (NSIS, first-launch) | Manual | Status polling, start/stop/restart, auto-start toggle, open log folder |
+| **49f** | `TrayIconRenderer` (OffscreenCanvas → NativeImage) | ✅ Yes | 16/24/32px platform-aware base icons; canvas-drawn status dot (green/yellow/red/gray) + notification badge overlay; state machine (NORMAL → WARNING → ERROR → OFFLINE). No file-system icon swapping. |
+| **49g** | Tray icon integration + context menu | ✅ Yes | Wire renderer to `ServiceManager` health polling + WebSocket notification events; dynamic context menu (Show/Hide, Quick Actions, status line); OS theme detection (`nativeTheme.on('updated')`); click-to-show behavior. |
 
 ---
 
@@ -258,6 +263,22 @@
 
 ---
 
+## P4 — Monetization (Phase 11)
+
+> Source: [Phase 11](11-monetization.md). Subscription infrastructure + OAuth + BYOK.
+
+| Order | What | Tests First? | Notes |
+|-------|------|-------------|-------|
+| **11.1** | Monetization domain (`License`, `SubscriptionTier`, `UsageMeter`) | ✅ Yes | Ed25519 JWT entities, tier enum, usage tracking |
+| **11.2** | Google OAuth PKCE flow | ✅ Yes | BrowserWindow PKCE, encrypted token storage, refresh timer |
+| **11.3** | Google Calendar + Tasks integration | ✅ Yes | Plan reminders → Calendar events, Watchlist actions → Tasks |
+| **11.4** | License enforcement (`LicenseService`) | ✅ Yes | Ed25519 verify, offline grace (14d soft / 30d hard), device binding |
+| **11.5** | BYOK AI provider keys | ✅ Yes | Encrypted key CRUD, periodic validation, usage tracking |
+| **11.6** | Usage metering | ✅ Yes | Tier limits, approach-to-limit UX (green → yellow → red) |
+| **11.7** | Monetization REST API + GUI | ✅ Yes | 11 endpoints, Subscription Settings page (license/usage/BYOK/Google) |
+
+---
+
 ## Research-Enhanced Additions (2026-03-06)
 
 > 10 features from the [MCP ecosystem research synthesis](file:///p:/zorivest/_inspiration/agentic_mcp_research/research-synthesis-correlation.md), placed in build plan execution order by dependency.
@@ -287,6 +308,12 @@
 | Order | What | Tests First? | Insert After | Notes |
 |-------|------|-------------|-------------|-------|
 | **9.A** | Recursive orchestration (Tier 3) | ✅ Yes | Item 49 | Multi-agent MCP chaining for automated pipelines. Requires scheduling engine maturity. |
+
+### Phase 6: GUI — Research Items
+
+| Order | What | Tests First? | Insert After | Notes |
+|-------|------|-------------|-------------|-------|
+| **6.A** | Floating P&L widget (BrowserWindow) | ✅ Yes | After 49.7 (WebSocket) | Always-on-top `BrowserWindow`, consumes `pnl.tick` WebSocket events, draggable, transparency/click-through toggle. Requires WebSocket foundation (49.7). |
 
 ---
 

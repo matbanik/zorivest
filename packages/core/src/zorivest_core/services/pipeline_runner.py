@@ -34,6 +34,26 @@ from zorivest_core.domain.step_registry import get_step
 logger = structlog.get_logger()
 
 
+def _safe_json_output(output: dict | None) -> str | None:
+    """Serialize step output to JSON, handling bytes values.
+
+    Addresses [PIPE-CHARMAP] secondary issue: bytes objects in step
+    output from HTTP responses crash json.dumps(). Also handles
+    datetime serialization.
+    """
+    if not output:
+        return None
+
+    def _default_serializer(obj: Any) -> Any:
+        if isinstance(obj, bytes):
+            return obj.decode("utf-8", errors="replace")
+        if isinstance(obj, datetime):
+            return obj.isoformat()
+        raise TypeError(f"Object of type {type(obj).__name__} is not JSON serializable")
+
+    return json.dumps(output, default=_default_serializer)
+
+
 class PipelineRunner:
     """Sequential async executor for pipeline policies.
 
@@ -84,6 +104,7 @@ class PipelineRunner:
         resume_from: str | None = None,
         actor: str = "",
         policy_id: str = "",
+        run_id: str = "",
     ) -> dict[str, Any]:
         """Execute a full pipeline.
 
@@ -94,13 +115,19 @@ class PipelineRunner:
             resume_from: Step ID to resume from (skip prior successful steps).
             actor: Who triggered this run.
             policy_id: Stored policy ID (PolicyModel.id) for FK references.
+            run_id: Pre-created run record ID from SchedulingService.
+                    When non-empty, skips _create_run_record() and updates
+                    the existing record to RUNNING status.
 
         Returns:
             Dict with run_id, status, duration_ms, error, steps.
         """
         from zorivest_core.domain.policy_validator import compute_content_hash
 
-        run_id = str(uuid.uuid4())
+        # Use provided run_id or generate a new one (backward compat)
+        externally_created = bool(run_id)
+        if not run_id:
+            run_id = str(uuid.uuid4())
         content_hash = compute_content_hash(policy)
         run_log = structlog.get_logger().bind(run_id=run_id, policy=policy.name)
 
@@ -128,15 +155,19 @@ class PipelineRunner:
             logger=run_log,
         )
 
-        # Persist run record
-        await self._create_run_record(
-            run_id,
-            policy_id or policy.name,
-            trigger_type,
-            dry_run,
-            actor,
-            content_hash,
-        )
+        # Persist run record — conditional on whether run_id was pre-created
+        if externally_created:
+            # Pre-created by SchedulingService: just update to RUNNING
+            await self._update_run_status(run_id, PipelineStatus.RUNNING)
+        else:
+            await self._create_run_record(
+                run_id,
+                policy_id or policy.name,
+                trigger_type,
+                dry_run,
+                actor,
+                content_hash,
+            )
 
         run_start = time.monotonic()
         final_status = PipelineStatus.SUCCESS
@@ -332,6 +363,21 @@ class PipelineRunner:
         )
         self.uow.commit()
 
+    async def _update_run_status(
+        self,
+        run_id: str,
+        status: PipelineStatus,
+    ) -> None:
+        """Update the status of an existing pipeline_run record.
+
+        Used when the run record was pre-created by SchedulingService
+        (e.g., transitioning from 'pending' to 'running').
+        """
+        if self.uow is None:
+            return
+        self.uow.pipeline_runs.update_status(run_id, status=status.value)
+        self.uow.commit()
+
     async def _persist_step(
         self,
         run_id: str,
@@ -351,7 +397,7 @@ class PipelineRunner:
             step_type=step_def.type,
             status=result.status.value,
             attempt=attempt,
-            output_json=json.dumps(result.output) if result.output else None,
+            output_json=_safe_json_output(result.output),
             error=result.error,
             started_at=result.started_at,
             completed_at=result.completed_at,

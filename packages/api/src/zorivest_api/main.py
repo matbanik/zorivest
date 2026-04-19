@@ -155,6 +155,11 @@ async def lifespan(app: FastAPI) -> AsyncGenerator[None, None]:
     app.state.db_unlocked = bool(os.environ.get("ZORIVEST_DEV_UNLOCK", ""))
     app.state.db = None  # Placeholder for SQLCipherDB; initialized on unlock
 
+    # ── Logging (UTF-8 safe, idempotent) ─────────────────────────────────
+    from zorivest_api.logging_config import configure_structlog_utf8
+
+    configure_structlog_utf8()
+
     # ── Engine & schema ──────────────────────────────────────────────────
     db_url = os.environ.get("ZORIVEST_DB_URL", "sqlite:///zorivest.db")
     engine = create_engine_with_wal(db_url)
@@ -276,6 +281,22 @@ async def lifespan(app: FastAPI) -> AsyncGenerator[None, None]:
         pipeline_state_repo=uow.pipeline_state,
         fetch_cache_repo=uow.fetch_cache,
     )
+
+    # ── Zombie recovery (MEU-PW5 §9.3e) ─────────────────────────────────
+    import structlog as _structlog
+
+    _startup_log = _structlog.get_logger()
+    try:
+        recovered = await pipeline_runner.recover_zombies()
+        if recovered:
+            _startup_log.warning(
+                "zombie_runs_recovered",
+                count=len(recovered),
+                runs=recovered,
+            )
+    except Exception as exc:
+        _startup_log.error("zombie_recovery_failed", error=str(exc))
+
     scheduler_svc = SchedulerService(
         pipeline_runner=pipeline_runner,
         policy_repo=policy_adapter,

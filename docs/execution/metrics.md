@@ -51,6 +51,7 @@
 | 2026-04-12 | MEU-PW1 | ~60 | ~5 min | 33 | pending Codex review | 7/7 | 95% | ~60 min | Pipeline runtime wiring: PipelineRunner constructor (6 kwargs), DbWriteAdapter, get_smtp_runtime_config(), main.py wiring (7 deps), 2 dead stubs deleted. Strengthened AC-2 tests + run()-based integration test proving deps reach step context. 8/8 MEU gate, 0 OpenAPI drift. Resolved [SCHED-PIPELINE-WIRING]. |
 | 2026-04-13 | MEU-PW2 | ~40 | ~5 min | 12 | pending Codex review | 7/7 | 95% | ~45 min | Fetch step integration: MarketDataProviderAdapter, MarketDataAdapterPort, FetchAdapterResult TypedDict, _check_cache with TTL+market-closed, cache upsert, entity_key, warnings field, main.py wiring (8→9 kwargs). ProviderConfig→rate limit extraction caught at runtime. 1926 tests, 8/8 MEU gate. |
 | 2026-04-14 | MEU-PW3 | ~30 | ~5 min | 67 | pending Codex review | 7/7 | 95% | ~45 min | Market data schemas: 4 ORM models, 3 Pandera schemas, 9 field mappings, SCHEMA_REGISTRY. Fixed latent validate_dataframe() NaN bug (Pandera uses float('nan') for column-level errors). 8/8 MEU gate, 0 regressions. |
+| 2026-04-19 | MEU-PW4/PW5 | ~60 | ~5 min | 15 | pending Codex review | 7/7 | 90% | ~90 min | 2-MEU pipeline hardening: charmap fix (structlog UTF-8, _safe_json_output) + zombie elimination (dual-write→single-writer, run_id passthrough, recover_zombies startup, httpx.Timeout). 2026 tests, 8/8 MEU gate. Workflow discipline issue (plan file destination) resolved via known-issues. |
 
 ## Measurement Definitions
 

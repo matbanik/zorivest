@@ -28,22 +28,6 @@
 - **Details:** Server instructions and tool descriptions are too terse for AI agents to discover and correctly use multi-step workflows. Confirmed gaps in scheduling toolset: (1) server instructions say only "Automated task scheduling" — no mention of policy CRUD or pipeline execution, (2) `run_pipeline` description doesn't explain the approval prerequisite or error return shape, (3) `create_policy` has no example of the expected `policy_json` structure, (4) `pipeline://policies/schema` and `pipeline://step-types` MCP resources aren't referenced in any tool description, (5) no workflow guidance for the `create → approve → run` lifecycle. Similar gaps likely exist across `accounts`, `trade-analytics`, `trade-planning`, `market-data`, and other toolsets.
 - **Next steps:** Full audit of all toolset descriptions against their actual API contracts. Improve server instructions with toolset workflow summaries. Add `policy_json` examples to `create_policy`. Reference MCP resources from tool descriptions. Ensure all tool descriptions include prerequisite state, return shape hints, and error conditions.
 
-### [PIPE-CHARMAP] — Pipeline runs crash with `'charmap' codec can't encode characters` on Windows
-- **Severity:** High | **Component:** core (`pipeline_runner.py`, `scheduling_service.py`) | **Discovered:** 2026-04-14 | **Status:** Open
-- **Details:** `UnicodeEncodeError` on structlog writes to `sys.stderr` (cp1252 default on Windows). No `structlog.configure()` exists in codebase. Triggers at `scheduling_service.py:325` and `pipeline_runner.py:202` when exception messages contain non-ASCII chars. Secondary: `pipeline_runner.py:354` `json.dumps(result.output)` fails on `bytes` objects from HTTP responses.
-- **Evidence:** Run `bd00011c`, failed at 2026-04-14T03:19:31Z, duration_ms=346, steps array empty.
-- **Fix:** Set `PYTHONUTF8=1` env var, or add explicit `structlog.configure()` with UTF-8 safe output. Also handle `bytes` in `_persist_step` before `json.dumps()`.
-- **Workaround:** `$env:PYTHONUTF8=1` before starting backend.
-
-
-### [PIPE-ZOMBIE] — Pipeline runs get stuck permanently in "running" state (zombie runs)
-- **Severity:** High | **Component:** core (`scheduling_service.py`, `pipeline_runner.py`) | **Discovered:** 2026-04-14 | **Status:** Open
-- **Details:** Three interacting problems:
-  1. **Dual-write:** `SchedulingService.trigger_run()` (line 306) creates a run record, then `PipelineRunner.run()` creates a SECOND record with different `run_id`. Only the inner one gets finalized — the outer one stays "running" forever.
-  2. **Timeout ineffective:** `asyncio.timeout(step_def.timeout)` at `pipeline_runner.py:268` can't cancel httpx when the underlying TCP connection hangs on Windows.
-  3. **No zombie recovery:** No periodic scan or endpoint to detect/clean runs stuck past expected max duration.
-- **Evidence:** Run `8696adce` stuck at `status="running"` since 2026-04-14T03:19:31Z (>6 min), steps array empty.
-- **Fix:** (a) Eliminate dual writes — pass `run_id` into runner or remove outer record creation. (b) Add zombie recovery endpoint/periodic scan. (c) Set httpx `timeout` as `httpx.Timeout(connect=10, read=30, write=10, pool=10)` for explicit per-phase control.
 
 
 ### [PIPE-URLBUILD] — MarketDataProviderAdapter._build_url() uses hardcoded URL patterns that don't match provider APIs
@@ -66,6 +50,20 @@
   4. **Backend — Per-step token check:** Before each step execution in the runner loop, check `if run_status == "cancelling": break`. This provides cooperative cancellation at step boundaries even if `asyncio.Task.cancel()` can't interrupt a blocked I/O call (PIPE-ZOMBIE problem 2).
   5. **GUI — Cancel button:** Run detail page: red "Cancel Run" button visible when `status === "running"`. On click → confirmation dialog → `POST .../cancel` → button changes to "Cancelling…" (disabled) → poll/SSE until status reaches `"cancelled"` or `"failed"`. UX: don't show error toast on user-initiated cancel (AbortController pattern).
   6. **GUI — Run list indicator:** Show `🔴 Cancelling` badge in run history table during the intermediate state.
+
+### [WF-SEGREGATE] — `/planning-corrections` and `/critical-review-feedback` need PLAN vs EXECUTION variants
+- **Severity:** Medium | **Component:** `.agent/workflows/` | **Discovered:** 2026-04-19 | **Status:** Open
+- **Details:** Both workflows currently handle plan-review and implementation-review in a single file. This causes:
+  1. **Size bloat:** Each file is large enough that agents lose track of which mode they're operating in (plan corrections vs execution corrections).
+  2. **Mode confusion:** Agent conflates plan-phase approval gates with execution-phase gates, leading to unnecessary round-trips or skipped steps.
+  3. **Missing HARD STOP:** Neither workflow enforces a mandatory stop after handoff creation. When a workflow is invoked, the agent should create the handoff and STOP — not continue into the next phase or workflow without explicit user direction.
+- **Proposed fix:** Split into 4 workflows:
+  - `/plan-corrections` — corrections to plan/task files from plan-review findings
+  - `/execution-corrections` — corrections to implementation code from execution-review findings
+  - `/plan-critical-review` — adversarial review of unstarted plans
+  - `/execution-critical-review` — adversarial review of completed implementation handoffs
+- **HARD STOP rule:** Each workflow must end with a mandatory HARD STOP after the handoff is written. The agent must not autonomously chain into the next workflow (e.g., corrections → execution, or review → corrections). The user explicitly invokes the next step.
+- **Root cause incident:** 2026-04-19 session — agent wrote corrections plan to brain artifact and stalled on re-reads instead of directly editing project files, partly due to mode confusion in the combined workflow.
 
 ## Mitigated / Workaround Applied
 
@@ -139,6 +137,8 @@
 | SCHED-RUNREPO | 2026-03-19 | Key translation in adapter |
 | MCP-CONFIRM | 2026-03-19 | Added confirmation_token to schema |
 | DOC-STALESLUG | 2026-03-22 | MEU slug reference corrected |
+| PIPE-CHARMAP | 2026-04-19 | Pipeline charmap crash fixed — structlog UTF-8 config + bytes-safe JSON (MEU-PW4) |
+| PIPE-ZOMBIE | 2026-04-19 | Zombie runs eliminated — dual-write→single-writer, run_id passthrough, recover_zombies (MEU-PW5) |
 
 ## Template
 

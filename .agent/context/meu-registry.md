@@ -133,6 +133,11 @@
 | MEU-PW1 | `pipeline-runtime-wiring` | 49.4 | Expand PipelineRunner constructor; DbWriteAdapter; SMTP bridge; wire main.py; delete dead stubs → 4/5 steps operational | ✅ 2026-04-12 |
 | MEU-PW2 | `fetch-step-integration` | 49.5 | MarketDataProviderAdapter; cache impl; rate limiter; HTTP cache revalidation → 5/5 steps operational. Depends on PW1. | ✅ 2026-04-13 |
 | MEU-PW3 | `market-data-schemas` | 49.6 | 4 SQLAlchemy models + 3 Pandera schemas + field mappings → data quality hardening. Independent. | ✅ complete |
+| MEU-PW4 | `pipeline-charmap-fix` | 49.7 | Fix [PIPE-CHARMAP]: structlog UTF-8 config + bytes-safe JSON serialization. No deps. | ✅ 2026-04-19 |
+| MEU-PW5 | `pipeline-zombie-fix` | 49.8 | Fix [PIPE-ZOMBIE]: eliminate dual-write, per-phase httpx.Timeout, zombie recovery. Depends PW4. | ✅ 2026-04-19 |
+| MEU-PW6 | `provider-url-builders` | 49.9 | Fix [PIPE-URLBUILD]: per-provider URL builder registry + criteria normalization + headers. Depends PW5 (parallel PW7). | ⬜ planned |
+| MEU-PW7 | `pipeline-cancellation` | 49.10 | Fix [PIPE-NOCANCEL]: CANCELLING status, task registry, cancel_run() + REST endpoint. Depends PW5 (parallel PW6). | ⬜ planned |
+| MEU-PW8 | `pipeline-e2e-test-harness` | 49.11 | E2E test infrastructure: 7 policy fixtures, 6 mock steps, 14+ integration tests validating full service stack. Depends PW4–PW7. | ⬜ planned |
 
 ## Execution Order
 
@@ -145,7 +150,7 @@ Phase 4: MEU-23 → MEU-24 → MEU-25 → MEU-26 → MEU-27 → MEU-28 → MEU-2
 Phase 5: MEU-31 → MEU-32 → MEU-33 → MEU-34 → MEU-35 → MEU-36 → MEU-37 → MEU-38 → MEU-39 → MEU-40 → MEU-41 → MEU-42
 Phase 8: MEU-56 → MEU-57 → MEU-58 → MEU-59 → MEU-62 → MEU-60
 Phase 9 (domain foundation): MEU-77 → MEU-78 → MEU-79 → MEU-80
-Phase 9 (pipeline integration): MEU-PW1 → MEU-PW2 (PW3 independent)
+Phase 9 (pipeline integration): MEU-PW1 → MEU-PW2 (PW3 independent) → MEU-PW4 → MEU-PW5 → MEU-PW6 ∥ MEU-PW7 → MEU-PW8
 P2.75 (broker adapters): MEU-96 → MEU-99
 
 ## P2.75 — Expansion: Broker Adapters & Import
@@ -186,6 +191,19 @@ P2.75 (broker adapters): MEU-96 → MEU-99
 | MEU-70a | `watchlist-redesign-plan-size` | 06i | Watchlist visual redesign (professional data table, dark palette, colorblind toggle) + `position_size` full-stack propagation + calculator write-back (65 tests) | ✅ 2026-04-11 |
 | MEU-72 | `gui-scheduling` | 35b | Scheduling & Pipeline GUI: policy list+detail, CodeMirror JSON editor, cron preview, run history, execution controls, default TZ setting, MCP toolset loading | ⏳ 2026-04-12 (pending Codex) |
 
+## P2: Home Dashboard
+
+| MEU | Slug | Matrix | Description | Status |
+|-----|------|:------:|-------------|:------:|
+| MEU-171 | `dashboard-service` | 35g | DashboardService (read-only aggregation) + 6 REST endpoints under `/api/v1/dashboard/` | ⬜ planned |
+| MEU-172 | `gui-home-dashboard` | 35h | Home Dashboard GUI: startup route (`/`), 6 section cards with skeleton loading, dashboard settings (toggle/reorder), nav rail update (Home → 1st position) | ⬜ planned |
+
+## P2.5: WebSocket Infrastructure
+
+| MEU | Slug | Matrix | Description | Status |
+|-----|------|:------:|-------------|:------:|
+| MEU-174 | `websocket-infrastructure` | 49.7 | FastAPI `ConnectionManager` + `/ws` endpoint; Electron `WebSocketBridge` (main → renderer relay); event routing (`pnl.tick`, `trade.update`, `notification`). Foundation for real-time dashboard and tray icon badge. | ⬜ planned |
+
 ## Phase-Exit Criteria (Updated)
 
 - Phase 6 (foundation): MEU-43..45 ✅ (shell + commands + window state) → Phase 6 features unblocked
@@ -198,6 +216,36 @@ P2.75 (broker adapters): MEU-96 → MEU-99
 | MEU-PW1 | `pipeline-runtime-wiring` | 49.4 | Expand `PipelineRunner.__init__` (6 new kwargs); create `DbWriteAdapter`; add `get_smtp_runtime_config()` to `EmailProviderService`; wire 7 runtime deps in `main.py` (`provider_adapter=None` until PW2); delete dead stubs (`StubMarketDataService`, `StubProviderConnectionService`); integration test verifying all wired deps | ✅ 2026-04-12 |
 | MEU-PW2 | `fetch-step-integration` | 49.5 | Create `MarketDataProviderAdapter` + `MarketDataAdapterPort`; implement `FetchStep._check_cache` with TTL + market-hours extension; add entity_key computation + cache upsert after fetch; add `warnings` field to `FetchResult`; wire adapter/rate-limiter/cache-repo in `main.py` (PipelineRunner 8→9 kwargs); update PW1 contract tests; 5 integration tests | ✅ 2026-04-13 |
 | MEU-TD1 | `mcp-tool-discovery-audit` | 5.I | Audit all 9 MCP toolset descriptions; enrich workflow context, examples, resource references | ⬜ planned |
+
+## P2.6: Service Daemon & Tray Icon (Phase 10)
+
+| MEU | Slug | Matrix | Description | Status |
+|-----|------|:------:|-------------|:------:|
+| MEU-91 | `service-config-files` | 49a | Service config (WinSW, launchd, systemd) | ⬜ planned |
+| MEU-92 | `service-manager` | 49b | ServiceManager class + IPC bridge | ⬜ planned |
+| MEU-93 | `service-api` | 49c | Service REST endpoints (status, shutdown) | ⬜ planned |
+| MEU-94 | `service-mcp` | 49d | Service MCP tools (status, restart, logs) | ⬜ planned |
+| MEU-95 | `service-gui` | 49e | Service Manager GUI + installer hooks | ⬜ planned |
+| MEU-95a | `tray-icon-renderer` | 49f | TrayIconRenderer: OffscreenCanvas → NativeImage, status dot (green/yellow/red/gray) + notification badge overlay, platform-aware sizing (16/24/32px), state machine | ⬜ planned |
+| MEU-95b | `tray-icon-integration` | 49g | Wire renderer to ServiceManager health + WebSocket notification count; dynamic context menu; OS theme detection; click-to-show behavior | ⬜ planned |
+
+## P4: Monetization (Phase 11)
+
+| MEU | Slug | Matrix | Description | Status |
+|-----|------|:------:|-------------|:------:|
+| MEU-175 | `monetization-domain` | 11.1 | License entity, SubscriptionTier enum, UsageMeter entity | ⬜ planned |
+| MEU-176 | `oauth-google` | 11.2 | Google OAuth PKCE + encrypted token storage, refresh timer | ⬜ planned |
+| MEU-177 | `google-calendar-tasks` | 11.3 | Calendar/Tasks API for Plan reminders + Watchlist actions | ⬜ planned |
+| MEU-178 | `license-enforcement` | 11.4 | Ed25519 JWT validation, offline grace (14d/30d), device binding | ⬜ planned |
+| MEU-179 | `byok-ai-providers` | 11.5 | AI provider key CRUD (encrypted), periodic validation, usage tracking | ⬜ planned |
+| MEU-180 | `monetization-api-gui` | 11.7 | Monetization REST routes (11 endpoints) + Subscription Settings GUI | ⬜ planned |
+| MEU-181 | `usage-metering` | 11.6 | Usage counters, tier limits, approach-to-limit UX (green → yellow → red) | ⬜ planned |
+
+## Research-Enhanced: Floating P&L Widget (Phase 6)
+
+| MEU | Slug | Matrix | Description | Status |
+|-----|------|:------:|-------------|:------:|
+| MEU-173 | `floating-pnl-widget` | 6.A | Always-on-top BrowserWindow, consumes `pnl.tick` WebSocket events, draggable, transparency/click-through toggle. Depends on MEU-174 (WebSocket). | ⬜ planned |
 
 ## Research-Enhanced: Workspace Setup (Tier 2, after Phase 9 domain)
 

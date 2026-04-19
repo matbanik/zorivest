@@ -550,3 +550,184 @@ class TestPersistenceWithUoW:
             assert len(steps) >= 1
             assert steps[0].step_id == "step_a"  # type: ignore[reportGeneralTypeIssues]
             assert steps[0].status == "success"  # type: ignore[reportGeneralTypeIssues]
+
+
+# ── MEU-PW5: Dual-Write Elimination ─────────────────────────────────────
+
+
+class TestRunIdParam:
+    """PW5 AC-1: PipelineRunner.run() accepts optional run_id param.
+    When provided, skips _create_run_record() and updates to RUNNING."""
+
+    def test_run_with_run_id_skips_create(self):
+        """When run_id is provided, _create_run_record() must NOT be called."""
+        from unittest.mock import MagicMock
+
+        uow = MagicMock()
+        uow.pipeline_runs = MagicMock()
+        uow.pipeline_runs.update_status = MagicMock()
+        uow.pipeline_runs.create = MagicMock()
+        uow.commit = MagicMock()
+
+        runner = PipelineRunner(
+            uow=uow,
+            ref_resolver=RefResolver(),
+            condition_evaluator=ConditionEvaluator(),
+        )
+
+        with patch("zorivest_core.services.pipeline_runner.get_step") as mock_get:
+            mock_get.return_value = FakeSuccessStep
+            policy = _policy(_step("step_a"), name="test-policy")
+            result = asyncio.run(
+                runner.run(
+                    policy,
+                    trigger_type="manual",
+                    policy_id="pid-1",
+                    run_id="existing-run-123",
+                )
+            )
+
+        assert result["status"] == "success"
+        assert result["run_id"] == "existing-run-123"
+        # Must NOT have created a new run record
+        uow.pipeline_runs.create.assert_not_called()
+
+    def test_run_with_run_id_updates_to_running(self):
+        """When run_id is provided, runner updates existing record to RUNNING."""
+        from unittest.mock import MagicMock
+
+        uow = MagicMock()
+        uow.pipeline_runs = MagicMock()
+        uow.pipeline_runs.update_status = MagicMock()
+        uow.commit = MagicMock()
+
+        runner = PipelineRunner(
+            uow=uow,
+            ref_resolver=RefResolver(),
+            condition_evaluator=ConditionEvaluator(),
+        )
+
+        with patch("zorivest_core.services.pipeline_runner.get_step") as mock_get:
+            mock_get.return_value = FakeSuccessStep
+            policy = _policy(_step("step_a"), name="test-policy")
+            asyncio.run(
+                runner.run(
+                    policy,
+                    trigger_type="manual",
+                    policy_id="pid-1",
+                    run_id="existing-run-456",
+                )
+            )
+
+        # First update_status call should transition to RUNNING
+        calls = uow.pipeline_runs.update_status.call_args_list
+        assert len(calls) >= 1
+        first_call_args = calls[0]
+        assert first_call_args[0][0] == "existing-run-456"
+        assert first_call_args[1].get("status") == "running" or (
+            len(first_call_args[0]) > 1 and first_call_args[0][1] == "running"
+        )
+
+
+class TestRunIdBackwardCompat:
+    """PW5 AC-2: run() with default run_id='' creates a new record as before."""
+
+    def test_run_without_run_id_creates_record(self):
+        """Default call (no run_id) must create a new run record."""
+        from unittest.mock import MagicMock
+
+        uow = MagicMock()
+        uow.pipeline_runs = MagicMock()
+        uow.pipeline_runs.create = MagicMock()
+        uow.commit = MagicMock()
+
+        runner = PipelineRunner(
+            uow=uow,
+            ref_resolver=RefResolver(),
+            condition_evaluator=ConditionEvaluator(),
+        )
+
+        with patch("zorivest_core.services.pipeline_runner.get_step") as mock_get:
+            mock_get.return_value = FakeSuccessStep
+            policy = _policy(_step("step_a"), name="test-policy")
+            result = asyncio.run(
+                runner.run(
+                    policy,
+                    trigger_type="manual",
+                    policy_id="pid-2",
+                )
+            )
+
+        assert result["status"] == "success"
+        # Must have created a new run record (backward compat)
+        uow.pipeline_runs.create.assert_called_once()
+
+
+class TestUpdateRunStatus:
+    """PW5 AC-6: PipelineRunner has _update_run_status() private method."""
+
+    def test_method_exists(self):
+        runner = _runner()
+        assert hasattr(runner, "_update_run_status")
+        assert callable(runner._update_run_status)
+
+    def test_updates_status_on_record(self):
+        """_update_run_status() must update the run record status."""
+        from unittest.mock import MagicMock
+
+        uow = MagicMock()
+        uow.pipeline_runs = MagicMock()
+        uow.pipeline_runs.update_status = MagicMock()
+        uow.commit = MagicMock()
+
+        runner = PipelineRunner(
+            uow=uow,
+            ref_resolver=RefResolver(),
+            condition_evaluator=ConditionEvaluator(),
+        )
+
+        asyncio.run(runner._update_run_status("run-789", PipelineStatus.RUNNING))
+        uow.pipeline_runs.update_status.assert_called_once_with(
+            "run-789", status="running"
+        )
+
+
+class TestRunIdFinalization:
+    """PW5 AC-7: When run_id is provided, runner finalizes with that run_id."""
+
+    def test_finalization_uses_provided_run_id(self):
+        """The final status must be persisted on the provided run_id."""
+        from unittest.mock import MagicMock
+
+        uow = MagicMock()
+        uow.pipeline_runs = MagicMock()
+        uow.pipeline_runs.update_status = MagicMock()
+        uow.commit = MagicMock()
+
+        runner = PipelineRunner(
+            uow=uow,
+            ref_resolver=RefResolver(),
+            condition_evaluator=ConditionEvaluator(),
+        )
+
+        with patch("zorivest_core.services.pipeline_runner.get_step") as mock_get:
+            mock_get.return_value = FakeSuccessStep
+            policy = _policy(_step("step_a"), name="test-policy")
+            result = asyncio.run(
+                runner.run(
+                    policy,
+                    trigger_type="scheduled",
+                    policy_id="pid-3",
+                    run_id="svc-run-001",
+                )
+            )
+
+        assert result["status"] == "success"
+        assert result["run_id"] == "svc-run-001"
+
+        # Last update_status call should be finalization with success status
+        calls = uow.pipeline_runs.update_status.call_args_list
+        last_call = calls[-1]
+        assert last_call[0][0] == "svc-run-001"
+        assert last_call[1].get("status") == "success"
+        assert "duration_ms" in last_call[1]

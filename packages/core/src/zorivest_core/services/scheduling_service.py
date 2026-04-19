@@ -293,7 +293,7 @@ class SchedulingService:
         run_data = {
             "run_id": run_id,
             "policy_id": policy_id,
-            "status": "running",
+            "status": "pending",
             "trigger_type": trigger_type,
             "content_hash": content_hash,
             "started_at": now,
@@ -306,7 +306,8 @@ class SchedulingService:
         result = await self._runs.create(run_data)
         await self._audit.log("pipeline.run", "pipeline_run", run_id)
 
-        # Execute pipeline via runner
+        # Execute pipeline via runner — runner owns status transitions
+        # (pending → running → success/failed)
         if self._runner is not None:
             policy_json = policy.get("policy_json", {})
             try:
@@ -316,33 +317,39 @@ class SchedulingService:
                     trigger_type=trigger_type,
                     dry_run=dry_run,
                     policy_id=policy_id,
+                    run_id=run_id,
                 )
-                final_status = run_result.get("status", "success")
-                run_error = run_result.get("error")
+                # Runner finalized the record; reflect status in response
+                result.update(
+                    {
+                        "status": run_result.get("status", "success"),
+                        "error": run_result.get("error"),
+                    }
+                )
             except Exception as exc:
+                # Runner crashed before finalizing — service catches as fallback
                 final_status = "failed"
                 run_error = str(exc)
                 logger.error("pipeline_run_failed", run_id=run_id, error=str(exc))
-
-            completed_at = datetime.now(timezone.utc)
-            duration_ms = int((completed_at - now).total_seconds() * 1000)
-            await self._runs.update(
-                run_id,
-                {
-                    "status": final_status,
-                    "completed_at": completed_at,
-                    "duration_ms": duration_ms,
-                    "error": run_error,
-                },
-            )
-            result.update(
-                {
-                    "status": final_status,
-                    "completed_at": completed_at,
-                    "duration_ms": duration_ms,
-                    "error": run_error,
-                }
-            )
+                completed_at = datetime.now(timezone.utc)
+                duration_ms = int((completed_at - now).total_seconds() * 1000)
+                await self._runs.update(
+                    run_id,
+                    {
+                        "status": final_status,
+                        "completed_at": completed_at,
+                        "duration_ms": duration_ms,
+                        "error": run_error,
+                    },
+                )
+                result.update(
+                    {
+                        "status": final_status,
+                        "completed_at": completed_at,
+                        "duration_ms": duration_ms,
+                        "error": run_error,
+                    }
+                )
 
         return RunResult(run=result)
 

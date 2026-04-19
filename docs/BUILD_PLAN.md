@@ -11,9 +11,10 @@ The build order follows the **dependency rule**: inner layers first, outer layer
 ```
 Domain → Infrastructure → Services → REST API → MCP Server → GUI → Distribution
   (1)        (2)            (3)         (4)         (5)        (6)       (7)
-                                                    ↑                    ↑
-                                              Market Data(8)    Scheduling(9)
-                                                                Service Daemon(10)
+                                         ↑          ↑                    ↑
+                                    WebSocket(4.1)  │          Scheduling(9)
+                                              Market Data(8)   Service Daemon(10)
+                                                                Monetization(11)
 ```
 
 ---
@@ -35,6 +36,7 @@ Domain → Infrastructure → Services → REST API → MCP Server → GUI → D
 | 8 | [Market Data](build-plan/08-market-data.md) | `08-market-data.md` | Phases 2–4 | 14 market data providers (12 API-key + 2 free via MEU-65), API key encryption, MCP tools |
 | 9 | [Scheduling & Pipelines](build-plan/09-scheduling.md) | `09-scheduling.md` | Phases 2–5, 8 | Policy engine, pipeline runner, APScheduler |
 | 10 | [Service Daemon](build-plan/10-service-daemon.md) | `10-service-daemon.md` | Phases 4, 7, 9 | Cross-platform OS service, ServiceManager |
+| 11 | [Monetization](build-plan/11-monetization.md) | `11-monetization.md` | Phases 2, 4, 8 | Subscription, OAuth, BYOK, usage metering |
 
 ---
 
@@ -67,6 +69,7 @@ Domain → Infrastructure → Services → REST API → MCP Server → GUI → D
 | 8 — Market Data | ✅ Completed | 2026-03-23 |
 | 9 — Scheduling | ✅ Completed (P2.5a integration done) | 2026-03-24 |
 | 10 — Service Daemon | ⚪ Not Started | — |
+| 11 — Monetization | ⚪ Not Started | — |
 
 ---
 
@@ -314,14 +317,41 @@ Domain → Infrastructure → Services → REST API → MCP Server → GUI → D
 ### P2.5b — Backend Services Wiring & Quality
 
 > Prerequisite: P2.5a (MEU-90a ✅), Phase 8 (MEU-65a ✅), Phase 9 steps (MEU-85/88 ✅), Email (MEU-73 ✅)
-> Unblocks: End-to-end pipeline execution, MEU-72 "Run Now"/"Test Run" functionality
-> Resolves: [SCHED-PIPELINE-WIRING], partial [STUB-RETIRE], [MCP-TOOLDISCOVERY]
+> Unblocks: End-to-end pipeline execution, MEU-72 "Run Now"/"Test Run" functionality, GUI scheduling dashboard cancel UX
+> Resolves: [SCHED-PIPELINE-WIRING], partial [STUB-RETIRE], [MCP-TOOLDISCOVERY], [PIPE-CHARMAP], [PIPE-ZOMBIE], [PIPE-URLBUILD], [PIPE-NOCANCEL]
 
 | MEU | Slug | Matrix Item | Build Plan Ref | Description | Status |
 |-----|------|:-----------:|----------------|-------------|:------:|
 | MEU-PW1 | `pipeline-runtime-wiring` | 49.4 | [09 §runner](build-plan/09-scheduling.md), [06e](build-plan/06e-gui-scheduling.md) | Expand `PipelineRunner.__init__` with 8 keyword params (7 wired to real services, `provider_adapter` accepted as `None` slot for PW2); create `DbWriteAdapter` bridging `write_dispositions.py`; add `get_smtp_runtime_config()` to `EmailProviderService` (key remapping + password decryption); wire `delivery_repository`, `report_repository`, `pipeline_state_repo`, `db_connection`, `template_engine`, `smtp_config` in `main.py`; delete dead stubs (`StubMarketDataService`, `StubProviderConnectionService`); integration test for dependency wiring verification · Depends on: MEU-90a ✅, MEU-85 ✅, MEU-88 ✅, MEU-65a ✅, MEU-73 ✅ | ✅ |
 | MEU-PW2 | `fetch-step-integration` | 49.5 | [09 §9.4](build-plan/09-scheduling.md) | Create `MarketDataProviderAdapter` + `MarketDataAdapterPort`; implement `FetchStep._check_cache` with TTL + market-hours extension; add cache upsert after fetch; wire adapter/rate-limiter/cache-repo in `main.py`; update PW1 contract tests 8→9 kwargs · Depends on: MEU-PW1 ✅ | ✅ |
+| MEU-PW3 | `market-data-schemas` | 49.6 | [09 §9.5](build-plan/09-scheduling.md) | 4 SQLAlchemy ORM models (OHLCV, Quote, News, Fundamentals) + 3 Pandera schemas + field mappings → data quality hardening · Independent of PW1/PW2 | ✅ |
+| MEU-PW4 | `pipeline-charmap-fix` | 49.7 | [09b §9B.2](build-plan/09b-pipeline-hardening.md) | Fix [PIPE-CHARMAP]: configure structlog UTF-8 output on Windows; bytes-safe JSON serialization in `_persist_step()`; `UnicodeDecoder` processor · Resolves pipeline crash on non-ASCII error messages · No deps | ✅ |
+| MEU-PW5 | `pipeline-zombie-fix` | 49.8 | [09b §9B.3](build-plan/09b-pipeline-hardening.md) | Fix [PIPE-ZOMBIE]: eliminate dual-write (SchedulingService sole record creator, PipelineRunner accepts `run_id`); per-phase httpx.Timeout; zombie recovery at startup scan · Depends on: MEU-PW4 | ✅ |
+| MEU-PW6 | `provider-url-builders` | 49.9 | [09b §9B.4](build-plan/09b-pipeline-hardening.md) | Fix [PIPE-URLBUILD]: per-provider URL builder registry (Yahoo, Polygon, Finnhub + GenericUrlBuilder fallback); criteria key normalization (`tickers[]` vs `symbol`); forward `headers_template` to HTTP fetch · Depends on: MEU-PW5 (parallel with PW7) | ⬜ |
+| MEU-PW7 | `pipeline-cancellation` | 49.10 | [09b §9B.5](build-plan/09b-pipeline-hardening.md) | Fix [PIPE-NOCANCEL]: add `CANCELLING` status to PipelineStatus enum; `_active_tasks` task registry; `cancel_run()` (cooperative + forced); `POST /runs/{run_id}/cancel` endpoint; per-step cooperative cancellation check · Depends on: MEU-PW5 (parallel with PW6) | ⬜ |
+| MEU-PW8 | `pipeline-e2e-test-harness` | 49.11 | [09b §9B.6](build-plan/09b-pipeline-hardening.md) | End-to-end pipeline integration test infrastructure: 7 test policy fixtures (happy path, error modes, dry-run, skip, cancel, unicode); 6 mock step implementations; 14+ integration tests validating full service stack (SchedulingService → PipelineRunner → Steps → Persistence → Audit) · Depends on: MEU-PW4 through MEU-PW7 | ⬜ |
 | MEU-TD1 | `mcp-tool-discovery-audit` | 5.I | [05](build-plan/05-mcp-server.md) | Audit all 9 MCP toolset descriptions; enrich server instructions with workflow summaries; add `policy_json` examples to `create_policy`; reference MCP resources from tool descriptions; add prerequisite state, return shape, and error conditions · Parallel with any MEU | ⬜ |
+
+---
+
+### P2.5 (addition) — WebSocket Infrastructure
+
+> Source: [04-rest-api.md](build-plan/04-rest-api.md) §WebSocket
+
+| MEU | Slug | Matrix Item | Build Plan Ref | Description | Status |
+|-----|------|:-----------:|----------------|-------------|:------:|
+| MEU-174 | `websocket-infrastructure` | 49.7 | [04 §ws](build-plan/04-rest-api.md) | FastAPI WebSocket endpoint + ConnectionManager + Electron WebSocketBridge relay | ⬜ |
+
+---
+
+### P2 (addition) — Home Dashboard
+
+> Source: [06j-gui-home.md](build-plan/06j-gui-home.md)
+
+| MEU | Slug | Matrix Item | Build Plan Ref | Description | Status |
+|-----|------|:-----------:|----------------|-------------|:------:|
+| MEU-171 | `dashboard-service` | 35g | [03 §dashboard](build-plan/03-service-layer.md), [06j §6j.2](build-plan/06j-gui-home.md) | DashboardService (read-only aggregation) + 6 REST endpoints | ⬜ |
+| MEU-172 | `gui-home-dashboard` | 35h | [06j](build-plan/06j-gui-home.md) | Home Dashboard GUI page (React) — startup route, settings, nav rail update | ⬜ |
 
 ---
 
@@ -337,6 +367,8 @@ Domain → Infrastructure → Services → REST API → MCP Server → GUI → D
 | MEU-93 | `service-api` | 49c | [10 §api](build-plan/10-service-daemon.md) | Service REST endpoints (status, shutdown) | ⬜ |
 | MEU-94 | `service-mcp` | 49d | [10 §mcp](build-plan/10-service-daemon.md) | Service MCP tools (status, restart, logs) | ⬜ |
 | MEU-95 | `service-gui` | 49e | [10 §gui](build-plan/10-service-daemon.md) | Service Manager GUI + installer hooks | ⬜ |
+| MEU-95a | `tray-icon-renderer` | 49f | [10 §10.9](build-plan/10-service-daemon.md) | TrayIconRenderer: OffscreenCanvas → NativeImage, state machine, platform-aware sizing | ⬜ |
+| MEU-95b | `tray-icon-integration` | 49g | [10 §10.9](build-plan/10-service-daemon.md) | Wire renderer to ServiceManager health, notification count, context menu, theme detection | ⬜ |
 
 ---
 
@@ -463,6 +495,22 @@ Domain → Infrastructure → Services → REST API → MCP Server → GUI → D
 
 ---
 
+### P4 — Phase 11: Monetization
+
+> Source: [11-monetization.md](build-plan/11-monetization.md)
+
+| MEU | Slug | Matrix Item | Build Plan Ref | Description | Status |
+|-----|------|:-----------:|----------------|-------------|:------:|
+| MEU-175 | `monetization-domain` | 11.1 | [11 §11.1](build-plan/11-monetization.md) | License entity, SubscriptionTier enum, UsageMeter entity | ⬜ |
+| MEU-176 | `oauth-google` | 11.2 | [11 §11.2](build-plan/11-monetization.md) | Google OAuth PKCE + encrypted token storage | ⬜ |
+| MEU-177 | `google-calendar-tasks` | 11.3 | [11 §11.3](build-plan/11-monetization.md) | Calendar/Tasks API for Plan reminders | ⬜ |
+| MEU-178 | `license-enforcement` | 11.4 | [11 §11.4](build-plan/11-monetization.md) | Ed25519 JWT validation, offline grace, tier gating | ⬜ |
+| MEU-179 | `byok-ai-providers` | 11.5 | [11 §11.5](build-plan/11-monetization.md) | AI provider key CRUD (encrypted), extends Phase 8 pattern | ⬜ |
+| MEU-180 | `monetization-api-gui` | 11.7 | [11 §11.7–11.8](build-plan/11-monetization.md) | Monetization REST routes (11 endpoints) + Subscription Settings GUI | ⬜ |
+| MEU-181 | `usage-metering` | 11.6 | [11 §11.6](build-plan/11-monetization.md) | Usage counters, tier limits, approach-to-limit UX | ⬜ |
+
+---
+
 ### Research-Enhanced Additions
 
 > Source: [build-priority-matrix.md](build-plan/build-priority-matrix.md) §Research-Enhanced
@@ -493,6 +541,12 @@ Domain → Infrastructure → Services → REST API → MCP Server → GUI → D
 |-----|------|:-----------:|----------------|-------------|:------:|
 | MEU-167 | `recursive-orchestration` | 9.A | [matrix §9.A](build-plan/build-priority-matrix.md) | Recursive orchestration (Tier 3) | ⬜ |
 
+#### Phase 6 Research Items
+
+| MEU | Slug | Matrix Item | Build Plan Ref | Description | Status |
+|-----|------|:-----------:|----------------|-------------|:------:|
+| MEU-173 | `floating-pnl-widget` | 6.A | [matrix §6.A](build-plan/build-priority-matrix.md) | Always-on-top P&L BrowserWindow, consumes `pnl.tick` WebSocket events | ⬜ |
+
 #### CI / Quality Gate Research Items
 
 | MEU | Slug | Matrix Item | Build Plan Ref | Description | Status |
@@ -518,16 +572,17 @@ Domain → Infrastructure → Services → REST API → MCP Server → GUI → D
 | P0 — Phase 6 | MEU-43 → MEU-51 | 10 | 10 |
 | P1 | MEU-52 → MEU-55 | 4 | 4 |
 | P1.5 — Phase 8 | MEU-56 → MEU-65a | 11 | 11 |
-| P2 | MEU-66 → MEU-76 | 15 | 7 |
-| P2.5 — Phase 9 | MEU-77 → MEU-90 | 14 | 14 |
+| P2 | MEU-66 → MEU-76, MEU-171 → MEU-172 | 17 | 7 |
+| P2.5 — Phase 9 + WebSocket | MEU-77 → MEU-90, MEU-174 | 15 | 14 |
 | P2.5a — Integration | MEU-90a → MEU-90d | 4 | 3 + 1 🚫 |
-| P2.5b — Wiring & Quality | MEU-PW1, MEU-PW2, MEU-PW3, MEU-TD1 | 4 | 1 |
-| P2.6 — Phase 10 | MEU-91 → MEU-95 | 5 | 0 |
+| P2.5b — Wiring & Quality + Hardening | MEU-PW1 → MEU-PW8, MEU-TD1 | 9 | 3 |
+| P2.6 — Phase 10 | MEU-91 → MEU-95b | 7 | 0 |
 | P2.75 — Expansion | MEU-96 → MEU-122 | 27 | 2 |
 | P3 — Tax | MEU-123 → MEU-156 | 34 | 0 |
 | Phase 7 | MEU-157 | 1 | 0 |
-| Research | MEU-158 → MEU-170, MEU-TS1 → MEU-TS3 | 16 | 1 |
-| **Total** | | **189** | **98 + 1 🚫** |
+| P4 — Phase 11 | MEU-175 → MEU-181 | 7 | 0 |
+| Research | MEU-158 → MEU-170, MEU-173, MEU-TS1 → MEU-TS3 | 17 | 1 |
+| **Total** | | **207** | **100 + 1 🚫** |
 
 ---
 

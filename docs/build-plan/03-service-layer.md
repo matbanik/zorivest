@@ -34,6 +34,7 @@ Build the service layer that orchestrates domain logic through the Unit of Work.
 | `ReviewService` | Mistake tracking, AI review (behavioral analysis) | ✅ |
 | `MarketDataService` | Identifier resolution, options grouping | ✅ |
 | `SystemService` | Backup, config export, calculator wrapper | ✅ |
+| `DashboardService` | Read-only aggregation for Home Dashboard ([06j](06j-gui-home.md)) — orchestrates existing services, no new repos | ✅ |
 
 ### Pure Domain Functions (`domain/analytics/`)
 

@@ -8,7 +8,7 @@
 
 Build the desktop GUI last — it's the outermost layer. The Electron shell spawns the Python backend as a child process and the React UI communicates with it via REST on localhost. Use TanStack Table for data grids, Lightweight Charts for financial charts.
 
-This phase is split into eight domain-specific sub-files:
+This phase is split into ten domain-specific sub-files:
 
 | # | Sub-File | Domain | Key Components |
 |---|----------|--------|----------------|
@@ -20,6 +20,8 @@ This phase is split into eight domain-specific sub-files:
 | 6f | [Settings](06f-gui-settings.md) | Market data providers, email config, display mode, tax profile | `ProviderSettingsPage`, `EmailProviderPage`, `DisplayModeSettings` |
 | 6g | [Tax Estimator](06g-gui-tax.md) | Tax dashboard, lot viewer, wash sales, what-if, harvesting, quarterly | `TaxDashboard`, `TaxLotViewer`, `WashSaleMonitor`, `WhatIfSimulator`, `LossHarvestingTool`, `QuarterlyPaymentsTracker` |
 | 6h | [Calculator](06h-gui-calculator.md) | Position size calculator — Equity, Futures, Options, Forex, Crypto modes | `PositionCalculatorModal`, `InstrumentModeSelector`, `ScenarioComparisonTable`, `CalculationHistory` |
+| 6i | [Watchlist Visual](06i-gui-watchlist-visual.md) | Watchlist visual redesign, professional data table, colorblind toggle | `WatchlistTable`, `TickerCard`, `ColorblindToggle` |
+| 6j | [Home Dashboard](06j-gui-home.md) | Default startup dashboard, aggregation sections, configurable layout | `HomePage`, `DashboardGrid`, `DashboardSettingsDrawer`, `DashboardSkeleton` |
 
 ---
 
@@ -139,7 +141,7 @@ import {
   Outlet,
 } from '@tanstack/react-router'
 import { AppShell } from './components/layout/AppShell'
-import { AccountsHome } from './features/accounts/AccountsHome'  // in main bundle
+import { HomePage } from './features/home/HomePage'  // in main bundle (startup page)
 import { ModuleSkeleton } from './components/ModuleSkeleton'
 
 const hashHistory = createHashHistory()
@@ -153,11 +155,16 @@ const rootRoute = createRootRoute({
   pendingComponent: ModuleSkeleton,
 })
 
-const accountsRoute = createRoute({
+const homeRoute = createRoute({
   getParentRoute: () => rootRoute,
   path: '/',
-  component: AccountsHome,
+  component: HomePage,
 })
+
+const accountsRoute = createRoute({
+  getParentRoute: () => rootRoute,
+  path: '/accounts/$',
+}).lazy(() => import('./features/accounts/AccountsHome'))
 
 const tradesRoute = createRoute({
   getParentRoute: () => rootRoute,
@@ -185,6 +192,7 @@ const taxRoute = createRoute({
 }).lazy(() => import('./features/tax/TaxEstimator'))
 
 const routeTree = rootRoute.addChildren([
+  homeRoute,
   accountsRoute,
   tradesRoute,
   planningRoute,
@@ -239,10 +247,11 @@ export const router = createRouter({
 
 | Position | Icon | Label | Route | Shortcut | Notes |
 |---|---|---|---|---|---|
-| Top (1st) | 💰 | Accounts | `/` | `Ctrl+1` | **Default route** — Accounts Home dashboard |
-| Top (2nd) | 📈 | Trades | `/trades` | `Ctrl+2` | Trade log, journal, screenshots |
-| Top (3rd) | 📊 | Planning | `/planning` | `Ctrl+3` | Trade plans, watchlists, calculator access |
-| Top (4th) | 📅 | Scheduling | `/scheduling` | `Ctrl+4` | Pipeline management |
+| Top (1st) | 🏠 | Home | `/` | `Ctrl+1` | **Default route** — Home Dashboard ([06j](06j-gui-home.md)) |
+| Top (2nd) | 💰 | Accounts | `/accounts` | `Ctrl+2` | Account management + balance history |
+| Top (3rd) | 📈 | Trades | `/trades` | `Ctrl+3` | Trade log, journal, screenshots |
+| Top (4th) | 📊 | Planning | `/planning` | `Ctrl+4` | Trade plans, watchlists, calculator access |
+| Top (5th) | 📅 | Scheduling | `/scheduling` | `Ctrl+5` | Pipeline management |
 | Bottom | ⚙️ | Settings | `/settings` | `Ctrl+,` | Settings, logging, backup/restore (pinned bottom) |
 
 **Rail behavior:**
