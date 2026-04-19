@@ -11,7 +11,7 @@ A mandatory self-review checklist that codifies the 10 most common patterns foun
 
 - Before writing "implementation complete" in any handoff
 - Before changing handoff status to `ready_for_review`
-- After applying corrections from a `/planning-corrections` pass
+- After applying corrections from a `/plan-corrections` or `/execution-corrections` pass
 - Before proposing commit messages
 
 ## Risk Tier (select before starting)

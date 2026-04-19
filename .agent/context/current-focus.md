@@ -2,7 +2,7 @@
 
 ## Current Priority
 
-MEU-PW4 + MEU-PW5 complete. Codex critical review corrections applied (2 rounds). All evidence-bundle fields now pass MEU gate validator.
+[WF-SEGREGATE] complete — 4 mode-specific workflows created, 2 legacy deleted, 11 cross-references updated, HARD STOP compliance validated, issue archived.
 
 ## Next Steps
 

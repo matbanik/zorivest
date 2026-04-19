@@ -1,6 +1,6 @@
 # Emerging Standards
 
-Living reference of implementation standards discovered during development sessions. Each standard includes its origin use case and severity. Standards here are **mandatory** — they are checked during `/critical-review-feedback` and enforced as subtasks in `/create-plan`.
+Living reference of implementation standards discovered during development sessions. Each standard includes its origin use case and severity. Standards here are **mandatory** — they are checked during `/plan-critical-review` and `/execution-critical-review` and enforced as subtasks in `/create-plan`.
 
 > [!IMPORTANT]
 > This document is a living artifact. Add new standards as they are discovered during sessions. Each entry follows the template below.
@@ -8,8 +8,8 @@ Living reference of implementation standards discovered during development sessi
 ## How to Use This Document
 
 - **During planning** (`/create-plan`): Scan applicable sections and add matching standards as subtasks
-- **During review** (`/critical-review-feedback`): Verify all applicable standards were followed
-- **During corrections** (`/planning-corrections`): Reference standard IDs in findings
+- **During review** (`/plan-critical-review`, `/execution-critical-review`): Verify all applicable standards were followed
+- **During corrections** (`/plan-corrections`, `/execution-corrections`): Reference standard IDs in findings
 
 ### Standard Template
 

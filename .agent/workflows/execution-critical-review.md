@@ -1,0 +1,373 @@
+---
+description: Implementation-review-only critical review workflow. Reviews completed work handoffs for correctness, test rigor, and contract compliance.
+---
+
+# Execution Critical Review Workflow
+
+Use this workflow to adversarially review **completed implementation work** that has produced handoff artifacts. This workflow produces findings only — it never fixes issues or reviews unstarted plans.
+
+This is the workflow for prompts like:
+
+- "Critically review the latest handoff"
+- "Check if the claimed changes were actually completed"
+- "Find regressions after a refactor"
+
+// turbo-all
+// NOTE: turbo-all sets SafeToAutoRun=true for non-destructive commands (rg, Get-Content, etc.).
+// It does NOT override AGENTS.md §Commits: "Never auto-commit." Git commit/push still requires explicit user direction.
+
+## Write Scope (Non-Negotiable)
+
+This is a review-only workflow.
+
+Allowed file writes:
+
+- `.agent/context/handoffs/{plan-folder-name}-implementation-critical-review.md`
+- optional `pomera_notes` session memory
+
+Forbidden file writes:
+
+- all product code (`packages/`, `ui/`, `mcp-server/`)
+- tests
+- docs outside the canonical review handoff
+- plan files
+- existing work handoffs under review
+
+If a finding suggests a fix, record it in the canonical review handoff and stop. Do not patch the repo. Use `/execution-corrections` for fixes.
+
+---
+
+## Role Sequence
+
+1. `orchestrator` (scope + auto-discovery)
+2. `tester` (evidence/verification commands)
+3. `reviewer` (severity-ranked findings and verdict)
+
+> `researcher` is optional only when external fact-checking is required.
+> **No coder role.** This workflow produces findings only — never fixes. Use `/execution-corrections` to resolve findings.
+
+---
+
+## Auto-Discovery (No User Input Required)
+
+The agent discovers the review target automatically.
+
+### Discovery Steps
+
+```powershell
+# 1. Find recent execution plan folders FIRST
+Get-ChildItem docs/execution/plans/ -Directory |
+  Sort-Object LastWriteTime -Descending | Select-Object -First 5
+
+# 2. Inspect the newest candidate plan's task state
+Get-Content docs/execution/plans/<candidate>/task.md
+
+# 3. Find most recent WORK handoffs (exclude review artifacts)
+Get-ChildItem .agent/context/handoffs/*.md -Exclude README.md,TEMPLATE.md |
+  Where-Object { $_.Name -notmatch '(critical-review|corrections|recheck)' } |
+  Sort-Object LastWriteTime -Descending | Select-Object -First 10
+
+# 4. Correlate handoffs to the candidate plan by date/slug
+rg -n "<candidate-date>|<candidate-slug>|Create handoff:|Handoff Naming" \
+  .agent/context/handoffs docs/execution/plans/<candidate>
+```
+
+### Mode Confirmation
+
+Choose this workflow (implementation review) when:
+
+1. Work handoff artifacts already exist for the target project
+2. `task.md` shows implementation tasks are completed or in-progress
+3. The user explicitly requested review of a completed handoff
+
+If the plan is genuinely unstarted (no handoffs, all tasks pending), use `/plan-critical-review` instead.
+
+### Correlation Rule
+
+The agent must correlate the handoff and plan folder — not blindly pair the newest of each. Use the date prefix and slug to match.
+
+### Project-Integrated Handoff Expansion (Required)
+
+When the correlated plan folder represents a multi-MEU project, the latest handoff is only the **seed** — not the full review scope.
+
+Expand the review to the full correlated handoff set when any of these are true:
+
+1. `implementation-plan.md` has a `Handoff Naming` section with multiple handoff paths
+2. `task.md` has multiple `Create handoff:` checklist items
+3. The plan, reflection, or registry states that multiple MEUs were executed in the same project
+4. Multiple same-date sequenced handoffs clearly belong to the correlated plan folder
+
+When expansion triggers, required scope becomes:
+
+- every handoff produced by that project
+- the correlated `implementation-plan.md` and `task.md`
+- shared project artifacts (`meu-registry.md`, reflection, metrics)
+- all changed files claimed across the full handoff set
+
+### Scope Override
+
+If the user provides explicit paths, use those instead of auto-discovery.
+
+If the user provides one handoff path from a multi-MEU project but does not say `only`, expand to the full correlated handoff set.
+
+### Canonical Review File Rule
+
+Derive the review handoff path from the correlated execution plan folder:
+
+- `.agent/context/handoffs/{plan-folder-name}-implementation-critical-review.md`
+
+Example: `docs/execution/plans/2026-03-07-commands-events-analytics/` → `.agent/context/handoffs/2026-03-07-commands-events-analytics-implementation-critical-review.md`
+
+If the canonical review file already exists, append a new dated section.
+
+### Zorivest Build-Plan Scope Rule
+
+When the target artifact describes work on `docs/build-plan/`:
+
+- Inspect `docs/build-plan/` only when:
+  - the docs are the feature under review,
+  - the handoff claims specific build-plan updates as evidence,
+  - or a docs discrepancy appears to misstate delivered behavior, contracts, or test coverage.
+- When in scope, inspect the **actual file state/changes** (not just handoff claims).
+- If `git diff` is not sufficient, use direct file reads and explicitly say so.
+
+---
+
+## Workflow Steps
+
+## Step 1: Discover and Scope the Review (Orchestrator)
+
+Run the auto-discovery commands. Identify:
+
+- **Primary review target**: the work handoff set correlated to the newest plan candidate
+- **Seed handoff**: the most recent correlated work handoff
+- **Secondary scope**: the execution plan folder whose date/slug matches
+- **Claimed changes**: files changed, phrases renamed, sections removed/added, verification commands/results
+
+---
+
+## Step 2: Load Context and Evidence (Orchestrator + Tester)
+
+Read:
+
+1. Primary target artifact (seed handoff)
+2. Correlated execution plan (`implementation-plan.md` and `task.md`)
+3. Every sibling handoff identified from the correlated project
+4. Claimed files from the full handoff set
+5. Relevant related files likely to drift
+6. Current diffs (`git diff`) for the claimed files when available
+7. For Zorivest build-plan sessions: actual changed `docs/build-plan/*` files
+
+---
+
+## Step 3: Run Critical Verification Sweeps (Tester)
+
+Use fast, reproducible command checks. Prefer `rg`.
+
+### Required Sweep Types
+
+1. **Runtime / contract verification** — Does the delivered code satisfy the claimed API, UI, persistence, and round-trip behavior?
+2. **Test rigor audit** — Do tests assert meaningful behavior, or do they trivially pass? (See IR-5)
+3. **Negative-path / failure-path verification** — Tests and code cover rejected writes, missing data, invalid transitions?
+4. **Claim verification** — Did the files/lines/behaviors mentioned in the handoff actually change?
+5. **Cross-handoff consistency** — Shared totals, phase-gate claims, registry state consistent across the full project?
+6. **Verification quality** — Are handoff checks strong enough?
+7. **Evidence quality** — Commands/tests reproducible and auditable?
+8. **Actual build-plan file changes** — When in scope, did claimed changes materially appear?
+9. **Residual references / cross-file consistency** — Old names/phrases/slugs still present?
+
+### Suggested Commands (Adapt Per Task)
+
+```powershell
+# 1) Read the primary review artifact
+Get-Content <primary-artifact>
+
+# 2) Check for stale references
+rg -n "<old-term>" <relevant-dirs>
+
+# 3) Inspect diffs
+git diff -- <claimed-files>
+
+# 4) List changes
+git status --short -- <scope-dirs>
+```
+
+---
+
+## Step 4: Adversarial Review (Reviewer)
+
+Use the reviewer role output contract. Report **findings first**.
+
+### Functionality-First Rule
+
+Prioritize:
+
+1. Runtime behavior and API/UI contract correctness
+2. TDD/test rigor and negative-path coverage
+3. Persistence and round-trip correctness
+4. Handoff claim accuracy
+5. Documentation consistency
+
+Documentation-only discrepancies are non-blocking by default unless they misstate delivered behavior, falsely claim tests, hide missing work, or create unsafe instructions.
+
+### Implementation Review Checklist (Required)
+
+| # | Check | What To Look For |
+|---|---|---|
+| IR-1 | Live runtime evidence | Integration test without dependency overrides exists and was run |
+| IR-2 | Stub behavioral compliance | Stubs honor save→get consistency, filter semantics, correct `exists()` returns |
+| IR-3 | Error mapping completeness | Every write-adjacent route maps `NotFoundError → 404`, `BusinessRuleError → 409`, `ValueError → 422` AND tests assert response body shape |
+| IR-4 | Fix generalization | When a finding was fixed, similar instances in other files/routes were also checked and fixed |
+| IR-5 | Test rigor audit | Every test file in scope is audited for assertion strength. Each test rated 🟢 Strong / 🟡 Adequate / 🔴 Weak. Any 🔴 is `Medium` minimum |
+| IR-6 | Boundary validation coverage | For every write surface: explicit schema exists, negative tests cover malformed input, unknown fields handled, create/update parity verified |
+
+#### IR-5 Test Rigor Grading Criteria
+
+| Rating | Definition | Example |
+|--------|------------|---------|
+| 🟢 Strong | Asserts specific values, exercises real behavior, tests positive and negative paths | `assert delta.days == 30` |
+| 🟡 Adequate | Tests the right thing but uses weak assertions | `assert "key" in result` |
+| 🔴 Weak | Trivially passes even if code is broken | `try: fn() except: assert dir.exists()` |
+
+Common weakness patterns to flag:
+
+- Try/except safety nets
+- Asserting only key existence instead of values
+- Patching private methods
+- Testing only "not found" path without insert+get round-trip
+- Missing boundary assertions
+- Data format assertions checking existence not content
+
+### Docs Review Checklist (Required when docs are in scope)
+
+| # | Check | What To Look For |
+|---|---|---|
+| DR-1 | Claim-to-state match | Handoff says a change happened and file state proves it |
+| DR-2 | Residual old terms | Old phrase/slug variants still present |
+| DR-3 | Downstream references updated | Indexes, cross-links, and anchors updated |
+| DR-4 | Verification robustness | Handoff checks would actually catch regressions |
+| DR-5 | Evidence auditability | Commands/diffs are reproducible |
+| DR-6 | Cross-reference integrity | Architectural changes consistent across canonical docs |
+| DR-7 | Evidence freshness | Handoff-claimed counts match reproduced command output |
+| DR-8 | Completion vs residual risk | If gaps acknowledged, conclusion must NOT say "all ACs met" |
+
+### Severity Guidance
+
+- `Critical`: Dangerous instructions/security regressions
+- `High`: Incorrect contracts, false implementation claims, broken runtime behavior
+- `Medium`: Weak tests, verification quality, portability issues
+- `Low`: Auditability, wording, minor evidence gaps
+
+---
+
+## Step 5: Write or Update the Canonical Review Handoff (Required Exit Gate)
+
+Write to: `.agent/context/handoffs/{plan-folder-name}-implementation-critical-review.md`
+
+If that file already exists, append a new dated review update section.
+
+The workflow is incomplete until the canonical review handoff exists and is readable.
+
+> **Start from** [`.agent/context/handoffs/REVIEW-TEMPLATE.md`](file:///p:/zorivest/.agent/context/handoffs/REVIEW-TEMPLATE.md) (v2.1)
+>
+> **Verbosity control**: Set `requested_verbosity` in the review YAML frontmatter. See `.agent/docs/context-compression.md §Verbosity Tiers`.
+
+Fill the template sections:
+- `Findings` table with severity-ranked findings and file:line references
+- `Checklist Results` with IR/DR check outcomes
+- `Verdict` with explicit `approved` or `changes_required`
+
+### Required Review Handoff Content
+
+1. Scope reviewed (including correlation rationale and expanded handoff set)
+2. Commands executed
+3. Findings with file/line references
+4. Explicit verdict (`approved` or `changes_required`)
+5. Concrete follow-up actions
+6. If not the first pass, a dated update heading
+
+---
+
+## Pre-Edit Guard
+
+Before any file edit:
+
+1. derive the canonical review handoff path for implementation review mode
+2. verify the intended edit target exactly matches that canonical handoff path
+
+If the target path is anything else, abort the edit and continue in findings-only mode.
+
+---
+
+## Step 6: Save Session Memory (Optional but Recommended)
+
+Save a short `pomera_notes` entry summarizing:
+
+- what was reviewed
+- key findings
+- whether fixes should be applied via `/execution-corrections`
+
+---
+
+## Hard Rules
+
+1. **Never fix issues during this workflow.** This workflow produces findings only. Use `/execution-corrections` to resolve findings.
+2. **Do not approve based on phrase-only grep checks** when heading renames or link anchors are involved.
+3. **Do not treat the handoff as source of truth**; treat file state + diffs as source of truth.
+4. **Do not bury findings behind summaries**; findings come first.
+5. **For implementation reviews, do not elevate documentation drift above broken behavior or weak tests.**
+6. **When a correlated project produced multiple MEU handoffs, load all of them.** The newest is only the discovery seed.
+7. **Never review a review.** Auto-discovery excludes `*critical-review*`, `*-corrections*`, `*-recheck*` handoffs.
+8. **When implementation-review findings require changes, route the fix phase through `/execution-corrections`.**
+9. **One rolling review file per target.** Keep implementation-review updates in the same `-implementation-critical-review.md` file.
+10. **When test files are in review scope, audit every test for assertion strength (IR-5).**
+11. **A weak or misleading test is `Medium` minimum when it can allow broken behavior to pass green.**
+12. **Do not return a final response until the canonical review handoff has been created or updated successfully.**
+13. **Do not modify any file unless the Pre-Edit Guard resolves to the canonical review handoff path.**
+
+---
+
+## Done Checklist
+
+- [ ] No product files were modified
+- [ ] Canonical review handoff was created or updated
+- [ ] Review mode was correctly identified as `implementation`
+- [ ] Verdict is explicit (`approved` or `changes_required`)
+- [ ] Final user response includes the canonical review handoff path
+
+---
+
+## Output Contract
+
+Return to the user:
+
+- Auto-discovered targets (what was reviewed, correlation rationale)
+- Findings (severity-ranked, file/line references)
+- Open questions / assumptions
+- Review verdict (`changes_required` or `approved`)
+- Residual risk statement
+- Path to the created or updated canonical review handoff
+
+---
+
+## Orchestration Flow
+
+This workflow is part of a four-workflow orchestration cycle:
+
+1. `/create-plan` → plan new work
+2. `/plan-critical-review` → review a new plan before implementation
+3. `/execution-critical-review` → review completed implementation work (this workflow)
+4. `/execution-corrections` → resolve implementation-review findings
+
+When to switch:
+
+- Use `/plan-critical-review` for reviewing unstarted plans (not this workflow).
+- Use `/execution-corrections` if the verdict is `changes_required` and the user wants fixes applied.
+- Use `/create-plan` for new feature implementation.
+
+## HARD STOP
+
+> [!CAUTION]
+> **Do NOT autonomously chain into `/execution-corrections` or any other workflow after completing this review.** You MUST stop here and report the canonical review handoff path to the user. The user decides what happens next.
+
+**Workflow complete.** Report the handoff path and wait for user direction.

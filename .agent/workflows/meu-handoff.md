@@ -10,7 +10,7 @@ This document defines the handoff artifact format for passing work between agent
 >
 > **Multi-MEU sessions**: A project session produces one handoff per MEU. Each handoff is validated independently by Codex.
 >
-> **Project correlation rule**: In multi-MEU sessions, the correlated `docs/execution/plans/{YYYY-MM-DD}-{project-slug}/implementation-plan.md` and `task.md` must enumerate the full handoff set for the project. `/critical-review-feedback` uses those artifacts to expand review scope from the seed handoff to all sibling handoffs produced by the plan.
+> **Project correlation rule**: In multi-MEU sessions, the correlated `docs/execution/plans/{YYYY-MM-DD}-{project-slug}/implementation-plan.md` and `task.md` must enumerate the full handoff set for the project. `/execution-critical-review` uses those artifacts to expand review scope from the seed handoff to all sibling handoffs produced by the plan.
 
 ## Handoff Artifact Location
 

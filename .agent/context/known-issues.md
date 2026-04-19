@@ -51,19 +51,6 @@
   5. **GUI — Cancel button:** Run detail page: red "Cancel Run" button visible when `status === "running"`. On click → confirmation dialog → `POST .../cancel` → button changes to "Cancelling…" (disabled) → poll/SSE until status reaches `"cancelled"` or `"failed"`. UX: don't show error toast on user-initiated cancel (AbortController pattern).
   6. **GUI — Run list indicator:** Show `🔴 Cancelling` badge in run history table during the intermediate state.
 
-### [WF-SEGREGATE] — `/planning-corrections` and `/critical-review-feedback` need PLAN vs EXECUTION variants
-- **Severity:** Medium | **Component:** `.agent/workflows/` | **Discovered:** 2026-04-19 | **Status:** Open
-- **Details:** Both workflows currently handle plan-review and implementation-review in a single file. This causes:
-  1. **Size bloat:** Each file is large enough that agents lose track of which mode they're operating in (plan corrections vs execution corrections).
-  2. **Mode confusion:** Agent conflates plan-phase approval gates with execution-phase gates, leading to unnecessary round-trips or skipped steps.
-  3. **Missing HARD STOP:** Neither workflow enforces a mandatory stop after handoff creation. When a workflow is invoked, the agent should create the handoff and STOP — not continue into the next phase or workflow without explicit user direction.
-- **Proposed fix:** Split into 4 workflows:
-  - `/plan-corrections` — corrections to plan/task files from plan-review findings
-  - `/execution-corrections` — corrections to implementation code from execution-review findings
-  - `/plan-critical-review` — adversarial review of unstarted plans
-  - `/execution-critical-review` — adversarial review of completed implementation handoffs
-- **HARD STOP rule:** Each workflow must end with a mandatory HARD STOP after the handoff is written. The agent must not autonomously chain into the next workflow (e.g., corrections → execution, or review → corrections). The user explicitly invokes the next step.
-- **Root cause incident:** 2026-04-19 session — agent wrote corrections plan to brain artifact and stalled on re-reads instead of directly editing project files, partly due to mode confusion in the combined workflow.
 
 ## Mitigated / Workaround Applied
 
@@ -139,6 +126,7 @@
 | DOC-STALESLUG | 2026-03-22 | MEU slug reference corrected |
 | PIPE-CHARMAP | 2026-04-19 | Pipeline charmap crash fixed — structlog UTF-8 config + bytes-safe JSON (MEU-PW4) |
 | PIPE-ZOMBIE | 2026-04-19 | Zombie runs eliminated — dual-write→single-writer, run_id passthrough, recover_zombies (MEU-PW5) |
+| WF-SEGREGATE | 2026-04-19 | Split 2 combined workflows into 4 mode-specific variants with HARD STOP |
 
 ## Template
 

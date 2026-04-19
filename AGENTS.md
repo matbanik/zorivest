@@ -170,8 +170,10 @@ When the user invokes a workflow via slash command:
 - `/pre-build-research` → Read and follow `.agent/workflows/pre-build-research.md`
 - `/tdd-implementation` → Read and follow `.agent/workflows/tdd-implementation.md`
 - `/validation-review` → Read and follow `.agent/workflows/validation-review.md`
-- `/planning-corrections` → Read and follow `.agent/workflows/planning-corrections.md`
-- `/critical-review-feedback` → Read and follow `.agent/workflows/critical-review-feedback.md`
+- `/plan-critical-review` → Read and follow `.agent/workflows/plan-critical-review.md`
+- `/execution-critical-review` → Read and follow `.agent/workflows/execution-critical-review.md`
+- `/plan-corrections` → Read and follow `.agent/workflows/plan-corrections.md`
+- `/execution-corrections` → Read and follow `.agent/workflows/execution-corrections.md`
 - `/meu-handoff` → Read and follow `.agent/workflows/meu-handoff.md`
 
 ## Planning Contract

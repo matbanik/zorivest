@@ -36,7 +36,7 @@ Read these files:
 3. `researcher` — validate patterns against published internet experience (uses `pomera_web_search`)
 4. `synthesizer` — generate `RULE-{N}` improvement rules and save to pomera_notes
 
-> **No coder role.** This workflow produces findings and rules only — it does not modify source code. If rules imply code or workflow changes, route those through `/execution-session` or `/planning-corrections`.
+> **No coder role.** This workflow produces findings and rules only — it does not modify source code. If rules imply code or workflow changes, route those through `/execution-session`, `/plan-corrections`, or `/execution-corrections`.
 
 ---
 
@@ -195,7 +195,7 @@ Present the RULE-{N} set to the human for validation before appending to any fil
 
 ## Hard Rules
 
-1. **Never fix issues during this workflow.** Produce findings and rules only — route implementation changes to `/execution-session` or `/planning-corrections`.
+1. **Never fix issues during this workflow.** Produce findings and rules only — route implementation changes to `/execution-session`, `/plan-corrections`, or `/execution-corrections`.
 2. **Never append rules to a reflection file without human approval.** Always present first via `notify_user`.
 3. **Sequential thinking must run for at least 5 thoughts.** Shallow analysis (< 5 thoughts) produces imprecise rules.
 4. **Web research is required for every High-severity finding.** Low-evidence High findings are not acceptable without a documented search attempt.
@@ -222,7 +222,7 @@ Return to the user:
 This workflow fits naturally after these workflows:
 
 - Run **after** `/execution-session` step 5 (Meta-Reflection) to deepen the friction analysis
-- Run **after** `/critical-review-feedback` when a review cycle had unusually high friction
+- Run **after** `/plan-critical-review` or `/execution-critical-review` when a review cycle had unusually high friction
 - Run **standalone** at any time as a weekly quality audit
 
 Improvement rules generated here can feed back into:
