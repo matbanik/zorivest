@@ -13,6 +13,25 @@
  */
 
 /**
+ * Normalize an ISO timestamp to explicit UTC.
+ *
+ * The backend stores all datetimes as UTC, but SQLAlchemy's DateTime column
+ * (without timezone=True) strips tzinfo. Pydantic then serializes them as
+ * naive strings like "2026-04-20T18:00:00" — which JS Date() parses as
+ * **local time**, not UTC. This causes a timezone-offset error (e.g., 4h in EDT).
+ *
+ * Fix: if the ISO string has no timezone indicator (Z, +, or -offset after the
+ * time portion), append 'Z' to force UTC interpretation.
+ */
+function normalizeUtc(iso: string): string {
+    // Already has timezone indicator: "Z", "+05:30", "-04:00"
+    if (/[Zz]$/.test(iso) || /[+-]\d{2}:\d{2}$/.test(iso) || /[+-]\d{4}$/.test(iso)) {
+        return iso
+    }
+    return iso + 'Z'
+}
+
+/**
  * Format an ISO timestamp for UI display.
  *
  * @param iso  - ISO 8601 string from the API (always UTC)
@@ -25,7 +44,7 @@ export function formatTimestamp(
     timeZone?: string,
 ): string {
     if (!iso) return ''
-    const d = new Date(iso)
+    const d = new Date(normalizeUtc(iso))
     if (isNaN(d.getTime())) return ''
 
     if (timeZone) {
@@ -73,7 +92,7 @@ export function formatDate(
     timeZone?: string,
 ): string {
     if (!iso) return '—'
-    const d = new Date(iso)
+    const d = new Date(normalizeUtc(iso))
     if (isNaN(d.getTime())) return '—'
 
     if (timeZone) {

@@ -137,7 +137,10 @@
 | MEU-PW5 | `pipeline-zombie-fix` | 49.8 | Fix [PIPE-ZOMBIE]: eliminate dual-write, per-phase httpx.Timeout, zombie recovery. Depends PW4. | ✅ 2026-04-19 |
 | MEU-PW6 | `provider-url-builders` | 49.9 | Fix [PIPE-URLBUILD]: per-provider URL builder registry + criteria normalization + headers. Depends PW5 (parallel PW7). | ⬜ planned |
 | MEU-PW7 | `pipeline-cancellation` | 49.10 | Fix [PIPE-NOCANCEL]: CANCELLING status, task registry, cancel_run() + REST endpoint. Depends PW5 (parallel PW6). | ⬜ planned |
-| MEU-PW8 | `pipeline-e2e-test-harness` | 49.11 | E2E test infrastructure: 7 policy fixtures, 6 mock steps, 14+ integration tests validating full service stack. Depends PW4–PW7. | ⬜ planned |
+| MEU-PW8 | `pipeline-e2e-test-harness` | 49.11 | E2E test infrastructure: 7 policy fixtures, 6 mock steps, 14+ integration tests validating full service stack. Depends PW4–PW7. | 🟡 in-progress |
+| MEU-PW9 | `send-step-template-wiring` | 49.12 | Wire `SendStep._resolve_body()` template rendering: EMAIL_TEMPLATES registry lookup + Jinja2 + html_body priority + raw fallback. Depends MEU-88 ✅. | ✅ 2026-04-20 |
+| MEU-PW11 | `pipeline-cursor-tracking` | 49.13 | FetchStep cursor upsert after successful fetch: pipeline_state_repo.upsert() with ISO timestamp + SHA-256 hash. Depends MEU-PW2 ✅. | ✅ 2026-04-20 |
+| MEU-72a | `scheduling-gui-tz-polish` | 35f.1 | PolicyList timezone display: replace toLocaleString with formatTimestamp IANA-aware utility. Independent. | ✅ 2026-04-20 |
 
 ## Execution Order
 
@@ -150,7 +153,7 @@ Phase 4: MEU-23 → MEU-24 → MEU-25 → MEU-26 → MEU-27 → MEU-28 → MEU-2
 Phase 5: MEU-31 → MEU-32 → MEU-33 → MEU-34 → MEU-35 → MEU-36 → MEU-37 → MEU-38 → MEU-39 → MEU-40 → MEU-41 → MEU-42
 Phase 8: MEU-56 → MEU-57 → MEU-58 → MEU-59 → MEU-62 → MEU-60
 Phase 9 (domain foundation): MEU-77 → MEU-78 → MEU-79 → MEU-80
-Phase 9 (pipeline integration): MEU-PW1 → MEU-PW2 (PW3 independent) → MEU-PW4 → MEU-PW5 → MEU-PW6 ∥ MEU-PW7 → MEU-PW8
+Phase 9 (pipeline integration): MEU-PW1 → MEU-PW2 (PW3 independent) → MEU-PW4 → MEU-PW5 → MEU-PW6 ∥ MEU-PW7 → MEU-PW8 → MEU-PW9 ∥ MEU-PW11 (MEU-72a independent)
 P2.75 (broker adapters): MEU-96 → MEU-99
 
 ## P2.75 — Expansion: Broker Adapters & Import

@@ -140,6 +140,22 @@ class FetchStep(RegisteredStep):
                 last_modified=adapter_result.get("last_modified"),
             )
 
+        # 5. Update pipeline cursor state for incremental tracking (MEU-PW11)
+        state_repo = context.outputs.get("pipeline_state_repo")
+        if state_repo is not None:
+            from datetime import datetime as _dt
+            from datetime import timezone as _tz
+
+            entity_key = _compute_entity_key(resolved_criteria)
+            state_repo.upsert(
+                policy_id=context.policy_id,
+                provider_id=p.provider,
+                data_type=p.data_type,
+                entity_key=entity_key,
+                last_cursor=_dt.now(_tz.utc).isoformat(),
+                last_hash=result.content_hash,
+            )
+
         return StepResult(
             status=PipelineStatus.SUCCESS,
             output={

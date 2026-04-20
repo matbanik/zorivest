@@ -147,10 +147,8 @@ class SendStep(RegisteredStep):
                     )
                     continue
 
-            # Send email
-            html_body = (
-                params.html_body or params.body_template or "<p>Report attached</p>"
-            )
+            # Resolve email body: html_body > rendered template > raw > fallback
+            html_body = self._resolve_body(params, context)
             success, msg = await send_report_email(
                 smtp_host=smtp_host,
                 smtp_port=smtp_port,
@@ -187,6 +185,72 @@ class SendStep(RegisteredStep):
                 )
 
         return {"sent": sent, "failed": failed, "deliveries": deliveries}
+
+    def _resolve_body(self, params: Params, context: StepContext) -> str:
+        """Resolve email body with four-tier priority chain.
+
+        Priority order:
+        1. params.html_body   — explicit override from prior step (e.g. render)
+        2. EMAIL_TEMPLATES lookup + Jinja2 render — when body_template matches
+        3. Raw body_template string — graceful fallback for unknown names
+        4. Default "<p>Report attached</p>" — when nothing is provided
+
+        Template context variables provided to Jinja2:
+        - generated_at: ISO timestamp of rendering time
+        - policy_id: from StepContext
+        - run_id: from StepContext
+        - All keys from context.outputs (pipeline step results)
+        """
+        from datetime import datetime, timezone as tz
+
+        # Tier 1: explicit html_body from a prior render step
+        if params.html_body:
+            return params.html_body
+
+        # Tier 4 early exit: nothing provided
+        if not params.body_template:
+            return "<p>Report attached</p>"
+
+        # Tier 2: look up body_template in EMAIL_TEMPLATES registry
+        template_source: str | None = None
+        try:
+            from zorivest_infra.rendering.email_templates import EMAIL_TEMPLATES
+
+            template_source = EMAIL_TEMPLATES.get(params.body_template)
+        except ImportError:
+            pass  # infra not available — fall through to tier 3
+
+        if template_source is None:
+            # Tier 3: unknown template name → raw string fallback
+            return params.body_template
+
+        # Render the template via Jinja2 engine
+        engine = context.outputs.get("template_engine")
+        if engine is None:
+            # Create default Environment with financial filters (AC-6)
+            try:
+                from zorivest_infra.rendering.template_engine import (
+                    create_template_engine,
+                )
+
+                engine = create_template_engine()
+            except ImportError:
+                from jinja2 import BaseLoader, Environment
+
+                engine = Environment(loader=BaseLoader(), autoescape=True)
+
+        tmpl = engine.from_string(template_source)
+        render_ctx: dict[str, Any] = {
+            "generated_at": datetime.now(tz.utc).strftime("%Y-%m-%d %H:%M UTC"),
+            "policy_id": context.policy_id,
+            "run_id": context.run_id,
+        }
+        # Merge pipeline step outputs as template variables
+        for key, value in context.outputs.items():
+            if key not in render_ctx:
+                render_ctx[key] = value
+
+        return tmpl.render(**render_ctx)
 
     async def _save_local(self, params: Params, context: StepContext) -> dict[str, Any]:
         """Copy rendered output to local file paths."""

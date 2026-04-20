@@ -454,6 +454,34 @@ describe('PolicyList', () => {
         const items = screen.getAllByTestId(SCHEDULING_TEST_IDS.POLICY_ITEM)
         expect(items[0].className).toContain('bg-accent-purple')
     })
+
+    it('AC-72a: next-run uses formatTimestamp with policy timezone', () => {
+        render(<PolicyList {...defaultProps} />, { wrapper: createWrapper() })
+
+        const nextRunEls = screen.getAllByTestId(SCHEDULING_TEST_IDS.POLICY_NEXT_RUN_TIME)
+        // MOCK_POLICY: next_run = '2026-03-19T06:00:00Z', timezone = 'America/New_York'
+        // 06:00 UTC → 02:00 AM ET (during EDT)
+        // DT1 format: MM-DD-YYYY h:mmAM/PM
+        expect(nextRunEls[0].textContent).toContain('03-19-2026')
+        expect(nextRunEls[0].textContent).toContain('AM')
+        // Ensure it does NOT use old locale format (e.g. "Mar 19" short-month)
+        expect(nextRunEls[0].textContent).not.toMatch(/Mar\s+19/)
+    })
+
+    it('AC-72a: paused policy shows "(paused)" instead of timestamp', () => {
+        render(<PolicyList {...defaultProps} />, { wrapper: createWrapper() })
+
+        const nextRunEls = screen.getAllByTestId(SCHEDULING_TEST_IDS.POLICY_NEXT_RUN_TIME)
+        // MOCK_POLICY_2: enabled=false → should show '(paused)'
+        expect(nextRunEls[1]).toHaveTextContent('(paused)')
+    })
+
+    it('AC-72a: renders POLICY_NEXT_RUN_TIME test ID', () => {
+        render(<PolicyList {...defaultProps} />, { wrapper: createWrapper() })
+
+        const nextRunEls = screen.getAllByTestId(SCHEDULING_TEST_IDS.POLICY_NEXT_RUN_TIME)
+        expect(nextRunEls).toHaveLength(2)
+    })
 })
 
 describe('CronPreview', () => {

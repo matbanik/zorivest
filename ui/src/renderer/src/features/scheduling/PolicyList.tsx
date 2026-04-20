@@ -13,6 +13,7 @@
 
 import { useMemo } from 'react'
 import cronstrue from 'cronstrue'
+import { formatTimestamp } from '@/lib/formatDate'
 import { SCHEDULING_TEST_IDS } from './test-ids'
 import type { Policy } from './api'
 
@@ -33,20 +34,10 @@ function formatCronShort(cron: string): string {
     }
 }
 
-function formatNextRun(nextRun: string | null, enabled: boolean): string {
+function formatNextRun(nextRun: string | null, enabled: boolean, timezone?: string): string {
     if (!enabled) return '(paused)'
     if (!nextRun) return 'Not scheduled'
-    try {
-        const d = new Date(nextRun)
-        return d.toLocaleString(undefined, {
-            month: 'short',
-            day: 'numeric',
-            hour: '2-digit',
-            minute: '2-digit',
-        })
-    } catch {
-        return nextRun
-    }
+    return formatTimestamp(nextRun, timezone) || nextRun
 }
 
 export default function PolicyList({
@@ -104,6 +95,7 @@ export default function PolicyList({
                     const isSelected = policy.id === selectedPolicyId
                     const trigger = (policy.policy_json as Record<string, Record<string, string>>)?.trigger
                     const cron = trigger?.cron_expression || ''
+                    const timezone = trigger?.timezone || 'UTC'
                     // 3-state: draft (not approved), ready (approved, paused), scheduled (approved + enabled)
                     const policyState = !policy.approved ? 'draft' : !policy.enabled ? 'ready' : 'scheduled'
                     const stateIcon = policyState === 'draft' ? '📝' : policyState === 'ready' ? '⏸️' : '✅'
@@ -140,8 +132,11 @@ export default function PolicyList({
                                     {formatCronShort(cron)}
                                 </div>
                             )}
-                            <div className="text-xs text-fg-muted/70 mt-0.5 ml-6">
-                                Next: {formatNextRun(policy.next_run, policy.enabled)}
+                            <div
+                                data-testid={SCHEDULING_TEST_IDS.POLICY_NEXT_RUN_TIME}
+                                className="text-xs text-fg-muted/70 mt-0.5 ml-6"
+                            >
+                                Next: {formatNextRun(policy.next_run, policy.enabled, timezone)}
                             </div>
                         </button>
                     )

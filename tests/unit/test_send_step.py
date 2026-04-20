@@ -195,7 +195,7 @@ class TestEmailBodyResolution:
 
     @pytest.mark.asyncio
     async def test_body_template_used_when_no_html_body(self) -> None:
-        """When html_body is None, body_template string is used as-is."""
+        """When html_body is None, body_template is looked up and rendered."""
         mock_send = AsyncMock(return_value=(True, "Sent"))
         params = {
             **DEFAULT_EMAIL_PARAMS,
@@ -217,7 +217,9 @@ class TestEmailBodyResolution:
             ctx = _make_context(smtp_config=DEFAULT_SMTP)
             await step.execute(params, ctx)
 
-        assert mock_send.call_args.kwargs["html_body"] == "daily_quote_summary"
+        # MEU-PW9: body_template is now rendered via EMAIL_TEMPLATES + Jinja2
+        html_body = mock_send.call_args.kwargs["html_body"]
+        assert "Zorivest Daily Quote Report" in html_body
 
     @pytest.mark.asyncio
     async def test_default_fallback_when_no_body(self) -> None:

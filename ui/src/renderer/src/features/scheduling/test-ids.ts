@@ -39,4 +39,5 @@ export const SCHEDULING_TEST_IDS = {
     EMPTY_STATE: 'scheduling-empty-state',
     ERROR_STATE: 'scheduling-error-state',
     LOADING_STATE: 'scheduling-loading-state',
+    POLICY_NEXT_RUN_TIME: 'scheduling-policy-next-run-time',
 } as const

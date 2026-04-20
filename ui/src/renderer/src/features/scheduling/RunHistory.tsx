@@ -159,7 +159,7 @@ export default function RunHistory({ runs, isLoading, timezone }: RunHistoryProp
                 dryLabel.includes(q)
             )
         })
-    }, [runs, searchQuery])
+    }, [runs, searchQuery, timezone])
 
     // Reset page when search changes
     const handleSearchChange = useCallback((value: string) => {

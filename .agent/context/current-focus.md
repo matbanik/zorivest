@@ -2,10 +2,10 @@
 
 ## Current Priority
 
-Pipeline email delivery stabilization complete. Dedup blocking bug fixed (run_id fallback), SMTP security field wired across all tests. 2087 tests pass, 0 failures.
+Pipeline hardening project complete and Codex-approved (MEU-PW9, MEU-PW11, MEU-72a). Template rendering, cursor tracking, and timezone display all verified. 6 pipeline data-flow deficiency bugs documented.
 
 ## Next Steps
 
-1. Live-test email delivery through Electron GUI to confirm end-to-end
-2. Re-introduce Jinja2 template rendering incrementally with unit tests
-3. Address scheduling UI issues (AM/PM dropdown, "Not scheduled" display)
+1. Plan and execute pipeline data-flow chain fix (PIPE-STEPKEY, PIPE-TMPLVAR, PIPE-RAWBLOB, PIPE-PROVNORM, PIPE-QUOTEFIELD, PIPE-SILENTPASS) as single MEU
+2. Write integration tests exercising full FetchStep→TransformStep→SendStep chain (PIPE-E2E-CHAIN)
+3. Address remaining pipeline issues: [PIPE-URLBUILD], [PIPE-NOCANCEL]
