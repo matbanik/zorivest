@@ -166,11 +166,12 @@ class TestSafeJsonOutput:
     and datetime via .isoformat()."""
 
     def test_none_output_returns_none(self) -> None:
-        """Empty or None output returns None."""
+        """None input returns None; empty dict serializes to '{}'."""
         from zorivest_core.services.pipeline_runner import _safe_json_output
 
-        assert _safe_json_output({}) is None
         assert _safe_json_output(None) is None  # type: ignore[arg-type]
+        # Empty dict is valid JSON, not None (bug fix from MEU-PW8)
+        assert _safe_json_output({}) == "{}"
 
     def test_bytes_values_decoded(self) -> None:
         """bytes values are decoded to UTF-8 strings with replacement."""

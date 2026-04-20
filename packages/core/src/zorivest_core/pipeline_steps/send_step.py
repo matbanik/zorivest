@@ -75,8 +75,18 @@ class SendStep(RegisteredStep):
             if delivery_result["failed"] == 0
             else PipelineStatus.FAILED
         )
+        # Surface first delivery error in StepResult.error for UI visibility
+        error_msg: str | None = None
+        if status == PipelineStatus.FAILED:
+            for d in delivery_result.get("deliveries", []):
+                if d.get("error"):
+                    error_msg = d["error"]
+                    break
+            if error_msg is None:
+                error_msg = f"Send failed: {delivery_result['failed']} delivery(ies)"
         return StepResult(
             status=status,
+            error=error_msg,
             output={
                 "channel": p.channel,
                 "sent": delivery_result["sent"],
@@ -109,14 +119,19 @@ class SendStep(RegisteredStep):
         smtp_host = smtp_config.get("host", "localhost")
         smtp_port = smtp_config.get("port", 587)
         sender = smtp_config.get("sender", "noreply@zorivest.local")
+        smtp_username = smtp_config.get("username") or None
+        smtp_password = smtp_config.get("password") or None
+        security = smtp_config.get("security", "STARTTLS")
 
         for recipient in params.recipients:
-            # Compute dedup key
+            # Compute dedup key — use run_id as fallback when no snapshot_hash
+            # so each pipeline execution can deliver independently
+            effective_hash = params.snapshot_hash or context.run_id or ""
             dedup_key = compute_dedup_key(
                 report_id=params.report_id or "",
                 channel="email",
                 recipient=recipient,
-                snapshot_hash=params.snapshot_hash or "",
+                snapshot_hash=effective_hash,
             )
 
             # Check for existing delivery
@@ -144,6 +159,9 @@ class SendStep(RegisteredStep):
                 subject=params.subject,
                 html_body=html_body,
                 pdf_path=params.pdf_path,
+                use_tls=security != "SSL",
+                smtp_username=smtp_username,
+                smtp_password=smtp_password,
             )
 
             if success:

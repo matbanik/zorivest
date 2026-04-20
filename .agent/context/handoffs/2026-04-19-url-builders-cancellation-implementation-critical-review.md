@@ -339,3 +339,32 @@ assert '...v1/finance/v6/finance/quote...' == '...v6/finance/quote...'
 ### Verdict
 
 `approved` — Yahoo base_url double-path bug resolved. Registry now uses bare domain `https://query1.finance.yahoo.com`, builders construct full absolute paths from domain root. Exact-URL adapter integration test prevents regression.
+
+---
+
+## Recheck (2026-04-19, Round 5)
+
+### Commands Executed
+
+- `uv run pytest tests/unit/test_market_data_adapter.py tests/unit/test_url_builders.py tests/unit/test_pipeline_cancellation.py -v` -> `56 passed`
+- `uv run python tools/validate_codebase.py --scope meu` -> `8/8 blocking checks passed`; advisory: `All evidence fields present in 120-2026-04-19-url-builders-cancellation-corrections.md`
+- `git status --short`
+- Live probe: Yahoo quote builder path for `{"tickers": ["AAPL", "MSFT"]}` -> `https://query1.finance.yahoo.com/v6/finance/quote?symbols=AAPL,MSFT`
+- Live probe: Polygon quote builder path for `{"tickers": ["AAPL", "MSFT"]}` -> `https://api.polygon.io/v2/snapshot/locale/us/markets/stocks/tickers?tickers=AAPL,MSFT`
+- Live probe: `POST /api/v1/scheduling/runs/{run_id}/cancel` with terminal-state service result -> `200 {"run_id": "...", "status": "success"}`
+
+### Confirmed State
+
+- Yahoo provider config remains on the bare domain and the builder composes the correct quote path. See [provider_registry.py](/P:/zorivest/packages/infrastructure/src/zorivest_infra/market_data/provider_registry.py:171) and [url_builders.py](/P:/zorivest/packages/infrastructure/src/zorivest_infra/market_data/url_builders.py:78).
+- Polygon quote composition remains correct for multi-ticker snapshot URLs. See [url_builders.py](/P:/zorivest/packages/infrastructure/src/zorivest_infra/market_data/url_builders.py:117).
+- The adapter regression test still asserts the exact final Yahoo URL, not a substring. See [test_market_data_adapter.py](/P:/zorivest/tests/unit/test_market_data_adapter.py:396).
+- The direct builder tests still use exact equality for Yahoo and Polygon quote URLs. See [test_url_builders.py](/P:/zorivest/tests/unit/test_url_builders.py:62), [test_url_builders.py](/P:/zorivest/tests/unit/test_url_builders.py:75), [test_url_builders.py](/P:/zorivest/tests/unit/test_url_builders.py:141), and [test_url_builders.py](/P:/zorivest/tests/unit/test_url_builders.py:154).
+- The cancel endpoint still maps terminal-state results to HTTP 200 with the expected response body shape. See [scheduling_service.py](/P:/zorivest/packages/core/src/zorivest_core/services/scheduling_service.py:367) and [scheduling.py](/P:/zorivest/packages/api/src/zorivest_api/routes/scheduling.py:224).
+
+### Remaining Findings
+
+- None.
+
+### Verdict
+
+`approved` — the current working tree reproduces the spec-compliant Yahoo and Polygon quote URLs, the cancellation endpoint remains idempotent for terminal runs, the targeted suites pass, and the MEU gate is clean.

@@ -114,6 +114,22 @@ function detectPreset(cron: string): { preset: FrequencyPreset; hour: number; mi
 
 const MINUTE_OPTIONS = [0, 5, 10, 15, 20, 25, 30, 35, 40, 45, 50, 55]
 
+// ── 12-hour helpers ────────────────────────────────────────────────────
+
+/** Convert 24-hour value to 12-hour display pair */
+function to12h(hour24: number): { display: number; period: 'AM' | 'PM' } {
+    const period: 'AM' | 'PM' = hour24 >= 12 ? 'PM' : 'AM'
+    let display = hour24 % 12
+    if (display === 0) display = 12
+    return { display, period }
+}
+
+/** Convert 12-hour display pair back to 24-hour value */
+function to24h(display12: number, period: 'AM' | 'PM'): number {
+    if (period === 'AM') return display12 === 12 ? 0 : display12
+    return display12 === 12 ? 12 : display12 + 12
+}
+
 // ── Component ──────────────────────────────────────────────────────────
 
 export default function CronPicker({ value, onChange }: CronPickerProps) {
@@ -121,9 +137,12 @@ export default function CronPicker({ value, onChange }: CronPickerProps) {
     // eslint-disable-next-line react-hooks/exhaustive-deps
     const initial = useMemo(() => detectPreset(value), [])
     const [preset, setPreset] = useState<FrequencyPreset>(initial.preset)
-    const [hour, setHour] = useState(initial.hour)
+    const [hour, setHour] = useState(initial.hour) // 24-hour internal
     const [minute, setMinute] = useState(initial.minute)
     const [rawCron, setRawCron] = useState(value)
+
+    // Derived 12-hour display state
+    const { display: displayHour, period } = to12h(hour)
 
     // Sync back when parent value changes (e.g. after save)
     useEffect(() => {
@@ -146,7 +165,7 @@ export default function CronPicker({ value, onChange }: CronPickerProps) {
     const preview = useMemo(() => {
         if (!generatedCron.trim()) return null
         try {
-            return cronstrue.toString(generatedCron, { verbose: true })
+            return cronstrue.toString(generatedCron, { verbose: true, use24HourTimeFormat: false })
         } catch {
             return null
         }
@@ -174,11 +193,21 @@ export default function CronPicker({ value, onChange }: CronPickerProps) {
     )
 
     const handleHourChange = useCallback(
-        (h: number) => {
-            setHour(h)
-            emitChange(preset, h, minute, rawCron)
+        (display12: number) => {
+            const h24 = to24h(display12, period)
+            setHour(h24)
+            emitChange(preset, h24, minute, rawCron)
         },
-        [preset, minute, rawCron, emitChange],
+        [preset, minute, rawCron, period, emitChange],
+    )
+
+    const handlePeriodChange = useCallback(
+        (newPeriod: 'AM' | 'PM') => {
+            const h24 = to24h(displayHour, newPeriod)
+            setHour(h24)
+            emitChange(preset, h24, minute, rawCron)
+        },
+        [preset, minute, rawCron, displayHour, emitChange],
     )
 
     const handleMinuteChange = useCallback(
@@ -240,15 +269,18 @@ export default function CronPicker({ value, onChange }: CronPickerProps) {
                         <span className="text-xs text-fg-muted">at</span>
                         <select
                             data-testid={SCHEDULING_TEST_IDS.CRON_HOUR}
-                            value={hour}
+                            value={displayHour}
                             onChange={(e) => handleHourChange(parseInt(e.target.value, 10))}
                             className="px-2 py-1.5 text-sm rounded-md bg-bg border border-bg-subtle text-fg font-mono focus:outline-none focus:border-accent-cyan w-16"
                         >
-                            {Array.from({ length: 24 }, (_, i) => (
-                                <option key={i} value={i}>
-                                    {String(i).padStart(2, '0')}
-                                </option>
-                            ))}
+                            {Array.from({ length: 12 }, (_, i) => {
+                                const h = i + 1 // 1-12
+                                return (
+                                    <option key={h} value={h}>
+                                        {h}
+                                    </option>
+                                )
+                            })}
                         </select>
                         <span className="text-fg-muted font-mono">:</span>
                         <select
@@ -262,6 +294,15 @@ export default function CronPicker({ value, onChange }: CronPickerProps) {
                                     {String(m).padStart(2, '0')}
                                 </option>
                             ))}
+                        </select>
+                        <select
+                            data-testid="cron-period"
+                            value={period}
+                            onChange={(e) => handlePeriodChange(e.target.value as 'AM' | 'PM')}
+                            className="px-2 py-1.5 text-sm rounded-md bg-bg border border-bg-subtle text-fg focus:outline-none focus:border-accent-cyan w-16"
+                        >
+                            <option value="AM">AM</option>
+                            <option value="PM">PM</option>
                         </select>
                     </>
                 )}

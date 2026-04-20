@@ -48,6 +48,7 @@ class TestPipelineRuntimeWiring:
             "sender",
             "username",
             "password",
+            "security",
         }
 
     def test_pipeline_runner_provider_adapter_is_wired(

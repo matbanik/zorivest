@@ -157,6 +157,7 @@ class EmailProviderService:
                 "sender": "noreply@zorivest.local",
                 "username": "",
                 "password": "",
+                "security": "STARTTLS",
             }
 
         # Decrypt password if present
@@ -179,4 +180,5 @@ class EmailProviderService:
             "sender": sender,
             "username": str(row.username) if row.username else "",
             "password": password,
+            "security": str(row.security) if row.security else "STARTTLS",
         }

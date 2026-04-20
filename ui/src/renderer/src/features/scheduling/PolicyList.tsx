@@ -27,7 +27,7 @@ interface PolicyListProps {
 
 function formatCronShort(cron: string): string {
     try {
-        return cronstrue.toString(cron, { use24HourTimeFormat: true })
+        return cronstrue.toString(cron, { use24HourTimeFormat: false })
     } catch {
         return cron
     }

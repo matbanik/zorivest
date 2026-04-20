@@ -18,6 +18,7 @@ import { json } from '@codemirror/lang-json'
 import { oneDark } from '@codemirror/theme-one-dark'
 import { basicSetup } from 'codemirror'
 import { SCHEDULING_TEST_IDS } from './test-ids'
+import { formatTimestamp } from '@/lib/formatDate'
 import type { Policy } from './api'
 import CronPicker from './CronPicker'
 
@@ -315,7 +316,7 @@ export default function PolicyDetail({
                         <div className="text-xs text-fg-muted">
                             Next run:{' '}
                             <span className="text-fg">
-                                {new Date(policy.next_run).toLocaleString()}
+                                {formatTimestamp(policy.next_run, timezone)}
                             </span>
                         </div>
                     )}
@@ -329,9 +330,9 @@ export default function PolicyDetail({
                         </h4>
                         <div className="text-[11px] text-fg-muted/50 flex items-baseline gap-2 flex-wrap">
                             <span>Schema v{policy.schema_version} · Hash: {policy.content_hash.slice(0, 8)}</span>
-                            <span>Created: {new Date(policy.created_at).toLocaleString()}</span>
+                            <span>Created: {formatTimestamp(policy.created_at, timezone)}</span>
                             {policy.updated_at && (
-                                <span>Updated: {new Date(policy.updated_at).toLocaleString()}</span>
+                                <span>Updated: {formatTimestamp(policy.updated_at, timezone)}</span>
                             )}
                         </div>
                     </div>

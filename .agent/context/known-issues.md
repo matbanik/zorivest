@@ -52,6 +52,44 @@
   6. **GUI — Run list indicator:** Show `🔴 Cancelling` badge in run history table during the intermediate state.
 
 
+### [TEMPLATE-RENDER] — SendStep ignores template engine and EMAIL_TEMPLATES registry; emails are plain text
+- **Severity:** High | **Component:** core (`send_step.py`), infrastructure (`email_templates.py`, `template_engine.py`) | **Discovered:** 2026-04-20 | **Status:** Open
+- **Analysis:** [template_rendering_gap_analysis.md](scheduling/template_rendering_gap_analysis.md)
+- **Details:** Three-layer disconnection:
+  1. **Layer 1 — EMAIL_TEMPLATES registry** (`email_templates.py`): Contains 6 styled Jinja2 templates keyed by name (e.g. `"portfolio_summary"`, `"alert_notification"`). Registry is never imported or queried by any consumer.
+  2. **Layer 2 — template_engine** (`template_engine.py`): Jinja2 `Environment` with financial filters (`format_currency`, `format_percent`). Injected into `PipelineRunner → StepContext.outputs["template_engine"]` but `SendStep` never reads it.
+  3. **Layer 3 — body_template resolution**: `SendStep._send_emails()` uses `params.get("body_template", "")` as a **raw literal string** in the email body, not as a template key for lookup + rendering.
+- **Impact:** All pipeline emails are delivered with the template name as the body text (e.g. body = `"portfolio_summary"`) instead of rendered HTML.
+- **Fix scope:** (1) `SendStep._send_emails()` must look up `body_template` in `EMAIL_TEMPLATES`, (2) render via `context.outputs["template_engine"]` with pipeline context data, (3) set email content type to `text/html`. Estimated: ~30 LoC change + 4-6 TDD tests.
+- **MEU candidate:** Yes — small, well-scoped, TDD-friendly.
+
+
+### [PIPE-E2E-CHAIN] — No integration test exercises real FetchStep→TransformStep→StoreReportStep data handoff
+- **Severity:** High | **Component:** tests | **Discovered:** 2026-04-20 | **Status:** Open
+- **Analysis:** [data_flow_gap_analysis.md](scheduling/data_flow_gap_analysis.md) §7.3
+- **Details:** Existing pipeline E2E tests (`test_pipeline_e2e.py`) use **mock steps** — they validate the runner's orchestration logic (lifecycle, error modes, cancellation) but never exercise the actual `FetchStep → TransformStep` data handoff with real provider response shapes. The concrete path — provider JSON → field mapping → Pandera validation → DB write — is only tested at the unit level per-step, never as a chain.
+- **Impact:** Field mapping mismatches, Pandera schema drift, or DbWriteAdapter serialization bugs would not be caught until live execution.
+- **Fix scope:** Add 2-3 integration tests using `FetchStep` with mocked HTTP (real adapter) → `TransformStep` with real field mapping + Pandera → `StoreReportStep` with real SQL sandbox. Use in-memory SQLite.
+- **MEU candidate:** Yes — extends MEU-PW8 test harness.
+
+
+### [PIPE-CACHEUPSERT] — Cache write-back after HTTP 200 fetch is not integration-tested
+- **Severity:** Medium | **Component:** tests, infrastructure (`fetch_step.py`, `market_data_adapter.py`) | **Discovered:** 2026-04-20 | **Status:** Open
+- **Analysis:** [data_flow_gap_analysis.md](scheduling/data_flow_gap_analysis.md) §7.3
+- **Details:** `FetchStep._fetch_from_provider()` calls `fetch_cache_repo.upsert()` after a successful HTTP 200 response. The cache **read** path (hit, miss, stale/revalidated) is well-tested (5 integration tests), but the **write-back** path — confirm that after a 200, a new cache entry exists with correct `payload_json`, `etag`, `content_hash`, `ttl_seconds`, and `fetched_at` — is not verified in any integration test.
+- **Fix scope:** Add 1-2 assertions to the existing `test_PW2_AC7_fetch_step_happy_path_ohlcv` or a new focused test.
+- **MEU candidate:** No — small enough to be a patch within an existing MEU.
+
+
+### [PIPE-CURSORS] — Pipeline state cursor tracking is modeled but unused
+- **Severity:** Medium | **Component:** core (`fetch_step.py`), infrastructure (`PipelineStateModel`) | **Discovered:** 2026-04-20 | **Status:** Open
+- **Analysis:** [data_flow_gap_analysis.md](scheduling/data_flow_gap_analysis.md) §8.5
+- **Details:** `PipelineStateModel` exists with `last_cursor` and `last_hash` columns for incremental fetch high-water marks. `pipeline_state_repo` is injected into `PipelineRunner`. However, `FetchStep` never reads or writes cursor state — each fetch is a full pull regardless of prior runs. The `CriteriaResolver` has an `incremental` mode that references `pipeline_state_repo`, but it is not exercised by any test.
+- **Impact:** Repeated pipeline runs re-fetch all data instead of delta-only, increasing API costs and latency.
+- **Fix scope:** Implement cursor read/write in `FetchStep.execute()`, add `CriteriaResolver.resolve_incremental()` tests.
+- **MEU candidate:** Yes — medium scope, requires FIC + TDD cycle.
+
+
 ## Mitigated / Workaround Applied
 
 ### [MCP-TOOLCAP] — IDE tool limits render 68-tool flat registration non-viable
@@ -126,6 +164,7 @@
 | DOC-STALESLUG | 2026-03-22 | MEU slug reference corrected |
 | PIPE-CHARMAP | 2026-04-19 | Pipeline charmap crash fixed — structlog UTF-8 config + bytes-safe JSON (MEU-PW4) |
 | PIPE-ZOMBIE | 2026-04-19 | Zombie runs eliminated — dual-write→single-writer, run_id passthrough, recover_zombies (MEU-PW5) |
+| PIPE-DEDUP | 2026-04-20 | Dedup blocking fixed — run_id fallback when snapshot_hash absent (TDD-verified) |
 | WF-SEGREGATE | 2026-04-19 | Split 2 combined workflows into 4 mode-specific variants with HARD STOP |
 
 ## Template

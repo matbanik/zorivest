@@ -13,6 +13,7 @@
 
 import { useState, useCallback, useMemo, Fragment } from 'react'
 import { SCHEDULING_TEST_IDS } from './test-ids'
+import { formatTimestamp } from '@/lib/formatDate'
 import type { PipelineRun } from './api'
 import { useRunDetail } from './hooks'
 
@@ -25,6 +26,8 @@ const PAGE_SIZE = 25
 interface RunHistoryProps {
     runs: PipelineRun[]
     isLoading: boolean
+    /** IANA timezone for timestamp display (e.g., 'America/New_York'). */
+    timezone?: string
 }
 
 function formatDuration(ms: number | null): string {
@@ -33,20 +36,7 @@ function formatDuration(ms: number | null): string {
     return `${(ms / 1000).toFixed(1)}s`
 }
 
-function formatTimestamp(ts: string | null): string {
-    if (!ts) return '—'
-    try {
-        const d = new Date(ts)
-        return d.toLocaleString(undefined, {
-            month: 'short',
-            day: 'numeric',
-            hour: '2-digit',
-            minute: '2-digit',
-        })
-    } catch {
-        return ts
-    }
-}
+// formatTimestamp is imported from '@/lib/formatDate' (timezone-aware)
 
 function statusIcon(status: string): string {
     switch (status) {
@@ -142,7 +132,7 @@ function RunDetailExpanded({ runId }: { runId: string }) {
 
 // ── RunHistory ─────────────────────────────────────────────────────────
 
-export default function RunHistory({ runs, isLoading }: RunHistoryProps) {
+export default function RunHistory({ runs, isLoading, timezone }: RunHistoryProps) {
     const [expandedRunId, setExpandedRunId] = useState<string | null>(null)
     const [searchQuery, setSearchQuery] = useState('')
     const [currentPage, setCurrentPage] = useState(0)
@@ -156,7 +146,7 @@ export default function RunHistory({ runs, isLoading }: RunHistoryProps) {
         if (!searchQuery.trim()) return runs
         const q = searchQuery.toLowerCase()
         return runs.filter((run) => {
-            const timestamp = formatTimestamp(run.started_at).toLowerCase()
+            const timestamp = formatTimestamp(run.started_at, timezone).toLowerCase()
             const status = run.status.toLowerCase()
             const error = (run.error || '').toLowerCase()
             const trigger = (run.trigger_type || '').toLowerCase()
@@ -234,7 +224,7 @@ export default function RunHistory({ runs, isLoading }: RunHistoryProps) {
                                     className="border-t border-bg-subtle/20 hover:bg-bg-elevated/30 cursor-pointer transition-colors"
                                 >
                                     <td className="px-3 py-1.5 text-fg tabular-nums">
-                                        {formatTimestamp(run.started_at)}
+                                        {formatTimestamp(run.started_at, timezone)}
                                     </td>
                                     <td className={`px-3 py-1.5 ${statusClass(run.status)}`}>
                                         {statusIcon(run.status)} {run.status}

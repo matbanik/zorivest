@@ -23,6 +23,7 @@ members = ["packages/*"]
 
 [tool.pytest.ini_options]
 testpaths = ["tests"]
+pythonpath = ["."]
 markers = [
     "unit: Pure unit tests",
     "integration: Integration tests with real DB",

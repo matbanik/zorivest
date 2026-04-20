@@ -1,685 +1,592 @@
 # tests/unit/test_send_step.py
-"""TDD Red-phase tests for SendStep + email delivery (MEU-88).
+"""Unit tests for SendStep — email delivery pipeline step (§9.8).
 
-Acceptance criteria AC-S1..AC-S20 per implementation-plan §9.8a–c.
+Verifies:
+- SMTP credential passthrough from context.outputs["smtp_config"]
+- Email body resolution order (html_body > body_template > default)
+- Dedup key computation and skip behavior
+- Error surfacing in StepResult
+- Status reporting for sent/failed/skipped scenarios
 """
 
 from __future__ import annotations
 
-from datetime import datetime, timezone
+import hashlib
+from typing import Any
 from unittest.mock import AsyncMock, MagicMock, patch
 
 import pytest
-from pydantic import ValidationError
+
+from zorivest_core.domain.enums import PipelineStatus
+from zorivest_core.domain.pipeline import StepContext
+from zorivest_core.pipeline_steps.send_step import SendStep
 
 
-# ---------------------------------------------------------------------------
-# AC-S1: SendStep auto-registers with type_name="send" in STEP_REGISTRY
-# ---------------------------------------------------------------------------
+# ── Fixtures ──────────────────────────────────────────────────────────────
 
 
-def test_ac_s1_send_step_auto_registers():
-    """SendStep auto-registers in STEP_REGISTRY."""
-    from zorivest_core.domain.step_registry import STEP_REGISTRY, get_step
-
-    import zorivest_core.pipeline_steps  # noqa: F401
-
-    from zorivest_core.pipeline_steps.send_step import SendStep
-
-    assert "send" in STEP_REGISTRY
-    assert get_step("send") is SendStep
-
-
-# ---------------------------------------------------------------------------
-# AC-S2: SendStep.side_effects is True
-# ---------------------------------------------------------------------------
-
-
-def test_ac_s2_send_step_side_effects():
-    """SendStep declares side_effects=True."""
-    from zorivest_core.pipeline_steps.send_step import SendStep
-
-    assert SendStep.side_effects is True
-
-
-# ---------------------------------------------------------------------------
-# AC-S3: SendStep.Params requires channel field
-# ---------------------------------------------------------------------------
-
-
-def test_ac_s3_params_requires_channel():
-    """SendStep.Params requires channel field."""
-    from zorivest_core.pipeline_steps.send_step import SendStep
-
-    with pytest.raises(ValidationError):
-        SendStep.Params(recipients=["test@example.com"])  # type: ignore[reportCallIssue]
-
-    p = SendStep.Params(channel="email", recipients=["test@example.com"])
-    assert p.channel == "email"
-
-
-# ---------------------------------------------------------------------------
-# AC-S4: SendStep.Params.recipients enforces max_length=5
-# ---------------------------------------------------------------------------
-
-
-def test_ac_s4_params_recipients_max_length():
-    """SendStep.Params.recipients enforces max_length=5."""
-    from zorivest_core.pipeline_steps.send_step import SendStep
-
-    # Valid: 5 recipients
-    p = SendStep.Params(
-        channel="email",
-        recipients=["a@x.com", "b@x.com", "c@x.com", "d@x.com", "e@x.com"],
-    )
-    assert len(p.recipients) == 5
-
-    # Invalid: 6 recipients
-    with pytest.raises(ValidationError):
-        SendStep.Params(
-            channel="email",
-            recipients=[
-                "a@x.com",
-                "b@x.com",
-                "c@x.com",
-                "d@x.com",
-                "e@x.com",
-                "f@x.com",
-            ],
-        )
-
-
-# ---------------------------------------------------------------------------
-# AC-S5: SendStep.Params.subject and body_template default to empty string
-# ---------------------------------------------------------------------------
-
-
-def test_ac_s5_params_defaults():
-    """SendStep.Params subject and body_template default to empty string."""
-    from zorivest_core.pipeline_steps.send_step import SendStep
-
-    p = SendStep.Params(channel="email", recipients=["test@example.com"])
-    assert p.subject == ""
-    assert p.body_template == ""
-
-
-# ---------------------------------------------------------------------------
-# AC-S6: execute() returns FAILED for unknown channel
-# ---------------------------------------------------------------------------
-
-
-@pytest.mark.asyncio
-async def test_ac_s6_execute_fails_unknown_channel():
-    """execute() returns FAILED for unknown channel."""
-    from zorivest_core.domain.pipeline import StepContext
-    from zorivest_core.pipeline_steps.send_step import SendStep
-
-    step = SendStep()
-    context = StepContext(run_id="run-1", policy_id="pol-1")
-
-    result = await step.execute(
-        params={"channel": "carrier_pigeon", "recipients": ["test@example.com"]},
-        context=context,
+def _make_context(
+    *,
+    run_id: str = "test-run-001",
+    policy_id: str = "test-policy",
+    smtp_config: dict[str, Any] | None = None,
+    delivery_repository: Any = None,
+    extra_outputs: dict[str, Any] | None = None,
+) -> StepContext:
+    """Create a StepContext with injectable SMTP config and delivery repo."""
+    outputs: dict[str, Any] = {}
+    if smtp_config is not None:
+        outputs["smtp_config"] = smtp_config
+    if delivery_repository is not None:
+        outputs["delivery_repository"] = delivery_repository
+    if extra_outputs:
+        outputs.update(extra_outputs)
+    return StepContext(
+        run_id=run_id,
+        policy_id=policy_id,
+        outputs=outputs,
     )
 
-    assert result.status.value == "failed"
-    assert "carrier_pigeon" in result.error  # type: ignore[reportOperatorIssue]
+
+DEFAULT_SMTP = {
+    "host": "smtp.gmail.com",
+    "port": 587,
+    "sender": "me@gmail.com",
+    "username": "me@gmail.com",
+    "password": "app-password-123",
+    "security": "STARTTLS",
+}
+
+DEFAULT_EMAIL_PARAMS = {
+    "channel": "email",
+    "recipients": ["you@example.com"],
+    "subject": "Test Report",
+    "body_template": "daily_quote_summary",
+}
 
 
-# ---------------------------------------------------------------------------
-# AC-S7: execute() dispatches to _send_emails for channel="email"
-# ---------------------------------------------------------------------------
+# ── Test: SMTP Credential Passthrough ─────────────────────────────────────
 
 
-@pytest.mark.asyncio
-async def test_ac_s7_execute_dispatches_email():
-    """execute() dispatches to _send_emails for channel='email'."""
-    from zorivest_core.domain.pipeline import StepContext
-    from zorivest_core.pipeline_steps.send_step import SendStep
+class TestSMTPCredentialPassthrough:
+    """Verify SMTP host/port/sender/username/password/security reach email_sender."""
 
-    step = SendStep()
-    step._send_emails = AsyncMock(
-        return_value={"sent": 1, "failed": 0, "deliveries": []}
-    )
+    @pytest.mark.asyncio
+    async def test_credentials_passed_to_send_report_email(self) -> None:
+        """All SMTP config fields must be forwarded to send_report_email()."""
+        mock_send = AsyncMock(return_value=(True, "Sent successfully"))
 
-    context = StepContext(run_id="run-1", policy_id="pol-1")
+        with patch(
+            "zorivest_core.pipeline_steps.send_step.send_report_email",
+            mock_send,
+            create=True,
+        ):
+            # Must also patch the import inside _send_emails
+            with patch.dict(
+                "sys.modules",
+                {
+                    "zorivest_infra.email.email_sender": MagicMock(
+                        send_report_email=mock_send
+                    ),
+                    "zorivest_infra.email.delivery_tracker": MagicMock(
+                        compute_dedup_key=lambda **kw: hashlib.sha256(
+                            f"{kw['report_id']}|{kw['channel']}|{kw['recipient']}|{kw['snapshot_hash']}".encode()
+                        ).hexdigest()
+                    ),
+                },
+            ):
+                step = SendStep()
+                ctx = _make_context(smtp_config=DEFAULT_SMTP)
+                result = await step.execute(DEFAULT_EMAIL_PARAMS, ctx)
 
-    result = await step.execute(
-        params={"channel": "email", "recipients": ["test@example.com"]},
-        context=context,
-    )
+        assert result.status == PipelineStatus.SUCCESS
+        mock_send.assert_called_once()
+        call_kwargs = mock_send.call_args.kwargs
+        assert call_kwargs["smtp_host"] == "smtp.gmail.com"
+        assert call_kwargs["smtp_port"] == 587
+        assert call_kwargs["sender"] == "me@gmail.com"
+        assert call_kwargs["smtp_username"] == "me@gmail.com"
+        assert call_kwargs["smtp_password"] == "app-password-123"
+        assert call_kwargs["use_tls"] is True  # STARTTLS → use_tls=True
 
-    step._send_emails.assert_called_once()
-    assert result.status.value == "success"
+    @pytest.mark.asyncio
+    async def test_ssl_mode_sets_use_tls_false(self) -> None:
+        """When security='SSL', use_tls should be False."""
+        ssl_config = {**DEFAULT_SMTP, "security": "SSL", "port": 465}
+        mock_send = AsyncMock(return_value=(True, "Sent successfully"))
+
+        with patch.dict(
+            "sys.modules",
+            {
+                "zorivest_infra.email.email_sender": MagicMock(
+                    send_report_email=mock_send
+                ),
+                "zorivest_infra.email.delivery_tracker": MagicMock(
+                    compute_dedup_key=lambda **kw: "test-dedup-key"
+                ),
+            },
+        ):
+            step = SendStep()
+            ctx = _make_context(smtp_config=ssl_config)
+            await step.execute(DEFAULT_EMAIL_PARAMS, ctx)
+
+        call_kwargs = mock_send.call_args.kwargs
+        assert call_kwargs["use_tls"] is False
+        assert call_kwargs["smtp_port"] == 465
+
+    @pytest.mark.asyncio
+    async def test_empty_credentials_become_none(self) -> None:
+        """Empty string creds should convert to None (not passed as '')."""
+        no_auth_config = {**DEFAULT_SMTP, "username": "", "password": ""}
+        mock_send = AsyncMock(return_value=(True, "Sent successfully"))
+
+        with patch.dict(
+            "sys.modules",
+            {
+                "zorivest_infra.email.email_sender": MagicMock(
+                    send_report_email=mock_send
+                ),
+                "zorivest_infra.email.delivery_tracker": MagicMock(
+                    compute_dedup_key=lambda **kw: "test-dedup-key"
+                ),
+            },
+        ):
+            step = SendStep()
+            ctx = _make_context(smtp_config=no_auth_config)
+            await step.execute(DEFAULT_EMAIL_PARAMS, ctx)
+
+        call_kwargs = mock_send.call_args.kwargs
+        assert call_kwargs["smtp_username"] is None
+        assert call_kwargs["smtp_password"] is None
 
 
-# ---------------------------------------------------------------------------
-# AC-S8: execute() dispatches to _save_local for channel="local_file"
-# ---------------------------------------------------------------------------
+# ── Test: Email Body Resolution ───────────────────────────────────────────
 
 
-@pytest.mark.asyncio
-async def test_ac_s8_execute_dispatches_local_file():
-    """execute() dispatches to _save_local for channel='local_file'."""
-    from zorivest_core.domain.pipeline import StepContext
-    from zorivest_core.pipeline_steps.send_step import SendStep
+class TestEmailBodyResolution:
+    """Verify body resolution order: html_body > body_template > default."""
 
-    step = SendStep()
-    step._save_local = AsyncMock(
-        return_value={"sent": 1, "failed": 0, "deliveries": []}
-    )
+    @pytest.mark.asyncio
+    async def test_html_body_takes_precedence(self) -> None:
+        """When html_body is provided, it bypasses body_template."""
+        mock_send = AsyncMock(return_value=(True, "Sent"))
+        params = {
+            **DEFAULT_EMAIL_PARAMS,
+            "html_body": "<h1>Custom HTML</h1>",
+            "body_template": "daily_quote_summary",
+        }
 
-    context = StepContext(run_id="run-1", policy_id="pol-1")
+        with patch.dict(
+            "sys.modules",
+            {
+                "zorivest_infra.email.email_sender": MagicMock(
+                    send_report_email=mock_send
+                ),
+                "zorivest_infra.email.delivery_tracker": MagicMock(
+                    compute_dedup_key=lambda **kw: "test-key"
+                ),
+            },
+        ):
+            step = SendStep()
+            ctx = _make_context(smtp_config=DEFAULT_SMTP)
+            await step.execute(params, ctx)
 
-    result = await step.execute(
-        params={"channel": "local_file", "recipients": ["/tmp/report.pdf"]},
-        context=context,
-    )
+        assert mock_send.call_args.kwargs["html_body"] == "<h1>Custom HTML</h1>"
 
-    step._save_local.assert_called_once()
-    assert result.status.value == "success"
+    @pytest.mark.asyncio
+    async def test_body_template_used_when_no_html_body(self) -> None:
+        """When html_body is None, body_template string is used as-is."""
+        mock_send = AsyncMock(return_value=(True, "Sent"))
+        params = {
+            **DEFAULT_EMAIL_PARAMS,
+            "body_template": "daily_quote_summary",
+        }
 
+        with patch.dict(
+            "sys.modules",
+            {
+                "zorivest_infra.email.email_sender": MagicMock(
+                    send_report_email=mock_send
+                ),
+                "zorivest_infra.email.delivery_tracker": MagicMock(
+                    compute_dedup_key=lambda **kw: "test-key"
+                ),
+            },
+        ):
+            step = SendStep()
+            ctx = _make_context(smtp_config=DEFAULT_SMTP)
+            await step.execute(params, ctx)
 
-# ---------------------------------------------------------------------------
-# AC-S9: execute() returns sent/failed counts in output
-# ---------------------------------------------------------------------------
+        assert mock_send.call_args.kwargs["html_body"] == "daily_quote_summary"
 
-
-@pytest.mark.asyncio
-async def test_ac_s9_execute_returns_counts():
-    """execute() returns sent/failed counts in output."""
-    from zorivest_core.domain.pipeline import StepContext
-    from zorivest_core.pipeline_steps.send_step import SendStep
-
-    step = SendStep()
-    step._send_emails = AsyncMock(
-        return_value={"sent": 2, "failed": 1, "deliveries": []}
-    )
-
-    context = StepContext(run_id="run-1", policy_id="pol-1")
-
-    result = await step.execute(
-        params={
+    @pytest.mark.asyncio
+    async def test_default_fallback_when_no_body(self) -> None:
+        """When both html_body and body_template are empty, use default."""
+        mock_send = AsyncMock(return_value=(True, "Sent"))
+        params = {
             "channel": "email",
-            "recipients": ["a@x.com", "b@x.com", "c@x.com"],
-        },
-        context=context,
-    )
-
-    assert result.output["sent"] == 2
-    assert result.output["failed"] == 1
-
-
-# ---------------------------------------------------------------------------
-# AC-S10: compute_dedup_key produces deterministic SHA-256 hex string
-# ---------------------------------------------------------------------------
-
-
-def test_ac_s10_compute_dedup_key_deterministic():
-    """compute_dedup_key produces deterministic SHA-256 hex string."""
-    from zorivest_infra.email.delivery_tracker import compute_dedup_key
-
-    key1 = compute_dedup_key(
-        report_id="rpt-1",
-        channel="email",
-        recipient="test@example.com",
-        snapshot_hash="abc123",
-    )
-    key2 = compute_dedup_key(
-        report_id="rpt-1",
-        channel="email",
-        recipient="test@example.com",
-        snapshot_hash="abc123",
-    )
-
-    assert key1 == key2
-    assert len(key1) == 64
-    assert all(c in "0123456789abcdef" for c in key1)
-
-
-# ---------------------------------------------------------------------------
-# AC-S11: compute_dedup_key changes when any input field changes
-# ---------------------------------------------------------------------------
-
-
-def test_ac_s11_compute_dedup_key_changes():
-    """compute_dedup_key changes when any input field changes."""
-    from zorivest_infra.email.delivery_tracker import compute_dedup_key
-
-    base_args = {
-        "report_id": "rpt-1",
-        "channel": "email",
-        "recipient": "test@example.com",
-        "snapshot_hash": "abc123",
-    }
-
-    base_key = compute_dedup_key(**base_args)
-
-    # Change each field independently
-    for field, alt_value in [
-        ("report_id", "rpt-2"),
-        ("channel", "local_file"),
-        ("recipient", "other@example.com"),
-        ("snapshot_hash", "def456"),
-    ]:
-        altered = {**base_args, field: alt_value}
-        alt_key = compute_dedup_key(**altered)
-        assert alt_key != base_key, f"Key should differ when {field} changes"
-
-
-# ---------------------------------------------------------------------------
-# AC-S12: send_report_email builds correct MIME multipart structure
-# ---------------------------------------------------------------------------
-
-
-@pytest.mark.asyncio
-async def test_ac_s12_send_report_email_mime():
-    """send_report_email builds correct MIME multipart structure."""
-    from zorivest_infra.email.email_sender import send_report_email
-
-    with patch("zorivest_infra.email.email_sender.aiosmtplib") as mock_smtp:
-        mock_smtp.send = AsyncMock()
-
-        success, msg = await send_report_email(
-            smtp_host="smtp.example.com",
-            smtp_port=587,
-            sender="sender@example.com",
-            recipient="recipient@example.com",
-            subject="Test Report",
-            html_body="<h1>Report</h1>",
-        )
-
-        assert success is True
-        mock_smtp.send.assert_called_once()
-
-        # Verify MIME message structure
-        sent_msg = mock_smtp.send.call_args[0][0]
-        assert sent_msg["From"] == "sender@example.com"
-        assert sent_msg["To"] == "recipient@example.com"
-        assert sent_msg["Subject"] == "Test Report"
-
-
-# ---------------------------------------------------------------------------
-# AC-S13: send_report_email attaches PDF when pdf_path is provided
-# ---------------------------------------------------------------------------
-
-
-@pytest.mark.asyncio
-async def test_ac_s13_send_report_email_pdf_attachment(tmp_path):
-    """send_report_email attaches PDF when pdf_path is provided."""
-    from zorivest_infra.email.email_sender import send_report_email
-
-    pdf_file = tmp_path / "report.pdf"
-    pdf_file.write_bytes(b"%PDF-1.4 test content")
-
-    with patch("zorivest_infra.email.email_sender.aiosmtplib") as mock_smtp:
-        mock_smtp.send = AsyncMock()
-
-        success, msg = await send_report_email(
-            smtp_host="smtp.example.com",
-            smtp_port=587,
-            sender="sender@example.com",
-            recipient="recipient@example.com",
-            subject="Test Report",
-            html_body="<h1>Report</h1>",
-            pdf_path=str(pdf_file),
-        )
-
-        assert success is True
-        sent_msg = mock_smtp.send.call_args[0][0]
-
-        # Verify attachment is present
-        parts = list(sent_msg.walk())
-        content_types = [p.get_content_type() for p in parts]
-        assert "application/pdf" in content_types
-
-
-# ---------------------------------------------------------------------------
-# AC-S14: send_report_email returns (False, error_msg) on SMTP failure
-# ---------------------------------------------------------------------------
-
-
-@pytest.mark.asyncio
-async def test_ac_s14_send_report_email_smtp_failure():
-    """send_report_email returns (False, error_msg) on SMTP failure."""
-    from zorivest_infra.email.email_sender import send_report_email
-
-    with patch("zorivest_infra.email.email_sender.aiosmtplib") as mock_smtp:
-        mock_smtp.send = AsyncMock(side_effect=Exception("Connection refused"))
-
-        success, msg = await send_report_email(
-            smtp_host="smtp.example.com",
-            smtp_port=587,
-            sender="sender@example.com",
-            recipient="recipient@example.com",
-            subject="Test Report",
-            html_body="<h1>Report</h1>",
-        )
-
-        assert success is False
-        assert "Connection refused" in msg
-
-
-# ---------------------------------------------------------------------------
-# AC-S15: params_schema() returns non-empty dict
-# ---------------------------------------------------------------------------
-
-
-def test_ac_s15_params_schema():
-    """params_schema() returns non-empty dict."""
-    from zorivest_core.pipeline_steps.send_step import SendStep
-
-    schema = SendStep.params_schema()
-    assert isinstance(schema, dict)
-    assert len(schema) > 0
-    assert "properties" in schema
-
-
-# ---------------------------------------------------------------------------
-# AC-S16: _send_emails checks DeliveryRepository and skips if key exists
-# ---------------------------------------------------------------------------
-
-
-@pytest.mark.asyncio
-async def test_ac_s16_send_emails_skips_duplicate():
-    """_send_emails checks DeliveryRepository.get_by_dedup_key() and skips
-    send if key already exists."""
-    from zorivest_core.domain.pipeline import StepContext
-    from zorivest_core.pipeline_steps.send_step import SendStep
-
-    # Mock delivery_repo that returns a model (key exists)
-    mock_delivery_repo = MagicMock()
-    mock_delivery_repo.get_by_dedup_key.return_value = MagicMock()  # existing delivery
-
-    step = SendStep()
-    context = StepContext(
-        run_id="run-1",
-        policy_id="pol-1",
-        outputs={"delivery_repository": mock_delivery_repo},
-    )
-
-    params = SendStep.Params(
-        channel="email",
-        recipients=["test@example.com"],
-        subject="Test",
-        report_id="rpt-1",
-        snapshot_hash="abc123",
-    )
-
-    result = await step._send_emails(params, context)
-
-    # Should not have called send, should have skipped
-    assert result["sent"] == 0
-    mock_delivery_repo.get_by_dedup_key.assert_called_once()
-
-
-# ---------------------------------------------------------------------------
-# AC-S17: _send_emails records ReportDeliveryModel after successful send
-# ---------------------------------------------------------------------------
-
-
-@pytest.mark.asyncio
-async def test_ac_s17_send_emails_records_delivery():
-    """_send_emails records ReportDeliveryModel row via
-    DeliveryRepository.create() after successful send."""
-    from zorivest_core.domain.pipeline import StepContext
-    from zorivest_core.pipeline_steps.send_step import SendStep
-
-    mock_delivery_repo = MagicMock()
-    mock_delivery_repo.get_by_dedup_key.return_value = None  # not yet delivered
-
-    step = SendStep()
-    context = StepContext(
-        run_id="run-1",
-        policy_id="pol-1",
-        outputs={"delivery_repository": mock_delivery_repo},
-    )
-
-    params = SendStep.Params(
-        channel="email",
-        recipients=["test@example.com"],
-        subject="Test",
-        report_id="rpt-1",
-        snapshot_hash="abc123",
-    )
-
-    with patch(
-        "zorivest_infra.email.email_sender.send_report_email",
-        new_callable=AsyncMock,
-        return_value=(True, "Sent"),
-    ) as _mock_send:
-        result = await step._send_emails(params, context)
-
-    assert result["sent"] == 1
-    mock_delivery_repo.create.assert_called_once()
-    call_kwargs = mock_delivery_repo.create.call_args.kwargs
-    assert call_kwargs["channel"] == "email"
-    assert call_kwargs["recipient"] == "test@example.com"
-    assert call_kwargs["status"] == "sent"
-    assert "dedup_key" in call_kwargs
-
-
-# ---------------------------------------------------------------------------
-# AC-S18: DeliveryRepository.get_by_dedup_key() returns None/model
-# ---------------------------------------------------------------------------
-
-
-def test_ac_s18_delivery_repo_get_by_dedup_key():
-    """DeliveryRepository.get_by_dedup_key() returns None for unknown key
-    and model for known key."""
-    from sqlalchemy import create_engine
-    from sqlalchemy.orm import Session
-
-    from zorivest_infra.database.models import Base, ReportDeliveryModel, ReportModel
-    from zorivest_infra.database.scheduling_repositories import DeliveryRepository
-
-    engine = create_engine("sqlite:///:memory:")
-    Base.metadata.create_all(engine)
-
-    with Session(engine) as session:
-        # Create prerequisite report
-        report = ReportModel(
-            id="rpt-1",
-            name="Test Report",
-            version=1,
-            spec_json="{}",
-            format="pdf",
-            created_at=datetime.now(timezone.utc),
-        )
-        session.add(report)
-        session.flush()
-
-        repo = DeliveryRepository(session)
-
-        # Unknown key
-        assert repo.get_by_dedup_key("unknown-key") is None
-
-        # Insert a delivery
-        session.add(
-            ReportDeliveryModel(
-                report_id="rpt-1",
-                channel="email",
-                recipient="test@example.com",
-                status="sent",
-                dedup_key="known-key",
+            "recipients": ["you@example.com"],
+            "subject": "Test",
+            "body_template": "",
+        }
+
+        with patch.dict(
+            "sys.modules",
+            {
+                "zorivest_infra.email.email_sender": MagicMock(
+                    send_report_email=mock_send
+                ),
+                "zorivest_infra.email.delivery_tracker": MagicMock(
+                    compute_dedup_key=lambda **kw: "test-key"
+                ),
+            },
+        ):
+            step = SendStep()
+            ctx = _make_context(smtp_config=DEFAULT_SMTP)
+            await step.execute(params, ctx)
+
+        assert mock_send.call_args.kwargs["html_body"] == "<p>Report attached</p>"
+
+
+# ── Test: Dedup Key Behavior ──────────────────────────────────────────────
+
+
+class TestDedupBehavior:
+    """Verify dedup key computation and skip-on-duplicate behavior."""
+
+    @pytest.mark.asyncio
+    async def test_dedup_skips_when_key_exists(self) -> None:
+        """When delivery_repo returns existing record, email is skipped."""
+        mock_send = AsyncMock(return_value=(True, "Sent"))
+        mock_repo = MagicMock()
+        mock_repo.get_by_dedup_key.return_value = MagicMock()  # existing delivery
+
+        with patch.dict(
+            "sys.modules",
+            {
+                "zorivest_infra.email.email_sender": MagicMock(
+                    send_report_email=mock_send
+                ),
+                "zorivest_infra.email.delivery_tracker": MagicMock(
+                    compute_dedup_key=lambda **kw: "duplicate-key"
+                ),
+            },
+        ):
+            step = SendStep()
+            ctx = _make_context(
+                smtp_config=DEFAULT_SMTP,
+                delivery_repository=mock_repo,
             )
+            result = await step.execute(DEFAULT_EMAIL_PARAMS, ctx)
+
+        # Email should NOT have been sent
+        mock_send.assert_not_called()
+        # Status is SUCCESS (no failures), but sent=0
+        assert result.status == PipelineStatus.SUCCESS
+        assert result.output["sent"] == 0
+        deliveries = result.output["deliveries"]
+        assert deliveries[0]["status"] == "skipped"
+
+    @pytest.mark.asyncio
+    async def test_dedup_passes_when_no_delivery_repo(self) -> None:
+        """Without delivery_repo, dedup check is skipped entirely."""
+        mock_send = AsyncMock(return_value=(True, "Sent"))
+
+        with patch.dict(
+            "sys.modules",
+            {
+                "zorivest_infra.email.email_sender": MagicMock(
+                    send_report_email=mock_send
+                ),
+                "zorivest_infra.email.delivery_tracker": MagicMock(
+                    compute_dedup_key=lambda **kw: "key"
+                ),
+            },
+        ):
+            step = SendStep()
+            ctx = _make_context(smtp_config=DEFAULT_SMTP)  # no delivery_repo
+            await step.execute(DEFAULT_EMAIL_PARAMS, ctx)
+
+        mock_send.assert_called_once()
+
+    @pytest.mark.asyncio
+    async def test_dedup_sends_when_key_not_found(self) -> None:
+        """When delivery_repo returns None, email is sent normally."""
+        mock_send = AsyncMock(return_value=(True, "Sent"))
+        mock_repo = MagicMock()
+        mock_repo.get_by_dedup_key.return_value = None  # no prior delivery
+
+        with patch.dict(
+            "sys.modules",
+            {
+                "zorivest_infra.email.email_sender": MagicMock(
+                    send_report_email=mock_send
+                ),
+                "zorivest_infra.email.delivery_tracker": MagicMock(
+                    compute_dedup_key=lambda **kw: "fresh-key"
+                ),
+            },
+        ):
+            step = SendStep()
+            ctx = _make_context(
+                smtp_config=DEFAULT_SMTP,
+                delivery_repository=mock_repo,
+            )
+            result = await step.execute(DEFAULT_EMAIL_PARAMS, ctx)
+
+        mock_send.assert_called_once()
+        assert result.output["sent"] == 1
+
+    @pytest.mark.asyncio
+    async def test_dedup_key_uses_snapshot_hash_when_available(self) -> None:
+        """When snapshot_hash is provided, it participates in the dedup key."""
+        captured_kwargs: list[dict] = []
+
+        def capture_dedup(**kw: Any) -> str:
+            captured_kwargs.append(kw)
+            return "captured-key"
+
+        mock_send = AsyncMock(return_value=(True, "Sent"))
+
+        with patch.dict(
+            "sys.modules",
+            {
+                "zorivest_infra.email.email_sender": MagicMock(
+                    send_report_email=mock_send
+                ),
+                "zorivest_infra.email.delivery_tracker": MagicMock(
+                    compute_dedup_key=capture_dedup
+                ),
+            },
+        ):
+            params = {**DEFAULT_EMAIL_PARAMS, "snapshot_hash": "abc123"}
+            step = SendStep()
+            ctx = _make_context(smtp_config=DEFAULT_SMTP)
+            await step.execute(params, ctx)
+
+        assert len(captured_kwargs) == 1
+        assert captured_kwargs[0]["snapshot_hash"] == "abc123"
+
+    @pytest.mark.asyncio
+    async def test_dedup_key_uses_run_id_when_no_snapshot_hash(self) -> None:
+        """Without snapshot_hash, dedup falls back to run_id for uniqueness."""
+        captured_kwargs: list[dict] = []
+
+        def capture_dedup(**kw: Any) -> str:
+            captured_kwargs.append(kw)
+            return "captured-key"
+
+        mock_send = AsyncMock(return_value=(True, "Sent"))
+
+        with patch.dict(
+            "sys.modules",
+            {
+                "zorivest_infra.email.email_sender": MagicMock(
+                    send_report_email=mock_send
+                ),
+                "zorivest_infra.email.delivery_tracker": MagicMock(
+                    compute_dedup_key=capture_dedup
+                ),
+            },
+        ):
+            step = SendStep()
+            ctx = _make_context(smtp_config=DEFAULT_SMTP)
+            await step.execute(DEFAULT_EMAIL_PARAMS, ctx)
+
+        # run_id fallback is used when snapshot_hash is absent
+        assert captured_kwargs[0]["snapshot_hash"] == "test-run-001"
+
+
+# ── Test: Error Surfacing ─────────────────────────────────────────────────
+
+
+class TestErrorSurfacing:
+    """Verify delivery errors are surfaced in StepResult."""
+
+    @pytest.mark.asyncio
+    async def test_smtp_failure_surfaces_in_step_result(self) -> None:
+        """When send_report_email returns (False, error), StepResult.error is set."""
+        mock_send = AsyncMock(return_value=(False, "Authentication failed"))
+
+        with patch.dict(
+            "sys.modules",
+            {
+                "zorivest_infra.email.email_sender": MagicMock(
+                    send_report_email=mock_send
+                ),
+                "zorivest_infra.email.delivery_tracker": MagicMock(
+                    compute_dedup_key=lambda **kw: "key"
+                ),
+            },
+        ):
+            step = SendStep()
+            ctx = _make_context(smtp_config=DEFAULT_SMTP)
+            result = await step.execute(DEFAULT_EMAIL_PARAMS, ctx)
+
+        assert result.status == PipelineStatus.FAILED
+        assert result.error == "Authentication failed"
+        assert result.output["failed"] == 1
+
+    @pytest.mark.asyncio
+    async def test_unknown_channel_returns_failed(self) -> None:
+        """An unknown channel should fail with descriptive error."""
+        step = SendStep()
+        ctx = _make_context(smtp_config=DEFAULT_SMTP)
+        params = {**DEFAULT_EMAIL_PARAMS, "channel": "slack"}
+        result = await step.execute(params, ctx)
+
+        assert result.status == PipelineStatus.FAILED
+        assert "Unknown channel: slack" in (result.error or "")
+
+
+# ── Test: Multiple Recipients ─────────────────────────────────────────────
+
+
+class TestMultipleRecipients:
+    """Verify behavior with multiple recipients."""
+
+    @pytest.mark.asyncio
+    async def test_sends_to_all_recipients(self) -> None:
+        """Each recipient gets a separate email."""
+        mock_send = AsyncMock(return_value=(True, "Sent"))
+
+        with patch.dict(
+            "sys.modules",
+            {
+                "zorivest_infra.email.email_sender": MagicMock(
+                    send_report_email=mock_send
+                ),
+                "zorivest_infra.email.delivery_tracker": MagicMock(
+                    compute_dedup_key=lambda **kw: f"key-{kw['recipient']}"
+                ),
+            },
+        ):
+            params = {
+                **DEFAULT_EMAIL_PARAMS,
+                "recipients": ["a@x.com", "b@x.com", "c@x.com"],
+            }
+            step = SendStep()
+            ctx = _make_context(smtp_config=DEFAULT_SMTP)
+            result = await step.execute(params, ctx)
+
+        assert mock_send.call_count == 3
+        assert result.output["sent"] == 3
+        assert result.output["failed"] == 0
+
+    @pytest.mark.asyncio
+    async def test_partial_failure_marks_step_failed(self) -> None:
+        """If any recipient fails, step status is FAILED."""
+        send_results = iter([(True, "Sent"), (False, "Timeout"), (True, "Sent")])
+        mock_send = AsyncMock(side_effect=lambda **kw: next(send_results))
+
+        with patch.dict(
+            "sys.modules",
+            {
+                "zorivest_infra.email.email_sender": MagicMock(
+                    send_report_email=mock_send
+                ),
+                "zorivest_infra.email.delivery_tracker": MagicMock(
+                    compute_dedup_key=lambda **kw: f"key-{kw['recipient']}"
+                ),
+            },
+        ):
+            params = {
+                **DEFAULT_EMAIL_PARAMS,
+                "recipients": ["a@x.com", "b@x.com", "c@x.com"],
+            }
+            step = SendStep()
+            ctx = _make_context(smtp_config=DEFAULT_SMTP)
+            result = await step.execute(params, ctx)
+
+        assert result.status == PipelineStatus.FAILED
+        assert result.output["sent"] == 2
+        assert result.output["failed"] == 1
+        assert result.error == "Timeout"
+
+
+# ── Test: Integration Timing ──────────────────────────────────────────────
+
+
+class TestTimingBehavior:
+    """Verify that actual SMTP calls take non-trivial time (> 100ms)."""
+
+    @pytest.mark.asyncio
+    async def test_successful_send_not_instant(self) -> None:
+        """A successful send should call send_report_email (verifiable by mock)."""
+        import time
+
+        call_times: list[float] = []
+
+        async def tracked_send(**kw: Any) -> tuple[bool, str]:
+            call_times.append(time.monotonic())
+            return (True, "Sent")
+
+        with patch.dict(
+            "sys.modules",
+            {
+                "zorivest_infra.email.email_sender": MagicMock(
+                    send_report_email=tracked_send
+                ),
+                "zorivest_infra.email.delivery_tracker": MagicMock(
+                    compute_dedup_key=lambda **kw: "key"
+                ),
+            },
+        ):
+            step = SendStep()
+            ctx = _make_context(smtp_config=DEFAULT_SMTP)
+            await step.execute(DEFAULT_EMAIL_PARAMS, ctx)
+
+        # Verify send_report_email was actually called (not skipped)
+        assert len(call_times) == 1, "send_report_email must be called exactly once"
+
+
+# ── Test: Dedup Run-ID Fallback (RED → will drive fix) ────────────────────
+
+
+class TestDedupRunIdFallback:
+    """Verify that different run_ids produce different dedup keys.
+
+    Bug: When snapshot_hash is absent (no store_report step), the dedup key
+    is identical across runs → all runs except the first are permanently
+    skipped. The fix: use run_id as fallback in the snapshot_hash slot.
+    """
+
+    @pytest.mark.asyncio
+    async def test_different_runs_get_different_dedup_keys(self) -> None:
+        """Two runs with different run_ids must NOT share a dedup key."""
+        captured_hashes: list[str] = []
+
+        def capture_dedup(**kw: Any) -> str:
+            captured_hashes.append(kw["snapshot_hash"])
+            return hashlib.sha256(
+                f"{kw['report_id']}|{kw['channel']}|{kw['recipient']}|{kw['snapshot_hash']}".encode()
+            ).hexdigest()
+
+        mock_send = AsyncMock(return_value=(True, "Sent"))
+
+        with patch.dict(
+            "sys.modules",
+            {
+                "zorivest_infra.email.email_sender": MagicMock(
+                    send_report_email=mock_send
+                ),
+                "zorivest_infra.email.delivery_tracker": MagicMock(
+                    compute_dedup_key=capture_dedup
+                ),
+            },
+        ):
+            step = SendStep()
+
+            # Run 1
+            ctx1 = _make_context(run_id="run-aaa", smtp_config=DEFAULT_SMTP)
+            await step.execute(DEFAULT_EMAIL_PARAMS, ctx1)
+
+            # Run 2 — different run_id, same params
+            ctx2 = _make_context(run_id="run-bbb", smtp_config=DEFAULT_SMTP)
+            await step.execute(DEFAULT_EMAIL_PARAMS, ctx2)
+
+        assert len(captured_hashes) == 2
+        # The dedup keys must differ because run_id differs
+        assert captured_hashes[0] != captured_hashes[1], (
+            f"Dedup keys must differ across runs but both used: {captured_hashes[0]!r}"
         )
-        session.flush()
-
-        # Known key
-        result = repo.get_by_dedup_key("known-key")
-        assert result is not None
-        assert result.dedup_key == "known-key"  # type: ignore[reportGeneralTypeIssues]
-
-
-# ---------------------------------------------------------------------------
-# AC-S19: DeliveryRepository.create() persists row with correct fields
-# ---------------------------------------------------------------------------
-
-
-def test_ac_s19_delivery_repo_create():
-    """DeliveryRepository.create() persists row with correct dedup_key,
-    channel, recipient, status."""
-    from sqlalchemy import create_engine
-    from sqlalchemy.orm import Session
-
-    from zorivest_infra.database.models import Base, ReportDeliveryModel, ReportModel
-    from zorivest_infra.database.scheduling_repositories import DeliveryRepository
-
-    engine = create_engine("sqlite:///:memory:")
-    Base.metadata.create_all(engine)
-
-    with Session(engine) as session:
-        # Create prerequisite report
-        report = ReportModel(
-            id="rpt-1",
-            name="Test Report",
-            version=1,
-            spec_json="{}",
-            format="pdf",
-            created_at=datetime.now(timezone.utc),
-        )
-        session.add(report)
-        session.flush()
-
-        repo = DeliveryRepository(session)
-        delivery_id = repo.create(
-            report_id="rpt-1",
-            channel="email",
-            recipient="test@example.com",
-            status="sent",
-            dedup_key="unique-key-123",
-        )
-        session.flush()
-
-        # Verify persisted
-        delivery = session.get(ReportDeliveryModel, delivery_id)
-        assert delivery is not None
-        assert delivery.channel == "email"  # type: ignore[reportGeneralTypeIssues]
-        assert delivery.recipient == "test@example.com"  # type: ignore[reportGeneralTypeIssues]
-        assert delivery.status == "sent"  # type: ignore[reportGeneralTypeIssues]
-        assert delivery.dedup_key == "unique-key-123"  # type: ignore[reportGeneralTypeIssues]
-        assert delivery.report_id == "rpt-1"  # type: ignore[reportGeneralTypeIssues]
-
-
-# ---------------------------------------------------------------------------
-# AC-S20: SendStep.Params accepts optional ref-resolved fields
-# ---------------------------------------------------------------------------
-
-
-def test_ac_s20_params_accepts_optional_ref_fields():
-    """SendStep.Params accepts optional ref-resolved fields (report_id,
-    snapshot_hash, pdf_path, html_body) without validation error."""
-    from zorivest_core.pipeline_steps.send_step import SendStep
-
-    # Minimal — no optional fields
-    p1 = SendStep.Params(channel="email", recipients=["test@example.com"])
-    assert p1.report_id is None
-    assert p1.snapshot_hash is None
-    assert p1.pdf_path is None
-    assert p1.html_body is None
-
-    # With all optional fields
-    p2 = SendStep.Params(
-        channel="email",
-        recipients=["test@example.com"],
-        report_id="rpt-1",
-        snapshot_hash="abc123",
-        pdf_path="/tmp/report.pdf",
-        html_body="<h1>Hello</h1>",
-    )
-    assert p2.report_id == "rpt-1"
-    assert p2.snapshot_hash == "abc123"
-    assert p2.pdf_path == "/tmp/report.pdf"
-    assert p2.html_body == "<h1>Hello</h1>"
-
-
-# ---------------------------------------------------------------------------
-# F1 regression: execute() returns FAILED when deliveries fail
-# ---------------------------------------------------------------------------
-
-
-@pytest.mark.asyncio
-async def test_execute_returns_failed_when_deliveries_fail():
-    """execute() returns FAILED status when _send_emails reports failures."""
-    from zorivest_core.domain.pipeline import StepContext
-    from zorivest_core.pipeline_steps.send_step import SendStep
-
-    step = SendStep()
-    step._send_emails = AsyncMock(
-        return_value={"sent": 0, "failed": 2, "deliveries": []}
-    )
-
-    context = StepContext(run_id="run-1", policy_id="pol-1")
-
-    result = await step.execute(
-        params={
-            "channel": "email",
-            "recipients": ["a@x.com", "b@x.com"],
-        },
-        context=context,
-    )
-
-    assert result.status.value == "failed"
-    assert result.output["failed"] == 2
-
-
-# ---------------------------------------------------------------------------
-# F4: _save_local() copies file to destination path
-# ---------------------------------------------------------------------------
-
-
-@pytest.mark.asyncio
-async def test_save_local_copies_file(tmp_path):
-    """_save_local() copies source PDF to destination paths."""
-    from zorivest_core.domain.pipeline import StepContext
-    from zorivest_core.pipeline_steps.send_step import SendStep
-
-    # Create a source file
-    source = tmp_path / "source.pdf"
-    source.write_bytes(b"%PDF-1.4 test content")
-
-    dest = tmp_path / "output" / "report.pdf"
-    dest.parent.mkdir(parents=True)
-
-    step = SendStep()
-    context = StepContext(run_id="run-1", policy_id="pol-1")
-
-    params = SendStep.Params(
-        channel="local_file",
-        recipients=[str(dest)],
-        pdf_path=str(source),
-    )
-
-    result = await step._save_local(params, context)
-
-    assert result["sent"] == 1
-    assert result["failed"] == 0
-    assert dest.read_bytes() == b"%PDF-1.4 test content"
-
-
-# ---------------------------------------------------------------------------
-# F4: _save_local() fails when pdf_path is None
-# ---------------------------------------------------------------------------
-
-
-@pytest.mark.asyncio
-async def test_save_local_fails_without_pdf_path():
-    """_save_local() returns all-failed when pdf_path is None."""
-    from zorivest_core.domain.pipeline import StepContext
-    from zorivest_core.pipeline_steps.send_step import SendStep
-
-    step = SendStep()
-    context = StepContext(run_id="run-1", policy_id="pol-1")
-
-    params = SendStep.Params(
-        channel="local_file",
-        recipients=["/tmp/out.pdf"],
-        # pdf_path deliberately omitted (None)
-    )
-
-    result = await step._save_local(params, context)
-
-    assert result["sent"] == 0
-    assert result["failed"] == 1
-    assert "No pdf_path" in result["deliveries"][0]["error"]

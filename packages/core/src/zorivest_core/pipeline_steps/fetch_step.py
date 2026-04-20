@@ -230,7 +230,11 @@ class FetchStep(RegisteredStep):
 
         # TTL freshness check
         now = datetime.now(tz=timezone.utc)
-        elapsed = (now - entry.fetched_at).total_seconds()
+        # SQLite returns naive datetimes; normalize to UTC-aware for subtraction
+        fetched_at = entry.fetched_at
+        if fetched_at.tzinfo is None:
+            fetched_at = fetched_at.replace(tzinfo=timezone.utc)
+        elapsed = (now - fetched_at).total_seconds()
         effective_ttl = entry.ttl_seconds
 
         # Apply market-closed extension for market-sensitive data types

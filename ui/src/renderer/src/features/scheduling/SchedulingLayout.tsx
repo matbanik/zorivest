@@ -218,7 +218,13 @@ export default function SchedulingLayout() {
                                     </div>
                                 )}
                             </div>
-                            <RunHistory runs={runs} isLoading={runsLoading} />
+                            <RunHistory
+                                runs={runs}
+                                isLoading={runsLoading}
+                                timezone={
+                                    ((currentPolicy?.policy_json as Record<string, unknown>)?.trigger as Record<string, unknown>)?.timezone as string | undefined
+                                }
+                            />
                         </div>
                     </>
                 ) : (

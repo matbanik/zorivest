@@ -244,3 +244,128 @@ def xxe_attack_xml_file(tmp_path):
         encoding="utf-8",
     )
     return f
+
+
+# ── Pipeline E2E Test Harness Fixtures (MEU-PW8) ────────────────────────
+
+
+# Mock step types that need cleanup tracking
+_MOCK_STEP_TYPE_NAMES = [
+    "mock_fetch",
+    "mock_transform",
+    "mock_store",
+    "mock_fail",
+    "mock_slow",
+    "mock_side_effect",
+]
+
+
+@pytest.fixture(scope="session", autouse=True)
+def _register_mock_steps():
+    """Register mock steps at session start; clean up at session end.
+
+    Importing mock_steps triggers __init_subclass__ auto-registration.
+    On teardown, mock type_names are removed from STEP_REGISTRY to
+    prevent pollution of other test modules.
+
+    Spec: §9B.8 — "Scoped registration in conftest; cleanup after test session"
+    """
+    from zorivest_core.domain.step_registry import STEP_REGISTRY
+
+    import tests.fixtures.mock_steps  # noqa: F401 — triggers registration
+
+    yield
+
+    for name in _MOCK_STEP_TYPE_NAMES:
+        STEP_REGISTRY.pop(name, None)
+
+
+@pytest.fixture()
+def pipeline_engine():
+    """Function-scoped in-memory SQLite engine with all tables for pipeline E2E.
+
+    Separate from integration/conftest.py engine to avoid coupling.
+    """
+    from sqlalchemy import create_engine
+
+    from zorivest_infra.database.models import Base
+
+    eng = create_engine(
+        "sqlite://", echo=False, connect_args={"check_same_thread": False}
+    )
+    Base.metadata.create_all(eng)
+    return eng
+
+
+@pytest.fixture()
+def pipeline_uow(pipeline_engine):
+    """Pre-entered UoW for pipeline E2E tests.
+
+    The UoW is entered via context manager so repos are initialized.
+    Caller gets a live UoW with an open session.
+    """
+    from zorivest_infra.database.unit_of_work import SqlAlchemyUnitOfWork
+
+    uow = SqlAlchemyUnitOfWork(pipeline_engine)
+    with uow:
+        yield uow
+
+
+@pytest.fixture()
+def pipeline_runner(pipeline_uow):
+    """PipelineRunner wired to real UoW, RefResolver, and ConditionEvaluator."""
+    from zorivest_core.services.condition_evaluator import ConditionEvaluator
+    from zorivest_core.services.pipeline_runner import PipelineRunner
+    from zorivest_core.services.ref_resolver import RefResolver
+
+    return PipelineRunner(
+        uow=pipeline_uow,
+        ref_resolver=RefResolver(),
+        condition_evaluator=ConditionEvaluator(),
+    )
+
+
+class _StubScheduler:
+    """Minimal scheduler stub — APScheduler is out of scope for pipeline E2E."""
+
+    def schedule_policy(self, **kwargs):
+        pass
+
+    def unschedule_policy(self, policy_id):
+        pass
+
+    def get_status(self):
+        return {"running": False, "jobs": 0}
+
+
+@pytest.fixture()
+def scheduling_service(pipeline_uow, pipeline_runner):
+    """Full SchedulingService stack wired to real adapters and UoW."""
+    from zorivest_api.scheduling_adapters import (
+        AuditCounterAdapter,
+        PolicyStoreAdapter,
+        RunStoreAdapter,
+        StepStoreAdapter,
+    )
+    from zorivest_core.services.pipeline_guardrails import PipelineGuardrails
+    from zorivest_core.services.scheduling_service import SchedulingService
+
+    policy_store = PolicyStoreAdapter(pipeline_uow)
+    run_store = RunStoreAdapter(pipeline_uow)
+    step_store = StepStoreAdapter(pipeline_uow)
+    audit_adapter = AuditCounterAdapter(pipeline_uow)
+
+    guardrails = PipelineGuardrails(
+        audit_counter=audit_adapter,
+        policy_lookup=policy_store,
+    )
+
+    return SchedulingService(
+        policy_store=policy_store,
+        run_store=run_store,
+        step_store=step_store,
+        pipeline_runner=pipeline_runner,
+        scheduler_service=_StubScheduler(),
+        guardrails=guardrails,
+        audit_logger=audit_adapter,
+    )

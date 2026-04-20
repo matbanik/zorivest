@@ -41,7 +41,7 @@ def _safe_json_output(output: dict | None) -> str | None:
     output from HTTP responses crash json.dumps(). Also handles
     datetime serialization.
     """
-    if not output:
+    if output is None:
         return None
 
     def _default_serializer(obj: Any) -> Any:
@@ -554,8 +554,7 @@ class PipelineRunner:
             )
 
             severity = "error" if has_side_effects else "warning"
-            logger.log(
-                severity,
+            getattr(logger, severity)(
                 "zombie_recovered",
                 run_id=run.id,
                 last_step=last_step.step_id if last_step else None,

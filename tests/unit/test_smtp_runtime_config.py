@@ -68,7 +68,14 @@ class TestGetSmtpRuntimeConfig:
 
         config = svc.get_smtp_runtime_config()
 
-        assert set(config.keys()) == {"host", "port", "sender", "username", "password"}
+        assert set(config.keys()) == {
+            "host",
+            "port",
+            "sender",
+            "username",
+            "password",
+            "security",
+        }
 
     def test_key_remapping_smtp_host_to_host(self) -> None:
         """smtp_host is remapped to 'host' key."""
@@ -131,12 +138,20 @@ class TestGetSmtpRuntimeConfigDefaults:
 
         config = svc.get_smtp_runtime_config()
 
-        assert set(config.keys()) == {"host", "port", "sender", "username", "password"}
+        assert set(config.keys()) == {
+            "host",
+            "port",
+            "sender",
+            "username",
+            "password",
+            "security",
+        }
         assert config["host"] == "localhost"
         assert config["port"] == 587
         assert config["sender"] == "noreply@zorivest.local"
         assert config["username"] == ""
         assert config["password"] == ""
+        assert config["security"] == "STARTTLS"
 
     def test_no_password_returns_empty_string(self) -> None:
         """When password_encrypted is None, password key is empty string."""

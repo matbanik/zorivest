@@ -176,12 +176,23 @@ class SchedulingService:
         return PolicyResult(policy=result)
 
     async def list_policies(self, enabled_only: bool = False) -> list[dict[str, Any]]:
-        """List all policies."""
-        return await self._policies.list_all(enabled_only=enabled_only)
+        """List all policies, enriched with live next_run from scheduler."""
+        policies = await self._policies.list_all(enabled_only=enabled_only)
+        if self._scheduler:
+            for p in policies:
+                pid = p.get("id", "")
+                if pid:
+                    next_fire = self._scheduler.get_next_run(pid)
+                    p["next_run"] = next_fire.isoformat() if next_fire else None
+        return policies
 
     async def get_policy(self, policy_id: str) -> dict[str, Any] | None:
-        """Get a single policy by ID."""
-        return await self._policies.get_by_id(policy_id)
+        """Get a single policy by ID, enriched with live next_run."""
+        policy = await self._policies.get_by_id(policy_id)
+        if policy and self._scheduler:
+            next_fire = self._scheduler.get_next_run(policy_id)
+            policy["next_run"] = next_fire.isoformat() if next_fire else None
+        return policy
 
     async def update_policy(
         self, policy_id: str, policy_json: dict[str, Any]
