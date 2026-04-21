@@ -51,6 +51,8 @@ class FetchStep(RegisteredStep):
     class Params(BaseModel):
         """FetchStep parameter schema — validated before execute()."""
 
+        model_config = {"extra": "forbid"}
+
         provider: str = Field(..., description="Data provider key, e.g. 'ibkr'")
         data_type: str = Field(..., description="Market data type, e.g. 'ohlcv'")
         criteria: dict[str, Any] = Field(

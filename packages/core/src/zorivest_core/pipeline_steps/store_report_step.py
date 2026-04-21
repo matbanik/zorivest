@@ -28,6 +28,8 @@ class StoreReportStep(RegisteredStep):
     class Params(BaseModel):
         """StoreReportStep parameter schema."""
 
+        model_config = {"extra": "forbid"}
+
         report_name: str = Field(..., description="Name of the report to create/update")
         spec: dict[str, Any] = Field(
             default_factory=dict,

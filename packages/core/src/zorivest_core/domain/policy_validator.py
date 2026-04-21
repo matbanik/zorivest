@@ -18,7 +18,7 @@ from dataclasses import dataclass
 from typing import Any
 
 from zorivest_core.domain.pipeline import PolicyDocument
-from zorivest_core.domain.step_registry import has_step
+from zorivest_core.domain.step_registry import STEP_REGISTRY, has_step
 
 
 @dataclass
@@ -116,6 +116,11 @@ def validate_policy(doc: PolicyDocument) -> list[ValidationError]:
 
     # 6. SQL blocklist check in params
     _check_sql_blocklist(doc, errors)
+
+    # 7. Step params validation against Params model (AC-9)
+    # For each step with a known type in STEP_REGISTRY, validate step.params
+    # against the step class's Params model. Invalid values → 422 at boundary.
+    _check_step_params(doc, errors)
 
     return errors
 
@@ -253,3 +258,38 @@ def _scan_value_for_sql(value: Any, path: str, errors: list[ValidationError]) ->
     elif isinstance(value, list):
         for i, item in enumerate(value):
             _scan_value_for_sql(item, f"{path}[{i}]", errors)
+
+
+def _check_step_params(doc: PolicyDocument, errors: list[ValidationError]) -> None:
+    """Rule 7: validate step.params against the step class's Params model (AC-9).
+
+    For each step with a known type in STEP_REGISTRY that has a Params class,
+    attempt to instantiate the Params model with step.params. If validation
+    fails, append the Pydantic errors as policy ValidationErrors.
+
+    Steps without a Params class skip validation (their params are opaque).
+    """
+    from pydantic import ValidationError as PydanticValidationError
+
+    for step in doc.steps:
+        step_cls = STEP_REGISTRY.get(step.type)
+        if step_cls is None:
+            continue  # Unknown step types already caught by rule 3
+
+        params_cls = getattr(step_cls, "Params", None)
+        if params_cls is None:
+            continue  # Step has no Params model — skip
+
+        try:
+            params_cls(**step.params)
+        except PydanticValidationError as exc:
+            for pydantic_error in exc.errors():
+                loc = ".".join(str(loc_part) for loc_part in pydantic_error["loc"])
+                input_repr = repr(pydantic_error.get("input", ""))
+                errors.append(
+                    ValidationError(
+                        f"steps[{step.id}].params.{loc}",
+                        f"{loc}: {pydantic_error['msg']} (input={input_repr})",
+                        severity="error",
+                    )
+                )

@@ -14,6 +14,7 @@ from typing import Any
 from unittest.mock import MagicMock, AsyncMock
 
 import pytest
+from pydantic import BaseModel
 
 from zorivest_core.services.pipeline_guardrails import (
     PipelineGuardrails,
@@ -28,10 +29,8 @@ pytestmark = pytest.mark.unit
 def _register_test_step():
     """Register a dummy 'fetch' step type so validate_policy() passes."""
 
-    class _DummyParams:
-        @classmethod
-        def model_json_schema(cls):
-            return {}
+    class _DummyParams(BaseModel):
+        model_config = {"extra": "allow"}
 
     class _DummyFetchStep:
         type_name = "fetch"

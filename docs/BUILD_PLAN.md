@@ -318,7 +318,7 @@ Domain → Infrastructure → Services → REST API → MCP Server → GUI → D
 
 > Prerequisite: P2.5a (MEU-90a ✅), Phase 8 (MEU-65a ✅), Phase 9 steps (MEU-85/88 ✅), Email (MEU-73 ✅)
 > Unblocks: End-to-end pipeline execution, MEU-72 "Run Now"/"Test Run" functionality, GUI scheduling dashboard cancel UX
-> Resolves: [SCHED-PIPELINE-WIRING], partial [STUB-RETIRE], [MCP-TOOLDISCOVERY], [PIPE-CHARMAP], [PIPE-ZOMBIE], [PIPE-URLBUILD], [PIPE-NOCANCEL]
+> Resolves: [SCHED-PIPELINE-WIRING], partial [STUB-RETIRE], [MCP-TOOLDISCOVERY], [PIPE-CHARMAP], [PIPE-ZOMBIE], [PIPE-URLBUILD], [PIPE-NOCANCEL], [PIPE-STEPKEY], [PIPE-TMPLVAR], [PIPE-RAWBLOB], [PIPE-PROVNORM], [PIPE-QUOTEFIELD], [PIPE-SILENTPASS], [PIPE-E2E-CHAIN], [PIPE-CACHEUPSERT]
 
 | MEU | Slug | Matrix Item | Build Plan Ref | Description | Status |
 |-----|------|:-----------:|----------------|-------------|:------:|
@@ -327,11 +327,13 @@ Domain → Infrastructure → Services → REST API → MCP Server → GUI → D
 | MEU-PW3 | `market-data-schemas` | 49.6 | [09 §9.5](build-plan/09-scheduling.md) | 4 SQLAlchemy ORM models (OHLCV, Quote, News, Fundamentals) + 3 Pandera schemas + field mappings → data quality hardening · Independent of PW1/PW2 | ✅ |
 | MEU-PW4 | `pipeline-charmap-fix` | 49.7 | [09b §9B.2](build-plan/09b-pipeline-hardening.md) | Fix [PIPE-CHARMAP]: configure structlog UTF-8 output on Windows; bytes-safe JSON serialization in `_persist_step()`; `UnicodeDecoder` processor · Resolves pipeline crash on non-ASCII error messages · No deps | ✅ |
 | MEU-PW5 | `pipeline-zombie-fix` | 49.8 | [09b §9B.3](build-plan/09b-pipeline-hardening.md) | Fix [PIPE-ZOMBIE]: eliminate dual-write (SchedulingService sole record creator, PipelineRunner accepts `run_id`); per-phase httpx.Timeout; zombie recovery at startup scan · Depends on: MEU-PW4 | ✅ |
-| MEU-PW6 | `provider-url-builders` | 49.9 | [09b §9B.4](build-plan/09b-pipeline-hardening.md) | Fix [PIPE-URLBUILD]: per-provider URL builder registry (Yahoo, Polygon, Finnhub + GenericUrlBuilder fallback); criteria key normalization (`tickers[]` vs `symbol`); forward `headers_template` to HTTP fetch · Depends on: MEU-PW5 (parallel with PW7) | ⬜ |
-| MEU-PW7 | `pipeline-cancellation` | 49.10 | [09b §9B.5](build-plan/09b-pipeline-hardening.md) | Fix [PIPE-NOCANCEL]: add `CANCELLING` status to PipelineStatus enum; `_active_tasks` task registry; `cancel_run()` (cooperative + forced); `POST /runs/{run_id}/cancel` endpoint; per-step cooperative cancellation check · Depends on: MEU-PW5 (parallel with PW6) | ⬜ |
+| MEU-PW6 | `provider-url-builders` | 49.9 | [09b §9B.4](build-plan/09b-pipeline-hardening.md) | Fix [PIPE-URLBUILD]: per-provider URL builder registry (Yahoo, Polygon, Finnhub + GenericUrlBuilder fallback); criteria key normalization (`tickers[]` vs `symbol`); forward `headers_template` to HTTP fetch · Depends on: MEU-PW5 (parallel with PW7) | ✅ |
+| MEU-PW7 | `pipeline-cancellation` | 49.10 | [09b §9B.5](build-plan/09b-pipeline-hardening.md) | Fix [PIPE-NOCANCEL]: add `CANCELLING` status to PipelineStatus enum; `_active_tasks` task registry; `cancel_run()` (cooperative + forced); `POST /runs/{run_id}/cancel` endpoint; per-step cooperative cancellation check · Depends on: MEU-PW5 (parallel with PW6) | ✅ |
 | MEU-PW8 | `pipeline-e2e-test-harness` | 49.11 | [09b §9B.6](build-plan/09b-pipeline-hardening.md) | End-to-end pipeline integration test infrastructure: 7 test policy fixtures (happy path, error modes, dry-run, skip, cancel, unicode); 6 mock step implementations; 14+ integration tests validating full service stack (SchedulingService → PipelineRunner → Steps → Persistence → Audit) · Depends on: MEU-PW4 through MEU-PW7 | 🟡 |
 | MEU-PW9 | `send-step-template-wiring` | 49.12 | [09 §9.8a](build-plan/09-scheduling.md) | Wire `SendStep._resolve_body()` template rendering: `EMAIL_TEMPLATES` registry lookup + Jinja2 rendering + `html_body` priority + raw fallback · Depends on: MEU-88 ✅ | ✅ |
 | MEU-PW11 | `pipeline-cursor-tracking` | 49.13 | [09 §9.4b](build-plan/09-scheduling.md) | `FetchStep` cursor upsert after successful fetch: `pipeline_state_repo.upsert()` with ISO timestamp + SHA-256 hash · Depends on: MEU-PW2 ✅ | ✅ |
+| MEU-PW12 | `pipeline-dataflow-chain-fix` | 49.14 | [09 §9.4–9.8](build-plan/09-scheduling.md), [deficiency report](../.agent/context/scheduling/pipeline-dataflow-deficiency-report.md) | Fix 6 serial data-flow bugs: [PIPE-STEPKEY] add `source_step_id` param to TransformStep for dynamic predecessor output resolution; [PIPE-RAWBLOB] per-provider response envelope extractor (unwrap `quoteResponse.result` etc.); [PIPE-PROVNORM] provider slug normalization at field mapping lookup; [PIPE-QUOTEFIELD] extend Yahoo quote field mappings with `change`, `change_pct`, `symbol` passthrough; [PIPE-TMPLVAR] wire parsed records into `quotes` template variable via TransformStep output key; [PIPE-SILENTPASS] return WARNING/FAILED on 0 records + `min_records` param + `structlog.warning("transform_zero_records")` · Depends on: MEU-PW6 ✅, MEU-PW9 ✅ | ✅ |
+| MEU-PW13 | `pipeline-e2e-chain-tests` | 49.15 | [09b §9B.6](build-plan/09b-pipeline-hardening.md), [data flow gap analysis](../.agent/context/scheduling/data_flow_gap_analysis.md) | Integration tests exercising real FetchStep → TransformStep → SendStep data handoff with mocked HTTP (real `MarketDataProviderAdapter`), real field mappings, Pandera validation, in-memory SQLite; includes [PIPE-CACHEUPSERT] write-back assertion; extends MEU-PW8 test harness · Depends on: MEU-PW12 | ✅ |
 | MEU-72a | `scheduling-gui-tz-polish` | 35f.1 | [06e](build-plan/06e-gui-scheduling.md) | `PolicyList` timezone display: replace `toLocaleString` with `formatTimestamp` IANA-aware utility · Independent | ✅ |
 | MEU-TD1 | `mcp-tool-discovery-audit` | 5.I | [05](build-plan/05-mcp-server.md) | Audit all 9 MCP toolset descriptions; enrich server instructions with workflow summaries; add `policy_json` examples to `create_policy`; reference MCP resources from tool descriptions; add prerequisite state, return shape, and error conditions · Parallel with any MEU | ⬜ |
 
@@ -578,14 +580,14 @@ Domain → Infrastructure → Services → REST API → MCP Server → GUI → D
 | P2 | MEU-66 → MEU-76, MEU-171 → MEU-172 | 17 | 7 |
 | P2.5 — Phase 9 + WebSocket | MEU-77 → MEU-90, MEU-174 | 15 | 14 |
 | P2.5a — Integration | MEU-90a → MEU-90d | 4 | 3 + 1 🚫 |
-| P2.5b — Wiring & Quality + Hardening | MEU-PW1 → MEU-PW8, MEU-TD1 | 9 | 3 |
+| P2.5b — Wiring & Quality + Hardening | MEU-PW1 → MEU-PW13, MEU-72a, MEU-TD1 | 14 | 10 + 1 🟡 |
 | P2.6 — Phase 10 | MEU-91 → MEU-95b | 7 | 0 |
 | P2.75 — Expansion | MEU-96 → MEU-122 | 27 | 2 |
 | P3 — Tax | MEU-123 → MEU-156 | 34 | 0 |
 | Phase 7 | MEU-157 | 1 | 0 |
 | P4 — Phase 11 | MEU-175 → MEU-181 | 7 | 0 |
 | Research | MEU-158 → MEU-170, MEU-173, MEU-TS1 → MEU-TS3 | 17 | 1 |
-| **Total** | | **207** | **100 + 1 🚫** |
+| **Total** | | **209** | **107 + 1 🟡 + 1 🚫** |
 
 ---
 

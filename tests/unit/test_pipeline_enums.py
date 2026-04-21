@@ -13,7 +13,7 @@ from zorivest_core.domain.enums import (
 )
 
 # ---------------------------------------------------------------------------
-# AC-1: PipelineStatus is a StrEnum with 7 members
+# AC-1: PipelineStatus is a StrEnum with 8 members
 # ---------------------------------------------------------------------------
 
 
@@ -23,13 +23,13 @@ class TestPipelineStatus:
     def test_is_str_enum(self) -> None:
         assert issubclass(PipelineStatus, StrEnum)
         # Value: verify member count and that all are lowercase strings
-        assert len(PipelineStatus) == 7
+        assert len(PipelineStatus) == 8
         for member in PipelineStatus:
             assert isinstance(member.value, str)
             assert member.value == member.value.lower()
 
     def test_member_count(self) -> None:
-        assert len(PipelineStatus) == 7
+        assert len(PipelineStatus) == 8
 
     @pytest.mark.parametrize(
         "member, value",
@@ -41,6 +41,7 @@ class TestPipelineStatus:
             (PipelineStatus.FAILED, "failed"),
             (PipelineStatus.SKIPPED, "skipped"),
             (PipelineStatus.CANCELLED, "cancelled"),
+            (PipelineStatus.WARNING, "warning"),
         ],
     )
     def test_member_values(self, member: PipelineStatus, value: str) -> None:

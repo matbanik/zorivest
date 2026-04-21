@@ -293,3 +293,134 @@ class TestMissingTemplateEngine:
         # Must still be rendered HTML, not the raw name
         assert html_body != "generic_report"
         assert "<!DOCTYPE html>" in html_body or "Zorivest" in html_body
+
+
+# ── AC-7: Two-level merge promotes dict-valued step outputs (MEU-PW12) ─────
+
+
+class TestTwoLevelMergePromotion:
+    """AC-7: SendStep._resolve_body() promotes keys from dict-valued step
+    outputs into template render context (two-level merge, first-wins).
+
+    In a real pipeline, TransformStep stores records under 'quotes' key.
+    The pipeline runner stores TransformStep output under the step's ID
+    (e.g., 'transform_quotes'). The template expects 'quotes' as a
+    top-level variable. Two-level merge makes this work.
+    """
+
+    @pytest.mark.asyncio
+    async def test_dict_output_values_promoted_to_template_context(self) -> None:
+        """Dict-valued output entries should have their inner keys promoted.
+
+        context.outputs['transform_quotes'] = {'quotes': [...], 'records_written': 5}
+        → template context gets 'quotes' and 'records_written' variables.
+        """
+        mock_send = AsyncMock(return_value=(True, "Sent"))
+        engine = _create_template_engine()
+
+        # Simulate pipeline output: TransformStep stored under step ID
+        quotes_data = [
+            {
+                "symbol": "AAPL",
+                "price": 150.0,
+                "change": 2.5,
+                "change_pct": 1.7,
+                "volume": 1000000,
+            },
+        ]
+        extra_outputs = {
+            "transform_quotes": {
+                "quotes": quotes_data,
+                "records_written": 1,
+                "target_table": "market_quotes",
+            },
+        }
+
+        params = {
+            "channel": "email",
+            "recipients": ["user@example.com"],
+            "subject": "Daily Report",
+            "body_template": "daily_quote_summary",
+        }
+
+        with patch.dict("sys.modules", _mock_infra_modules(mock_send)):
+            step = SendStep()
+            ctx = _make_context(
+                smtp_config=DEFAULT_SMTP,
+                template_engine=engine,
+                extra_outputs=extra_outputs,
+            )
+            result = await step.execute(params, ctx)
+
+        assert result.status == PipelineStatus.SUCCESS
+        html_body = mock_send.call_args.kwargs["html_body"]
+
+        # The template should have received 'quotes' as a variable
+        # and rendered actual quote data (not "No quote data available")
+        assert "AAPL" in html_body, (
+            "Template must render actual ticker symbols from promoted quotes variable"
+        )
+
+    @pytest.mark.asyncio
+    async def test_dict_output_key_does_not_overwrite_existing(self) -> None:
+        """Dict output with key colliding with 'generated_at' → existing key preserved."""
+        mock_send = AsyncMock(return_value=(True, "Sent"))
+        engine = _create_template_engine()
+
+        # Output that has a key colliding with the built-in 'generated_at'
+        extra_outputs = {
+            "step_result": {
+                "generated_at": "SHOULD-NOT-WIN",
+                "other_key": "value",
+            },
+        }
+
+        params = {
+            "channel": "email",
+            "recipients": ["user@example.com"],
+            "subject": "Test",
+            "body_template": "generic_report",
+        }
+
+        with patch.dict("sys.modules", _mock_infra_modules(mock_send)):
+            step = SendStep()
+            ctx = _make_context(
+                smtp_config=DEFAULT_SMTP,
+                template_engine=engine,
+                extra_outputs=extra_outputs,
+            )
+            await step.execute(params, ctx)
+
+        html_body = mock_send.call_args.kwargs["html_body"]
+        # The built-in generated_at should win (first-wins merge)
+        assert "SHOULD-NOT-WIN" not in html_body
+
+    @pytest.mark.asyncio
+    async def test_non_dict_output_values_not_promoted(self) -> None:
+        """Non-dict output values (strings, ints) should NOT be promoted."""
+        mock_send = AsyncMock(return_value=(True, "Sent"))
+        engine = _create_template_engine()
+
+        extra_outputs = {
+            "some_string_output": "just a string",
+            "some_int_output": 42,
+        }
+
+        params = {
+            "channel": "email",
+            "recipients": ["user@example.com"],
+            "subject": "Test",
+            "body_template": "generic_report",
+        }
+
+        with patch.dict("sys.modules", _mock_infra_modules(mock_send)):
+            step = SendStep()
+            ctx = _make_context(
+                smtp_config=DEFAULT_SMTP,
+                template_engine=engine,
+                extra_outputs=extra_outputs,
+            )
+            # Should not crash — non-dict values are simply available as-is
+            result = await step.execute(params, ctx)
+
+        assert result.status == PipelineStatus.SUCCESS

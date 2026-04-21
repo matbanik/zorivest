@@ -455,3 +455,181 @@ class TestRecursiveSQLScan:
         sql_errors = [e for e in errors if "Blocked SQL" in e.message]
         assert len(sql_errors) >= 1
         assert "ALTER" in sql_errors[0].message
+
+
+# ---------------------------------------------------------------------------
+# AC-9 (MEU-PW12): Step params validated against Params model at boundary
+# ---------------------------------------------------------------------------
+
+
+class TestStepParamsValidation:
+    """AC-9: validate_policy() rule 7: for each step with a known type in
+    STEP_REGISTRY, validate step.params against the step class's Params model.
+    Invalid values → ValidationError → 422 at API boundary."""
+
+    @pytest.fixture(autouse=True)
+    def _register_real_steps(self) -> Any:
+        """Register step types with actual Params models for param validation."""
+        from pydantic import BaseModel, Field
+
+        saved = dict(STEP_REGISTRY)
+        STEP_REGISTRY.clear()
+
+        # Step with Params model (required fields + constrained fields)
+        class FetchParams(BaseModel):
+            provider: str = Field(..., description="Data provider")
+            data_type: str = Field(..., description="Data type")
+            batch_size: int = Field(default=100, ge=1, le=500)
+
+        type(
+            "FetchStepWithParams",
+            (RegisteredStep,),
+            {
+                "type_name": "fetch",
+                "side_effects": False,
+                "Params": FetchParams,
+            },
+        )
+
+        # Step with extra="forbid" (boundary strictness)
+        class TransformParams(BaseModel):
+            model_config = {"extra": "forbid"}
+
+            target_table: str = Field(...)
+            min_records: int = Field(default=0, ge=0)
+
+        type(
+            "TransformStepWithParams",
+            (RegisteredStep,),
+            {
+                "type_name": "transform",
+                "side_effects": False,
+                "Params": TransformParams,
+            },
+        )
+
+        # Step WITHOUT a Params class (should skip param validation)
+        type(
+            "NotifyStepNoParams",
+            (RegisteredStep,),
+            {
+                "type_name": "notify",
+                "side_effects": True,
+            },
+        )
+
+        yield
+
+        STEP_REGISTRY.clear()
+        STEP_REGISTRY.update(saved)
+
+    def test_valid_params_pass(self) -> None:
+        """Valid params for known step type → no validation error."""
+        doc = _build_policy(
+            steps=[
+                {
+                    "id": "fetch_data",
+                    "type": "fetch",
+                    "params": {
+                        "provider": "yahoo",
+                        "data_type": "quote",
+                        "batch_size": 50,
+                    },
+                },
+            ]
+        )
+        errors = validate_policy(doc)
+        param_errors = [e for e in errors if "params" in e.field.lower()]
+        assert len(param_errors) == 0
+
+    def test_invalid_value_rejected(self) -> None:
+        """min_records=-1 in transform params → validation error."""
+        doc = _build_policy(
+            steps=[
+                {
+                    "id": "transform_data",
+                    "type": "transform",
+                    "params": {
+                        "target_table": "market_quotes",
+                        "min_records": -1,
+                    },
+                },
+            ]
+        )
+        errors = validate_policy(doc)
+        param_errors = [e for e in errors if "param" in e.field.lower()]
+        assert len(param_errors) >= 1
+        assert any(
+            "min_records" in e.message or "-1" in e.message for e in param_errors
+        )
+
+    def test_extra_key_rejected_when_extra_forbid(self) -> None:
+        """Unknown extra key in transform params (extra='forbid') → error."""
+        doc = _build_policy(
+            steps=[
+                {
+                    "id": "transform_data",
+                    "type": "transform",
+                    "params": {
+                        "target_table": "market_quotes",
+                        "unknown_field": "surprise",
+                    },
+                },
+            ]
+        )
+        errors = validate_policy(doc)
+        param_errors = [e for e in errors if "param" in e.field.lower()]
+        assert len(param_errors) >= 1
+
+    def test_step_without_params_class_skips_validation(self) -> None:
+        """Step type without Params class → no param validation error."""
+        doc = _build_policy(
+            steps=[
+                {
+                    "id": "notify_user",
+                    "type": "notify",
+                    "params": {"anything": "goes", "here": True},
+                },
+            ]
+        )
+        errors = validate_policy(doc)
+        # Should not have param validation errors (step has no Params model)
+        param_errors = [e for e in errors if "param" in e.field.lower()]
+        assert len(param_errors) == 0
+
+    def test_missing_required_field_rejected(self) -> None:
+        """Missing required field (provider, data_type) in fetch params → error."""
+        doc = _build_policy(
+            steps=[
+                {
+                    "id": "fetch_data",
+                    "type": "fetch",
+                    "params": {
+                        # Missing 'provider' and 'data_type' which are required
+                        "batch_size": 50,
+                    },
+                },
+            ]
+        )
+        errors = validate_policy(doc)
+        param_errors = [e for e in errors if "param" in e.field.lower()]
+        assert len(param_errors) >= 1
+
+    def test_batch_size_out_of_range_rejected(self) -> None:
+        """batch_size=0 (below ge=1) → validation error."""
+        doc = _build_policy(
+            steps=[
+                {
+                    "id": "fetch_data",
+                    "type": "fetch",
+                    "params": {
+                        "provider": "yahoo",
+                        "data_type": "quote",
+                        "batch_size": 0,
+                    },
+                },
+            ]
+        )
+        errors = validate_policy(doc)
+        param_errors = [e for e in errors if "param" in e.field.lower()]
+        assert len(param_errors) >= 1

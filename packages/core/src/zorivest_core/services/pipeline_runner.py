@@ -233,7 +233,10 @@ class PipelineRunner:
                         )
                         break
 
-                if step_result.status == PipelineStatus.SUCCESS:
+                if step_result.status in (
+                    PipelineStatus.SUCCESS,
+                    PipelineStatus.WARNING,
+                ):
                     context.outputs[step_def.id] = step_result.output
 
         except asyncio.CancelledError:

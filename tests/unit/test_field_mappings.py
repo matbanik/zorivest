@@ -195,3 +195,111 @@ class TestExtraFields:
         result = apply_field_mapping(record=record, provider="yahoo", data_type="quote")
         assert "unknownField" in result["_extra"]
         assert result["_extra"]["unknownField"] == "surprise"
+
+
+# ── AC-3: Provider slug normalization (MEU-PW12) ──────────────────────────
+
+
+class TestProviderSlugNormalization:
+    """AC-3: apply_field_mapping() normalizes provider display names to slugs
+    via _PROVIDER_SLUG_MAP before FIELD_MAPPINGS lookup."""
+
+    def test_yahoo_finance_display_name_normalized(self) -> None:
+        """'Yahoo Finance' (display name) should map to 'yahoo' (slug)."""
+        record = {
+            "regularMarketBid": 149.9,
+            "regularMarketPrice": 150.0,
+        }
+        result = apply_field_mapping(
+            record=record, provider="Yahoo Finance", data_type="quote"
+        )
+        assert result["bid"] == 149.9
+        assert result["last"] == 150.0
+
+    def test_polygon_io_display_name_normalized(self) -> None:
+        """'Polygon.io' (display name) should map to 'polygon' (slug)."""
+        record = {
+            "bidPrice": 149.9,
+            "lastTrade": 150.0,
+        }
+        result = apply_field_mapping(
+            record=record, provider="Polygon.io", data_type="quote"
+        )
+        assert result["bid"] == 149.9
+        assert result["last"] == 150.0
+
+    def test_existing_slug_still_works(self) -> None:
+        """Existing slug-based calls must not regress."""
+        record = {"regularMarketBid": 149.9}
+        result = apply_field_mapping(record=record, provider="yahoo", data_type="quote")
+        assert result["bid"] == 149.9
+
+    def test_unknown_display_name_passthrough(self) -> None:
+        """Unknown display name passes through unchanged (no mapping found)."""
+        record = {"foo": "bar"}
+        result = apply_field_mapping(
+            record=record, provider="Unknown Provider", data_type="ohlcv"
+        )
+        assert result["_extra"] == {"foo": "bar"}
+
+    def test_ibkr_display_name_normalized(self) -> None:
+        """'Interactive Brokers' should map to 'ibkr'."""
+        record = {
+            "open": 100.0,
+            "high": 110.0,
+            "low": 95.0,
+            "close": 105.0,
+            "volume": 1000,
+            "wap": 102.5,
+        }
+        result = apply_field_mapping(
+            record=record, provider="Interactive Brokers", data_type="ohlcv"
+        )
+        assert result["open"] == 100.0
+        assert result["vwap"] == 102.5
+
+
+# ── AC-4: Extended Yahoo quote field mappings (MEU-PW12) ───────────────────
+
+
+class TestExtendedYahooQuoteMappings:
+    """AC-4: Yahoo quote mapping extended with change, change_pct, symbol→ticker."""
+
+    def test_yahoo_change_field_mapped(self) -> None:
+        """regularMarketChange → change."""
+        record = {
+            "regularMarketChange": 2.5,
+            "regularMarketBid": 149.9,
+        }
+        result = apply_field_mapping(record=record, provider="yahoo", data_type="quote")
+        assert result["change"] == 2.5
+
+    def test_yahoo_change_pct_field_mapped(self) -> None:
+        """regularMarketChangePercent → change_pct."""
+        record = {
+            "regularMarketChangePercent": 1.7,
+            "regularMarketBid": 149.9,
+        }
+        result = apply_field_mapping(record=record, provider="yahoo", data_type="quote")
+        assert result["change_pct"] == 1.7
+
+    def test_yahoo_symbol_field_mapped_to_ticker(self) -> None:
+        """symbol → ticker."""
+        record = {
+            "symbol": "AAPL",
+            "regularMarketBid": 149.9,
+        }
+        result = apply_field_mapping(record=record, provider="yahoo", data_type="quote")
+        assert result["ticker"] == "AAPL"
+
+    def test_missing_extended_fields_still_maps_existing(self) -> None:
+        """Records missing new fields still map remaining fields correctly."""
+        record = {
+            "regularMarketBid": 149.9,
+            "regularMarketPrice": 150.0,
+        }
+        result = apply_field_mapping(record=record, provider="yahoo", data_type="quote")
+        assert result["bid"] == 149.9
+        assert result["last"] == 150.0
+        # Extended fields simply not present — no crash
+        assert "change" not in result

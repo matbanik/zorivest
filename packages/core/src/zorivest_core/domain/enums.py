@@ -186,6 +186,7 @@ class PipelineStatus(StrEnum):  # §9.1a
     SUCCESS = "success"
     FAILED = "failed"
     SKIPPED = "skipped"
+    WARNING = "warning"
     CANCELLED = "cancelled"
 
 

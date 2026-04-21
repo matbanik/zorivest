@@ -2,10 +2,9 @@
 
 ## Current Priority
 
-Pipeline hardening project complete and Codex-approved (MEU-PW9, MEU-PW11, MEU-72a). Template rendering, cursor tracking, and timezone display all verified. 6 pipeline data-flow deficiency bugs documented.
+Pipeline dataflow hardening corrections complete (MEU-PW12/PW13). All 4 critical review findings resolved: (1) weak send test replaced with Tier 2 template rendering proof, (2) handoff AC tables rewritten with real test IDs, (3) FAIL_TO_PASS evidence added, (4) 8 PIPE-* issues archived in known-issues.md. Test count: 2154 passed. Handoff re-submitted for Codex validation.
 
 ## Next Steps
 
-1. Plan and execute pipeline data-flow chain fix (PIPE-STEPKEY, PIPE-TMPLVAR, PIPE-RAWBLOB, PIPE-PROVNORM, PIPE-QUOTEFIELD, PIPE-SILENTPASS) as single MEU
-2. Write integration tests exercising full FetchStep→TransformStep→SendStep chain (PIPE-E2E-CHAIN)
-3. Address remaining pipeline issues: [PIPE-URLBUILD], [PIPE-NOCANCEL]
+1. Codex re-validation of corrected handoff #123
+2. Continue to next pipeline phase or new feature area per build priority matrix

@@ -23,7 +23,12 @@
 - **Discovered:** 2026-04-12
 - **Status:** Open — requires full audit of all 9 toolsets
 - **Details:** Server instructions and tool descriptions are too terse for AI agents to discover and correctly use multi-step workflows. Confirmed gaps in scheduling toolset: (1) server instructions say only "Automated task scheduling" — no mention of policy CRUD or pipeline execution, (2) `run_pipeline` description doesn't explain the approval prerequisite or error return shape, (3) `create_policy` has no example of the expected `policy_json` structure, (4) `pipeline://policies/schema` and `pipeline://step-types` MCP resources aren't referenced in any tool description, (5) no workflow guidance for the `create → approve → run` lifecycle. Similar gaps likely exist across `accounts`, `trade-analytics`, `trade-planning`, `market-data`, and other toolsets.
-- **Next steps:** Full audit of all toolset descriptions against their actual API contracts. Improve server instructions with toolset workflow summaries. Add `policy_json` examples to `create_policy`. Reference MCP resources from tool descriptions. Ensure all tool descriptions include prerequisite state, return shape hints, and error conditions.
+- **Sub-issue — Template registry not exposed to MCP layer (2026-04-20):**
+  - `create_policy` input is `z.record(z.unknown())` — completely opaque. AI agents cannot discover available template names (`daily_quote_summary`, `generic_report`), their required Jinja2 variables (`quotes`, `records`), variable field shapes (`q.symbol`, `q.price`, etc.), or how steps must be wired for data to flow into the template.
+  - No `pipeline://templates` resource exists. `EMAIL_TEMPLATES` dict lives only in Python infrastructure, invisible to the MCP layer.
+  - **Pre-implementation research:** [mcp-template-discoverability-gap.md](scheduling/mcp-template-discoverability-gap.md) — proposed solutions include a `pipeline://templates` MCP resource, enriched `create_policy` description, and `GET /scheduling/templates` backend endpoint.
+  - **Dependency:** MEU-PW12 must land first (defines final template variable contracts); TD1 then exposes them through MCP.
+- **Next steps:** Full audit of all toolset descriptions against their actual API contracts. Improve server instructions with toolset workflow summaries. Add `policy_json` examples to `create_policy`. Reference MCP resources from tool descriptions. Add `pipeline://templates` resource exposing template registry with variable contracts. Ensure all tool descriptions include prerequisite state, return shape hints, and error conditions.
 
 
 
@@ -52,62 +57,7 @@
 
 
 
-### [PIPE-E2E-CHAIN] — No integration test exercises real FetchStep→TransformStep→StoreReportStep data handoff
-- **Severity:** High | **Component:** tests | **Discovered:** 2026-04-20 | **Status:** Open
-- **Analysis:** [data_flow_gap_analysis.md](scheduling/data_flow_gap_analysis.md) §7.3, [pipeline-dataflow-deficiency-report.md](scheduling/pipeline-dataflow-deficiency-report.md)
-- **Details:** Existing pipeline E2E tests (`test_pipeline_e2e.py`) use **mock steps** — they validate the runner's orchestration logic (lifecycle, error modes, cancellation) but never exercise the actual `FetchStep → TransformStep` data handoff with real provider response shapes. The concrete path — provider JSON → field mapping → Pandera validation → DB write — is only tested at the unit level per-step, never as a chain.
-- **Impact:** This gap directly caused 6 undetected data-flow bugs (PIPE-STEPKEY, PIPE-TMPLVAR, PIPE-RAWBLOB, PIPE-PROVNORM, PIPE-QUOTEFIELD, PIPE-SILENTPASS) — all discovered 2026-04-20 when user tested live pipeline.
-- **Fix scope:** Add 2-3 integration tests using `FetchStep` with mocked HTTP (real adapter) → `TransformStep` with real field mapping + Pandera → `StoreReportStep` with real SQL sandbox. Use in-memory SQLite.
-- **MEU candidate:** Yes — extends MEU-PW8 test harness.
 
-
-### [PIPE-CACHEUPSERT] — Cache write-back after HTTP 200 fetch is not integration-tested
-- **Severity:** Medium | **Component:** tests, infrastructure (`fetch_step.py`, `market_data_adapter.py`) | **Discovered:** 2026-04-20 | **Status:** Open
-- **Analysis:** [data_flow_gap_analysis.md](scheduling/data_flow_gap_analysis.md) §7.3
-- **Details:** `FetchStep._fetch_from_provider()` calls `fetch_cache_repo.upsert()` after a successful HTTP 200 response. The cache **read** path (hit, miss, stale/revalidated) is well-tested (5 integration tests), but the **write-back** path — confirm that after a 200, a new cache entry exists with correct `payload_json`, `etag`, `content_hash`, `ttl_seconds`, and `fetched_at` — is not verified in any integration test.
-- **Fix scope:** Add 1-2 assertions to the existing `test_PW2_AC7_fetch_step_happy_path_ohlcv` or a new focused test.
-- **MEU candidate:** No — small enough to be a patch within an existing MEU.
-
-
-
-
-### [PIPE-STEPKEY] — TransformStep hardcodes `"fetch_result"` key instead of resolving actual step output
-- **Severity:** Critical | **Component:** core (`transform_step.py`) | **Discovered:** 2026-04-20 | **Status:** Open
-- **Analysis:** [pipeline-dataflow-deficiency-report.md](scheduling/pipeline-dataflow-deficiency-report.md) §3.1
-- **Details:** `TransformStep.execute()` reads `context.outputs.get("fetch_result", {})` but `PipelineRunner` stores outputs under the step's ID (e.g., `"fetch_yahoo_quotes"`). Key never exists → 0 records → silent data loss. `_apply_mapping()` has the same hardcoded key. Unit tests inject `"fetch_result"` directly, matching the hardcode but not the real wiring.
-- **Impact:** **All TransformStep executions in real pipelines receive zero records.** This is the root cause of empty email reports.
-- **Fix:** Add `source_step_id` param to TransformStep.Params; policy explicitly declares which step's output to read.
-
-### [PIPE-TMPLVAR] — Email template expects `quotes` variable but no pipeline step produces it
-- **Severity:** Critical | **Component:** core (`send_step.py`), infrastructure (`email_templates.py`) | **Discovered:** 2026-04-20 | **Status:** Open
-- **Analysis:** [pipeline-dataflow-deficiency-report.md](scheduling/pipeline-dataflow-deficiency-report.md) §3.2
-- **Details:** `daily_quote_summary` template checks `{% if quotes %}` to render the table. `_resolve_body()` merges `context.outputs` into template context, producing keys like `fetch_yahoo_quotes`, `transform_quotes`, `provider_adapter` — never `quotes`. Template always falls through to "No quote data available."
-- **Impact:** Even with all upstream fixes, the template would still render empty without a mechanism to wire parsed records into a `quotes` template variable.
-- **Fix:** Either add a dedicated template-context preparation step, or have TransformStep output include a well-known `quotes` key when `data_type == "quote"`.
-
-### [PIPE-RAWBLOB] — No response envelope extraction for provider API responses
-- **Severity:** High | **Component:** core (`fetch_step.py`), infrastructure (`http_cache.py`) | **Discovered:** 2026-04-20 | **Status:** Open
-- **Analysis:** [pipeline-dataflow-deficiency-report.md](scheduling/pipeline-dataflow-deficiency-report.md) §3.3
-- **Details:** Yahoo `/v6/finance/quote` returns `{"quoteResponse": {"result": [...]}}`. `fetch_with_cache()` stores `response.content` as raw bytes (entire HTTP body). FetchStep passes raw bytes to output. TransformStep would `json.loads()` into the envelope dict, not the records array. No component extracts `data["quoteResponse"]["result"]` to yield the actual quote list. Each provider has a different envelope shape.
-- **Fix:** Add per-provider response extractor (method on URL builder or separate registry) that unwraps the API envelope to yield the records array.
-
-### [PIPE-PROVNORM] — Provider name mismatch between provider registry and field mappings
-- **Severity:** Medium | **Component:** infrastructure (`field_mappings.py`, `provider_registry.py`) | **Discovered:** 2026-04-20 | **Status:** Open
-- **Analysis:** [pipeline-dataflow-deficiency-report.md](scheduling/pipeline-dataflow-deficiency-report.md) §3.4
-- **Details:** Provider registry uses display names (`"Yahoo Finance"`, `"Polygon.io"`). Field mappings use short keys (`"yahoo"`, `"polygon"`, `"ibkr"`). `apply_field_mapping(provider="Yahoo Finance", data_type="quote")` looks up `("Yahoo Finance", "quote")` → no match → all fields go to `_extra`, canonical mapping never applied. Silent fallthrough.
-- **Fix:** Add slug normalization at field mapping lookup, or standardize on one naming convention.
-
-### [PIPE-QUOTEFIELD] — Quote template fields don't match canonical schema or field mappings
-- **Severity:** Medium | **Component:** infrastructure (`email_templates.py`, `field_mappings.py`), core (`validation_gate.py`) | **Discovered:** 2026-04-20 | **Status:** Open
-- **Analysis:** [pipeline-dataflow-deficiency-report.md](scheduling/pipeline-dataflow-deficiency-report.md) §3.5
-- **Details:** Template expects `q.symbol`, `q.price`, `q.change`, `q.change_pct`, `q.volume`. Field mappings produce `bid`, `ask`, `last`, `volume` (no `price`, `change`, `change_pct`). Pandera validates `ticker`, `last`, `timestamp` (no `symbol`, `price`). Yahoo sends `regularMarketChange`/`regularMarketChangePercent` but these are unmapped. Three-way misalignment: template ↔ mapping ↔ schema.
-- **Fix:** Extend Yahoo quote field mappings with `change`, `change_pct`, `symbol` pass-through. Align template to match either canonical or extended fields.
-
-### [PIPE-SILENTPASS] — TransformStep returns SUCCESS with 0 records, masking upstream data loss
-- **Severity:** Medium | **Component:** core (`transform_step.py`) | **Discovered:** 2026-04-20 | **Status:** Open
-- **Analysis:** [pipeline-dataflow-deficiency-report.md](scheduling/pipeline-dataflow-deficiency-report.md) §3.6
-- **Details:** When TransformStep receives 0 records (due to PIPE-STEPKEY or empty fetch), it returns `PipelineStatus.SUCCESS` with `records_written: 0` and `quality_ratio: 0.0`. Pipeline continues normally. User sees "success" with no warning. The `quality_ratio: 0.0` data is buried in step output, never surfaced to UI or logs.
-- **Fix:** Return FAILED or WARNING when records == 0 (unless explicitly configured to allow empty). Emit `structlog.warning("transform_zero_records")`. Consider `min_records` param with default 1.
 
 
 ## Mitigated / Workaround Applied
@@ -189,6 +139,14 @@
 | TEMPLATE-RENDER | 2026-04-20 | SendStep template rendering implemented — 4-tier priority chain via Jinja2 (MEU-PW9) |
 | PIPE-CURSORS | 2026-04-20 | Pipeline cursor tracking implemented — high-water mark upsert in FetchStep (MEU-PW11) |
 | SCHED-TZDISPLAY | 2026-04-20 | Two-part fix: (1) PolicyList migrated to formatTimestamp() with policy timezone (MEU-72a), (2) normalizeUtc() added to formatDate.ts — appends Z to naive ISO strings from SQLAlchemy DateTime columns |
+| PIPE-E2E-CHAIN | 2026-04-21 | Integration tests added for Fetch→Transform→Send chain (MEU-PW13) |
+| PIPE-CACHEUPSERT | 2026-04-21 | Cache upsert integration test added in test_pipeline_dataflow.py |
+| PIPE-STEPKEY | 2026-04-21 | _resolve_source() with 3-tier fallback replaces hardcoded fetch_result key (MEU-PW12) |
+| PIPE-TMPLVAR | 2026-04-21 | TransformStep output_key + two-level merge in _resolve_body() feeds template vars (MEU-PW12) |
+| PIPE-RAWBLOB | 2026-04-21 | Per-provider response extractors unwrap API envelopes (MEU-PW12) |
+| PIPE-PROVNORM | 2026-04-21 | _PROVIDER_SLUG_MAP normalizes display names to registry slugs (MEU-PW12) |
+| PIPE-QUOTEFIELD | 2026-04-21 | Presentation mapping (last→price, ticker→symbol) aligns template fields (MEU-PW12) |
+| PIPE-SILENTPASS | 2026-04-21 | min_records param + WARNING status on zero records (MEU-PW12) |
 
 ## Template
 

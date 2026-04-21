@@ -126,6 +126,12 @@ Write both files to `docs/execution/plans/{YYYY-MM-DD}-{project-slug}/`:
 - `implementation-plan.md` — start from [`docs/execution/plans/PLAN-TEMPLATE.md`](file:///p:/zorivest/docs/execution/plans/PLAN-TEMPLATE.md) (v2.0)
 - `task.md` — start from [`docs/execution/plans/TASK-TEMPLATE.md`](file:///p:/zorivest/docs/execution/plans/TASK-TEMPLATE.md) (v2.0)
 
+> [!CAUTION]
+> **Template Pre-Flight (mandatory before writing):**
+> 1. `view_file` → `docs/execution/plans/PLAN-TEMPLATE.md`
+> 2. `view_file` → `docs/execution/plans/TASK-TEMPLATE.md`
+> 3. Only then write `implementation-plan.md` and `task.md`, using the template structure as the skeleton and filling in project-specific content.
+
 > [!IMPORTANT]
 > **The project folder is the single source of truth.** All edits and revisions happen here. The Antigravity brain folder (`~/.gemini/antigravity/brain/{conversation-id}/`) may receive a copy for UI rendering, but the project folder is what Codex validates against and what gets version-controlled.
 

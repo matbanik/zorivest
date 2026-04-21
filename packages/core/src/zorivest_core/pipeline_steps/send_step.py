@@ -29,6 +29,8 @@ class SendStep(RegisteredStep):
     class Params(BaseModel):
         """SendStep parameter schema — validated before execute()."""
 
+        model_config = {"extra": "forbid"}
+
         channel: str = Field(
             ..., description="Delivery channel: 'email' or 'local_file'"
         )
@@ -245,10 +247,17 @@ class SendStep(RegisteredStep):
             "policy_id": context.policy_id,
             "run_id": context.run_id,
         }
-        # Merge pipeline step outputs as template variables
+        # Merge pipeline step outputs as template variables (AC-7: two-level merge)
+        # For dict-valued outputs, promote inner keys to top-level context.
+        # First-wins: existing keys (generated_at, policy_id, run_id) are preserved.
         for key, value in context.outputs.items():
             if key not in render_ctx:
                 render_ctx[key] = value
+            # AC-7: Two-level merge — promote inner keys of dict outputs
+            if isinstance(value, dict):
+                for inner_key, inner_value in value.items():
+                    if inner_key not in render_ctx:
+                        render_ctx[inner_key] = inner_value
 
         return tmpl.render(**render_ctx)
 

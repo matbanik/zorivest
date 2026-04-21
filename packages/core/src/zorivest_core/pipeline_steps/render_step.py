@@ -28,6 +28,8 @@ class RenderStep(RegisteredStep):
     class Params(BaseModel):
         """RenderStep parameter schema."""
 
+        model_config = {"extra": "forbid"}
+
         template: str = Field(..., description="Jinja2 template name")
         output_format: str = Field(
             default="both",

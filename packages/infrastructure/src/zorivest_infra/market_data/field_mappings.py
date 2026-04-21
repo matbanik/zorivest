@@ -12,16 +12,33 @@ from __future__ import annotations
 from typing import Any
 
 
+# Provider display name → slug normalization map (AC-3).
+# Used by apply_field_mapping() to resolve display names to registry slugs.
+_PROVIDER_SLUG_MAP: dict[str, str] = {
+    "Yahoo Finance": "yahoo",
+    "Polygon.io": "polygon",
+    "Interactive Brokers": "ibkr",
+    "Finnhub": "finnhub",
+}
+
+
 # Canonical field mappings per provider.
 # Key: (provider, data_type) → dict of {source_field: canonical_field}
 FIELD_MAPPINGS: dict[tuple[str, str], dict[str, str]] = {
     # ── OHLCV ──────────────────────────────────────────────────────────
     ("generic", "ohlcv"): {
+        # Short-form → canonical (Polygon-style)
         "o": "open",
         "h": "high",
         "l": "low",
         "c": "close",
         "v": "volume",
+        # Identity mappings — data already in canonical form passes through
+        "open": "open",
+        "high": "high",
+        "low": "low",
+        "close": "close",
+        "volume": "volume",
     },
     ("ibkr", "ohlcv"): {
         "open": "open",
@@ -55,6 +72,9 @@ FIELD_MAPPINGS: dict[tuple[str, str], dict[str, str]] = {
         "regularMarketAsk": "ask",
         "regularMarketPrice": "last",
         "regularMarketVolume": "volume",
+        "regularMarketChange": "change",
+        "regularMarketChangePercent": "change_pct",
+        "symbol": "ticker",
     },
     ("polygon", "quote"): {
         "bidPrice": "bid",
@@ -119,7 +139,9 @@ def apply_field_mapping(
     Returns:
         Dict with canonical field names + ``_extra`` for unmapped fields.
     """
-    mapping = FIELD_MAPPINGS.get((provider, data_type), {})
+    # AC-3: Normalize display names to slugs before lookup.
+    slug = _PROVIDER_SLUG_MAP.get(provider, provider)
+    mapping = FIELD_MAPPINGS.get((slug, data_type), {})
 
     # Reverse mapping: source_field → canonical_field
     result: dict[str, Any] = {}
