@@ -175,6 +175,8 @@ async def lifespan(app: FastAPI) -> AsyncGenerator[None, None]:
         "ALTER TABLE accounts ADD COLUMN is_system BOOLEAN DEFAULT 0",  # MEU-37 AC-2
         "ALTER TABLE trade_plans ADD COLUMN shares_planned INTEGER",  # Position size
         "ALTER TABLE trade_plans ADD COLUMN position_size REAL",  # MEU-70a: dollar value
+        "ALTER TABLE market_quotes ADD COLUMN change NUMERIC(15,6)",  # Yahoo v8 quote
+        "ALTER TABLE market_quotes ADD COLUMN change_pct REAL",  # Yahoo v8 quote
     ]
     with engine.connect() as conn:
         for _stmt in _inline_migrations:

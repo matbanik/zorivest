@@ -28,6 +28,7 @@ markers = [
     "unit: Pure unit tests",
     "integration: Integration tests with real DB",
     "e2e: End-to-end tests",
+    "live: Live data tests — real HTTP calls, skipped unless --run-live",
 ]
 
 [dependency-groups]

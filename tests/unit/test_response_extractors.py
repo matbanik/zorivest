@@ -89,6 +89,39 @@ class TestYahooQuoteExtraction:
 
         assert records == []
 
+    def test_yahoo_quote_v8_chart_envelope(self) -> None:
+        """v8/finance/chart wraps data in chart.result[0].meta."""
+        from zorivest_infra.market_data.response_extractors import extract_records
+
+        raw = json.dumps(
+            {
+                "chart": {
+                    "result": [
+                        {
+                            "meta": {
+                                "symbol": "AAPL",
+                                "regularMarketPrice": 273.05,
+                                "chartPreviousClose": 270.0,
+                                "regularMarketVolume": 34667241,
+                                "currency": "USD",
+                            },
+                        }
+                    ],
+                    "error": None,
+                }
+            }
+        ).encode()
+
+        records = extract_records(raw, provider="yahoo", data_type="quote")
+
+        assert len(records) == 1
+        assert records[0]["symbol"] == "AAPL"
+        assert records[0]["regularMarketPrice"] == 273.05
+        # Computed change fields
+        assert "regularMarketChange" in records[0]
+        assert abs(records[0]["regularMarketChange"] - 3.05) < 0.01
+        assert "regularMarketChangePercent" in records[0]
+
 
 # ---------------------------------------------------------------------------
 # AC-2b: Polygon OHLCV envelope extraction

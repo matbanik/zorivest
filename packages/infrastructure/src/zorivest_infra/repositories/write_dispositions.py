@@ -40,6 +40,8 @@ TABLE_ALLOWLIST: dict[str, set[str]] = {
         "ask",
         "last",
         "volume",
+        "change",
+        "change_pct",
         "timestamp",
         "provider",
     },

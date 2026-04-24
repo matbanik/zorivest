@@ -1,0 +1,73 @@
+# Walkthrough — Pipeline Security Hardening Build Plan Integration
+
+## What Was Done
+
+Mapped 11 hardening gaps (A, B, B+, C, D, E, F, G, H, I + default template) from the [retail-trader-policy-use-cases.md](file:///p:/zorivest/_inspiration/policy_pipeline_wiring-research/retail-trader-policy-use-cases.md) spec into the formal Zorivest build system.
+
+---
+
+## New Build Plan Documents (4)
+
+| Document | Scope | MEUs |
+|----------|-------|------|
+| [09c-pipeline-security-hardening.md](file:///p:/zorivest/docs/build-plan/09c-pipeline-security-hardening.md) | StepContext safety, SQL sandbox, send/fetch guards | MEU-PH1, PH2, PH3 |
+| [09d-pipeline-step-extensions.md](file:///p:/zorivest/docs/build-plan/09d-pipeline-step-extensions.md) | QueryStep, ComposeStep, variables, assertions, schema v2 migration | MEU-PH4, PH5, PH7 |
+| [09e-template-database.md](file:///p:/zorivest/docs/build-plan/09e-template-database.md) | EmailTemplateModel, HardenedSandbox, nh3, boundary contract, default template | MEU-PH6, PH10 |
+| [09f-policy-emulator.md](file:///p:/zorivest/docs/build-plan/09f-policy-emulator.md) | 4-phase emulator, output containment, session budget | MEU-PH8 |
+
+## Modified Documents (4)
+
+| Document | Change |
+|----------|--------|
+| [05g-mcp-scheduling.md](file:///p:/zorivest/docs/build-plan/05g-mcp-scheduling.md) | Added 11 MCP tools + 4 MCP resources + boundary-input contract (MEU-PH9) |
+| [dependency-manifest.md](file:///p:/zorivest/docs/build-plan/dependency-manifest.md) | Added `sqlglot`, `nh3`, `markdown-it-py` to Phase 9c |
+| [BUILD_PLAN.md](file:///p:/zorivest/docs/BUILD_PLAN.md) | P2.5c section (10 MEUs), phases table (6 rows), Phase 9 status → 🟡, count 209→219 |
+| [build-priority-matrix.md](file:///p:/zorivest/docs/build-plan/build-priority-matrix.md) | Added P2.5c section with items 49.16–49.25, count 202→212 |
+
+## Registry Updates (1)
+
+| Document | Change |
+|----------|--------|
+| [meu-registry.md](file:///p:/zorivest/.agent/context/meu-registry.md) | Added P2.5c section with 10 MEUs |
+
+## MEU → Gap Mapping
+
+| MEU | Slug | Gap | Effort |
+|-----|------|-----|--------|
+| MEU-PH1 | `stepcontext-safety` | A | 4h |
+| MEU-PH2 | `sql-sandbox` | B | 12h |
+| MEU-PH3 | `send-fetch-guards` | B+ | 4h |
+| MEU-PH4 | `query-step` | C | 12h |
+| MEU-PH5 | `compose-step` | D | 8h |
+| MEU-PH6 | `template-database` | E | 12h |
+| MEU-PH7 | `policy-vars-assertions` | F+G | 12h |
+| MEU-PH8 | `policy-emulator` | H | 20h |
+| MEU-PH9 | `emulator-mcp-tools` | I | 12h |
+| MEU-PH10 | `default-template` | — | 4h |
+| **Total** | | | **96h** |
+
+## Verification
+
+- `python tools/validate_build_plan.py` — **0 new errors introduced**; validator still exits FAILED due to 2 inherited repo-wide errors (broken anchor in `08-market-data.md`, relative path in `05k-mcp-setup-workspace.md`) that are unrelated to this change
+- All 11 gaps map to exactly one MEU
+- MEU count: 209 → 219 (confirmed in summary table)
+- Build priority matrix: 202 → 212 items (confirmed in header)
+
+## Codex Review Corrections (2026-04-23)
+
+| # | Severity | Finding | Fix |
+|---|----------|---------|-----|
+| 1 | High | Schema v2 migration dropped from canon | Added §9D.6: dual-schema compatibility, `model_validator`, v1/v2 gating, 3 tests |
+| 2 | High | 4 MCP resources missing from 05g | Added `pipeline://templates`, `db-schema`, `emulator/mock-data`, `providers` |
+| 3 | Medium | Phase 9 status contradictory | Changed `✅ Completed` → `🟡 Core complete; P2.5c planned` |
+| 4 | Medium | Implementation plan has open questions | Resolved decisions, removed question-form prompts |
+| 5 | Medium | Missing boundary-input contracts | Added §9E.0 (Pydantic) + 05g table (Zod) |
+| — | Note | Validator wording misleading | Corrected to "inherited failing validator state" |
+
+## Design Decisions
+
+1. **MEU-PH prefix** — continues the `MEU-PW` convention from P2.5b
+2. **New MEUs over reopening** — Gap A/F touch files from MEU-78/84 (✅ approved), new MEUs created
+3. **09-scheduling.md cross-refs deferred** — minor updates at MEU-PH7 implementation time
+4. **Templates GUI deferred to MEU-72** — MCP CRUD provides agent access without GUI
+5. **Schema v2 opt-in per policy** — existing v1 policies unchanged; v2 requires explicit declaration

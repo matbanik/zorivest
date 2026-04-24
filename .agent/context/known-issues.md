@@ -6,6 +6,43 @@
 ## Active Issues
 
 
+### [PIPE-NOLOCALQUERY] — No pipeline step type for querying local DB tables (trades, plans, watchlists, accounts)
+- **Severity:** Medium (feature gap)
+- **Component:** core (`pipeline_steps/`), infrastructure (`adapters/`)
+- **Discovered:** 2026-04-21
+- **Status:** Open — needs MEU scoping
+- **Details:** `FetchStep` is hard-wired to `MarketDataProviderAdapter` (external HTTP only). It cannot query local DB tables like `trades`, `trade_plans`, `watchlists`, or `accounts`. `StoreReportStep` has `data_queries` (sandboxed SQL → snapshot), but that output goes into `report_data` / `snapshot_json`, not into the transform pipeline. `CriteriaResolver` supports `db_query` criteria type, but only for resolving date ranges — not for fetching record sets.
+- **Impact:** Policies cannot build reports that combine external market data with internal portfolio data (e.g., "show my watchlist tickers with current prices" or "compare trade plan targets vs actual prices").
+- **Proposed fix:** New `QueryStep` (`type_name="query"`) — a lightweight step that:
+  1. Accepts `sql` (parameterized) + `output_key` in params
+  2. Executes read-only SQL via `context.outputs["db_connection"]` (same sandbox as `StoreReportStep`)
+  3. Returns records in the same `{output_key: [...]}` shape as `TransformStep` output
+  4. Feeds directly into `TransformStep` (via `source_step_id`) or `SendStep` template context
+  5. No external HTTP, no cache, no provider — pure local data extraction
+- **Alternative considered:** Extending `FetchStep` with `provider: "local"` — rejected because it conflates external I/O (rate-limited, cached, provider-specific) with local SQL (instant, no auth, no envelope). Separate step type is cleaner.
+- **MEU scope:** New MEU under Phase 9 (Scheduling). Depends on: existing `db_connection` injection (already wired in `main.py`), `StepContext.outputs` pattern, `RegisteredStep` auto-registration.
+
+
+### [PIPE-DROPPDF] — Drop PDF output, replace with Markdown rendering for AI-friendly reports
+- **Severity:** Medium (architectural decision)
+- **Component:** core (`render_step.py`, `send_step.py`), infrastructure (`pdf_renderer.py`, `email_sender.py`, `models.py`)
+- **Discovered:** 2026-04-21
+- **Status:** Open — needs MEU scoping
+- **Decision:** PDF output is dropped from the pipeline. Markdown is the replacement format — it's AI-agent consumable, MCP-friendly, lightweight, and doesn't require Playwright/Chromium.
+- **Dependencies to remove:**
+  1. `pdf_renderer.py` — entire file (`zorivest_infra.rendering.pdf_renderer`). Playwright dependency can be removed.
+  2. `render_step.py` — `_render_pdf()` method, `output_format` enum values `"pdf"` and `"both"`, PDF failure handling
+  3. `send_step.py` — `pdf_path` param, `pdf_path` in `_send_emails()` call, entire `_save_local()` method (copies PDF to disk)
+  4. `email_sender.py` — `pdf_path` param, MIME PDF attachment logic (`MIMEApplication` block)
+  5. `models.py` — `ReportModel.format` column default `"pdf"` → `"md"` or `"html"`
+  6. `scheduling_repositories.py` — `format: str = "pdf"` default
+- **Replacement approach:**
+  - `RenderStep.output_format`: `"html"` (default, for email body) or `"markdown"` (for MCP/file/AI consumption)
+  - Add `_render_markdown()` to RenderStep — converts report data to structured Markdown tables
+  - `SendStep.local_file` channel: writes `.md` file instead of PDF
+  - Email attachment: optional `.md` attachment instead of PDF
+- **MEU scope:** Cleanup MEU under Phase 9. No new dependencies required — Markdown rendering is stdlib string formatting.
+
 
 ### [STUB-RETIRE] — stubs.py contains legacy stubs that should be retired progressively
 - **Severity:** Low (technical debt)

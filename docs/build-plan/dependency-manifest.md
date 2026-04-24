@@ -78,6 +78,9 @@ uv add --package zorivest-infra cryptography httpx
 uv add --package zorivest-core apscheduler aiolimiter tenacity structlog pandera
 uv add --package zorivest-infra playwright plotly kaleido jinja2 aiosmtplib
 
+# Phase 9c: Pipeline Security Hardening
+uv add --package zorivest-core sqlglot nh3 markdown-it-py
+
 # Phase 10: Service Daemon
 uv add --package zorivest-api psutil               # Process metrics for /service/status
 cd ui && npm install @vscode/sudo-prompt && cd ..   # Windows UAC elevation for service start/stop
@@ -101,6 +104,7 @@ cd ui && npm install @vscode/sudo-prompt && cd ..   # Windows UAC elevation for 
 | 8 | `zorivest-infra` (market) | `cryptography`, `httpx` |
 | 9 | `zorivest-core` (scheduling) | `apscheduler`, `aiolimiter`, `tenacity`, `structlog`, `pandera` |
 | 9 | `zorivest-infra` (pipeline) | `playwright`, `plotly`, `kaleido`, `jinja2`, `aiosmtplib` |
+| 9c | `zorivest-core` (security) | `sqlglot`, `nh3`, `markdown-it-py` |
 | 10 | `zorivest-api` (service) | `psutil` |
 | 10 | `ui` (TS, service) | `@vscode/sudo-prompt` |
 | 10 | bundled binary | WinSW (`zorivest-service.exe`) — no package manager install |

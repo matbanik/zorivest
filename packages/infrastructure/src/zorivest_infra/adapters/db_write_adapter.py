@@ -11,6 +11,7 @@ MEU: PW1
 
 from __future__ import annotations
 
+import math
 from typing import Any
 
 from sqlalchemy.orm import Session
@@ -20,6 +21,56 @@ from zorivest_infra.repositories.write_dispositions import (
     write_merge,
     write_replace,
 )
+
+
+def _sanitize_value(val: Any) -> Any:
+    """Convert pandas/numpy types to native Python types for sqlite3 binding.
+
+    pandas.DataFrame.to_dict() preserves pandas types (Timestamp, NaT, NaN,
+    numpy int64/float64) which sqlite3's DBAPI cannot bind:
+        sqlite3.ProgrammingError: type 'Timestamp' is not supported
+
+    This function converts:
+        - pandas.Timestamp → Python datetime (or ISO string)
+        - pandas.NaT → None
+        - numpy.nan / float('nan') → None
+        - numpy int64/float64 → Python int/float
+    """
+    if val is None:
+        return None
+
+    type_name = type(val).__name__
+
+    # pandas Timestamp → Python datetime
+    if type_name == "Timestamp":
+        # .to_pydatetime() converts pandas Timestamp to Python datetime
+        return val.to_pydatetime()
+
+    # pandas NaT (Not a Time) → None
+    if type_name == "NaTType":
+        return None
+
+    # float NaN → None (handles both numpy.nan and Python float nan)
+    if isinstance(val, float) and math.isnan(val):
+        return None
+
+    # numpy integer types → Python int
+    if hasattr(val, "item") and "int" in type_name.lower():
+        return int(val)
+
+    # numpy float types → Python float
+    if hasattr(val, "item") and "float" in type_name.lower():
+        return float(val)
+
+    return val
+
+
+def _sanitize_records(records: list[dict[str, Any]]) -> list[dict[str, Any]]:
+    """Sanitize all values in a list of records for sqlite3 binding."""
+    return [
+        {key: _sanitize_value(value) for key, value in record.items()}
+        for record in records
+    ]
 
 
 class DbWriteAdapter:
@@ -57,7 +108,8 @@ class DbWriteAdapter:
         Raises:
             ValueError: If disposition is unknown or merge is missing key_columns.
         """
-        records: list[dict[str, Any]] = df.to_dict(orient="records")
+        raw_records: list[dict[str, Any]] = df.to_dict(orient="records")
+        records = _sanitize_records(raw_records)
 
         if disposition == "append":
             return write_append(

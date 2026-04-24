@@ -1,0 +1,39 @@
+# Pipeline Security Hardening — Build Plan & MEU Integration
+
+## Task Checklist
+
+### New Build Plan Documents
+- [x] Create `09c-pipeline-security-hardening.md` (Gaps A, B, B+)
+- [x] Create `09d-pipeline-step-extensions.md` (Gaps C, D, F, G + schema v2 migration)
+- [x] Create `09e-template-database.md` (Gap E + boundary-input contract)
+- [x] Create `09f-policy-emulator.md` (Gap H)
+
+### Modified Build Plan Documents
+- [x] Update `05g-mcp-scheduling.md` (Gap I — 11 MCP tools + 4 MCP resources + boundary contract)
+- [ ] Update `09-scheduling.md` (minor cross-refs) — DEFERRED to MEU-PH7 implementation
+- [x] Update `dependency-manifest.md` (add sqlglot, nh3, markdown-it-py)
+
+### Registry Updates
+- [x] Add P2.5c section to `BUILD_PLAN.md` with 10 MEUs (MEU-PH1→PH10)
+- [x] Update MEU Summary table in `BUILD_PLAN.md` (209 → 219)
+- [x] Update Phase 9 status → 🟡 (core complete; P2.5c planned)
+- [x] Update `meu-registry.md` with P2.5c section
+- [x] Update `build-priority-matrix.md` with matrix items 49.16–49.25 (202 → 212)
+
+### Verification
+- [x] Run `python tools/validate_build_plan.py` — 0 new errors introduced; validator still exits FAILED due to 2 inherited repo-wide errors (`08-market-data.md` broken anchor, `05k-mcp-setup-workspace.md` relative path)
+- [x] Verify every gap maps to exactly one MEU
+- [x] Verify MEU count totals are correct
+
+### Codex Review Corrections (2026-04-23)
+- [x] Finding 1 (High): Schema v2 migration — added §9D.6 to 09d
+- [x] Finding 2 (High): Missing MCP resources — added 4 resources to 05g
+- [x] Finding 3 (Medium): Phase status contradictory — Phase 9 → 🟡
+- [x] Finding 4 (Medium): Unresolved questions — folded decisions into plan
+- [x] Finding 5 (Medium): Missing boundary contracts — added §9E.0 + table in 05g
+- [x] Note: Validator wording corrected
+
+### Codex Recheck Corrections (2026-04-23)
+- [x] Sync .resolved files with canonical docs
+- [x] Fix validator claim wording to "inherited failing validator state"
+- [x] Expand Gap I summary to include 4 MCP resources + boundary-contract work

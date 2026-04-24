@@ -62,6 +62,11 @@ class MarketDataProviderAdapter:
     ) -> FetchAdapterResult:
         """Fetch market data from a provider with rate limiting and cache revalidation.
 
+        When multiple tickers are requested and the provider's API only
+        supports one ticker per request (e.g. Yahoo v8/chart), this method
+        automatically loops over each ticker, fetches individually, and
+        merges the results into a combined JSON array.
+
         Args:
             provider: Provider key (must match PROVIDER_REGISTRY).
             data_type: One of 'ohlcv', 'quote', 'news', 'fundamentals'.
@@ -88,15 +93,25 @@ class MarketDataProviderAdapter:
             available = sorted(PROVIDER_REGISTRY.keys())
             raise KeyError(f"Unknown provider '{provider}'. Available: {available}")
 
-        # MEU-PW6: Use URL builder dispatch instead of legacy _build_url()
         tickers = resolve_tickers(criteria)
+
+        # When there are multiple tickers and the provider uses per-ticker
+        # URLs (e.g. Yahoo v8/chart), iterate and merge results.
+        if len(tickers) > 1:
+            return await self._fetch_multi_ticker(
+                config=config,
+                provider=provider,
+                data_type=data_type,
+                tickers=tickers,
+                criteria=criteria,
+            )
+
+        # Single ticker (or no tickers) — standard single-request path
         builder = get_url_builder(provider)
         url = builder.build_url(config.base_url, data_type, tickers, criteria)
 
-        # Extract provider headers from config, forwarded to HTTP layer
         extra_headers = dict(config.headers_template) if config.headers_template else {}
 
-        # Route HTTP call through rate limiter
         result: dict[str, Any] = await self._rate_limiter.execute_with_limits(
             provider,
             self._do_fetch,
@@ -112,6 +127,102 @@ class MarketDataProviderAdapter:
             cache_status=result["cache_status"],
             etag=result.get("etag"),
             last_modified=result.get("last_modified"),
+        )
+
+    async def _fetch_multi_ticker(
+        self,
+        *,
+        config: Any,
+        provider: str,
+        data_type: str,
+        tickers: list[str],
+        criteria: dict[str, Any],
+    ) -> FetchAdapterResult:
+        """Fetch data for each ticker individually and merge into one response.
+
+        Yahoo v8/chart (and similar APIs) only support one symbol per request.
+        This method iterates over all tickers, builds a per-ticker URL, fetches
+        via the rate limiter, and merges the parsed JSON records into a single
+        JSON array as the combined content.
+
+        The downstream TransformStep → extract_records() will receive a top-level
+        JSON list of record dicts, which the generic extractor handles correctly.
+        """
+        import json as _json
+
+        builder = get_url_builder(provider)
+        extra_headers = dict(config.headers_template) if config.headers_template else {}
+        all_records: list[dict[str, Any]] = []
+        last_etag: str | None = None
+        last_modified: str | None = None
+
+        for ticker in tickers:
+            # Build per-ticker URL
+            url = builder.build_url(config.base_url, data_type, [ticker], criteria)
+            logger.info(
+                "fetch_multi_ticker",
+                provider=provider,
+                ticker=ticker,
+                url=url,
+            )
+
+            try:
+                result = await self._rate_limiter.execute_with_limits(
+                    provider,
+                    self._do_fetch,
+                    url,
+                    cached_content=None,
+                    cached_etag=None,
+                    cached_last_modified=None,
+                    extra_headers=extra_headers,
+                )
+            except Exception:
+                logger.warning(
+                    "fetch_multi_ticker_error",
+                    provider=provider,
+                    ticker=ticker,
+                    exc_info=True,
+                )
+                continue
+
+            # Parse the individual response and extract records
+            content = result["content"]
+            try:
+                from zorivest_infra.market_data.response_extractors import (
+                    extract_records,
+                )
+
+                records = extract_records(content, provider, data_type)
+                all_records.extend(records)
+            except Exception:
+                logger.warning(
+                    "fetch_multi_ticker_extract_error",
+                    provider=provider,
+                    ticker=ticker,
+                    exc_info=True,
+                )
+                continue
+
+            # Keep the last response's cache headers
+            last_etag = result.get("etag") or last_etag
+            last_modified = result.get("last_modified") or last_modified
+
+        logger.info(
+            "fetch_multi_ticker_complete",
+            provider=provider,
+            tickers_requested=len(tickers),
+            records_merged=len(all_records),
+        )
+
+        # Serialize merged records as a JSON array —
+        # TransformStep._extract_records() → generic extractor handles top-level lists
+        merged_content = _json.dumps(all_records).encode("utf-8")
+
+        return FetchAdapterResult(
+            content=merged_content,
+            cache_status="miss",  # Multi-ticker fetches bypass cache
+            etag=last_etag,
+            last_modified=last_modified,
         )
 
     async def _do_fetch(

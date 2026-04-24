@@ -97,6 +97,8 @@ class FetchStep(RegisteredStep):
                         output={
                             "content": cache_result["content"],
                             "cache_status": "hit",
+                            "provider": p.provider,
+                            "data_type": p.data_type,
                             "resolved_criteria": resolved_criteria,
                         },
                     )

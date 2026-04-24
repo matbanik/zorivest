@@ -51,8 +51,12 @@ class YahooUrlBuilder:
 
     Patterns:
     - ohlcv: /v8/finance/chart/{symbol}
-    - quote: /v6/finance/quote?symbols={symbols}
+    - quote: /v8/finance/chart/{symbol} (v6/quote is dead — 404 since ~2024)
     - news: /v1/finance/search?q={symbol}&newsCount=10
+
+    Quote data uses the same v8/chart endpoint as OHLCV but with 1d range.
+    The response envelope is ``chart.result[0].meta`` which contains:
+    regularMarketPrice, currency, symbol, etc.
     """
 
     def build_url(
@@ -75,8 +79,9 @@ class YahooUrlBuilder:
             return f"{base_url}/v8/finance/chart/{symbol}?{urlencode(params)}"
 
         if data_type == "quote":
-            symbols = ",".join(tickers)
-            return f"{base_url}/v6/finance/quote?symbols={symbols}"
+            # v6/finance/quote was deprecated (~2024, returns 404).
+            # Use v8/finance/chart with 1d range — meta block has all quote fields.
+            return f"{base_url}/v8/finance/chart/{symbol}?range=1d&interval=1d"
 
         if data_type == "news":
             params_news = {"q": symbol, "newsCount": "10", "quotesCount": "0"}

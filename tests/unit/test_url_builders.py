@@ -49,7 +49,7 @@ class TestYahooUrlBuilder:
         assert "period2=2024-01-31" in url
 
     def test_yahoo_quote_url_single_ticker(self) -> None:
-        """Yahoo quote URL uses /v6/finance/quote?symbols= with single ticker."""
+        """Yahoo quote URL uses /v8/finance/chart/{symbol} (v6 is dead)."""
         from zorivest_infra.market_data.url_builders import YahooUrlBuilder
 
         builder = YahooUrlBuilder()
@@ -59,10 +59,13 @@ class TestYahooUrlBuilder:
             tickers=["MSFT"],
             criteria={},
         )
-        assert url == "https://query1.finance.yahoo.com/v6/finance/quote?symbols=MSFT"
+        assert (
+            url
+            == "https://query1.finance.yahoo.com/v8/finance/chart/MSFT?range=1d&interval=1d"
+        )
 
-    def test_yahoo_quote_url_multi_ticker(self) -> None:
-        """Yahoo quote URL comma-joins multiple tickers per build-plan spec."""
+    def test_yahoo_quote_url_multi_ticker_uses_first(self) -> None:
+        """Yahoo v8/chart only accepts one symbol — builder takes tickers[0]."""
         from zorivest_infra.market_data.url_builders import YahooUrlBuilder
 
         builder = YahooUrlBuilder()
@@ -73,7 +76,8 @@ class TestYahooUrlBuilder:
             criteria={},
         )
         assert (
-            url == "https://query1.finance.yahoo.com/v6/finance/quote?symbols=AAPL,MSFT"
+            url
+            == "https://query1.finance.yahoo.com/v8/finance/chart/AAPL?range=1d&interval=1d"
         )
 
     def test_yahoo_news_url(self) -> None:

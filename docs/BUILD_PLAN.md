@@ -35,6 +35,12 @@ Domain → Infrastructure → Services → REST API → MCP Server → GUI → D
 | 7 | [Distribution](build-plan/07-distribution.md) | `07-distribution.md` | All | Electron Builder, PyPI, npm |
 | 8 | [Market Data](build-plan/08-market-data.md) | `08-market-data.md` | Phases 2–4 | 14 market data providers (12 API-key + 2 free via MEU-65), API key encryption, MCP tools |
 | 9 | [Scheduling & Pipelines](build-plan/09-scheduling.md) | `09-scheduling.md` | Phases 2–5, 8 | Policy engine, pipeline runner, APScheduler |
+| 9a | [Persistence Integration](build-plan/09a-persistence-integration.md) | `09a-persistence-integration.md` | Phase 9 | SQLAlchemy wiring, real repos |
+| 9b | [Pipeline Runtime Hardening](build-plan/09b-pipeline-hardening.md) | `09b-pipeline-hardening.md` | Phase 9a | Charmap, zombie, URL builder, cancellation fixes |
+| 9c | [Pipeline Security Hardening](build-plan/09c-pipeline-security-hardening.md) | `09c-pipeline-security-hardening.md` | Phase 9b | StepContext safety, SQL sandbox, send/fetch guards |
+| 9d | [Pipeline Step Extensions](build-plan/09d-pipeline-step-extensions.md) | `09d-pipeline-step-extensions.md` | Phase 9c | QueryStep, ComposeStep, variables, assertions |
+| 9e | [Template Database](build-plan/09e-template-database.md) | `09e-template-database.md` | Phase 9 | EmailTemplateModel, HardenedSandbox, nh3 |
+| 9f | [Policy Emulator](build-plan/09f-policy-emulator.md) | `09f-policy-emulator.md` | Phases 9c–9e | 4-phase dry-run, output containment |
 | 10 | [Service Daemon](build-plan/10-service-daemon.md) | `10-service-daemon.md` | Phases 4, 7, 9 | Cross-platform OS service, ServiceManager |
 | 11 | [Monetization](build-plan/11-monetization.md) | `11-monetization.md` | Phases 2, 4, 8 | Subscription, OAuth, BYOK, usage metering |
 
@@ -67,7 +73,7 @@ Domain → Infrastructure → Services → REST API → MCP Server → GUI → D
 | 6 — GUI | 🟡 In Progress (P0 complete, P2 items remain) | 2026-03-25 |
 | 7 — Distribution | ⚪ Not Started | — |
 | 8 — Market Data | ✅ Completed | 2026-03-23 |
-| 9 — Scheduling | ✅ Completed (P2.5a integration done) | 2026-03-24 |
+| 9 — Scheduling | 🟡 Core complete; P2.5c security hardening planned (10 MEUs) | 2026-04-23 |
 | 10 — Service Daemon | ⚪ Not Started | — |
 | 11 — Monetization | ⚪ Not Started | — |
 
@@ -339,6 +345,31 @@ Domain → Infrastructure → Services → REST API → MCP Server → GUI → D
 
 ---
 
+### P2.5c — Pipeline Security Hardening
+
+> Source: [09c-pipeline-security-hardening.md](build-plan/09c-pipeline-security-hardening.md), [09d-pipeline-step-extensions.md](build-plan/09d-pipeline-step-extensions.md), [09e-template-database.md](build-plan/09e-template-database.md), [09f-policy-emulator.md](build-plan/09f-policy-emulator.md)
+>
+> Prerequisite: P2.5b wiring complete (MEU-PW1→PW13 ✅)
+> Unblocks: Full agent-first policy authoring, GUI scheduling templates, Service Daemon scheduling integration
+> Resolves: [PIPE-MUTCTX], [PIPE-NOSANDBOX], [PIPE-NOQUERYSTEP], [PIPE-NOCOMPOSE], [PIPE-NOTEMPLATEDB], [PIPE-NOVARS], [PIPE-NOASSERT], [PIPE-NOEMULATOR], [PIPE-NOEMUMCP]
+>
+> Research source: [retail-trader-policy-use-cases.md](../_inspiration/policy_pipeline_wiring-research/retail-trader-policy-use-cases.md) (validated by 3-model adversarial review)
+
+| MEU | Slug | Matrix Item | Build Plan Ref | Description | Status |
+|-----|------|:-----------:|----------------|-------------|:------:|
+| MEU-PH1 | `stepcontext-safety` | 49.16 | [09c §9C.1](build-plan/09c-pipeline-security-hardening.md) | StepContext `safe_deepcopy` + `Secret` carrier class + depth/byte guards | ⬜ |
+| MEU-PH2 | `sql-sandbox` | 49.17 | [09c §9C.2](build-plan/09c-pipeline-security-hardening.md) | SQL sandbox: `set_authorizer` + `mode=ro` + AST allowlist + `progress_handler` + secrets scan + policy content IDs | ⬜ |
+| MEU-PH3 | `send-fetch-guards` | 49.18 | [09c §9C.3–9C.4](build-plan/09c-pipeline-security-hardening.md) | SendStep confirmation gate + FetchStep MIME/fan-out validation | ⬜ |
+| MEU-PH4 | `query-step` | 49.19 | [09d §9D.1](build-plan/09d-pipeline-step-extensions.md) | QueryStep implementation (read-only SQL via sandbox) | ⬜ |
+| MEU-PH5 | `compose-step` | 49.20 | [09d §9D.2](build-plan/09d-pipeline-step-extensions.md) | ComposeStep implementation (multi-source data merging) | ⬜ |
+| MEU-PH6 | `template-database` | 49.21 | [09e §all](build-plan/09e-template-database.md) | EmailTemplateModel + HardenedSandbox + nh3 sanitization + template CRUD | ⬜ |
+| MEU-PH7 | `policy-vars-assertions` | 49.22 | [09d §9D.3–9D.5](build-plan/09d-pipeline-step-extensions.md) | PolicyDocument `variables` + assertion gates + step-count cap | ⬜ |
+| MEU-PH8 | `policy-emulator` | 49.23 | [09f §all](build-plan/09f-policy-emulator.md) | 4-phase emulator + output containment + session budget + error schema | ⬜ |
+| MEU-PH9 | `emulator-mcp-tools` | 49.24 | [05g §new](build-plan/05g-mcp-scheduling.md) | 11 new MCP tools: emulator, schema discovery, template CRUD, provider discovery | ⬜ |
+| MEU-PH10 | `default-template` | 49.25 | [09e §9E.6](build-plan/09e-template-database.md) | Pre-loaded Morning Check-In template | ⬜ |
+
+---
+
 ### P2.5 (addition) — WebSocket Infrastructure
 
 > Source: [04-rest-api.md](build-plan/04-rest-api.md) §WebSocket
@@ -581,13 +612,14 @@ Domain → Infrastructure → Services → REST API → MCP Server → GUI → D
 | P2.5 — Phase 9 + WebSocket | MEU-77 → MEU-90, MEU-174 | 15 | 14 |
 | P2.5a — Integration | MEU-90a → MEU-90d | 4 | 3 + 1 🚫 |
 | P2.5b — Wiring & Quality + Hardening | MEU-PW1 → MEU-PW13, MEU-72a, MEU-TD1 | 14 | 10 + 1 🟡 |
+| P2.5c — Security Hardening | MEU-PH1 → MEU-PH10 | 10 | 0 |
 | P2.6 — Phase 10 | MEU-91 → MEU-95b | 7 | 0 |
 | P2.75 — Expansion | MEU-96 → MEU-122 | 27 | 2 |
 | P3 — Tax | MEU-123 → MEU-156 | 34 | 0 |
 | Phase 7 | MEU-157 | 1 | 0 |
 | P4 — Phase 11 | MEU-175 → MEU-181 | 7 | 0 |
 | Research | MEU-158 → MEU-170, MEU-173, MEU-TS1 → MEU-TS3 | 17 | 1 |
-| **Total** | | **209** | **107 + 1 🟡 + 1 🚫** |
+| **Total** | | **219** | **107 + 1 🟡 + 1 🚫** |
 
 ---
 

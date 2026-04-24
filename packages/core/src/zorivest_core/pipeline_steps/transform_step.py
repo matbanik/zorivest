@@ -219,8 +219,11 @@ class TransformStep(RegisteredStep):
             )
 
         # 7. Write to target table via hook method
+        #    Drop _extra before write — it's a passthrough bag for unmapped
+        #    provider fields, not a DB column.
+        write_df = valid_df.drop(columns=["_extra"], errors="ignore")
         records_written = self._write_data(
-            valid_df,
+            write_df,
             p.target_table,
             p.write_disposition,
             context,

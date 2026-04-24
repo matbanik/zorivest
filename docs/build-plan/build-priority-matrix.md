@@ -1,6 +1,6 @@
 # Build Priority Matrix
 
-> Part of [Zorivest Build Plan](../BUILD_PLAN.md) — The build order across all priority levels (202 items).
+> Part of [Zorivest Build Plan](../BUILD_PLAN.md) — The build order across all priority levels (212 items).
 
 ---
 
@@ -129,6 +129,25 @@
 | **49.5** | Fetch step integration (MEU-PW2) | ✅ Yes | Create `MarketDataProviderAdapter` (new service); implement `_check_cache()` with FRESHNESS_TTL; integrate `PipelineRateLimiter`; connect `fetch_with_cache()` HTTP revalidation. Makes 5/5 step types operational. Depends on PW1. |
 | **49.6** | Market data schemas (MEU-PW3) | ✅ Yes | 4 SQLAlchemy models (`market_ohlcv/quotes/news/fundamentals`); 3 Pandera schemas; field mappings for non-OHLCV types. Data quality hardening — independent of PW1/PW2. |
 | **49.7** | WebSocket infrastructure (MEU-174) | ✅ Yes | FastAPI `ConnectionManager` + `/ws` endpoint; Electron `WebSocketBridge` (main → renderer relay); event routing (`pnl.tick`, `trade.update`, `notification`). Foundation for real-time dashboard updates and tray icon badge count. |
+
+---
+
+## P2.5c — Pipeline Security Hardening
+
+> **Source**: [retail-trader-policy-use-cases.md](../../_inspiration/policy_pipeline_wiring-research/retail-trader-policy-use-cases.md) (validated by 3-model adversarial review — Claude, Gemini, ChatGPT). See [09c](09c-pipeline-security-hardening.md), [09d](09d-pipeline-step-extensions.md), [09e](09e-template-database.md), [09f](09f-policy-emulator.md) for full specs.
+
+| Order | What | Tests First? | Notes |
+|-------|------|-------------|-------|
+| **49.16** | StepContext `safe_deepcopy` + `Secret` carrier (MEU-PH1) | ✅ Yes | Guarded deep-copy on `get_output()`/`put()`, credential leakage prevention (6 tests). [09c §9C.1](09c-pipeline-security-hardening.md) |
+| **49.17** | SQL sandbox: `set_authorizer` + `mode=ro` + AST allowlist (MEU-PH2) | ✅ Yes | 6-layer security stack, sqlglot allowlist, secrets scan, policy content IDs (14 tests). [09c §9C.2](09c-pipeline-security-hardening.md) |
+| **49.18** | SendStep confirmation gate + FetchStep MIME/fan-out (MEU-PH3) | ✅ Yes | `requires_confirmation` field, MIME validation, body size cap, fan-out cap (6 tests). [09c §9C.3–9C.4](09c-pipeline-security-hardening.md) |
+| **49.19** | QueryStep implementation (MEU-PH4) | ✅ Yes | Read-only SQL via sandbox, parameterized binds, row limit, ref support (8 tests). [09d §9D.1](09d-pipeline-step-extensions.md) |
+| **49.20** | ComposeStep implementation (MEU-PH5) | ✅ Yes | Multi-source data merging, `dict_merge`/`array_concat` strategies (5 tests). [09d §9D.2](09d-pipeline-step-extensions.md) |
+| **49.21** | EmailTemplateModel + HardenedSandbox + nh3 (MEU-PH6) | ✅ Yes | DB-backed templates, `ImmutableSandboxedEnvironment`, filter allowlist, attribute deny-list, markdown sanitization (17 tests). [09e](09e-template-database.md) |
+| **49.22** | PolicyDocument `variables` + assertion gates + step-count cap (MEU-PH7) | ✅ Yes | Variable injection, `kind: assertion` discriminator, 20-step Pydantic cap (8 tests). [09d §9D.3–9D.5](09d-pipeline-step-extensions.md) |
+| **49.23** | 4-phase policy emulator + output containment (MEU-PH8) | ✅ Yes | PARSE→VALIDATE→SIMULATE→RENDER, 64 KiB session budget, SHA-256 RENDER, `EmulatorError`/`EmulatorResult` Pydantic models (15 tests). [09f](09f-policy-emulator.md) |
+| **49.24** | 11 new MCP tools: emulator, schema discovery, template CRUD (MEU-PH9) | ✅ Yes | TypeScript via `registerPipelineSecurityTools`, Vitest mocks. [05g](05g-mcp-scheduling.md) |
+| **49.25** | Default Morning Check-In template (MEU-PH10) | ✅ Yes | Pre-seeded Alembic migration, multi-section template. [09e §9E.6](09e-template-database.md) |
 
 ---
 

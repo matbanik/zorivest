@@ -663,6 +663,8 @@ class MarketQuoteModel(Base):
     ask = Column(Numeric(15, 6), nullable=True)
     last = Column(Numeric(15, 6), nullable=False)
     volume = Column(Integer, nullable=True)
+    change = Column(Numeric(15, 6), nullable=True)
+    change_pct = Column(Float, nullable=True)
     timestamp = Column(DateTime, nullable=False)
     provider = Column(String(32), nullable=False)
 

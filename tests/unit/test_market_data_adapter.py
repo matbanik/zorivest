@@ -390,14 +390,21 @@ async def test_AC7_adapter_resolves_tickers_from_criteria():
         criteria={"tickers": ["AAPL", "MSFT"]},
     )
 
-    # Verify the exact URL matches the build-plan spec:
-    # Yahoo quote: {base_url}/v6/finance/quote?symbols=AAPL,MSFT
+    # Verify the URL uses v8/finance/chart (v6/finance/quote is dead — 404)
+    # v8/chart accepts one symbol at a time; multi-ticker path calls per ticker
     # base_url from registry: https://query1.finance.yahoo.com
-    call_args = mock_client.get.call_args
-    url_used = call_args[0][0]
-    assert url_used == (
-        "https://query1.finance.yahoo.com/v6/finance/quote?symbols=AAPL,MSFT"
-    ), f"Yahoo quote URL mismatch: {url_used}"
+    assert mock_client.get.call_count == 2, (
+        f"Expected 2 calls (multi-ticker), got {mock_client.get.call_count}"
+    )
+    urls_called = [call[0][0] for call in mock_client.get.call_args_list]
+    assert (
+        "https://query1.finance.yahoo.com/v8/finance/chart/AAPL?range=1d&interval=1d"
+        in urls_called
+    ), f"AAPL URL not found in: {urls_called}"
+    assert (
+        "https://query1.finance.yahoo.com/v8/finance/chart/MSFT?range=1d&interval=1d"
+        in urls_called
+    ), f"MSFT URL not found in: {urls_called}"
 
 
 # ---------------------------------------------------------------------------
@@ -462,3 +469,232 @@ async def test_AC8_adapter_forwards_provider_headers():
         headers = call_kwargs["extra_headers"]
         assert isinstance(headers, dict)
         assert "X-Finnhub-Token" in headers
+
+
+# ---------------------------------------------------------------------------
+# Multi-ticker fetch — offline regression tests
+# ---------------------------------------------------------------------------
+
+
+def _make_adapter_with_mock_client(
+    responses: list[MagicMock],
+) -> tuple:
+    """Helper: build an adapter with a mock httpx client that returns canned responses.
+
+    Returns (adapter, mock_client, mock_rate_limiter).
+    """
+    from zorivest_infra.market_data.market_data_adapter import (
+        MarketDataProviderAdapter,
+    )
+
+    mock_client = AsyncMock()
+    # Queue responses for successive .get() calls
+    mock_client.get = AsyncMock(side_effect=responses)
+
+    mock_rate_limiter = AsyncMock()
+
+    async def _passthrough(provider, func, *a, **kw):
+        return await func(*a, **kw)
+
+    mock_rate_limiter.execute_with_limits = AsyncMock(side_effect=_passthrough)
+
+    adapter = MarketDataProviderAdapter(
+        http_client=mock_client,
+        rate_limiter=mock_rate_limiter,
+    )
+    return adapter, mock_client, mock_rate_limiter
+
+
+def _make_yahoo_quote_response(ticker: str, price: float) -> MagicMock:
+    """Build a mock httpx.Response for a single Yahoo v8/chart quote."""
+    import json
+
+    payload = {
+        "chart": {
+            "result": [
+                {
+                    "meta": {
+                        "symbol": ticker,
+                        "regularMarketPrice": price,
+                        "regularMarketVolume": 10_000_000,
+                        "regularMarketChange": 1.5,
+                        "regularMarketChangePercent": 0.55,
+                    }
+                }
+            ]
+        }
+    }
+    resp = MagicMock()
+    resp.status_code = 200
+    resp.content = json.dumps(payload).encode("utf-8")
+    resp.headers = {}
+    return resp
+
+
+@pytest.mark.asyncio
+async def test_multi_ticker_merges_all_results():
+    """Multi-ticker fetch iterates N tickers and merges N result sets into one JSON array.
+
+    This is the offline regression test for the contract previously only verified
+    against the live Yahoo API.
+    """
+    import json
+
+    responses = [
+        _make_yahoo_quote_response("AAPL", 198.50),
+        _make_yahoo_quote_response("MSFT", 420.00),
+        _make_yahoo_quote_response("GOOGL", 175.25),
+    ]
+    adapter, mock_client, _ = _make_adapter_with_mock_client(responses)
+
+    result = await adapter.fetch(
+        provider="Yahoo Finance",
+        data_type="quote",
+        criteria={"tickers": ["AAPL", "MSFT", "GOOGL"]},
+    )
+
+    # Must return a valid FetchAdapterResult
+    assert isinstance(result, dict)
+    assert "content" in result
+    assert result["cache_status"] == "miss"  # Multi-ticker bypasses cache
+
+    # Content must be a JSON array of 3 merged records
+    records = json.loads(result["content"])
+    assert isinstance(records, list)
+    assert len(records) == 3
+
+    # Verify all tickers are present in the merged output
+    symbols = {r.get("symbol") or r.get("ticker") for r in records}
+    assert "AAPL" in symbols
+    assert "MSFT" in symbols
+    assert "GOOGL" in symbols
+
+    # Verify the HTTP client was called 3 times (one per ticker)
+    assert mock_client.get.call_count == 3
+
+
+@pytest.mark.asyncio
+async def test_multi_ticker_handles_per_ticker_error():
+    """When one ticker fails, the other tickers still produce results.
+
+    The failing ticker is silently skipped via the per-ticker error handler
+    in _fetch_multi_ticker.
+    """
+    import json
+
+    good_response = _make_yahoo_quote_response("AAPL", 198.50)
+    bad_response = MagicMock()
+    bad_response.status_code = 500
+    bad_response.content = b"Internal Server Error"
+    bad_response.headers = {}
+    # Simulate a server error that causes fetch_with_cache to raise
+    bad_response.raise_for_status = MagicMock(side_effect=Exception("500 Server Error"))
+
+    # The passthrough will call _do_fetch which calls fetch_with_cache
+    # For the bad response, we need the mock client to raise on .get()
+    good_response_2 = _make_yahoo_quote_response("GOOGL", 175.25)
+
+    from zorivest_infra.market_data.market_data_adapter import (
+        MarketDataProviderAdapter,
+    )
+
+    mock_client = AsyncMock()
+    call_count = 0
+
+    async def _sequential_get(*args, **kwargs):
+        nonlocal call_count
+        call_count += 1
+        if call_count == 2:
+            raise Exception("500 Server Error for MSFT")
+        if call_count == 1:
+            return good_response
+        return good_response_2
+
+    mock_client.get = AsyncMock(side_effect=_sequential_get)
+
+    mock_rate_limiter = AsyncMock()
+
+    async def _passthrough(provider, func, *a, **kw):
+        return await func(*a, **kw)
+
+    mock_rate_limiter.execute_with_limits = AsyncMock(side_effect=_passthrough)
+
+    adapter = MarketDataProviderAdapter(
+        http_client=mock_client,
+        rate_limiter=mock_rate_limiter,
+    )
+
+    result = await adapter.fetch(
+        provider="Yahoo Finance",
+        data_type="quote",
+        criteria={"tickers": ["AAPL", "MSFT", "GOOGL"]},
+    )
+
+    # Should still return a result even though MSFT failed
+    records = json.loads(result["content"])
+    assert isinstance(records, list)
+    # MSFT failed → only AAPL and GOOGL should be in the merged result
+    assert len(records) == 2
+    symbols = {r.get("symbol") or r.get("ticker") for r in records}
+    assert "AAPL" in symbols
+    assert "GOOGL" in symbols
+    assert "MSFT" not in symbols
+
+
+@pytest.mark.asyncio
+async def test_single_ticker_does_not_use_multi_ticker_path():
+    """Single-ticker requests use the standard single-request path, not _fetch_multi_ticker.
+
+    Regression: verify we didn't break the single-ticker path when adding multi-ticker.
+    """
+    response = _make_yahoo_quote_response("AAPL", 198.50)
+    adapter, mock_client, _ = _make_adapter_with_mock_client([response])
+
+    result = await adapter.fetch(
+        provider="Yahoo Finance",
+        data_type="quote",
+        criteria={"tickers": ["AAPL"]},
+    )
+
+    # Single ticker returns raw content (not re-serialized JSON array)
+    assert isinstance(result, dict)
+    assert isinstance(result["content"], bytes)
+    # Only one HTTP call for single ticker
+    assert mock_client.get.call_count == 1
+
+
+@pytest.mark.asyncio
+async def test_multi_ticker_empty_list_falls_through():
+    """Empty tickers list uses the standard path (len(tickers) is not > 1)."""
+    from zorivest_infra.market_data.market_data_adapter import (
+        MarketDataProviderAdapter,
+    )
+
+    mock_client = AsyncMock()
+    mock_response = MagicMock()
+    mock_response.status_code = 200
+    mock_response.content = b'{"chart": {"result": [{"meta": {}}]}}'
+    mock_response.headers = {}
+    mock_client.get.return_value = mock_response
+
+    mock_rate_limiter = AsyncMock()
+
+    async def _passthrough(provider, func, *a, **kw):
+        return await func(*a, **kw)
+
+    mock_rate_limiter.execute_with_limits = AsyncMock(side_effect=_passthrough)
+
+    adapter = MarketDataProviderAdapter(
+        http_client=mock_client,
+        rate_limiter=mock_rate_limiter,
+    )
+
+    result = await adapter.fetch(
+        provider="Yahoo Finance",
+        data_type="quote",
+        criteria={"tickers": []},
+    )
+
+    # Should work via standard path (empty tickers → len 0, not > 1)
+    assert isinstance(result, dict)
+    assert mock_client.get.call_count == 1

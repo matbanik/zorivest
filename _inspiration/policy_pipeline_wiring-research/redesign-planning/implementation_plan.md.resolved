@@ -1,0 +1,254 @@
+# Pipeline Security Hardening — Build Plan & MEU Integration
+
+## Goal
+
+Map the 11 hardening gaps (A, B, B+, C, D, E, F, G, H, I + default template) from [retail-trader-policy-use-cases.md](file:///p:/zorivest/_inspiration/policy_pipeline_wiring-research/retail-trader-policy-use-cases.md) into the formal Zorivest build system: new build plan documents in `docs/build-plan/`, new MEUs in `BUILD_PLAN.md`, and updates to the `meu-registry.md`.
+
+---
+
+## Current State Assessment
+
+### Existing Build Documents (Phase 9 family)
+
+| Document | Scope | Status |
+|----------|-------|--------|
+| [09-scheduling.md](file:///p:/zorivest/docs/build-plan/09-scheduling.md) | Core pipeline engine (MEU-77→90) | ✅ Complete |
+| [09a-persistence-integration.md](file:///p:/zorivest/docs/build-plan/09a-persistence-integration.md) | Wiring (MEU-90a→90d) | ✅ Complete |
+| [09b-pipeline-hardening.md](file:///p:/zorivest/docs/build-plan/09b-pipeline-hardening.md) | Runtime bugs (MEU-PW4→PW8) | ✅ Complete |
+| [05g-mcp-scheduling.md](file:///p:/zorivest/docs/build-plan/05g-mcp-scheduling.md) | 6 existing MCP scheduling tools | ✅ Complete |
+| [06e-gui-scheduling.md](file:///p:/zorivest/docs/build-plan/06e-gui-scheduling.md) | Scheduling GUI page | ⏳ In Progress |
+
+### Existing MEU Range
+
+- P2.5 (Phase 9): MEU-77 → MEU-90 (14 MEUs, all ✅)
+- P2.5a (Integration): MEU-90a → MEU-90d (4 MEUs, 3 ✅ + 1 🚫)
+- P2.5b (Wiring & Quality): MEU-PW1 → MEU-PW13 (14 MEUs, 10 ✅ + 1 🟡)
+- **Next available MEU range:** MEU-PW14+
+
+### What Doesn't Exist Yet (Gaps)
+
+| Gap | Needs New Build Doc? | Needs New MEU? | Currently Specified Anywhere? |
+|-----|:-------------------:|:--------------:|------------------------------|
+| A — StepContext Freeze | No (modify 09-scheduling.md §policy) | **Yes** → MEU-PH1 (new, not reopening MEU-78) | ❌ Not in build-plan |
+| B — SQL Sandbox | **Yes** | **Yes** | ❌ Not in build-plan |
+| B+ — Send/Fetch Guards | **Yes** (same doc as B) | **Yes** | ❌ Not in build-plan |
+| C — QueryStep | **Yes** | **Yes** | ❌ Not in build-plan |
+| D — ComposeStep | **Yes** (same doc as C) | **Yes** | ❌ Not in build-plan |
+| E — Template DB | **Yes** | **Yes** | ❌ Not in build-plan |
+| F — Variables | No (modify 09-scheduling.md §policy) | **Yes** → MEU-PH7 (new, not reopening MEU-78/84) | ❌ Not in build-plan |
+| G — Assertions | No (modify 09-scheduling.md §transform) | **Yes** → MEU-PH7 (new, not reopening MEU-86) | ❌ Not in build-plan |
+| H — Emulator | **Yes** | **Yes** | ❌ Not in build-plan |
+| I — MCP Tools + Resources | **Yes** (extend 05g) | **Yes** | Partially (05g has 6 tools; needs 11 more + 4 resources) |
+| Default Template | No (small task) | **Yes** | ❌ Not in build-plan |
+
+---
+
+## Resolved Decisions
+
+> [!NOTE]
+> **Priority tier: P2.5c — Pipeline Security Hardening.** Positioned between P2.5b (completed wiring) and P2.6 (Service Daemon). Security hardening runs immediately after pipeline wiring is done. **Decision: adopted.**
+
+> [!NOTE]
+> **MEU numbering: MEU-PH{N} prefix.** Continues the `MEU-PW{N}` convention from P2.5b. Range: `MEU-PH1` through `MEU-PH10`. **Decision: adopted.**
+
+> [!NOTE]
+> **Gap G: New MEU (MEU-PH7).** Assertion gates get a new MEU rather than reopening MEU-86 (`transform-step`, ✅ approved). MEU-PH7 touches the same `transform_step.py` file but tracks as independent work. **Decision: new MEU.**
+
+---
+
+## Proposed Changes
+
+### New Build Plan Documents
+
+#### [NEW] [09c-pipeline-security-hardening.md](file:///p:/zorivest/docs/build-plan/09c-pipeline-security-hardening.md)
+
+**Scope:** Gaps A, B, B+ (safety foundations)
+
+Contains:
+- §9C.1 — StepContext deep-copy boundary + `Secret` carrier class (`safe_copy.py`)
+- §9C.2 — SQL sandbox module (`sql_sandbox.py`): `set_authorizer`, `mode=ro`, `PRAGMA query_only=ON`, `trusted_schema=OFF`, `progress_handler`, sqlglot AST allowlist
+- §9C.3 — SendStep confirmation gate (`requires_confirmation` field)
+- §9C.4 — FetchStep content-type validation + fan-out cap
+- §9C.5 — Secrets scanning (regex guard on policy save/emulation)
+- §9C.6 — Content-addressable policy IDs (`sha256(canonical_json)`)
+
+**Dependencies:** None (foundational layer)
+
+---
+
+#### [NEW] [09d-pipeline-step-extensions.md](file:///p:/zorivest/docs/build-plan/09d-pipeline-step-extensions.md)
+
+**Scope:** Gaps C, D, F, G (new step types + language extensions + schema v2 migration)
+
+Contains:
+- §9D.1 — QueryStep (`query_step.py`): read-only SQL via sandbox, parameterized binds, row limit, fan-out cap, ref support
+- §9D.2 — ComposeStep (`compose_step.py`): multi-source data merging, merge strategies, section assembly
+- §9D.3 — Variable injection: `PolicyDocument.variables` dict + `RefResolver` `{var: ...}` pattern
+- §9D.4 — Assertion gates: `TransformStep` `kind=assertion` discriminator, `ConditionEvaluator` arithmetic extensions
+- §9D.5 — Step-count cap (20 steps max via Pydantic validator)
+- §9D.6 — Schema version v1→v2 migration: dual-schema `model_validator`, v1/v2 gating, backward-compatible opt-in
+
+**Dependencies:** §9C.2 (SQL sandbox) must exist before QueryStep
+
+---
+
+#### [NEW] [09e-template-database.md](file:///p:/zorivest/docs/build-plan/09e-template-database.md)
+
+**Scope:** Gap E (template database entity + hardened rendering)
+
+Contains:
+- §9E.0 — Boundary input contract: write surfaces, schema owners (`EmailTemplateCreateRequest`/`EmailTemplateUpdateRequest`), `extra="forbid"`, error mapping, create/update parity
+- §9E.1 — `EmailTemplateModel` SQLAlchemy model (11 columns)
+- §9E.2 — `EmailTemplateRepository` (CRUD + name-lookup)
+- §9E.3 — `HardenedSandbox` (`ImmutableSandboxedEnvironment` + filter allowlist + attribute deny-list)
+- §9E.4 — `safe_markdown.py` (`nh3` + `markdown-it-py` render chain)
+- §9E.5 — Updated `SendStep._resolve_body()` resolution chain (5 tiers)
+- §9E.6 — Template size caps (64 KiB source, 256 KiB output)
+- §9E.7 — Alembic migration for `email_templates` table
+
+**Dependencies:** None (independent of SQL sandbox)
+
+---
+
+#### [NEW] [09f-policy-emulator.md](file:///p:/zorivest/docs/build-plan/09f-policy-emulator.md)
+
+**Scope:** Gap H (policy emulator with security controls)
+
+Contains:
+- §9F.1 — `PolicyEmulator` class: 4-phase dry-run (PARSE → VALIDATE → SIMULATE → RENDER)
+- §9F.2 — Output containment controls (4 KiB per-call cap, cumulative 64 KiB session budget)
+- §9F.3 — SHA-256 hashed RENDER output (agent gets hash, not raw content)
+- §9F.4 — `EmulatorError` + `EmulatorResult` Pydantic models (structured error schema)
+- §9F.5 — Anonymized snapshot DB for SIMULATE phase
+- §9F.6 — `source_type` output metadata field (`db | provider | computed`)
+
+**Dependencies:** All of 09c, 09d, 09e (emulator validates all step types + templates)
+
+---
+
+#### [MODIFY] [05g-mcp-scheduling.md](file:///p:/zorivest/docs/build-plan/05g-mcp-scheduling.md)
+
+**Scope:** Gap I (11 new MCP tools + 4 new MCP resources + boundary-input contract)
+
+**New tools:**
+- `emulate_policy` — core emulator endpoint with output containment
+- `list_step_types` — registered step type discovery
+- `list_db_tables` — schema discovery for QueryStep SQL authoring
+- `get_db_row_samples` — sample rows for template `sample_data_json`
+- `validate_sql` — pre-flight SQL validation against AST allowlist
+- `list_provider_capabilities` — provider discovery with `docs_url`
+- `create_email_template` — template CRUD
+- `get_email_template` — template read
+- `list_email_templates` — template listing
+- `update_email_template` — template update
+- `preview_email_template` — template rendering via `HardenedSandbox`
+
+**New resources:**
+- `pipeline://templates` — available DB templates with names and required variables
+- `pipeline://db-schema` — queryable table/column schema for query step SQL authoring
+- `pipeline://emulator/mock-data` — sample mock data sets for each data_type
+- `pipeline://providers` — provider names, data types, auth methods, docs_url
+
+**Boundary-input contract:** Zod `.strict()` schemas for all write surfaces (`create_email_template`, `update_email_template`, `emulate_policy`, `validate_sql`). Invalid input → MCP `INVALID_PARAMS` error, not downstream 500. Create/update parity enforced via shared `HardenedSandbox` compile check. Cross-ref: [09e §9E.0](file:///p:/zorivest/docs/build-plan/09e-template-database.md) for Python-side contract.
+
+**Dependencies:** 09e (template DB), 09f (emulator), 09c (SQL sandbox)
+
+---
+
+### MEU Registry Updates
+
+#### [MODIFY] [BUILD_PLAN.md](file:///p:/zorivest/docs/BUILD_PLAN.md)
+
+Add new section **P2.5c — Pipeline Security Hardening** between P2.5b and P2.6:
+
+| MEU | Slug | Matrix Item | Build Plan Ref | Description | Status |
+|-----|------|:-----------:|----------------|-------------|:------:|
+| MEU-PH1 | `stepcontext-safety` | 49.16 | [09c §9C.1](build-plan/09c-pipeline-security-hardening.md) | StepContext `safe_deepcopy` + `Secret` carrier class + depth/byte guards | ⬜ |
+| MEU-PH2 | `sql-sandbox` | 49.17 | [09c §9C.2](build-plan/09c-pipeline-security-hardening.md) | SQL sandbox: `set_authorizer` + `mode=ro` + AST allowlist + `progress_handler` | ⬜ |
+| MEU-PH3 | `send-fetch-guards` | 49.18 | [09c §9C.3–9C.4](build-plan/09c-pipeline-security-hardening.md) | SendStep confirmation gate + FetchStep MIME/fan-out validation | ⬜ |
+| MEU-PH4 | `query-step` | 49.19 | [09d §9D.1](build-plan/09d-pipeline-step-extensions.md) | QueryStep implementation (read-only SQL via sandbox) | ⬜ |
+| MEU-PH5 | `compose-step` | 49.20 | [09d §9D.2](build-plan/09d-pipeline-step-extensions.md) | ComposeStep implementation (multi-source data merging) | ⬜ |
+| MEU-PH6 | `template-database` | 49.21 | [09e §all](build-plan/09e-template-database.md) | EmailTemplateModel + HardenedSandbox + nh3 sanitization + template CRUD | ⬜ |
+| MEU-PH7 | `policy-vars-assertions` | 49.22 | [09d §9D.3–9D.6](build-plan/09d-pipeline-step-extensions.md) | PolicyDocument `variables` + assertion gates + step-count cap + schema v2 migration | ⬜ |
+| MEU-PH8 | `policy-emulator` | 49.23 | [09f §all](build-plan/09f-policy-emulator.md) | 4-phase emulator + output containment + session budget + error schema | ⬜ |
+| MEU-PH9 | `emulator-mcp-tools` | 49.24 | [05g §new](build-plan/05g-mcp-scheduling.md) | 11 MCP tools + 4 MCP resources + boundary-input contract | ⬜ |
+| MEU-PH10 | `default-template` | 49.25 | [09e §default](build-plan/09e-template-database.md) | Pre-loaded Morning Check-In template | ⬜ |
+
+#### Also update:
+- MEU Summary table (add P2.5c row, increment total count)
+- [meu-registry.md](file:///p:/zorivest/.agent/context/meu-registry.md) (add P2.5c section)
+- [build-priority-matrix.md](file:///p:/zorivest/docs/build-plan/build-priority-matrix.md) (add matrix items 49.16–49.25)
+
+---
+
+### Dependency Graph (MEU Execution Order)
+
+```mermaid
+graph TD
+    PH1["MEU-PH1: stepcontext-safety<br/>(Gap A)"] --> PH8
+    PH2["MEU-PH2: sql-sandbox<br/>(Gap B)"] --> PH4
+    PH3["MEU-PH3: send-fetch-guards<br/>(Gap B+)"] --> PH8
+    PH4["MEU-PH4: query-step<br/>(Gap C)"] --> PH5
+    PH4 --> PH8
+    PH5["MEU-PH5: compose-step<br/>(Gap D)"] --> PH8
+    PH6["MEU-PH6: template-database<br/>(Gap E)"] --> PH8
+    PH6 --> PH9
+    PH7["MEU-PH7: policy-vars-assertions<br/>(Gaps F+G)"] --> PH8
+    PH8["MEU-PH8: policy-emulator<br/>(Gap H)"] --> PH9
+    PH9["MEU-PH9: emulator-mcp-tools<br/>(Gap I)"] --> PH10
+    PH10["MEU-PH10: default-template"]
+
+    style PH1 fill:#ff6b6b,stroke:#c92a2a,color:#fff
+    style PH2 fill:#ff6b6b,stroke:#c92a2a,color:#fff
+    style PH3 fill:#ff6b6b,stroke:#c92a2a,color:#fff
+    style PH4 fill:#ffa94d,stroke:#e8590c,color:#fff
+    style PH5 fill:#ffa94d,stroke:#e8590c,color:#fff
+    style PH6 fill:#69db7c,stroke:#2b8a3e,color:#fff
+    style PH7 fill:#69db7c,stroke:#2b8a3e,color:#fff
+    style PH8 fill:#4dabf7,stroke:#1971c2,color:#fff
+    style PH9 fill:#b197fc,stroke:#7048e8,color:#fff
+    style PH10 fill:#b197fc,stroke:#7048e8,color:#fff
+```
+
+**Parallelization opportunities:**
+- MEU-PH1 + PH2 + PH6 can run in parallel (no mutual deps)
+- MEU-PH3 depends on PH2 (uses sandbox connection patterns)
+- MEU-PH4 + PH5 + PH7 can run in parallel after PH2 completes
+- MEU-PH8 waits for all of PH1–PH7
+- MEU-PH9 waits for PH6 + PH8
+- MEU-PH10 is a trivial final task
+
+---
+
+### Modifications to Existing Build Docs (No New File Needed)
+
+| Document | Section | Change |
+|----------|---------|--------|
+| [09-scheduling.md](file:///p:/zorivest/docs/build-plan/09-scheduling.md) | §9.1c PolicyDocument | Add `variables: dict`, step-count cap, `schema_version: 2` note |
+| [09-scheduling.md](file:///p:/zorivest/docs/build-plan/09-scheduling.md) | §9.7 Transform | Add `kind: assertion` discriminator, link to 09d |
+| [09-scheduling.md](file:///p:/zorivest/docs/build-plan/09-scheduling.md) | Architecture diagram | Update to show new step types (query, compose) |
+| [dependency-manifest.md](file:///p:/zorivest/docs/build-plan/dependency-manifest.md) | Phase 9 section | Add `sqlglot`, `nh3`, `markdown-it-py` |
+
+---
+
+## Resolved Questions
+
+> [!NOTE]
+> **GUI Templates page timing.** The Templates GUI is deferred to MEU-72 (scheduling GUI). MCP CRUD tools (MEU-PH9) provide agent access without GUI. Template management via the Scheduling page is the intended entry point for human users. **Decision: deferred to MEU-72.**
+
+> [!NOTE]
+> **Existing MEU modifications vs. new MEUs.** Gap A (StepContext freeze) and Gap F (variables) touch files from MEU-78/84 (✅ approved). New standalone MEUs (MEU-PH1, MEU-PH7) were created instead of reopening completed work. The new MEUs touch the same files but track as independent scope. **Decision: new standalone MEUs (option a).**
+
+---
+
+## Verification Plan
+
+### Automated Tests
+- Each new build doc gets cross-reference validation via `python tools/validate_build_plan.py`
+- MEU registry consistency check (no duplicate slugs, no numbering gaps)
+- BUILD_PLAN.md summary count matches actual MEU count
+
+### Manual Verification
+- Confirm every gap from the use-case spec maps to exactly one MEU
+- Confirm every MEU links to a build-plan section with spec detail
+- Confirm dependency order matches the use-case spec's implementation priority

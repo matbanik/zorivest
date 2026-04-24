@@ -13,6 +13,22 @@ from __future__ import annotations
 from typing import Any
 
 
+class HttpFetchError(Exception):
+    """Raised when an HTTP fetch returns a non-2xx status code.
+
+    Prevents error HTML/JSON from being silently cached as valid data.
+    """
+
+    def __init__(self, status_code: int, url: str, body_preview: str = "") -> None:
+        self.status_code = status_code
+        self.url = url
+        self.body_preview = body_preview
+        super().__init__(
+            f"HTTP {status_code} from {url}"
+            + (f": {body_preview}" if body_preview else "")
+        )
+
+
 async def fetch_with_cache(
     *,
     client: Any,
@@ -35,6 +51,10 @@ async def fetch_with_cache(
 
     Returns:
         Dict with keys: content, cache_status, etag, last_modified
+
+    Raises:
+        HttpFetchError: If the server returns a non-2xx status code
+            (except 304 which is handled as cache revalidation).
     """
     headers: dict[str, str] = {}
     # Merge provider-specific headers first (auth tokens, User-Agent, etc.)
@@ -56,6 +76,12 @@ async def fetch_with_cache(
             "etag": cached_etag,
             "last_modified": cached_last_modified,
         }
+
+    # Validate HTTP status — reject non-2xx responses before caching
+    if response.status_code < 200 or response.status_code >= 300:
+        body_bytes = response.content if hasattr(response, "content") else b""
+        preview = body_bytes[:200].decode("utf-8", errors="replace")
+        raise HttpFetchError(response.status_code, url, preview)
 
     # New or updated content
     content = response.content if hasattr(response, "content") else response.read()

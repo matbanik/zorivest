@@ -48,8 +48,42 @@ def _register(provider: str, data_type: str):
 
 @_register("yahoo", "quote")
 def _yahoo_quote(data: Any) -> list[dict]:
-    """Yahoo Finance quote response: {"quoteResponse": {"result": [...]}}."""
+    """Yahoo Finance quote via v8/chart: {"chart": {"result": [{"meta": {...}}]}}.
+
+    The v6/finance/quote endpoint was deprecated (~2024, returns 404).
+    Quote data now comes from v8/finance/chart — the meta block of the
+    first result contains all quote fields (regularMarketPrice, symbol, etc.).
+
+    Also supports:
+    - Legacy v6 envelope for backward compatibility with cached data.
+    - Top-level list of dicts (pre-extracted by multi-ticker fetch loop).
+    """
+    # Multi-ticker path: adapter already extracted and merged records
+    if isinstance(data, list):
+        return data
+
     if isinstance(data, dict):
+        # v8/chart envelope: chart.result[0].meta
+        chart = data.get("chart", {})
+        if isinstance(chart, dict):
+            result = chart.get("result", [])
+            if isinstance(result, list) and result:
+                meta = result[0].get("meta", {})
+                if isinstance(meta, dict) and meta:
+                    # v8/chart meta lacks regularMarketChange/Percent
+                    # — compute from chartPreviousClose + regularMarketPrice
+                    price = meta.get("regularMarketPrice")
+                    prev = meta.get("chartPreviousClose")
+                    if price is not None and prev is not None and prev != 0:
+                        change = price - prev
+                        change_pct = (change / prev) * 100
+                        meta.setdefault("regularMarketChange", round(change, 4))
+                        meta.setdefault(
+                            "regularMarketChangePercent", round(change_pct, 4)
+                        )
+                    return [meta]
+
+        # Legacy v6 envelope: quoteResponse.result (cached data compatibility)
         quote_response = data.get("quoteResponse", {})
         if isinstance(quote_response, dict):
             result = quote_response.get("result", [])

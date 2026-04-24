@@ -298,3 +298,22 @@ P2.75 (broker adapters): MEU-96 → MEU-99
 | MEU-TS3 | `pyright-entity-factories` | TS.C | Pyright Tier 3: resolve ~121 entity factory `Column[T]`→`T` typing errors + 2 core service errors | ✅ 2026-04-11 |
 | MEU-PW12 | `pipeline-dataflow-fix` | 49.4h | Pipeline data-flow chain fix: response extractor slug normalization, generic identity field mappings, `extra="forbid"` on all step Params, `PipelineStatus.WARNING` enum + output storage, per-step boundary validation in `policy_validator` (142 unit tests) | ✅ 2026-04-21 |
 | MEU-PW13 | `pipeline-dataflow-e2e` | 49.5h | Pipeline E2E integration tests: Fetch→Transform→Send chain with Yahoo quote data, envelope extraction, field mapping, cache upserts, zero-record WARNING (7 integration tests) | ✅ 2026-04-21 |
+
+## P2.5c: Pipeline Security Hardening
+
+> Source: [09c](../../docs/build-plan/09c-pipeline-security-hardening.md), [09d](../../docs/build-plan/09d-pipeline-step-extensions.md), [09e](../../docs/build-plan/09e-template-database.md), [09f](../../docs/build-plan/09f-policy-emulator.md)
+> Research source: [retail-trader-policy-use-cases.md](../../_inspiration/policy_pipeline_wiring-research/retail-trader-policy-use-cases.md)
+> Prerequisite: P2.5b wiring complete (MEU-PW1→PW13 ✅)
+
+| MEU | Slug | Matrix | Description | Status |
+|-----|------|:------:|-------------|:------:|
+| MEU-PH1 | `stepcontext-safety` | 49.16 | StepContext `safe_deepcopy` + `Secret` carrier class + depth/byte guards | ⬜ planned |
+| MEU-PH2 | `sql-sandbox` | 49.17 | SQL sandbox: `set_authorizer` + `mode=ro` + AST allowlist + `progress_handler` + secrets scan + policy content IDs | ⬜ planned |
+| MEU-PH3 | `send-fetch-guards` | 49.18 | SendStep confirmation gate + FetchStep MIME/fan-out validation | ⬜ planned |
+| MEU-PH4 | `query-step` | 49.19 | QueryStep implementation (read-only SQL via sandbox) | ⬜ planned |
+| MEU-PH5 | `compose-step` | 49.20 | ComposeStep implementation (multi-source data merging) | ⬜ planned |
+| MEU-PH6 | `template-database` | 49.21 | EmailTemplateModel + HardenedSandbox + nh3 sanitization + template CRUD | ⬜ planned |
+| MEU-PH7 | `policy-vars-assertions` | 49.22 | PolicyDocument `variables` + assertion gates + step-count cap | ⬜ planned |
+| MEU-PH8 | `policy-emulator` | 49.23 | 4-phase emulator + output containment + session budget + error schema | ⬜ planned |
+| MEU-PH9 | `emulator-mcp-tools` | 49.24 | 11 new MCP tools: emulator, schema discovery, template CRUD, provider discovery | ⬜ planned |
+| MEU-PH10 | `default-template` | 49.25 | Pre-loaded Morning Check-In template | ⬜ planned |
