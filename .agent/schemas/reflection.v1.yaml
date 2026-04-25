@@ -1,0 +1,133 @@
+# Reflection Schema v1 — Instruction Coverage
+# Source: synthesis §4 (cross-model research synthesis)
+# Token budget: 278 (empty) / 416 (typical) / 612 (worst-case)
+# Format: YAML in fenced code block (synthesis §2 — 7.3pt reasoning advantage over JSON)
+
+# This schema defines the structure agents must emit at session end.
+# Field semantics follow the synthesis §4 best-of-breed schema.
+
+schema: v1
+
+fields:
+  session:
+    description: "Session metadata"
+    required: true
+    properties:
+      id:
+        type: string
+        description: "Unique session identifier (UUID or conversation ID)"
+      task_class:
+        type: string
+        enum: [tdd, review, debug, refactor, security, planning, research, other]
+        description: "Primary task classification for this session"
+      outcome:
+        type: string
+        enum: [success, partial, failed]
+        description: "Overall session outcome"
+      tokens_in:
+        type: integer
+        description: "Approximate input tokens consumed"
+        default: 0
+      tokens_out:
+        type: integer
+        description: "Approximate output tokens generated"
+        default: 0
+      turns:
+        type: integer
+        description: "Number of user-agent turn pairs"
+        default: 0
+
+  sections:
+    description: "Per-section usage data. One entry per AGENTS.md H2 section consulted."
+    type: array
+    items:
+      properties:
+        id:
+          type: string
+          description: "Must match a section_id from registry.yaml"
+        cited:
+          type: boolean
+          description: "True only if the agent actually consulted this section's text to make a decision"
+        influence:
+          type: integer
+          enum: [0, 1, 2, 3]
+          description: |
+            0 = ignored (did not consider)
+            1 = read-only (read but did not change output)
+            2 = shaped-output (influenced phrasing or structure)
+            3 = decisive (determined a yes/no decision)
+
+  loaded:
+    description: "Files dynamically loaded during the session"
+    required: true
+    properties:
+      workflows:
+        type: array
+        items: { type: string }
+        description: "Workflow file_ids from registry.yaml that were loaded"
+      roles:
+        type: array
+        items: { type: string }
+        description: "Role file_ids from registry.yaml that were adopted"
+      skills:
+        type: array
+        items: { type: string }
+        description: "Skill file_ids from registry.yaml that were invoked"
+      refs:
+        type: array
+        items: { type: string }
+        description: "Other reference files consulted"
+
+  decisive_rules:
+    description: "Top rules that determined key decisions. Max 5 entries."
+    type: array
+    max_items: 5
+    items:
+      type: string
+      description: "Format: P{0-3}:{rule-id-or-description}"
+
+  conflicts:
+    description: "Instruction conflicts encountered during the session"
+    type: array
+    items:
+      type: string
+      description: "Brief description of conflicting instructions"
+
+  note:
+    description: "One sentence max. Free-form observation about instruction usage."
+    type: string
+    max_length: 200
+
+# Example (typical session, ~416 tokens):
+#
+# ```yaml
+# schema: v1
+# session:
+#   id: f3808170-c32e-4197-bbb7-baf770c38b7c
+#   task_class: tdd
+#   outcome: success
+#   tokens_in: 45000
+#   tokens_out: 12000
+#   turns: 8
+# sections:
+#   - id: testing_tdd_protocol
+#     cited: true
+#     influence: 3
+#   - id: execution_contract
+#     cited: true
+#     influence: 2
+#   - id: planning_contract
+#     cited: false
+#     influence: 1
+# loaded:
+#   workflows: [tdd_implementation]
+#   roles: [coder, tester]
+#   skills: [quality_gate]
+#   refs: []
+# decisive_rules:
+#   - "P1:tests-first-implementation-after"
+#   - "P0:never-modify-tests-to-pass"
+#   - "P1:fic-before-code"
+# conflicts: []
+# note: "Planning contract not needed for single-MEU execution."
+# ```

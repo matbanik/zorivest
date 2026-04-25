@@ -12,6 +12,7 @@
  */
 
 import { useState, useCallback, useEffect, useRef, useMemo } from 'react'
+import { createPortal } from 'react-dom'
 import { EditorView, keymap } from '@codemirror/view'
 import { EditorState } from '@codemirror/state'
 import { json } from '@codemirror/lang-json'
@@ -58,7 +59,7 @@ const STATE_CONFIG: Record<PolicyState, { label: string; color: string; bgClass:
 interface PolicyDetailProps {
     policy: Policy
     onSave: (policyJson: Record<string, unknown>) => void
-    onApprove: () => void
+    onApprove: (opts?: { enableAfter?: boolean }) => void
     onDelete: () => void
     onTriggerRun: (dryRun: boolean) => void
     onPatchSchedule: (params: { cron_expression?: string; enabled?: boolean; timezone?: string }) => void
@@ -80,6 +81,7 @@ export default function PolicyDetail({
     const viewRef = useRef<EditorView | null>(null)
     const [jsonError, setJsonError] = useState<string | null>(null)
     const [confirmRun, setConfirmRun] = useState(false)
+    const [showDeleteConfirm, setShowDeleteConfirm] = useState(false)
     const confirmRunTimerRef = useRef<ReturnType<typeof setTimeout> | null>(null)
 
     // ── Inline editable name ───────────────────────────────────────────
@@ -115,27 +117,32 @@ export default function PolicyDetail({
 
     // ── Policy state ───────────────────────────────────────────────────
     const policyState = getPolicyState(policy)
-    const stateConfig = STATE_CONFIG[policyState]
 
-    // ── State transitions ──────────────────────────────────────────────
-    const handleStateAdvance = useCallback(() => {
-        if (policyState === 'draft') {
-            // Draft → Ready: approve the policy
-            onApprove()
-        } else if (policyState === 'ready') {
-            // Ready → Scheduled: enable the schedule
-            onPatchSchedule({ enabled: true })
-        } else if (policyState === 'scheduled') {
-            // Scheduled → Ready: pause the schedule
-            onPatchSchedule({ enabled: false })
+    // ── State transitions (direct target) ───────────────────────────────
+    const handleStateChange = useCallback((target: PolicyState) => {
+        if (target === policyState) return // already in this state
+
+        if (target === 'draft') {
+            // Any → Draft: not supported (can't un-approve)
+            return
+        } else if (target === 'ready') {
+            if (policyState === 'draft') {
+                // Draft → Ready: approve but keep schedule disabled
+                onApprove({ enableAfter: false })
+            } else if (policyState === 'scheduled') {
+                // Scheduled → Ready: pause the schedule
+                onPatchSchedule({ enabled: false })
+            }
+        } else if (target === 'scheduled') {
+            if (policyState === 'draft') {
+                // Draft → Scheduled: approve and enable
+                onApprove({ enableAfter: true })
+            } else if (policyState === 'ready') {
+                // Ready → Scheduled: enable the schedule
+                onPatchSchedule({ enabled: true })
+            }
         }
     }, [policyState, onApprove, onPatchSchedule])
-
-    const stateTooltip = useMemo(() => ({
-        draft: 'Click to approve this policy',
-        ready: 'Click to activate schedule',
-        scheduled: 'Click to pause schedule',
-    }[policyState]), [policyState])
 
     // ── Stable JSON string for CodeMirror ──────────────────────────────
     const policyJsonStr = useMemo(
@@ -188,10 +195,13 @@ export default function PolicyDetail({
     }, [onSave])
 
     const handleDelete = useCallback(() => {
-        if (window.confirm(`Delete policy "${policy.name}"? This cannot be undone.`)) {
-            onDelete()
-        }
-    }, [onDelete, policy.name])
+        setShowDeleteConfirm(true)
+    }, [])
+
+    const handleConfirmDelete = useCallback(() => {
+        setShowDeleteConfirm(false)
+        onDelete()
+    }, [onDelete])
 
     // ── Cron change handler ────────────────────────────────────────────
     // Updates BOTH the schedule metadata via PATCH AND the policy_json
@@ -255,17 +265,45 @@ export default function PolicyDetail({
                         </h3>
                     )}
 
-                    {/* 3-state lifecycle pill */}
-                    <button
+                    {/* 3-state lifecycle selector */}
+                    <div
                         data-testid={SCHEDULING_TEST_IDS.POLICY_STATE_PILL}
-                        onClick={handleStateAdvance}
-                        title={stateTooltip}
-                        type="button"
-                        className={`flex items-center gap-1.5 px-3 py-1 rounded-full text-xs font-medium transition-colors shrink-0 cursor-pointer ${stateConfig.bgClass} ${stateConfig.color}`}
+                        className="flex items-center bg-bg-elevated/60 rounded-full p-0.5 gap-0.5 shrink-0"
                     >
-                        <span className={`w-2 h-2 rounded-full ${stateConfig.dotClass}`} />
-                        {stateConfig.label}
-                    </button>
+                        {(['draft', 'ready', 'scheduled'] as PolicyState[]).map((state) => {
+                            const cfg = STATE_CONFIG[state]
+                            const isActive = state === policyState
+                            const isDisabled = state === 'draft' && policyState !== 'draft'
+                            return (
+                                <button
+                                    key={state}
+                                    data-testid={`policy-state-${state}`}
+                                    onClick={() => handleStateChange(state)}
+                                    disabled={isDisabled}
+                                    type="button"
+                                    title={
+                                        isDisabled
+                                            ? 'Cannot revert to draft'
+                                            : isActive
+                                                ? `Currently ${cfg.label}`
+                                                : `Switch to ${cfg.label}`
+                                    }
+                                    className={`flex items-center gap-1.5 px-2.5 py-1 rounded-full text-xs font-medium transition-all cursor-pointer ${
+                                        isActive
+                                            ? `${cfg.bgClass} ${cfg.color}`
+                                            : isDisabled
+                                                ? 'text-fg-muted/30 cursor-not-allowed'
+                                                : 'text-fg-muted/50 hover:text-fg-muted/80 hover:bg-bg-subtle/40'
+                                    }`}
+                                >
+                                    {isActive && (
+                                        <span className={`w-2 h-2 rounded-full ${cfg.dotClass}`} />
+                                    )}
+                                    {cfg.label}
+                                </button>
+                            )
+                        })}
+                    </div>
                 </div>
 
                 {/* State context info */}
@@ -396,17 +434,37 @@ export default function PolicyDetail({
                         {confirmRun ? 'Confirm Run' : 'Run Now'}
                     </button>
 
-                    {/* Inline status pill — duplicate of header pill for quick access */}
-                    <button
+                    {/* Inline status selector — duplicate of header for quick access */}
+                    <div
                         data-testid="policy-state-pill-inline"
-                        onClick={handleStateAdvance}
-                        title={stateTooltip}
-                        type="button"
-                        className={`flex items-center gap-1.5 px-2.5 py-1 rounded-full text-xs font-medium transition-colors shrink-0 cursor-pointer border ${stateConfig.bgClass} ${stateConfig.color} border-current/20`}
+                        className="flex items-center bg-bg-elevated/60 rounded-full p-0.5 gap-0.5 shrink-0"
                     >
-                        <span className={`w-1.5 h-1.5 rounded-full ${stateConfig.dotClass}`} />
-                        {stateConfig.label}
-                    </button>
+                        {(['draft', 'ready', 'scheduled'] as PolicyState[]).map((state) => {
+                            const cfg = STATE_CONFIG[state]
+                            const isActive = state === policyState
+                            const isDisabled = state === 'draft' && policyState !== 'draft'
+                            return (
+                                <button
+                                    key={state}
+                                    onClick={() => handleStateChange(state)}
+                                    disabled={isDisabled}
+                                    type="button"
+                                    className={`flex items-center gap-1 px-2 py-0.5 rounded-full text-[11px] font-medium transition-all cursor-pointer ${
+                                        isActive
+                                            ? `${cfg.bgClass} ${cfg.color}`
+                                            : isDisabled
+                                                ? 'text-fg-muted/30 cursor-not-allowed'
+                                                : 'text-fg-muted/50 hover:text-fg-muted/80 hover:bg-bg-subtle/40'
+                                    }`}
+                                >
+                                    {isActive && (
+                                        <span className={`w-1.5 h-1.5 rounded-full ${cfg.dotClass}`} />
+                                    )}
+                                    {cfg.label}
+                                </button>
+                            )
+                        })}
+                    </div>
 
                     <div className="ml-auto">
                         <button
@@ -420,8 +478,84 @@ export default function PolicyDetail({
                     </div>
                 </div>
 
-
             </div>
+
+            {/* ── Delete Confirmation Modal (portaled to body) ── */}
+            {showDeleteConfirm && createPortal(
+                <div className="fixed inset-0 z-[9999] flex items-center justify-center" style={{ position: 'fixed', top: 0, left: 0, right: 0, bottom: 0 }}>
+                    {/* Backdrop */}
+                    <div
+                        className="absolute inset-0"
+                        style={{ backgroundColor: 'rgba(0,0,0,0.65)', backdropFilter: 'blur(4px)' }}
+                        onClick={() => setShowDeleteConfirm(false)}
+                    />
+                    {/* Dialog */}
+                    <div
+                        style={{
+                            position: 'relative',
+                            backgroundColor: 'var(--color-bg-elevated, #1e2030)',
+                            border: '1px solid var(--color-bg-subtle, #2a2e3f)',
+                            borderRadius: '12px',
+                            padding: '24px',
+                            maxWidth: '400px',
+                            width: '90%',
+                            boxShadow: '0 25px 50px -12px rgba(0,0,0,0.5)',
+                            color: 'var(--color-fg, #e0e0e0)',
+                        }}
+                    >
+                        <div style={{ display: 'flex', alignItems: 'center', gap: '12px', marginBottom: '16px' }}>
+                            <div style={{
+                                width: '40px', height: '40px', borderRadius: '50%',
+                                backgroundColor: 'rgba(239,68,68,0.15)',
+                                display: 'flex', alignItems: 'center', justifyContent: 'center', flexShrink: 0,
+                            }}>
+                                <span style={{ color: 'var(--color-accent-red, #ef4444)', fontSize: '18px' }}>⚠</span>
+                            </div>
+                            <div>
+                                <h4 style={{ fontSize: '14px', fontWeight: 600, margin: 0, color: 'var(--color-fg, #e0e0e0)' }}>Delete Policy</h4>
+                                <p style={{ fontSize: '12px', color: 'var(--color-fg-muted, #8b8fa3)', margin: '2px 0 0 0' }}>This action cannot be undone.</p>
+                            </div>
+                        </div>
+                        <p style={{ fontSize: '14px', color: 'var(--color-fg-muted, #8b8fa3)', marginBottom: '20px' }}>
+                            Are you sure you want to delete <strong style={{ color: 'var(--color-fg, #e0e0e0)' }}>{policy.name}</strong>?
+                            All associated run history will also be removed.
+                        </p>
+                        <div style={{ display: 'flex', gap: '8px', justifyContent: 'flex-end' }}>
+                            <button
+                                type="button"
+                                onClick={() => setShowDeleteConfirm(false)}
+                                style={{
+                                    padding: '6px 16px', fontSize: '13px', fontWeight: 500, borderRadius: '6px',
+                                    border: '1px solid var(--color-bg-subtle, #2a2e3f)',
+                                    backgroundColor: 'transparent',
+                                    color: 'var(--color-fg-muted, #8b8fa3)',
+                                    cursor: 'pointer',
+                                }}
+                                onMouseEnter={(e) => { e.currentTarget.style.color = 'var(--color-fg, #e0e0e0)' }}
+                                onMouseLeave={(e) => { e.currentTarget.style.color = 'var(--color-fg-muted, #8b8fa3)' }}
+                            >
+                                Cancel
+                            </button>
+                            <button
+                                type="button"
+                                onClick={handleConfirmDelete}
+                                style={{
+                                    padding: '6px 16px', fontSize: '13px', fontWeight: 500, borderRadius: '6px',
+                                    border: 'none',
+                                    backgroundColor: 'var(--color-accent-red, #ef4444)',
+                                    color: '#fff',
+                                    cursor: 'pointer',
+                                }}
+                                onMouseEnter={(e) => { e.currentTarget.style.opacity = '0.85' }}
+                                onMouseLeave={(e) => { e.currentTarget.style.opacity = '1' }}
+                            >
+                                Delete Policy
+                            </button>
+                        </div>
+                    </div>
+                </div>,
+                document.body,
+            )}
         </div>
     )
 }

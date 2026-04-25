@@ -184,7 +184,7 @@ class TestPipelineRunnerExecution:
             "smtp_config",
             "provider_adapter",
             "db_writer",
-            "db_connection",
+            "sql_sandbox",
             "report_repository",
             "template_engine",
             "pipeline_state_repo",

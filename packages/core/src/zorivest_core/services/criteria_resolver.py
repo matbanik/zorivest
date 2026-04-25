@@ -28,10 +28,10 @@ class CriteriaResolver:
     def __init__(
         self,
         pipeline_state_repo: Any = None,
-        db_connection: Any = None,
+        sql_sandbox: Any = None,
     ) -> None:
         self._state_repo = pipeline_state_repo
-        self._db_connection = db_connection
+        self._sql_sandbox = sql_sandbox
 
     def resolve(self, criteria: dict[str, Any]) -> dict[str, Any]:
         """Resolve criteria per-field with static passthrough.
@@ -114,26 +114,37 @@ class CriteriaResolver:
 
         Executes a sandboxed SQL query that returns start_date, end_date
         as the first two columns of the first row.
+
+        Per §9C.2c: uses sql_sandbox instead of raw db_connection.
         """
-        if self._db_connection is None:
-            raise ValueError("db_connection required for db_query criteria resolution")
+        if self._sql_sandbox is None:
+            raise ValueError("sql_sandbox required for db_query criteria resolution")
 
         sql = spec.get("sql", "")
         if not sql:
             raise ValueError("db_query criteria requires 'sql' field")
 
-        cursor = self._db_connection.execute(sql)
-        row = cursor.fetchone()
+        rows = self._sql_sandbox.execute(sql, {})
+        row = rows[0] if rows else None
 
         now = datetime.now(timezone.utc)
 
-        if row is None or len(row) < 2:
+        if row is None:
             return {
                 "start_date": now - timedelta(days=30),
                 "end_date": now,
             }
 
-        start_raw, end_raw = row[0], row[1]
+        # SqlSandbox returns dicts keyed by column name
+        keys = list(row.keys())
+        if len(keys) < 2:
+            return {
+                "start_date": now - timedelta(days=30),
+                "end_date": now,
+            }
+
+        start_raw = row[keys[0]]
+        end_raw = row[keys[1]]
         if isinstance(start_raw, str):
             start_raw = datetime.fromisoformat(start_raw)
         if isinstance(end_raw, str):

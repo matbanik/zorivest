@@ -119,6 +119,8 @@ class TestFullPipelineChain:
         mock_delivery_repo.create.return_value = "delivery-123"
         mock_smtp = MagicMock()
 
+        from zorivest_core.domain.approval_snapshot import ApprovalSnapshot
+
         context = StepContext(
             run_id="run-dataflow-1",
             policy_id="pol-dataflow-1",
@@ -128,6 +130,12 @@ class TestFullPipelineChain:
                 "delivery_repository": mock_delivery_repo,
                 "smtp_config": mock_smtp,
             },
+            approval_snapshot=ApprovalSnapshot(
+                approved=True,
+                approved_hash="test-hash",
+                approved_at=None,
+            ),
+            policy_hash="test-hash",
         )
 
         # Step 1: Fetch

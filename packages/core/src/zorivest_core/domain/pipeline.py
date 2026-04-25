@@ -162,6 +162,9 @@ class StepContext:
 
     Each step reads from `outputs` (prior step results) and writes
     its own output, which is stored under its step_id key.
+
+    Per §9C.1b: get_output() returns deep copies and put_output()
+    stores deep copies to prevent cross-step mutation contamination.
     """
 
     run_id: str
@@ -169,12 +172,28 @@ class StepContext:
     outputs: dict[str, Any] = dc_field(default_factory=dict)
     dry_run: bool = False
     logger: structlog.BoundLogger = dc_field(default_factory=structlog.get_logger)
+    # §9C.3b: UI confirmation flag for SendStep gate
+    has_user_confirmation: bool = False
+    # §9C.3c: Approval provenance snapshot from PolicyModel
+    approval_snapshot: Any = None  # ApprovalSnapshot | None
+    # §9C.3c: Current policy content hash for drift detection
+    policy_hash: str = ""
+    # §9C.4d: Cumulative URL fetch counter (policy-level cap = 10)
+    fetch_url_count: int = 0
 
     def get_output(self, step_id: str) -> Any:
-        """Get a prior step's output by step_id."""
+        """Get a prior step's output by step_id (returns isolated deep copy)."""
         if step_id not in self.outputs:
             raise KeyError(f"No output for step '{step_id}' — check step ordering")
-        return self.outputs[step_id]
+        from zorivest_core.services.safe_copy import safe_deepcopy
+
+        return safe_deepcopy(self.outputs[step_id])
+
+    def put_output(self, step_id: str, value: Any) -> None:
+        """Store a step's output (stores isolated deep copy)."""
+        from zorivest_core.services.safe_copy import safe_deepcopy
+
+        self.outputs[step_id] = safe_deepcopy(value)
 
 
 @dataclass

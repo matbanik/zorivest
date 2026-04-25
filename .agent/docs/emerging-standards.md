@@ -485,6 +485,88 @@ Decisions made based on web research (UX Stack Exchange, Nielsen Norman Group, I
   3. [ ] `data:` included if thumbnails use data URIs
   4. [ ] E2E test verifies `naturalWidth > 0` on at least one `<img>` element
 
+### G20 — Confirmation Dialogs Must Use Themed Portaled Modals, Not Native Dialogs
+- **Severity:** 🔴 Critical
+- **Applies to:** GUI
+- **Rule:** Never use `window.confirm()`, `window.alert()`, or `window.prompt()`. These render native OS chrome that ignores the application's dark theme. Use a React portal-based modal (`createPortal(modal, document.body)`) with inline styles referencing CSS variables for theme consistency.
+- **Origin:** 2026-04-25 — Delete policy confirmation used `window.confirm()`, which rendered a white OS dialog that clashed with the dark-themed application.
+- **Bad example:**
+  ```tsx
+  if (window.confirm('Are you sure?')) deletePolicy()
+  ```
+- **Good example:**
+  ```tsx
+  import { createPortal } from 'react-dom'
+
+  const [showConfirm, setShowConfirm] = useState(false)
+
+  // Render via portal to escape parent overflow constraints
+  {showConfirm && createPortal(
+      <div style={{
+          position: 'fixed', inset: 0, zIndex: 9999,
+          display: 'flex', alignItems: 'center', justifyContent: 'center',
+          backgroundColor: 'rgba(0,0,0,0.6)',
+      }}>
+          <div style={{
+              backgroundColor: 'var(--color-bg-elevated)',
+              border: '1px solid var(--color-border)',
+              borderRadius: '12px', padding: '24px',
+              color: 'var(--color-fg)',
+          }}>
+              {/* ... buttons ... */}
+          </div>
+      </div>,
+      document.body
+  )}
+  ```
+- **Why portal?** Components inside scrollable panes or panels with `overflow: hidden/auto` will clip fixed-position modals. `createPortal` to `document.body` guarantees the modal escapes all parent overflow constraints.
+- **Checklist for new confirmation dialogs:**
+  1. [ ] No `window.confirm/alert/prompt` calls
+  2. [ ] Modal rendered via `createPortal(_, document.body)`
+  3. [ ] Styles use CSS variables (`--color-bg-elevated`, `--color-fg`, `--color-border`)
+  4. [ ] Backdrop click and Escape key dismiss the modal
+  5. [ ] Destructive button uses red/danger styling
+
+### G21 — Mutually Exclusive State Controls Must Support Direct Selection, Not Cycling
+- **Severity:** 🟡 Medium
+- **Applies to:** GUI
+- **Rule:** When presenting 2–5 mutually exclusive states as a segmented button group (per UX1), each button must directly set its state on click. Never implement a "cycling" pattern where clicking any button advances to the next state in sequence. Users expect to click the label they want and get that state immediately.
+- **Origin:** 2026-04-25 — Pipeline scheduling state selector (Draft/Ready/Scheduled) initially cycled through states on each click. User reported: "There is issue when I click on Ready, it cycles to Scheduled."
+- **Bad example:**
+  ```tsx
+  // Cycling — user clicks "Ready" but gets "Scheduled" instead
+  const nextState = { draft: 'ready', ready: 'scheduled', scheduled: 'draft' }
+  onClick={() => setState(nextState[currentState])}
+  ```
+- **Good example:**
+  ```tsx
+  // Direct selection — user clicks "Ready" and gets "Ready"
+  {STATES.map(s => (
+      <button key={s.value}
+          onClick={() => setState(s.value)}
+          className={currentState === s.value ? s.activeClass : 'text-gray-500'}>
+          {currentState === s.value && <span className="dot" />}
+          {s.label}
+      </button>
+  ))}
+  ```
+- **Visual rule:** Active state gets colored text + left dot indicator. Inactive states are gray/muted. All buttons are always visible to show available options.
+
+### G22 — Default Templates Must Satisfy Backend Validation Schemas
+- **Severity:** 🔴 Critical
+- **Applies to:** GUI, API
+- **Rule:** When the GUI provides a "New" button that creates an entity with a default template (e.g., default pipeline policy), the template must include all required fields per the backend Pydantic/Zod schema. Never ship a template with empty objects (`{}`) for fields that have required nested properties.
+- **Origin:** 2026-04-25 — `+ New Policy` button sent a default policy with `params: {}` for the `fetch` step, but `FetchStep.Params` requires `provider` and `data_type`. This caused a 422 Unprocessable Entity on every creation attempt.
+- **Bad example:**
+  ```tsx
+  steps: [{ type: 'fetch', params: {} }]  // 422 — missing required fields
+  ```
+- **Good example:**
+  ```tsx
+  steps: [{ type: 'fetch', params: { provider: 'yahoo', data_type: 'ohlcv' } }]
+  ```
+- **Verification:** After creating a default template, test it against the backend validation endpoint before shipping. Run a manual `POST` with the template body and confirm 201, not 422.
+
 ### G17 — Fetch Wrapper Must Detect FormData and Omit Content-Type
 - **Severity:** 🟡 Medium
 - **Applies to:** GUI (API client)

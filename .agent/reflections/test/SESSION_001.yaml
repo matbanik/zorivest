@@ -1,0 +1,87 @@
+schema: v1
+session:
+  id: "test-synthetic-001"
+  task_class: tdd
+  outcome: success
+  tokens_in: 45000
+  tokens_out: 12000
+  turns: 8
+sections:
+  - id: priority_0_system_constraints_non_negotiable
+    cited: true
+    influence: 3
+  - id: testing_tdd_protocol
+    cited: true
+    influence: 3
+  - id: execution_contract
+    cited: true
+    influence: 2
+  - id: planning_contract
+    cited: false
+    influence: 1
+  - id: quick_commands
+    cited: false
+    influence: 0
+  - id: architecture
+    cited: true
+    influence: 1
+  - id: project_context
+    cited: false
+    influence: 0
+  - id: communication_policy
+    cited: false
+    influence: 0
+  - id: session_discipline
+    cited: true
+    influence: 2
+  - id: operating_model
+    cited: true
+    influence: 2
+  - id: roles_workflows
+    cited: true
+    influence: 2
+  - id: pre_handoff_self_review_mandatory
+    cited: false
+    influence: 1
+  - id: dual_agent_workflow
+    cited: false
+    influence: 0
+  - id: validation_pipeline
+    cited: true
+    influence: 2
+  - id: testing_requirements
+    cited: false
+    influence: 1
+  - id: code_quality
+    cited: false
+    influence: 0
+  - id: windows_shell_powershell
+    cited: true
+    influence: 3
+  - id: commits
+    cited: false
+    influence: 0
+  - id: handoff_protocol
+    cited: true
+    influence: 2
+  - id: skills
+    cited: false
+    influence: 0
+  - id: mcp_servers
+    cited: false
+    influence: 0
+  - id: context_docs
+    cited: true
+    influence: 1
+loaded:
+  workflows: [tdd_implementation, create_plan]
+  roles: [coder, tester, orchestrator]
+  skills: [quality_gate, terminal_preflight]
+  refs: []
+decisive_rules:
+  - "P1:tests-first-implementation-after"
+  - "P0:never-modify-tests-to-pass"
+  - "P0:redirect-all-streams"
+  - "P1:fic-before-code"
+conflicts: []
+note: "Synthetic test reflection for E2E validation."

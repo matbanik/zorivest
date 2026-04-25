@@ -77,7 +77,8 @@ class PipelineRunner:
         smtp_config: Any | None = None,
         provider_adapter: Any | None = None,
         db_writer: Any | None = None,
-        db_connection: Any | None = None,
+        db_connection: Any | None = None,  # internal use only, not exposed to steps
+        sql_sandbox: Any | None = None,
         report_repository: Any | None = None,
         template_engine: Any | None = None,
         pipeline_state_repo: Any | None = None,
@@ -90,7 +91,10 @@ class PipelineRunner:
         self._smtp_config = smtp_config
         self._provider_adapter = provider_adapter
         self._db_writer = db_writer
-        self._db_connection = db_connection
+        self._db_connection = (
+            db_connection  # internal persistence, not exposed to steps
+        )
+        self._sql_sandbox = sql_sandbox
         self._report_repository = report_repository
         self._template_engine = template_engine
         self._pipeline_state_repo = pipeline_state_repo
@@ -106,6 +110,7 @@ class PipelineRunner:
         actor: str = "",
         policy_id: str = "",
         run_id: str = "",
+        approval_snapshot: Any | None = None,
     ) -> dict[str, Any]:
         """Execute a full pipeline.
 
@@ -138,7 +143,7 @@ class PipelineRunner:
             "smtp_config": self._smtp_config,
             "provider_adapter": self._provider_adapter,
             "db_writer": self._db_writer,
-            "db_connection": self._db_connection,
+            "sql_sandbox": self._sql_sandbox,
             "report_repository": self._report_repository,
             "template_engine": self._template_engine,
             "pipeline_state_repo": self._pipeline_state_repo,
@@ -154,6 +159,8 @@ class PipelineRunner:
             outputs=initial_outputs,
             dry_run=dry_run,
             logger=run_log,
+            policy_hash=content_hash,
+            approval_snapshot=approval_snapshot,
         )
 
         # Persist run record — conditional on whether run_id was pre-created
@@ -198,7 +205,7 @@ class PipelineRunner:
                             step_def.id,
                         )
                         if prior_output is not None:
-                            context.outputs[step_def.id] = prior_output
+                            context.put_output(step_def.id, prior_output)
                         continue
 
                 step_result = await self._execute_step(step_def, context, run_id)
@@ -237,7 +244,7 @@ class PipelineRunner:
                     PipelineStatus.SUCCESS,
                     PipelineStatus.WARNING,
                 ):
-                    context.outputs[step_def.id] = step_result.output
+                    context.put_output(step_def.id, step_result.output)
 
         except asyncio.CancelledError:
             final_status = PipelineStatus.CANCELLED
@@ -303,6 +310,12 @@ class PipelineRunner:
         # 4. Resolve refs in params
         resolved_params = self.ref_resolver.resolve(step_def.params, context)
 
+        # 4b. §9C.4d: Enforce policy-level URL cap for fetch steps
+        if step_def.type == "fetch":
+            fetch_urls = resolved_params.get("urls", [])
+            url_count = max(len(fetch_urls), 1)  # At least 1 URL per fetch
+            self._check_fetch_url_cap(context, url_count)
+
         # 5. Execute with retry
         last_result = StepResult(status=PipelineStatus.FAILED, error="No attempts made")
         max_attempts = (
@@ -335,6 +348,10 @@ class PipelineRunner:
             await self._persist_step(run_id, step_def, last_result, attempt)
 
             if last_result.status == PipelineStatus.SUCCESS:
+                # §9C.4d: Increment cumulative URL counter for fetch steps
+                if step_def.type == "fetch":
+                    fetch_urls = resolved_params.get("urls", [])
+                    context.fetch_url_count += max(len(fetch_urls), 1)
                 log.info(
                     "step_success",
                     duration_ms=last_result.duration_ms,
@@ -569,3 +586,26 @@ class PipelineRunner:
             self.uow.commit()
 
         return recovered
+
+    # ── §9C.4d: Policy-level URL cap ──────────────────────────────
+
+    _POLICY_URL_CAP = 10  # Maximum cumulative URLs across all FetchSteps
+
+    def _check_fetch_url_cap(self, context: StepContext, url_count: int = 1) -> None:
+        """§9C.4d: Enforce policy-level cumulative URL cap.
+
+        Called before each FetchStep execution. Raises SecurityError if
+        adding url_count would exceed the 10-URL/policy cap.
+
+        Args:
+            context: Current pipeline StepContext (has fetch_url_count).
+            url_count: Number of URLs this step will fetch.
+        """
+        from zorivest_core.services.sql_sandbox import SecurityError
+
+        projected = context.fetch_url_count + url_count
+        if projected > self._POLICY_URL_CAP:
+            raise SecurityError(
+                f"Policy URL cap exceeded: {context.fetch_url_count} existing + "
+                f"{url_count} new = {projected} (limit {self._POLICY_URL_CAP})"
+            )

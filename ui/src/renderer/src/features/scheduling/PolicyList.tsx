@@ -64,7 +64,7 @@ export default function PolicyList({
                     className="px-2 py-1 text-xs font-medium rounded-md bg-accent-purple/20 text-accent-purple hover:bg-accent-purple/30 transition-colors"
                     title="Create new policy"
                 >
-                    + New
+                    + New Policy
                 </button>
             </div>
 
@@ -85,7 +85,7 @@ export default function PolicyList({
             {/* Empty state */}
             {!isLoading && !error && policies.length === 0 && (
                 <div data-testid={SCHEDULING_TEST_IDS.EMPTY_STATE} className="p-4 text-sm text-fg-muted text-center">
-                    No policies yet. Click "+ New" to create one.
+                    No policies yet. Click "+ New Policy" to create one.
                 </div>
             )}
 

@@ -63,6 +63,22 @@ class FetchStep(RegisteredStep):
             default=100, ge=1, le=500, description="Max records per fetch batch"
         )
         use_cache: bool = Field(default=True, description="Check cache before fetching")
+        # §9C.4c: MIME type allowlist for response validation
+        allowed_mime_types: list[str] = Field(
+            default_factory=lambda: ["application/json", "text/csv", "text/plain"],
+            description="Allowed MIME types for response content",
+        )
+        # §9C.4c: URL list for multi-URL fetch steps
+        urls: list[str] = Field(
+            default_factory=list,
+            max_length=5,
+            description="URLs to fetch (max 5 per step, §9C.4c L417)",
+        )
+        # §9C.4b: Maximum response body size (5 MB per spec L393)
+        max_body_bytes: int = Field(
+            default=5 * 1024 * 1024,
+            description="Maximum response body size in bytes",
+        )
 
     async def execute(self, params: dict, context: StepContext) -> StepResult:
         """Execute the fetch step.
@@ -77,12 +93,21 @@ class FetchStep(RegisteredStep):
 
         p = self.Params(**params)
 
+        # §9C.4c: URL count per-step validation (max 5)
+        if len(p.urls) > 5:
+            from zorivest_core.services.sql_sandbox import SecurityError
+
+            raise SecurityError(
+                f"FetchStep URL limit exceeded: {len(p.urls)} URLs "
+                f"(max 5 per step, §9C.4c L417)"
+            )
+
         # 1. Resolve criteria to concrete date ranges (before cache — F2)
         resolved_criteria: dict[str, Any] = {}
         if p.criteria:
             resolver = CriteriaResolver(
                 pipeline_state_repo=context.outputs.get("pipeline_state_repo"),
-                db_connection=context.outputs.get("db_connection"),
+                sql_sandbox=context.outputs.get("sql_sandbox"),
             )
             resolved_criteria = resolver.resolve(p.criteria)
 
@@ -119,6 +144,30 @@ class FetchStep(RegisteredStep):
         )
 
         content = adapter_result["content"]
+
+        # §9C.4b: Body size cap (5 MB per spec L393)
+        if len(content) > p.max_body_bytes:
+            from zorivest_core.services.sql_sandbox import SecurityError
+
+            raise SecurityError(
+                f"FetchStep response body size {len(content)} bytes "
+                f"exceeds {p.max_body_bytes} byte limit (5 MB, §9C.4b)"
+            )
+
+        # §9C.4c: MIME type validation
+        response_type = adapter_result.get("content_type", "")
+        if p.allowed_mime_types and response_type:
+            # Normalize: strip parameters (e.g., "application/json; charset=utf-8")
+            base_type = response_type.split(";")[0].strip().lower()
+            allowed = [m.lower() for m in p.allowed_mime_types]
+            if base_type not in allowed:
+                from zorivest_core.services.sql_sandbox import SecurityError
+
+                raise SecurityError(
+                    f"FetchStep MIME type mismatch: got '{base_type}', "
+                    f"allowed: {allowed}"
+                )
+
         result = FetchResult(
             provider=p.provider,
             data_type=p.data_type,

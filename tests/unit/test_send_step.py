@@ -33,7 +33,13 @@ def _make_context(
     delivery_repository: Any = None,
     extra_outputs: dict[str, Any] | None = None,
 ) -> StepContext:
-    """Create a StepContext with injectable SMTP config and delivery repo."""
+    """Create a StepContext with injectable SMTP config and delivery repo.
+
+    Includes a valid approval_snapshot by default since SendStep's gate
+    now requires it when requires_confirmation=False (§9C.3c).
+    """
+    from zorivest_core.domain.approval_snapshot import ApprovalSnapshot
+
     outputs: dict[str, Any] = {}
     if smtp_config is not None:
         outputs["smtp_config"] = smtp_config
@@ -45,6 +51,12 @@ def _make_context(
         run_id=run_id,
         policy_id=policy_id,
         outputs=outputs,
+        approval_snapshot=ApprovalSnapshot(
+            approved=True,
+            approved_hash="test-hash",
+            approved_at=None,
+        ),
+        policy_hash="test-hash",
     )
 
 

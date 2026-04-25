@@ -307,9 +307,9 @@ P2.75 (broker adapters): MEU-96 → MEU-99
 
 | MEU | Slug | Matrix | Description | Status |
 |-----|------|:------:|-------------|:------:|
-| MEU-PH1 | `stepcontext-safety` | 49.16 | StepContext `safe_deepcopy` + `Secret` carrier class + depth/byte guards | ⬜ planned |
-| MEU-PH2 | `sql-sandbox` | 49.17 | SQL sandbox: `set_authorizer` + `mode=ro` + AST allowlist + `progress_handler` + secrets scan + policy content IDs | ⬜ planned |
-| MEU-PH3 | `send-fetch-guards` | 49.18 | SendStep confirmation gate + FetchStep MIME/fan-out validation | ⬜ planned |
+| MEU-PH1 | `stepcontext-safety` | 49.16 | StepContext `safe_deepcopy` + `Secret` carrier class + depth/byte guards | ✅ done |
+| MEU-PH2 | `sql-sandbox` | 49.17 | SQL sandbox: `set_authorizer` + `mode=ro` + AST allowlist + `progress_handler` + secrets scan + policy content IDs | ✅ done |
+| MEU-PH3 | `send-fetch-guards` | 49.18 | SendStep confirmation gate + FetchStep MIME/fan-out validation | ✅ done |
 | MEU-PH4 | `query-step` | 49.19 | QueryStep implementation (read-only SQL via sandbox) | ⬜ planned |
 | MEU-PH5 | `compose-step` | 49.20 | ComposeStep implementation (multi-source data merging) | ⬜ planned |
 | MEU-PH6 | `template-database` | 49.21 | EmailTemplateModel + HardenedSandbox + nh3 sanitization + template CRUD | ⬜ planned |

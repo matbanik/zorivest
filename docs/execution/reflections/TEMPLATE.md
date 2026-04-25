@@ -127,3 +127,33 @@ EXAMPLE: {before → after}
 |------|--------|-----------|
 | _{rule description}_ | AGENTS.md §X | Yes/No |
 | _{rule description}_ | AGENTS.md §X | Yes/No |
+
+---
+
+## Instruction Coverage
+
+<!-- Emit a single fenced YAML block matching .agent/schemas/reflection.v1.yaml -->
+<!-- See AGENTS.md § Instruction Coverage Reflection for rules -->
+
+```yaml
+schema: v1
+session:
+  id: "{conversation-id}"
+  task_class: "{tdd|review|debug|refactor|security|planning|research|other}"
+  outcome: "{success|partial|failed}"
+  tokens_in: 0
+  tokens_out: 0
+  turns: 0
+sections:
+  - id: "{section_id from registry.yaml}"
+    cited: false
+    influence: 0  # 0=ignored, 1=read-only, 2=shaped-output, 3=decisive
+loaded:
+  workflows: []
+  roles: []
+  skills: []
+  refs: []
+decisive_rules: []  # max 5 entries, format: "P{0-3}:{rule-id}"
+conflicts: []
+note: ""
+```

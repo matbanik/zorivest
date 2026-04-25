@@ -183,6 +183,9 @@ When the user invokes a workflow via slash command:
 > [!CAUTION]
 > **Plan files go to the project, not the agent workspace.** Per `create-plan.md` Step 4, `implementation-plan.md` and `task.md` MUST be written to `docs/execution/plans/{YYYY-MM-DD}-{project-slug}/`. The agent workspace may receive a copy for UI rendering, but the project folder is the single source of truth — it is what gets validated and version-controlled. Never write plan files only to the agent workspace.
 
+> [!CAUTION]
+> **`task.md` is created WITH the plan, not after approval.** During PLANNING mode (Step 4 of `create-plan.md`), ALWAYS create BOTH `implementation-plan.md` AND `task.md` in the same step. Codex validates against both files — if `task.md` is missing, review will fail. Read `docs/execution/plans/TASK-TEMPLATE.md` before writing. This is NOT optional and NOT deferred to execution.
+
 ### Spec Sufficiency Gate
 
 Before approving any plan or starting TDD:
@@ -264,6 +267,8 @@ When implementing a Manageable Execution Unit (MEU):
 > **Lifecycle escape hatch**: "Trigger Codex validation" IS classified as an allowed human decision gate. The anti-premature-stop rule permits handing off to Codex. Post-validation artifacts (reflection, metrics) are created in the NEXT session after Codex returns its verdict.
 >
 > **Context window checkpoint**: If context window exceeds ~50% capacity (~500k tokens on a 1M window), save state to `pomera_notes`, complete the current MEU's handoff, and notify human with remaining work. This is a planned checkpoint, not early termination. The 50% threshold guards against "context rot" — accuracy degradation observed in frontier models operating above 50% context fill.
+>
+> **Post-checkpoint continuity:** When resuming from a context checkpoint or truncation, re-read `task.md` BEFORE taking any action. If unchecked `[ ]` items remain, you are mid-workflow — do NOT stop after resolving the first issue. Continue executing the task table sequentially until blocked or complete. "All tests green" is a milestone, not a stopping point.
 
 ### Context Compression Rules
 
@@ -438,3 +443,25 @@ At session end, create or update a handoff file:
 - Current focus → `.agent/context/current-focus.md`
 - Known issues → `.agent/context/known-issues.md`
 - Full specification → `docs/BUILD_PLAN.md`
+
+## Instruction Coverage Reflection
+
+<!-- instruction_coverage_reflection: meta-prompt v1 -->
+<!-- Placement: EOF recency zone (Liu et al.; Anthropic "queries at end" guidance) -->
+
+At the end of every session, before yielding control, emit a single
+fenced YAML block matching `.agent/schemas/reflection.v1.yaml`.
+
+Rules:
+- Mark a section `cited: true` only if you actually consulted that
+  section's text to make a decision this session.
+- Set `influence` honestly: 0 if you did not consider it, 1 if you
+  read it but it did not change your output, 2 if it shaped output
+  phrasing or structure, 3 if it determined a yes/no decision.
+- Listing more than 5 entries in `decisive_rules` is a violation.
+- Free-form `note` field is at most one sentence. Do not add fields
+  not in the schema.
+- Do not flatter the instruction set. If a section was useless,
+  set influence: 0. If a rule was wrong, log it under `conflicts`.
+
+Output exactly one ```yaml ... ``` block. No prose around it.

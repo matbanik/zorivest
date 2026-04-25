@@ -89,7 +89,8 @@ from zorivest_api.scheduling_adapters import (
     AuditCounterAdapter,
 )
 from zorivest_infra.adapters.db_write_adapter import DbWriteAdapter
-from zorivest_infra.security.sql_sandbox import create_sandboxed_connection
+from zorivest_infra.database.connection import open_sandbox_connection
+from zorivest_core.services.sql_sandbox import SqlSandbox
 from zorivest_infra.rendering.template_engine import create_template_engine
 from zorivest_infra.market_data.market_data_adapter import MarketDataProviderAdapter
 from zorivest_infra.market_data.pipeline_rate_limiter import PipelineRateLimiter
@@ -253,7 +254,8 @@ async def lifespan(app: FastAPI) -> AsyncGenerator[None, None]:
     # ── Pipeline runtime wiring (MEU-PW1) ──────────────────────────────
     # Extract db_path from URL for sandboxed read-only connection
     _db_path = db_url.replace("sqlite:///", "")
-    _sandboxed_conn = create_sandboxed_connection(_db_path)
+    _sandboxed_conn = open_sandbox_connection(_db_path, read_only=True)
+    _sql_sandbox = SqlSandbox(_db_path, connection=_sandboxed_conn)
     _template_engine = create_template_engine()
     _db_write_adapter = DbWriteAdapter(session=uow._session)  # noqa: SLF001
     _smtp_runtime_config = app.state.email_provider_service.get_smtp_runtime_config()
@@ -278,6 +280,7 @@ async def lifespan(app: FastAPI) -> AsyncGenerator[None, None]:
         provider_adapter=_market_data_adapter,
         db_writer=_db_write_adapter,
         db_connection=_sandboxed_conn,
+        sql_sandbox=_sql_sandbox,
         report_repository=uow.reports,
         template_engine=_template_engine,
         pipeline_state_repo=uow.pipeline_state,

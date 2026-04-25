@@ -8,7 +8,6 @@ from typing import Any
 
 from zorivest_core.domain.pipeline import PolicyDocument
 from zorivest_core.domain.policy_validator import (
-    SQL_BLOCKLIST,
     compute_content_hash,
     validate_policy,
 )
@@ -313,9 +312,12 @@ class TestSQLBlocklist:
             ]
         )
         errors = validate_policy(doc)
-        sql_errors = [e for e in errors if "Blocked SQL" in e.message]
+        sql_errors = [
+            e
+            for e in errors
+            if "SQL validation failed" in e.message or "DML/DDL" in e.message
+        ]
         assert len(sql_errors) >= 1
-        assert "DROP" in sql_errors[0].message
 
     def test_multiple_blocked(self) -> None:
         doc = _build_policy(
@@ -328,7 +330,11 @@ class TestSQLBlocklist:
             ]
         )
         errors = validate_policy(doc)
-        sql_errors = [e for e in errors if "Blocked SQL" in e.message]
+        sql_errors = [
+            e
+            for e in errors
+            if "SQL validation failed" in e.message or "DML/DDL" in e.message
+        ]
         assert len(sql_errors) >= 1
 
     def test_punctuation_bypass_blocked(self) -> None:
@@ -339,9 +345,12 @@ class TestSQLBlocklist:
             ]
         )
         errors = validate_policy(doc)
-        sql_errors = [e for e in errors if "Blocked SQL" in e.message]
+        sql_errors = [
+            e
+            for e in errors
+            if "SQL validation failed" in e.message or "DML/DDL" in e.message
+        ]
         assert len(sql_errors) >= 1
-        assert "DROP" in sql_errors[0].message
 
     def test_semicolon_concat_blocked(self) -> None:
         """F5 regression: DELETE;SELECT must be caught."""
@@ -355,9 +364,12 @@ class TestSQLBlocklist:
             ]
         )
         errors = validate_policy(doc)
-        sql_errors = [e for e in errors if "Blocked SQL" in e.message]
+        sql_errors = [
+            e
+            for e in errors
+            if "SQL validation failed" in e.message or "DML/DDL" in e.message
+        ]
         assert len(sql_errors) >= 1
-        assert "DELETE" in sql_errors[0].message
 
 
 # ---------------------------------------------------------------------------
@@ -384,19 +396,18 @@ class TestContentHash:
 
 
 # ---------------------------------------------------------------------------
-# AC-9: SQL_BLOCKLIST contains required keywords
+# AC-9: SqlSandbox.DENY_TABLES replaces SQL_BLOCKLIST as the security contract
 # ---------------------------------------------------------------------------
 
 
-class TestSQLBlocklistConstant:
-    @pytest.mark.parametrize(
-        "keyword",
-        ["DROP", "DELETE", "UPDATE", "INSERT", "ALTER", "ATTACH", "PRAGMA", "CREATE"],
-    )
-    def test_keyword_present(self, keyword: str) -> None:
-        assert keyword in SQL_BLOCKLIST
-        # Value: verify blocklist is an immutable set
-        assert isinstance(SQL_BLOCKLIST, (set, frozenset))
+class TestDenyTablesContract:
+    """AC-9: SqlSandbox.DENY_TABLES contains required credential tables."""
+
+    def test_deny_tables_contains_settings(self) -> None:
+        from zorivest_core.services.sql_sandbox import SqlSandbox
+
+        assert "settings" in SqlSandbox.DENY_TABLES
+        assert isinstance(SqlSandbox.DENY_TABLES, frozenset)
 
 
 # ---------------------------------------------------------------------------
@@ -418,9 +429,12 @@ class TestRecursiveSQLScan:
             ]
         )
         errors = validate_policy(doc)
-        sql_errors = [e for e in errors if "Blocked SQL" in e.message]
+        sql_errors = [
+            e
+            for e in errors
+            if "SQL validation failed" in e.message or "DML/DDL" in e.message
+        ]
         assert len(sql_errors) >= 1
-        assert "DROP" in sql_errors[0].message
 
     def test_nested_list(self) -> None:
         doc = _build_policy(
@@ -435,9 +449,12 @@ class TestRecursiveSQLScan:
             ]
         )
         errors = validate_policy(doc)
-        sql_errors = [e for e in errors if "Blocked SQL" in e.message]
+        sql_errors = [
+            e
+            for e in errors
+            if "SQL validation failed" in e.message or "DML/DDL" in e.message
+        ]
         assert len(sql_errors) >= 1
-        assert "DELETE" in sql_errors[0].message
 
     def test_deeply_nested(self) -> None:
         doc = _build_policy(
@@ -452,9 +469,12 @@ class TestRecursiveSQLScan:
             ]
         )
         errors = validate_policy(doc)
-        sql_errors = [e for e in errors if "Blocked SQL" in e.message]
+        sql_errors = [
+            e
+            for e in errors
+            if "SQL validation failed" in e.message or "DML/DDL" in e.message
+        ]
         assert len(sql_errors) >= 1
-        assert "ALTER" in sql_errors[0].message
 
 
 # ---------------------------------------------------------------------------

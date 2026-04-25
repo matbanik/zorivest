@@ -108,11 +108,11 @@ New file: `tests/unit/test_stepcontext_isolation.py`
 
 ### 9C.1d Exit Criteria
 
-- [ ] `safe_copy.py` exists with `Secret` + `safe_deepcopy` + `_estimate_size_recursive`
-- [ ] `StepContext.get_output()` uses `safe_deepcopy()`
-- [ ] `StepContext.put()` (or `PipelineRunner._persist_step()`) uses `safe_deepcopy()`
-- [ ] All 9 tests pass
-- [ ] No existing tests break
+- [x] `safe_copy.py` exists with `Secret` + `safe_deepcopy` + `_estimate_size_recursive`
+- [x] `StepContext.get_output()` uses `safe_deepcopy()`
+- [x] `StepContext.put()` (or `PipelineRunner._persist_step()`) uses `safe_deepcopy()`
+- [x] All 9 tests pass
+- [x] No existing tests break
 
 ---
 
@@ -315,14 +315,14 @@ async def get_db_schema(db: Session = Depends(get_db)):
 
 ### 9C.2f Exit Criteria
 
-- [ ] `sql_sandbox.py` exists with all 6 security layers
-- [ ] `connection.py` has `open_sandbox_connection()` factory
-- [ ] `policy_validator.py` uses AST allowlist (not string blocklist)
-- [ ] All callsites migrated — no direct `db_connection` SQL in steps
-- [ ] `DENY_TABLES` covers all sensitive tables (6+ entries)
-- [ ] All 20 tests pass (16 sandbox + 4 schema-discovery security)
-- [ ] `GET /scheduling/db-schema` filters `SqlSandbox.DENY_TABLES` server-side
-- [ ] `sqlglot` added to dependencies
+- [x] `sql_sandbox.py` exists with all 6 security layers
+- [x] `connection.py` has `open_sandbox_connection()` factory
+- [x] `policy_validator.py` uses AST allowlist (not string blocklist)
+- [x] All callsites migrated — no direct `db_connection` SQL in steps
+- [x] `DENY_TABLES` covers all sensitive tables (6+ entries)
+- [ ] All 20 tests pass (16 sandbox + 4 schema-discovery security) *(PH9-owned)*
+- [ ] `GET /scheduling/db-schema` filters `SqlSandbox.DENY_TABLES` server-side *(PH9-owned)*
+- [x] `sqlglot` added to dependencies
 
 ---
 
@@ -418,11 +418,11 @@ Add fan-out cap: max 5 URLs per step, max 10 per policy execution.
 
 ### 9C.4d Exit Criteria
 
-- [ ] SendStep has `requires_confirmation` field with gate logic
-- [ ] StepContext has `has_user_confirmation: bool` field
-- [ ] FetchStep validates MIME type and body size
-- [ ] FetchStep enforces fan-out cap (5 URLs/step, 10/policy)
-- [ ] All 6 tests pass
+- [x] SendStep has `requires_confirmation` field with gate logic
+- [x] StepContext has `has_user_confirmation: bool` field
+- [x] FetchStep validates MIME type and body size
+- [x] FetchStep enforces fan-out cap (5 URLs/step, 10/policy)
+- [x] All 6 tests pass
 
 ---
 

@@ -1,7 +1,7 @@
 """Unit tests for PipelineRunner constructor expansion (MEU-PW1).
 
-AC-1: PipelineRunner constructor accepts 8 keyword params.
-AC-2: All 8 keys present in initial_outputs when run() is called.
+AC-1: PipelineRunner constructor accepts keyword dependency params.
+AC-2: Step-visible keys present in initial_outputs when run() is called.
 
 Source: docs/execution/plans/2026-04-12-pipeline-runtime-wiring/implementation-plan.md
 """
@@ -46,8 +46,8 @@ def _make_policy(steps: list[dict[str, Any]] | None = None) -> MagicMock:
 class TestConstructorSignature:
     """AC-1: PipelineRunner constructor accepts 8 keyword params."""
 
-    def test_accepts_all_8_kwargs(self) -> None:
-        """Constructor accepts all 8 keyword-only dependency params."""
+    def test_accepts_all_kwargs(self) -> None:
+        """Constructor accepts all keyword-only dependency params."""
         runner = PipelineRunner(
             None,  # uow
             MagicMock(),  # ref_resolver
@@ -57,6 +57,7 @@ class TestConstructorSignature:
             provider_adapter=MagicMock(),
             db_writer=MagicMock(),
             db_connection=MagicMock(),
+            sql_sandbox=MagicMock(),
             report_repository=MagicMock(),
             template_engine=MagicMock(),
             pipeline_state_repo=MagicMock(),
@@ -65,13 +66,14 @@ class TestConstructorSignature:
         assert runner is not None
 
     def test_all_kwargs_default_to_none(self) -> None:
-        """All 9 kwargs default to None when not provided."""
+        """All kwargs default to None when not provided."""
         runner = _make_runner()
         assert runner._delivery_repository is None
         assert runner._smtp_config is None
         assert runner._provider_adapter is None
         assert runner._db_writer is None
         assert runner._db_connection is None
+        assert runner._sql_sandbox is None
         assert runner._report_repository is None
         assert runner._template_engine is None
         assert runner._pipeline_state_repo is None
@@ -90,6 +92,7 @@ class TestConstructorSignature:
         provider = MagicMock()
         db_writer = MagicMock()
         db_conn = MagicMock()
+        sandbox = MagicMock()
         report_repo = MagicMock()
         tmpl = MagicMock()
         ps_repo = MagicMock()
@@ -101,6 +104,7 @@ class TestConstructorSignature:
             provider_adapter=provider,
             db_writer=db_writer,
             db_connection=db_conn,
+            sql_sandbox=sandbox,
             report_repository=report_repo,
             template_engine=tmpl,
             pipeline_state_repo=ps_repo,
@@ -112,6 +116,7 @@ class TestConstructorSignature:
         assert runner._provider_adapter is provider
         assert runner._db_writer is db_writer
         assert runner._db_connection is db_conn
+        assert runner._sql_sandbox is sandbox
         assert runner._report_repository is report_repo
         assert runner._template_engine is tmpl
         assert runner._pipeline_state_repo is ps_repo
@@ -160,16 +165,20 @@ def _make_inspector_step() -> tuple:
 
 
 class TestInitialOutputsInjection:
-    """AC-2: All 8 keys present in initial_outputs when run() is called."""
+    """AC-2: All step-visible keys present in initial_outputs when run() is called."""
 
     @pytest.mark.asyncio()
     async def test_all_non_none_deps_injected_into_context(self) -> None:
-        """When all 9 deps are provided, all 9 appear in context.outputs."""
+        """When all step-visible deps are provided, they appear in context.outputs.
+
+        Note: db_connection is internal-only (not exposed to steps).
+        sql_sandbox replaces it for step-visible sandboxed SQL access.
+        """
         delivery_repo = MagicMock()
         smtp = {"host": "h"}
         provider = MagicMock()
         db_writer = MagicMock()
-        db_conn = MagicMock()
+        sandbox = MagicMock()
         report_repo = MagicMock()
         tmpl = MagicMock()
         ps_repo = MagicMock()
@@ -180,7 +189,7 @@ class TestInitialOutputsInjection:
             smtp_config=smtp,
             provider_adapter=provider,
             db_writer=db_writer,
-            db_connection=db_conn,
+            sql_sandbox=sandbox,
             report_repository=report_repo,
             template_engine=tmpl,
             pipeline_state_repo=ps_repo,
@@ -194,13 +203,14 @@ class TestInitialOutputsInjection:
         result = await runner.run(policy, trigger_type="manual")
 
         assert result["status"] == "success"
-        # Assert ALL 9 dependency keys are present in context.outputs
+        # Assert step-visible dependency keys are present in context.outputs
+        # db_connection is NOT in this set — it is internal-only
         expected_keys = {
             "delivery_repository",
             "smtp_config",
             "provider_adapter",
             "db_writer",
-            "db_connection",
+            "sql_sandbox",
             "report_repository",
             "template_engine",
             "pipeline_state_repo",
@@ -212,7 +222,7 @@ class TestInitialOutputsInjection:
         assert captured_outputs["smtp_config"] is smtp
         assert captured_outputs["provider_adapter"] is provider
         assert captured_outputs["db_writer"] is db_writer
-        assert captured_outputs["db_connection"] is db_conn
+        assert captured_outputs["sql_sandbox"] is sandbox
         assert captured_outputs["report_repository"] is report_repo
         assert captured_outputs["template_engine"] is tmpl
         assert captured_outputs["pipeline_state_repo"] is ps_repo
@@ -236,7 +246,7 @@ class TestInitialOutputsInjection:
             "smtp_config",
             "provider_adapter",
             "db_writer",
-            "db_connection",
+            "sql_sandbox",
             "report_repository",
             "template_engine",
             "pipeline_state_repo",

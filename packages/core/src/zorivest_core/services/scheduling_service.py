@@ -10,8 +10,6 @@ MEU: MEU-89 (scheduling-api-mcp)
 
 from __future__ import annotations
 
-import hashlib
-import json
 import uuid
 from dataclasses import dataclass, field
 from datetime import datetime, timezone
@@ -241,25 +239,39 @@ class SchedulingService:
         await self._audit.log("policy.delete", "policy", policy_id)
 
     async def approve_policy(self, policy_id: str) -> dict[str, Any] | None:
-        """Approve a policy for execution and schedule it."""
+        """Approve a policy for execution.
+
+        Sets approved=True and recomputes the content hash.
+        Does NOT auto-schedule — the enabled flag is controlled
+        separately via patch_schedule, giving the GUI explicit
+        control over Draft → Ready vs Draft → Scheduled transitions.
+        """
         policy = await self._policies.get_by_id(policy_id)
         if not policy:
             return None
+
+        # Recompute content_hash through the canonical Pydantic path
+        # to ensure approved_hash matches what the runner will compute.
+        policy_json = policy.get("policy_json", {})
+        canonical_hash = _compute_hash(policy_json)
 
         now = datetime.now(timezone.utc)
         update_data = {
             "approved": True,
             "approved_at": now,
-            "approved_hash": policy.get("content_hash", ""),
+            "approved_hash": canonical_hash,
+            "content_hash": canonical_hash,  # sync stored hash too
         }
         result = await self._policies.update(policy_id, update_data)
 
-        # Schedule the policy
+        # Schedule only if the policy is already enabled (e.g. re-approval
+        # after content edit on a previously-scheduled policy)
         pj = policy.get("policy_json", {})
         trigger = pj.get("trigger", {})
+        is_enabled = policy.get("enabled", False) or trigger.get("enabled", False)
         cron = trigger.get("cron_expression", "")
-        tz = trigger.get("timezone", "UTC")
-        if cron:
+        if is_enabled and cron:
+            tz = trigger.get("timezone", "UTC")
             self._scheduler.schedule_policy(
                 policy_name=policy.get("name", ""),
                 policy_id=policy_id,
@@ -323,12 +335,23 @@ class SchedulingService:
             policy_json = policy.get("policy_json", {})
             try:
                 doc = PolicyDocument(**policy_json)
+
+                # §9C.3c: Build approval provenance snapshot from persisted state
+                from zorivest_core.domain.approval_snapshot import ApprovalSnapshot
+
+                approval_snapshot = ApprovalSnapshot(
+                    approved=bool(policy.get("approved", False)),
+                    approved_hash=policy.get("approved_hash"),
+                    approved_at=policy.get("approved_at"),
+                )
+
                 run_result = await self._runner.run(
                     policy=doc,
                     trigger_type=trigger_type,
                     dry_run=dry_run,
                     policy_id=policy_id,
                     run_id=run_id,
+                    approval_snapshot=approval_snapshot,
                 )
                 # Runner finalized the record; reflect status in response
                 result.update(
@@ -450,10 +473,19 @@ class SchedulingService:
 
         pj["trigger"] = trigger
         update_data["policy_json"] = pj
-        new_hash = _compute_hash(pj)
+
+        # Compute content hash for approval-reset check, but exclude
+        # the `enabled` flag — it's operational metadata, not content.
+        # Toggling enabled on/off should NOT reset approval.
+        pj_for_hash = dict(pj)
+        trigger_for_hash = dict(pj_for_hash.get("trigger", {}))
+        trigger_for_hash["enabled"] = True  # normalize for hashing
+        pj_for_hash["trigger"] = trigger_for_hash
+        new_hash = _compute_hash(pj_for_hash)
         update_data["content_hash"] = new_hash
 
-        # Reset approval if content hash changed (§9.9 approval-reset rule)
+        # Reset approval only if actual content changed (cron, timezone, etc.)
+        # NOT when only enabled changed
         old_hash = policy.get("content_hash", "")
         if new_hash != old_hash:
             update_data["approved"] = False
@@ -462,18 +494,22 @@ class SchedulingService:
 
         result = await self._policies.update(policy_id, update_data)
 
-        # Reschedule only if still approved and enabled
-        if (
-            policy.get("approved")
-            and new_hash == old_hash
-            and trigger.get("enabled", True)
-        ):
+        # Determine effective enabled state
+        effective_enabled = (
+            enabled if enabled is not None else trigger.get("enabled", True)
+        )
+
+        # Schedule or unschedule based on approval + enabled state
+        is_approved = policy.get("approved") and new_hash == old_hash
+        if is_approved and effective_enabled:
             self._scheduler.schedule_policy(
                 policy_name=policy.get("name", ""),
                 policy_id=policy_id,
                 cron_expression=trigger.get("cron_expression", ""),
                 timezone=trigger.get("timezone", "UTC"),
             )
+        elif is_approved and not effective_enabled:
+            self._scheduler.unschedule_policy(policy_id)
         elif new_hash != old_hash:
             self._scheduler.unschedule_policy(policy_id)
 
@@ -481,6 +517,13 @@ class SchedulingService:
 
 
 def _compute_hash(policy_json: dict[str, Any]) -> str:
-    """Compute deterministic content hash for a policy JSON."""
-    canonical = json.dumps(policy_json, sort_keys=True, separators=(",", ":"))
-    return hashlib.sha256(canonical.encode()).hexdigest()
+    """Compute deterministic content hash for a policy JSON.
+
+    Delegates to ``compute_content_hash`` to ensure the same canonical
+    representation (Pydantic model_dump) is used everywhere — both at
+    policy creation/approval time and at pipeline execution time.
+    """
+    from zorivest_core.domain.policy_validator import compute_content_hash
+
+    doc = PolicyDocument(**policy_json)
+    return compute_content_hash(doc)

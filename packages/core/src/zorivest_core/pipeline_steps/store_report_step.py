@@ -100,23 +100,24 @@ class StoreReportStep(RegisteredStep):
         data_queries: list[dict[str, str]],
         context: StepContext,
     ) -> dict[str, Any]:
-        """Execute data queries via sandboxed SQL connection.
+        """Execute data queries via SqlSandbox.
 
-        Looks for 'db_connection' in context.outputs. Raises ValueError
-        if queries are provided but no connection is available.
+        Looks for 'sql_sandbox' in context.outputs. Raises ValueError
+        if queries are provided but no sandbox is available.
+
+        Per §9C.2c: all policy-authored SQL is routed through SqlSandbox.
         """
-        db_conn = context.outputs.get("db_connection")
+        sandbox = context.outputs.get("sql_sandbox")
 
         if not data_queries:
             return {}
 
-        if db_conn is None:
+        if sandbox is None:
             raise ValueError(
-                "db_connection required in context.outputs when data_queries"
+                "sql_sandbox required in context.outputs when data_queries"
                 " is non-empty for StoreReportStep"
             )
 
-        # db_conn is narrowed to non-None beyond this point
         snapshots: dict[str, Any] = {}
 
         for query_def in data_queries:
@@ -124,13 +125,7 @@ class StoreReportStep(RegisteredStep):
             sql = query_def.get("sql", "")
 
             if sql:
-                cursor = db_conn.execute(sql)
-                columns = (
-                    [desc[0] for desc in cursor.description]
-                    if cursor.description
-                    else []
-                )
-                rows = [dict(zip(columns, row)) for row in cursor.fetchall()]
+                rows = sandbox.execute(sql, {})
                 snapshots[name] = {"sql": sql, "rows": rows}
             else:
                 snapshots[name] = {"sql": sql, "rows": []}

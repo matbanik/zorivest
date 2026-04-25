@@ -561,13 +561,14 @@ async def test_AC_F17_fetch_step_calls_provider_adapter():
 
 @pytest.mark.asyncio
 async def test_AC_F18_fetch_step_db_query_criteria_with_connection():
-    """FetchStep passes db_connection to CriteriaResolver, enabling
-    db_query criteria resolution via SQL execution."""
+    """FetchStep passes sql_sandbox to CriteriaResolver, enabling
+    db_query criteria resolution via sandboxed SQL execution."""
     import sqlite3
     from unittest.mock import AsyncMock
 
     from zorivest_core.domain.pipeline import StepContext
     from zorivest_core.pipeline_steps.fetch_step import FetchStep
+    from zorivest_core.services.sql_sandbox import SqlSandbox
 
     conn = sqlite3.connect(":memory:")
     conn.execute("CREATE TABLE dates (start_date TEXT, end_date TEXT)")
@@ -575,6 +576,11 @@ async def test_AC_F18_fetch_step_db_query_criteria_with_connection():
         "INSERT INTO dates VALUES ('2026-01-01T00:00:00+00:00', '2026-01-31T00:00:00+00:00')"
     )
     conn.commit()
+
+    # Create a sandbox wrapping the same in-memory connection
+    sandbox = SqlSandbox.__new__(SqlSandbox)
+    sandbox._conn = conn
+    sandbox._start_time = 0.0
 
     mock_adapter = AsyncMock()
     mock_adapter.fetch.return_value = {
@@ -588,7 +594,7 @@ async def test_AC_F18_fetch_step_db_query_criteria_with_connection():
     context = StepContext(
         run_id="run-1",
         policy_id="pol-1",
-        outputs={"db_connection": conn, "provider_adapter": mock_adapter},
+        outputs={"sql_sandbox": sandbox, "provider_adapter": mock_adapter},
     )
 
     result = await step.execute(

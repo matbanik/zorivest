@@ -2,9 +2,10 @@
 
 ## Current Priority
 
-Pipeline dataflow hardening corrections complete (MEU-PW12/PW13). All 4 critical review findings resolved: (1) weak send test replaced with Tier 2 template rendering proof, (2) handoff AC tables rewritten with real test IDs, (3) FAIL_TO_PASS evidence added, (4) 8 PIPE-* issues archived in known-issues.md. Test count: 2154 passed. Handoff re-submitted for Codex validation.
+P2.5c Pipeline Security Hardening — MEU-PH1/PH2/PH3 complete. 3/10 MEUs done. Full suite: 2227 passed, pyright 0 errors, ruff clean.
 
 ## Next Steps
 
-1. Codex re-validation of corrected handoff #123
-2. Continue to next pipeline phase or new feature area per build priority matrix
+1. MEU-PH4 (QueryStep) — read-only SQL via sandbox
+2. MEU-PH5 (ComposeStep) — multi-source data merging
+3. MEU-PH6 (template-database) — EmailTemplateModel + nh3 sanitization

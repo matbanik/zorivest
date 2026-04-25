@@ -125,3 +125,51 @@ def create_encrypted_connection(db_path: str, passphrase: str) -> sqlite3.Connec
     conn.execute("PRAGMA journal_mode=wal")
     conn.execute("PRAGMA synchronous=NORMAL")
     return conn
+
+
+# ---------------------------------------------------------------------------
+# Read-Only Sandbox Connection (§9C.2b)
+# ---------------------------------------------------------------------------
+
+
+def open_sandbox_connection(
+    db_path: str,
+    passphrase: str | None = None,
+    *,
+    read_only: bool = True,
+) -> sqlite3.Connection:
+    """Open a read-only SQLite connection for SQL sandbox use.
+
+    Uses SQLCipher when available and passphrase is provided.
+    Falls back to plain sqlite3 otherwise.
+
+    The connection is opened in URI mode with ``?mode=ro`` to enforce
+    read-only access at the C level (immutable for the connection lifetime).
+
+    Args:
+        db_path: Path to the database file.
+        passphrase: Optional encryption passphrase (SQLCipher only).
+        read_only: If True, open in read-only URI mode.
+
+    Returns:
+        A ``sqlite3.Connection`` in read-only mode.
+    """
+    mode = "ro" if read_only else "rw"
+    uri = f"file:{db_path}?mode={mode}"
+
+    if _SQLCIPHER_AVAILABLE and _sqlcipher3 is not None and passphrase is not None:
+        conn = _sqlcipher3.connect(uri, uri=True)
+        conn.execute(f"PRAGMA key = '{passphrase}'")
+        logger.info(
+            "Sandbox connection opened with SQLCipher (read_only=%s)", read_only
+        )
+        return conn  # type: ignore[no-any-return]
+
+    # Fallback: plain sqlite3
+    if passphrase is not None:
+        logger.warning(
+            "sqlcipher3 not available — sandbox at '%s' uses plain sqlite3",
+            db_path,
+        )
+    conn = sqlite3.connect(uri, uri=True)
+    return conn

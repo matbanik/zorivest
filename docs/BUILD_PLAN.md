@@ -369,9 +369,9 @@ Domain → Infrastructure → Services → REST API → MCP Server → GUI → D
 
 | MEU | Slug | Matrix Item | Build Plan Ref | Description | Status |
 |-----|------|:-----------:|----------------|-------------|:------:|
-| MEU-PH1 | `stepcontext-safety` | 49.16 | [09c §9C.1](build-plan/09c-pipeline-security-hardening.md) | StepContext `safe_deepcopy` + `Secret` carrier class + depth/byte guards | ⬜ |
-| MEU-PH2 | `sql-sandbox` | 49.17 | [09c §9C.2](build-plan/09c-pipeline-security-hardening.md) | SQL sandbox: `set_authorizer` + `mode=ro` + AST allowlist + `progress_handler` + secrets scan + policy content IDs | ⬜ |
-| MEU-PH3 | `send-fetch-guards` | 49.18 | [09c §9C.3–9C.4](build-plan/09c-pipeline-security-hardening.md) | SendStep confirmation gate + FetchStep MIME/fan-out validation | ⬜ |
+| MEU-PH1 | `stepcontext-safety` | 49.16 | [09c §9C.1](build-plan/09c-pipeline-security-hardening.md) | StepContext `safe_deepcopy` + `Secret` carrier class + depth/byte guards | ✅ |
+| MEU-PH2 | `sql-sandbox` | 49.17 | [09c §9C.2](build-plan/09c-pipeline-security-hardening.md) | SQL sandbox: `set_authorizer` + `mode=ro` + AST allowlist + `progress_handler` + secrets scan + policy content IDs | ✅ |
+| MEU-PH3 | `send-fetch-guards` | 49.18 | [09c §9C.3–9C.4](build-plan/09c-pipeline-security-hardening.md) | SendStep confirmation gate + FetchStep MIME/fan-out validation | ✅ |
 | MEU-PH4 | `query-step` | 49.19 | [09d §9D.1](build-plan/09d-pipeline-step-extensions.md) | QueryStep implementation (read-only SQL via sandbox) | ⬜ |
 | MEU-PH5 | `compose-step` | 49.20 | [09d §9D.2](build-plan/09d-pipeline-step-extensions.md) | ComposeStep implementation (multi-source data merging) | ⬜ |
 | MEU-PH6 | `template-database` | 49.21 | [09e §all](build-plan/09e-template-database.md) | EmailTemplateModel + HardenedSandbox + nh3 sanitization + template CRUD | ⬜ |
@@ -624,7 +624,7 @@ Domain → Infrastructure → Services → REST API → MCP Server → GUI → D
 | P2.5 — Phase 9 + WebSocket | MEU-77 → MEU-90, MEU-174 | 15 | 14 |
 | P2.5a — Integration | MEU-90a → MEU-90d | 4 | 3 + 1 🚫 |
 | P2.5b — Wiring & Quality + Hardening | MEU-PW1 → MEU-PW13, MEU-72a, MEU-TD1 | 14 | 10 + 1 🟡 |
-| P2.5c — Security Hardening | MEU-PH1 → MEU-PH10 | 10 | 0 |
+| P2.5c — Security Hardening | MEU-PH1 → MEU-PH10 | 10 | 3 |
 | P2.6 — Phase 10 | MEU-91 → MEU-95b | 7 | 0 |
 | P2.75 — Expansion | MEU-96 → MEU-122 | 27 | 2 |
 | P3 — Tax | MEU-123 → MEU-156 | 34 | 0 |

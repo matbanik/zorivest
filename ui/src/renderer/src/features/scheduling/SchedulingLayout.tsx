@@ -77,13 +77,16 @@ export default function SchedulingLayout() {
             trigger: {
                 cron_expression: '0 8 * * 1-5',
                 timezone: tzSetting?.value || 'UTC',
-                enabled: true,
+                enabled: false,
             },
             steps: [
                 {
-                    id: 'step_1',
+                    id: 'fetch_data',
                     type: 'fetch',
-                    params: {},
+                    params: {
+                        provider: 'yahoo',
+                        data_type: 'ohlcv',
+                    },
                 },
             ],
         }
@@ -108,10 +111,21 @@ export default function SchedulingLayout() {
         [currentPolicy, updateMutation],
     )
 
-    const handleApprove = useCallback(() => {
+    const handleApprove = useCallback((opts?: { enableAfter?: boolean }) => {
         if (!currentPolicy) return
-        approveMutation.mutate(currentPolicy.id)
-    }, [currentPolicy, approveMutation])
+        const enableAfter = opts?.enableAfter ?? false
+        approveMutation.mutate(currentPolicy.id, {
+            onSuccess: () => {
+                if (enableAfter) {
+                    // Draft → Scheduled: also enable the schedule
+                    patchMutation.mutate({
+                        policyId: currentPolicy.id,
+                        params: { enabled: true },
+                    })
+                }
+            },
+        })
+    }, [currentPolicy, approveMutation, patchMutation])
 
     const handleDelete = useCallback(() => {
         if (!currentPolicy) return

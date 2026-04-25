@@ -4,9 +4,11 @@
 Implements:
 - validate_policy(): structural + referential validation (8 rules)
 - compute_content_hash(): SHA-256 for change detection
-- SQL_BLOCKLIST: defense-in-depth keyword filter
+- scan_for_secrets(): regex guard on policy text (§9C.5)
+- policy_content_id(): content-addressable SHA-256 (§9C.6)
+- AST-based SQL validation via SqlSandbox (§9C.2b)
 
-Spec reference: 09-scheduling.md §9.1g
+Spec reference: 09-scheduling.md §9.1g, 09c §9C.5, §9C.6
 """
 
 from __future__ import annotations
@@ -30,17 +32,40 @@ class ValidationError:
     severity: str = "error"  # "error" | "warning"
 
 
-# SQL keywords that must never appear in report queries
-SQL_BLOCKLIST = {
-    "DROP",
-    "DELETE",
-    "UPDATE",
-    "INSERT",
-    "ALTER",
-    "ATTACH",
-    "PRAGMA",
-    "CREATE",
-}
+# ---------------------------------------------------------------------------
+# §9C.5: Secrets Scanning — regex guard on policy text
+# ---------------------------------------------------------------------------
+
+_SECRETS_PATTERN = re.compile(
+    r"(sk-[a-zA-Z0-9]{20,}"
+    r"|AKIA[0-9A-Z]{16}"
+    r"|ghp_[a-zA-Z0-9]{36}"
+    r"|Bearer\s+[a-zA-Z0-9\-._~+/]+=*"
+    r"|-----BEGIN.*PRIVATE KEY-----"
+    r")"
+)
+
+
+def scan_for_secrets(policy_json: str) -> list[str]:
+    """Scan policy JSON text for possible embedded credentials.
+
+    Returns a list of truncated match descriptions. Empty = clean.
+    """
+    matches = _SECRETS_PATTERN.findall(policy_json)
+    if matches:
+        return [f"Possible credential detected: {m[:10]}..." for m in matches]
+    return []
+
+
+# ---------------------------------------------------------------------------
+# §9C.6: Content-Addressable Policy IDs
+# ---------------------------------------------------------------------------
+
+
+def policy_content_id(policy: dict) -> str:
+    """SHA-256 of canonical JSON for audit trail and TOCTOU prevention."""
+    canonical = json.dumps(policy, sort_keys=True, separators=(",", ":"))
+    return hashlib.sha256(canonical.encode()).hexdigest()
 
 
 # ---------------------------------------------------------------------------
@@ -114,8 +139,8 @@ def validate_policy(doc: PolicyDocument) -> list[ValidationError]:
             )
         )
 
-    # 6. SQL blocklist check in params
-    _check_sql_blocklist(doc, errors)
+    # 6. SQL AST validation in params (replaces old SQL_BLOCKLIST)
+    _check_sql_ast(doc, errors)
 
     # 7. Step params validation against Params model (AC-9)
     # For each step with a known type in STEP_REGISTRY, validate step.params
@@ -229,35 +254,54 @@ def _check_refs_list(
             _check_refs_list(item, step_id, seen_ids, errors, f"{path}[{_i}]")
 
 
-def _check_sql_blocklist(doc: PolicyDocument, errors: list[ValidationError]) -> None:
-    """Recursively scan all string values in step params for SQL injection patterns.
+def _check_sql_ast(doc: PolicyDocument, errors: list[ValidationError]) -> None:
+    """Validate SQL strings in step params using sqlglot AST analysis.
 
-    Note: This is defense-in-depth. The primary protection is SQLite's
-    set_authorizer + PRAGMA query_only (see Step 9.6c).
+    Replaces the old SQL_BLOCKLIST string-match approach (§9C.2b).
+    Uses SqlSandbox.validate_sql() for C-level equivalent validation.
     """
+    from zorivest_core.services.sql_sandbox import SqlSandbox
+
+    sandbox = SqlSandbox.__new__(SqlSandbox)  # no connection needed for validate_sql
     for step in doc.steps:
-        _scan_value_for_sql(step.params, f"steps[{step.id}].params", errors)
+        _scan_value_for_sql_ast(
+            step.params, f"steps[{step.id}].params", errors, sandbox
+        )
 
 
-def _scan_value_for_sql(value: Any, path: str, errors: list[ValidationError]) -> None:
-    """Recursively scan a value tree for blocked SQL keywords."""
+def _scan_value_for_sql_ast(
+    value: Any, path: str, errors: list[ValidationError], sandbox: Any
+) -> None:
+    """Recursively scan a value tree for blocked SQL using AST validation."""
     if isinstance(value, str):
+        # Only validate strings that look like SQL (contain SELECT/INSERT/etc.)
+        sql_keywords = {
+            "SELECT",
+            "INSERT",
+            "UPDATE",
+            "DELETE",
+            "DROP",
+            "ALTER",
+            "CREATE",
+            "ATTACH",
+        }
         tokens = set(re.split(r"[^A-Za-z]+", value.upper()))
-        blocked = SQL_BLOCKLIST.intersection(tokens)
-        if blocked:
-            errors.append(
-                ValidationError(
-                    path,
-                    f"Blocked SQL keywords found: {blocked}",
-                    severity="error",
+        if sql_keywords.intersection(tokens):
+            ast_errors = sandbox.validate_sql(value)
+            if ast_errors:
+                errors.append(
+                    ValidationError(
+                        path,
+                        f"SQL validation failed: {ast_errors}",
+                        severity="error",
+                    )
                 )
-            )
     elif isinstance(value, dict):
         for k, v in value.items():
-            _scan_value_for_sql(v, f"{path}.{k}", errors)
+            _scan_value_for_sql_ast(v, f"{path}.{k}", errors, sandbox)
     elif isinstance(value, list):
         for i, item in enumerate(value):
-            _scan_value_for_sql(item, f"{path}[{i}]", errors)
+            _scan_value_for_sql_ast(item, f"{path}[{i}]", errors, sandbox)
 
 
 def _check_step_params(doc: PolicyDocument, errors: list[ValidationError]) -> None:

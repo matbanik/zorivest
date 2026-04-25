@@ -392,19 +392,26 @@ async def test_AC_SR16_store_report_step_execute_snapshot():
 
 @pytest.mark.asyncio
 async def test_AC_SR16b_store_report_step_executes_sandboxed_sql():
-    """When db_connection is injected, _execute_sandboxed_sql() runs real
-    SQL queries and returns actual rows in the snapshot."""
+    """When sql_sandbox is injected, _execute_sandboxed_sql() runs real
+    SQL queries via SqlSandbox and returns actual rows in the snapshot."""
     import sqlite3
 
     from zorivest_core.domain.pipeline import StepContext
     from zorivest_core.pipeline_steps.store_report_step import StoreReportStep
+    from zorivest_core.services.sql_sandbox import SqlSandbox
 
-    # Create in-memory DB with test data
+    # Create in-memory DB with test data using a writable connection
     conn = sqlite3.connect(":memory:")
     conn.execute("CREATE TABLE positions (symbol TEXT, qty INTEGER)")
     conn.execute("INSERT INTO positions VALUES ('AAPL', 100)")
     conn.execute("INSERT INTO positions VALUES ('MSFT', 50)")
     conn.commit()
+
+    # Create a sandbox that wraps the same connection
+    # For in-memory DBs, we need a workaround: create sandbox manually
+    sandbox = SqlSandbox.__new__(SqlSandbox)
+    sandbox._conn = conn
+    sandbox._start_time = 0.0
 
     mock_repo = MagicMock()
     mock_repo.create.return_value = "rpt-sql"
@@ -413,7 +420,7 @@ async def test_AC_SR16b_store_report_step_executes_sandboxed_sql():
     context = StepContext(
         run_id="run-1",
         policy_id="pol-1",
-        outputs={"db_connection": conn, "report_repository": mock_repo},
+        outputs={"sql_sandbox": sandbox, "report_repository": mock_repo},
     )
 
     queries = [{"name": "positions", "sql": "SELECT symbol, qty FROM positions"}]
@@ -634,14 +641,14 @@ def test_AC_CR1_criteria_resolver_per_field_with_static():
 
 
 # ---------------------------------------------------------------------------
-# AC-SR20: _execute_sandboxed_sql raises ValueError without db_connection
+# AC-SR20: _execute_sandboxed_sql raises ValueError without sql_sandbox
 # ---------------------------------------------------------------------------
 
 
 @pytest.mark.asyncio
 async def test_AC_SR20_execute_sandboxed_sql_raises_without_connection():
     """_execute_sandboxed_sql raises ValueError when data_queries is
-    non-empty but db_connection is not injected."""
+    non-empty but sql_sandbox is not injected."""
 
     from zorivest_core.domain.pipeline import StepContext
     from zorivest_core.pipeline_steps.store_report_step import StoreReportStep
@@ -657,7 +664,7 @@ async def test_AC_SR20_execute_sandboxed_sql_raises_without_connection():
     )
 
     queries = [{"name": "test", "sql": "SELECT 1"}]
-    with pytest.raises(ValueError, match="db_connection required"):
+    with pytest.raises(ValueError, match="sql_sandbox required"):
         await step.execute(
             params={"report_name": "Test", "data_queries": queries},
             context=context,

@@ -17,6 +17,10 @@ from zorivest_core.domain.pipeline import StepContext, StepResult
 from zorivest_core.domain.step_registry import RegisteredStep
 
 
+class PolicyExecutionError(Exception):
+    """Raised when a pipeline step violates a security policy gate."""
+
+
 class SendStep(RegisteredStep):
     """Deliver rendered reports via email or local file copy.
 
@@ -52,6 +56,10 @@ class SendStep(RegisteredStep):
         html_body: Optional[str] = Field(
             default=None, description="HTML body from render step"
         )
+        requires_confirmation: bool = Field(
+            default=False,
+            description="Whether this send requires UI confirmation (§9C.3b)",
+        )
 
     async def execute(self, params: dict, context: StepContext) -> StepResult:
         """Execute the send step.
@@ -61,6 +69,9 @@ class SendStep(RegisteredStep):
         3. Return deliveries list with sent/failed counts
         """
         p = self.Params(**params)
+
+        # §9C.3b: Confirmation gate
+        self._check_confirmation_gate(p, context)
 
         if p.channel == "email":
             delivery_result = await self._send_emails(p, context)
@@ -96,6 +107,45 @@ class SendStep(RegisteredStep):
                 "deliveries": delivery_result.get("deliveries", []),
             },
         )
+
+    def _check_confirmation_gate(self, params: Params, context: StepContext) -> None:
+        """§9C.3b-c: Confirmation gate for SendStep.
+
+        Two modes:
+        1. requires_confirmation=True → user must have confirmed (UI button)
+        2. requires_confirmation=False + approval_snapshot present →
+           content_hash must match approved_hash (no drift)
+        3. requires_confirmation=False + no snapshot → rejected per §9C.3c
+           (approval record required to honor opt-out)
+        """
+        if params.requires_confirmation:
+            # §9C.3b: Explicit confirmation required
+            if not context.has_user_confirmation:
+                raise PolicyExecutionError(
+                    "SendStep requires user confirmation but "
+                    "has_user_confirmation is False"
+                )
+        else:
+            # §9C.3c: Opt-out mode — requires stored approval record
+            snapshot = context.approval_snapshot
+            if snapshot is None:
+                # No approval record → reject opt-out to prevent malicious bypass
+                raise PolicyExecutionError(
+                    "requires_confirmation=False requires a stored policy approval "
+                    "record. Use POST /api/v1/scheduling/policies/{id}/approve first."
+                )
+            if not snapshot.approved:
+                raise PolicyExecutionError(
+                    "SendStep requires an approved policy but "
+                    "approval_snapshot.approved is False"
+                )
+            # Drift detection — content must match approved version
+            if snapshot.approved_hash != context.policy_hash:
+                raise PolicyExecutionError(
+                    f"Policy content hash drift detected: "
+                    f"approved_hash={snapshot.approved_hash!r} != "
+                    f"current_hash={context.policy_hash!r}"
+                )
 
     async def _send_emails(
         self, params: Params, context: StepContext
