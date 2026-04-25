@@ -592,49 +592,56 @@ describe('PolicyDetail', () => {
         expect(screen.getByTestId(SCHEDULING_TEST_IDS.RUN_NOW_BTN)).toBeDisabled()
     })
 
-    it('AC-B6: Delete triggers window.confirm dialog', () => {
-        const confirmSpy = vi.spyOn(window, 'confirm').mockReturnValue(true)
-
+    it('AC-B6: Delete opens themed confirmation modal and confirms', () => {
         render(
             <PolicyDetail policy={APPROVED_POLICY} {...defaultHandlers} />,
             { wrapper: createWrapper() },
         )
 
+        // Click delete — should open themed modal, NOT window.confirm
         fireEvent.click(screen.getByTestId(SCHEDULING_TEST_IDS.POLICY_DELETE_BTN))
 
-        expect(confirmSpy).toHaveBeenCalledWith(
-            expect.stringContaining('Delete policy'),
-        )
+        // Modal should be visible in the DOM (portaled to body)
+        // 'Delete Policy' appears in heading + confirm button, so use getAllByText
+        expect(screen.getAllByText('Delete Policy').length).toBeGreaterThanOrEqual(1)
+        expect(screen.getByText(/Are you sure you want to delete/)).toBeInTheDocument()
+
+        // Click the confirm button in the modal
+        const confirmBtn = screen.getByRole('button', { name: 'Delete Policy' })
+        fireEvent.click(confirmBtn)
+
         expect(defaultHandlers.onDelete).toHaveBeenCalled()
-        confirmSpy.mockRestore()
     })
 
-    it('AC-B6: Delete cancelled when user declines confirmation', () => {
-        const confirmSpy = vi.spyOn(window, 'confirm').mockReturnValue(false)
-
+    it('AC-B6: Delete cancelled when user clicks Cancel in modal', () => {
         render(
             <PolicyDetail policy={APPROVED_POLICY} {...defaultHandlers} />,
             { wrapper: createWrapper() },
         )
 
+        // Open the delete modal
         fireEvent.click(screen.getByTestId(SCHEDULING_TEST_IDS.POLICY_DELETE_BTN))
+        expect(screen.getAllByText('Delete Policy').length).toBeGreaterThanOrEqual(1)
 
-        expect(confirmSpy).toHaveBeenCalled()
+        // Click Cancel — modal should close, onDelete NOT called
+        const cancelBtn = screen.getByRole('button', { name: 'Cancel' })
+        fireEvent.click(cancelBtn)
+
         expect(defaultHandlers.onDelete).not.toHaveBeenCalled()
-        confirmSpy.mockRestore()
     })
 
-    it('AC-B8: State pill click calls onApprove for draft policies', () => {
+    it('AC-B8: Clicking Ready button calls onApprove for draft policies', () => {
         render(
             <PolicyDetail policy={DRAFT_POLICY} {...defaultHandlers} />,
             { wrapper: createWrapper() },
         )
 
-        fireEvent.click(screen.getByTestId('policy-state-pill-inline'))
-        expect(defaultHandlers.onApprove).toHaveBeenCalled()
+        // Click the "Ready" segment in the segmented selector
+        fireEvent.click(screen.getAllByTestId('policy-state-ready')[0])
+        expect(defaultHandlers.onApprove).toHaveBeenCalledWith({ enableAfter: false })
     })
 
-    it('AC-B8: State pill click calls onPatchSchedule for ready policies', () => {
+    it('AC-B8: Clicking Scheduled button calls onPatchSchedule for ready policies', () => {
         const readyPolicy = { ...MOCK_POLICY, approved: true, enabled: false }
 
         render(
@@ -642,7 +649,8 @@ describe('PolicyDetail', () => {
             { wrapper: createWrapper() },
         )
 
-        fireEvent.click(screen.getByTestId('policy-state-pill-inline'))
+        // Click the "Scheduled" segment in the segmented selector
+        fireEvent.click(screen.getAllByTestId('policy-state-scheduled')[0])
         expect(defaultHandlers.onPatchSchedule).toHaveBeenCalledWith({ enabled: true })
     })
 })
