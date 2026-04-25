@@ -41,11 +41,17 @@ Pre-trade what-if tax simulation for a proposed sale.
 
 #### Annotations
 
+- `title`: "Simulate Tax Impact"
 - `readOnlyHint`: true
 - `destructiveHint`: false
 - `idempotentHint`: true
+- `openWorldHint`: false — all data sourced from local backend only
 - `toolset`: tax
 - `alwaysLoaded`: false
+
+> [!NOTE]
+> The MCP response `text` field MUST include the disclaimer from `TaxResponseEnvelope.disclaimer`
+> (see [04f-api-tax.md](04f-api-tax.md#tax-disclaimer-envelope)). The AI agent surfaces this to users.
 
 **Input:** `ticker`, `action` (sell/cover), `quantity`, `price`, `account_id`, `cost_basis_method` (default fifo)
 **Output:** JSON with:
@@ -284,11 +290,17 @@ Record a quarterly estimated tax payment.
 
 #### Annotations
 
+- `title`: Record Quarterly Tax Payment
 - `readOnlyHint`: false
-- `destructiveHint`: false
-- `idempotentHint`: true
+- `destructiveHint`: true — writes a payment record that affects YTD totals
+- `idempotentHint`: false — repeating creates duplicate payment records
+- `openWorldHint`: false
 - `toolset`: tax
 - `alwaysLoaded`: false
+
+> [!IMPORTANT]
+> This tool records financial data. The M3 confirmation gate (`confirm: true`) is required
+> to prevent accidental writes. AI agents MUST confirm with the user before calling.
 
 **Input:** `quarter` (Q1–Q4), `tax_year`, `payment_amount`, `confirm` (must be `true`)
 **Output:** JSON with:

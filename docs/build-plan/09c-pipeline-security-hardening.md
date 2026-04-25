@@ -53,11 +53,33 @@ class Secret:
 MAX_DEEPCOPY_DEPTH = 64
 MAX_DEEPCOPY_BYTES = 10 * 1024 * 1024  # 10 MB
 
+def _estimate_size_recursive(obj: object, depth: int = 0, seen: set | None = None) -> int:
+    """Walk object graph to estimate total size with cycle and depth protection."""
+    if depth > MAX_DEEPCOPY_DEPTH:
+        raise ValueError(f"Object nesting depth exceeds {MAX_DEEPCOPY_DEPTH}")
+    if seen is None:
+        seen = set()
+    obj_id = id(obj)
+    if obj_id in seen:
+        return 0  # cycle — already counted
+    seen.add(obj_id)
+    total = sys.getsizeof(obj)
+    if isinstance(obj, dict):
+        for k, v in obj.items():
+            total += _estimate_size_recursive(k, depth + 1, seen)
+            total += _estimate_size_recursive(v, depth + 1, seen)
+    elif isinstance(obj, (list, tuple, set, frozenset)):
+        for item in obj:
+            total += _estimate_size_recursive(item, depth + 1, seen)
+    elif hasattr(obj, '__dict__'):
+        total += _estimate_size_recursive(vars(obj), depth + 1, seen)
+    return total
+
 def safe_deepcopy(obj: object) -> object:
-    """Deep-copy with depth and byte guards to prevent DoS."""
-    estimated = sys.getsizeof(obj)
-    if estimated > MAX_DEEPCOPY_BYTES:
-        raise ValueError(f"Object too large for deep-copy: {estimated} bytes > {MAX_DEEPCOPY_BYTES}")
+    """Deep-copy with recursive depth, aggregate byte, and Secret guards."""
+    total_bytes = _estimate_size_recursive(obj)
+    if total_bytes > MAX_DEEPCOPY_BYTES:
+        raise ValueError(f"Object too large for deep-copy: {total_bytes} bytes > {MAX_DEEPCOPY_BYTES}")
     return copy.deepcopy(obj)
 ```
 
@@ -80,13 +102,16 @@ New file: `tests/unit/test_stepcontext_isolation.py`
 | `test_secret_blocks_deepcopy` | `copy.deepcopy(Secret("x"))` raises `RuntimeError` |
 | `test_secret_reveal` | `Secret("x").reveal() == "x"` |
 | `test_safe_deepcopy_rejects_oversized` | Objects > 10 MB raise `ValueError` |
+| `test_safe_deepcopy_rejects_deep_nesting` | 65-deep nested dict raises `ValueError` |
+| `test_safe_deepcopy_handles_cycles` | Cyclic reference does not infinite-loop |
+| `test_safe_deepcopy_secret_in_nested_obj` | Dict containing `Secret` raises on deepcopy |
 
 ### 9C.1d Exit Criteria
 
-- [ ] `safe_copy.py` exists with `Secret` + `safe_deepcopy`
+- [ ] `safe_copy.py` exists with `Secret` + `safe_deepcopy` + `_estimate_size_recursive`
 - [ ] `StepContext.get_output()` uses `safe_deepcopy()`
 - [ ] `StepContext.put()` (or `PipelineRunner._persist_step()`) uses `safe_deepcopy()`
-- [ ] All 6 tests pass
+- [ ] All 9 tests pass
 - [ ] No existing tests break
 
 ---
@@ -110,7 +135,7 @@ New module: `packages/core/src/zorivest_core/services/sql_sandbox.py`
 
 | Layer | Control | Purpose |
 |:-----:|---------|---------|
-| L1 | `sqlite3.Connection.set_authorizer()` | C-level: deny READ on `encrypted_keys`, `auth_users`, `sqlite_master`, `sqlite_schema`; deny ATTACH, PRAGMA write, load_extension |
+| L1 | `sqlite3.Connection.set_authorizer()` | C-level: deny READ on all tables in `SqlSandbox.DENY_TABLES` plus `sqlite_master`, `sqlite_schema`; deny ATTACH, PRAGMA write, load_extension |
 | L2 | `mode=ro` SQLite URI parameter | C-level: read-only at connection open (immutable) |
 | L3 | `PRAGMA query_only = ON` | Defense-in-depth: redundant write block |
 | L4 | `PRAGMA trusted_schema = OFF` | Prevent untrusted view/trigger execution |
@@ -119,15 +144,28 @@ New module: `packages/core/src/zorivest_core/services/sql_sandbox.py`
 
 ```python
 class SqlSandbox:
-    """Read-only SQL execution sandbox for AI-authored queries."""
+    """Read-only SQL execution sandbox for AI-authored queries.
 
+    Connection uses SQLCipher via open_sandbox_connection() factory,
+    which derives the read-only key from the existing DEK. See
+    packages/infrastructure/src/zorivest_infra/database/connection.py.
+    """
+
+    # Actual table names from zorivest_infra.database.models
     DENY_TABLES = frozenset({
-        "encrypted_keys", "auth_users", "sqlite_master",
-        "sqlite_schema", "sqlite_temp_master",
+        # Credential / auth tables
+        "settings",                 # Contains encrypted API keys, OAuth tokens
+        "market_provider_settings", # API keys, auth tokens for market data
+        "email_provider",           # SMTP credentials
+        "broker_configs",           # Broker API credentials
+        "mcp_guard",                # MCP confirmation tokens
+        # SQLite internals
+        "sqlite_master", "sqlite_schema", "sqlite_temp_master",
     })
 
-    def __init__(self, db_path: str):
-        self._conn = sqlite3.connect(f"file:{db_path}?mode=ro", uri=True)
+    def __init__(self, db_path: str, key: bytes):
+        # SQLCipher-aware read-only connection
+        self._conn = open_sandbox_connection(db_path, key, read_only=True)
         self._conn.set_authorizer(self._authorizer_callback)
         self._conn.execute("PRAGMA query_only = ON")
         self._conn.execute("PRAGMA trusted_schema = OFF")
@@ -179,16 +217,31 @@ class SqlSandbox:
 
 | File | Change |
 |------|--------|
-| `connection.py` (infra) | Add `open_sandbox_connection(db_path) -> SqlSandbox` factory |
+| `connection.py` (infra) | Add `open_sandbox_connection(db_path, key, read_only=True) -> SqlSandbox` factory |
 | `policy_validator.py` | Replace `SQL_BLOCKLIST` set with `SqlSandbox.validate_sql()` calls |
-| `pipeline_runner.py` | Inject `sql_sandbox` into `context.outputs` alongside `db_connection` |
+| `pipeline_runner.py` | Replace `db_connection` with `sql_sandbox` in `context.outputs` (steps no longer access raw connection) |
 | `main.py` (API) | Wire `SqlSandbox` creation in lifespan |
 
 **New dependency:** `sqlglot` (add to `pyproject.toml`)
 
-### 9C.2c Tests
+### 9C.2c Callsite Migration (Mandatory)
+
+> [!CAUTION]
+> The sandbox is incomplete unless ALL policy-authored SQL is routed through it.
+
+| Callsite | Current Path | Required Change |
+|----------|-------------|------------------|
+| `StoreReportStep._execute_sandboxed_sql()` | Uses trusted `db_connection` from context | Replace with `sql_sandbox.execute()`. Remove `_execute_sandboxed_sql` method entirely. |
+| `CriteriaResolver._resolve_db_query()` | Builds SQL from policy criteria, executes on trusted connection | Replace with `sql_sandbox.execute()`. CriteriaResolver receives `sql_sandbox` from context, not `db_connection`. |
+| `pipeline_runner.py` context injection | Exposes raw `db_connection` to steps via `context.outputs` | Replace `db_connection` with `sql_sandbox` in step-accessible context. Only `sql_sandbox` is available to steps. The runner's own persistence uses `db_connection` internally (not exposed to steps). |
+
+### 9C.2d Tests
 
 New file: `tests/unit/test_sql_sandbox.py`
+
+> [!NOTE]
+> Deny table expansion is merged into the canonical `DENY_TABLES` above.
+> There is no separate addendum — the snippet is the single source of truth.
 
 | Test | Assertion |
 |------|-----------|
@@ -199,20 +252,76 @@ New file: `tests/unit/test_sql_sandbox.py`
 | `test_drop_blocked` | DROP TABLE raises `SecurityError` |
 | `test_attach_blocked` | ATTACH DATABASE raises `SecurityError` |
 | `test_pragma_write_blocked` | PRAGMA with arg2 raises `SecurityError` |
-| `test_sensitive_table_read_blocked` | SELECT from `encrypted_keys` raises `SecurityError` |
+| `test_settings_read_blocked` | SELECT from `settings` raises `SecurityError` |
 | `test_sqlite_master_blocked` | SELECT from `sqlite_master` raises `SecurityError` |
 | `test_cte_allowed` | WITH + SELECT executes successfully |
 | `test_nested_dml_in_cte_blocked` | CTE containing INSERT raises `SecurityError` |
 | `test_timeout_aborts_long_query` | Recursive CTE aborts after 2 seconds |
 | `test_load_extension_blocked` | `load_extension()` call raises `SecurityError` |
 | `test_parameterized_binds` | `:param` binds work correctly |
+| `test_market_provider_settings_blocked` | SELECT from `market_provider_settings` raises `SecurityError` |
+| `test_email_provider_blocked` | SELECT from `email_provider` raises `SecurityError` |
+| `test_broker_configs_blocked` | SELECT from `broker_configs` raises `SecurityError` |
+| `test_mcp_guard_blocked` | SELECT from `mcp_guard` raises `SecurityError` |
 
-### 9C.2d Exit Criteria
+#### Schema-Discovery Security Tests
+
+These tests validate that `DENY_TABLES` filtering is enforced at the backend
+schema-discovery layer, not just at SQL execution time. Owner: MEU-PH9.
+
+| Test | Assertion |
+|------|-----------|
+| `test_db_schema_endpoint_excludes_denied_tables` | `GET /scheduling/db-schema` response contains zero entries for any table in `SqlSandbox.DENY_TABLES` |
+| `test_list_db_tables_excludes_denied_tables` | MCP `list_db_tables` output contains zero entries for any table in `SqlSandbox.DENY_TABLES` |
+| `test_get_db_row_samples_rejects_denied_table` | MCP `get_db_row_samples(table_name="settings")` returns error, not rows |
+| `test_db_schema_resource_excludes_denied_tables` | MCP `pipeline://db-schema` resource output contains zero entries for any table in `SqlSandbox.DENY_TABLES` |
+
+### 9C.2e Backend Schema-Discovery Route
+
+The MCP `pipeline://db-schema` resource and `list_db_tables` tool both fetch
+`GET /scheduling/db-schema`. This route is owned by the scheduling API router
+(MEU-PH9) and **must** filter `SqlSandbox.DENY_TABLES` server-side.
+
+```python
+# packages/api/src/zorivest_api/routes/scheduling.py (MEU-PH9)
+# Externally reachable as: GET /api/v1/scheduling/db-schema
+# (scheduling_router prefix = "/api/v1/scheduling")
+
+from zorivest_infra.database.sql_sandbox import SqlSandbox
+
+@scheduling_router.get("/db-schema")
+async def get_db_schema(db: Session = Depends(get_db)):
+    """Return table/column metadata for query-step SQL authoring.
+
+    Filters SqlSandbox.DENY_TABLES to prevent schema discovery of
+    sensitive tables (credentials, guard tokens, etc.).
+    """
+    all_tables = inspect(db.bind).get_table_names()
+    safe_tables = [t for t in all_tables if t not in SqlSandbox.DENY_TABLES]
+    schema = []
+    for table_name in safe_tables:
+        columns = inspect(db.bind).get_columns(table_name)
+        schema.append({
+            "name": table_name,
+            "columns": [{"name": c["name"], "type": str(c["type"]), "nullable": c["nullable"]} for c in columns]
+        })
+    return schema
+```
+
+> [!IMPORTANT]
+> The backend route is the security boundary — MCP resources/tools are thin
+> fetch wrappers. If the backend leaks denied tables, MCP-side filtering alone
+> cannot compensate because the fetch response is already tainted.
+
+### 9C.2f Exit Criteria
 
 - [ ] `sql_sandbox.py` exists with all 6 security layers
 - [ ] `connection.py` has `open_sandbox_connection()` factory
 - [ ] `policy_validator.py` uses AST allowlist (not string blocklist)
-- [ ] All 14 tests pass
+- [ ] All callsites migrated — no direct `db_connection` SQL in steps
+- [ ] `DENY_TABLES` covers all sensitive tables (6+ entries)
+- [ ] All 20 tests pass (16 sandbox + 4 schema-discovery security)
+- [ ] `GET /scheduling/db-schema` filters `SqlSandbox.DENY_TABLES` server-side
 - [ ] `sqlglot` added to dependencies
 
 ---
@@ -242,6 +351,29 @@ class SendStep(RegisteredStep):
 ```
 
 **File changes:** `send_step.py` (add param + gate check), `pipeline.py` (add `has_user_confirmation: bool = False` to `StepContext`)
+
+### 9C.3c Approval Provenance Contract
+
+> [!IMPORTANT]
+> `requires_confirmation=False` is only honored when the policy has a stored approval record.
+> Without this, a malicious policy can set the opt-out flag and bypass confirmation.
+
+```python
+if not p.requires_confirmation:
+    if not context.policy_approval:
+        raise PolicyExecutionError(
+            "requires_confirmation=False requires a stored policy approval record. "
+            "Use POST /api/v1/scheduling/policies/{id}/approve first."
+        )
+    if context.policy_approval.content_hash != context.policy_hash:
+        raise PolicyExecutionError(
+            "Policy content has changed since approval. Re-approve before executing."
+        )
+```
+
+The `PolicyApproval` record stores:
+- `policy_id`, `content_hash` (SHA-256 of policy JSON), `approved_at`, `approved_by` (user or "system")
+- Approval is invalidated when the policy is updated (content_hash changes)
 
 ---
 

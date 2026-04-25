@@ -112,9 +112,10 @@ export class AppPage {
      * Waits for the target page to be visible.
      */
     async navigateTo(
-        section: 'accounts' | 'trades' | 'planning' | 'scheduling' | 'settings',
+        section: 'home' | 'accounts' | 'trades' | 'planning' | 'scheduling' | 'settings',
     ): Promise<void> {
         const sidebarMap = {
+            home: SIDEBAR.NAV_HOME,
             accounts: SIDEBAR.NAV_ACCOUNTS,
             trades: SIDEBAR.NAV_TRADES,
             planning: SIDEBAR.NAV_PLANNING,

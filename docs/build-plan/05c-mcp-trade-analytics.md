@@ -18,7 +18,7 @@ Record a new trade execution. Deduplicates by exec_id.
 import { McpServer } from '@modelcontextprotocol/sdk/server/mcp.js';
 import { z } from 'zod';
 
-const API_BASE = process.env.ZORIVEST_API_URL ?? 'http://localhost:8765/api/v1';
+const API_BASE = process.env.ZORIVEST_API_URL ?? 'http://localhost:17787/api/v1';
 
 export function registerTradeTools(server: McpServer) {
 

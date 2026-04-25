@@ -282,6 +282,7 @@ For BANK/SAVINGS accounts, a new "Transactions" tab appears in the Account Detai
 - Balance only saved when value actually changes (dedup)
 - Completion view shows summary table with changes
 - Balance history sparkline renders for selected account
+- **Playwright E2E**: Route `/accounts` reachable via nav rail, account list `data-testid` visible, CRUD happy path passes (see [GUI Shipping Gate](06-gui.md#gui-shipping-gate-mandatory-for-all-gui-meus))
 
 ## Outputs
 

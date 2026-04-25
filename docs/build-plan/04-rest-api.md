@@ -339,7 +339,7 @@ FastAPI WebSocket endpoint for bidirectional real-time events. The Electron main
 ```
 ┌──────────────────┐   WebSocket    ┌───────────────────┐   IPC    ┌──────────────────┐
 │  Python Backend  │ ============▶ │ Electron Main Proc │ ======▶ │  React Renderer  │
-│  (FastAPI)        │  ws://8765  │ (WebSocketBridge)  │  IPC   │  (useWebSocket)  │
+│  (FastAPI)        │  :17787/ws  │ (WebSocketBridge)  │  IPC   │  (useWebSocket)  │
 └──────────────────┘              └────────────────────┘        └──────────────────┘
 ```
 
@@ -401,7 +401,7 @@ export class WebSocketBridge {
   ) {}
 
   connect(): void {
-    this.ws = new WebSocket(`${this.backendUrl.replace('http', 'ws')}/ws`);
+    this.ws = new WebSocket(`${this.backendUrl.replace('http', 'ws')}/api/v1/ws`);
 
     this.ws.on('message', (data: string) => {
       const event = JSON.parse(data);
@@ -410,7 +410,7 @@ export class WebSocketBridge {
 
       if (event.channel === 'notification') {
         this.unreadCount++;
-        this.emit('notification', event.data);
+        this.mainWindow.webContents.send('notification', event.data);
       }
     });
 
@@ -429,3 +429,37 @@ export class WebSocketBridge {
   }
 }
 ```
+
+### WebSocket Wiring Contract
+
+> [!IMPORTANT]
+> This section is the canonical integration spec for WebSocket consumers.
+
+**Endpoint:** `ws://localhost:17787/api/v1/ws`
+
+**Registration in FastAPI:**
+```python
+# packages/api/src/zorivest_api/main.py — lifespan
+connection_manager = ConnectionManager()
+
+@app.websocket("/api/v1/ws")
+async def websocket_endpoint(ws: WebSocket):
+    await connection_manager.connect(ws)
+    try:
+        while True:
+            await ws.receive_text()  # keep-alive
+    except WebSocketDisconnect:
+        connection_manager.disconnect(ws)
+```
+
+**Port:** Uses the same canonical port `17787` as the REST API. The WebSocket endpoint is a sub-path of the API, NOT a separate server or port.
+
+**Authentication:** Phase 1 — no auth (localhost-only). Phase 2 (post-Phase 8 auth) — bearer token passed as `?token=` query param on initial connection, validated by `TokenAuthMiddleware`.
+
+**Heartbeat:** Server sends `{"channel": "heartbeat", "data": {}}` every 30 seconds. Client reconnects if no heartbeat received within 60 seconds.
+
+**Connection Lifecycle:**
+1. GUI starts → `WebSocketBridge` connects to `ws://localhost:17787/api/v1/ws`
+2. Backend broadcasts events via `connection_manager.broadcast(channel, payload)`
+3. GUI disconnects → `WebSocketBridge.ws.on('close')` triggers 3s reconnect
+4. Backend shutdown → `ConnectionManager` sends close frame to all connections

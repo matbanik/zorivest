@@ -210,10 +210,11 @@ const navigate = (to: string) => router.navigate({ to });
 // Populated at app init — every page/action registers here
 export const staticRegistry: CommandRegistryEntry[] = [
   // Navigation — routes match 06-gui.md nav rail (canonical route map)
-  { id: 'nav:accounts',    label: 'Accounts',         category: 'navigation', keywords: ['home', 'overview', 'dashboard', 'broker', 'bank', 'balance'], action: () => navigate('/'),            shortcut: 'Ctrl+1' },
-  { id: 'nav:trades',      label: 'Trades',           category: 'navigation', keywords: ['executions', 'positions', 'journal', 'review'], action: () => navigate('/trades'),      shortcut: 'Ctrl+2' },
-  { id: 'nav:planning',    label: 'Planning',         category: 'navigation', keywords: ['plans', 'thesis', 'strategy', 'watchlists', 'tickers'], action: () => navigate('/planning'),    shortcut: 'Ctrl+3' },
-  { id: 'nav:scheduling',  label: 'Scheduling',       category: 'navigation', keywords: ['schedules', 'cron', 'pipeline', 'report', 'jobs'], action: () => navigate('/scheduling'),  shortcut: 'Ctrl+4' },
+  { id: 'nav:home',        label: 'Home',             category: 'navigation', keywords: ['home', 'overview', 'dashboard', 'startup'], action: () => navigate('/'),            shortcut: 'Ctrl+1' },
+  { id: 'nav:accounts',    label: 'Accounts',         category: 'navigation', keywords: ['broker', 'bank', 'balance', 'portfolio'], action: () => navigate('/accounts'),    shortcut: 'Ctrl+2' },
+  { id: 'nav:trades',      label: 'Trades',           category: 'navigation', keywords: ['executions', 'positions', 'journal', 'review'], action: () => navigate('/trades'),      shortcut: 'Ctrl+3' },
+  { id: 'nav:planning',    label: 'Planning',         category: 'navigation', keywords: ['plans', 'thesis', 'strategy', 'watchlists', 'tickers'], action: () => navigate('/planning'),    shortcut: 'Ctrl+4' },
+  { id: 'nav:scheduling',  label: 'Scheduling',       category: 'navigation', keywords: ['schedules', 'cron', 'pipeline', 'report', 'jobs'], action: () => navigate('/scheduling'),  shortcut: 'Ctrl+5' },
   { id: 'nav:settings',    label: 'Settings',         category: 'navigation', keywords: ['config', 'preferences', 'theme', 'display'],      action: () => navigate('/settings'),    shortcut: 'Ctrl+,' },
 
   // Actions

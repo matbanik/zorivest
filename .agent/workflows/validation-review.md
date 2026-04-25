@@ -1,5 +1,5 @@
 ---
-description: Validation and adversarial review workflow for GPT-5.4 Codex — verify tests, review code, generate evidence bundle.
+description: Validation and adversarial review workflow for GPT-5.5 Codex — verify tests, review code, generate evidence bundle.
 ---
 
 # Validation Review Workflow (Codex Agent)

@@ -46,7 +46,7 @@ This phase is split into ten domain-specific sub-files:
     show: false  
     Load index.html ──────────────────▶ 4. React mounts AppShell
     └─ Log: startup.renderer_load_ms       └─ Nav rail renders (sync)
-                                            └─ Accounts Home skeleton
+                                            └─ Home Dashboard skeleton
                                             └─ Log: startup.shell_paint_ms
 
  5. win.once('ready-to-show')  
@@ -111,15 +111,15 @@ ipcMain.on('startup-metric', (_event, metric) => {
 
 | Time Window | What Renders | Fallback |
 |---|---|---|
-| 0–500ms | App shell: nav rail + header + Accounts Home skeleton | Themed `backgroundColor` (no white flash) |
-| 500ms–2s | MRU cards populate, All Accounts table fills | Skeleton placeholders with pulse animation |
+| 0–500ms | App shell: nav rail + header + Home Dashboard skeleton | Themed `backgroundColor` (no white flash) |
+| 500ms–2s | Dashboard section cards hydrate with live data | Skeleton placeholders with pulse animation |
 | > 2s | Localized "Still loading…" message per panel | Only in the affected panel, never full-screen block |
 
 **Key rules:**
 - **No full-screen splash/spinner in the React app** — Python cold start uses a separate Electron `splash.html` window; once the main window appears, only skeleton screens are shown
 - **Skeleton screens** over shimmer effects (trading context; shimmer is distracting)
-- **TanStack Router `lazy()`** for all routes except Accounts Home (Accounts Home is in the main bundle)
-- **Idle pre-caching**: after Accounts Home renders, use `requestIdleCallback` to pre-import lazy modules
+- **TanStack Router `lazy()`** for all routes except Home Dashboard (Home Dashboard is in the main bundle)
+- **Idle pre-caching**: after Home Dashboard renders, use `requestIdleCallback` to pre-import lazy modules
 
 **Technology stack** (see `docs/research/gui-shell-foundation/decision.md` for rationale):
 - **Routing**: TanStack Router v1 with `createHashHistory()` (required for Electron)
@@ -163,32 +163,32 @@ const homeRoute = createRoute({
 
 const accountsRoute = createRoute({
   getParentRoute: () => rootRoute,
-  path: '/accounts/$',
+  path: '/accounts', // Use exact path, no trailing slash
 }).lazy(() => import('./features/accounts/AccountsHome'))
 
 const tradesRoute = createRoute({
   getParentRoute: () => rootRoute,
-  path: '/trades/$',
+  path: '/trades', // Use exact path, no trailing slash
 }).lazy(() => import('./features/trades/TradesLayout'))
 
 const planningRoute = createRoute({
   getParentRoute: () => rootRoute,
-  path: '/planning/$',
+  path: '/planning', // Use exact path, no trailing slash
 }).lazy(() => import('./features/planning/PlanningLayout'))
 
 const schedulingRoute = createRoute({
   getParentRoute: () => rootRoute,
-  path: '/scheduling/$',
+  path: '/scheduling', // Use exact path, no trailing slash
 }).lazy(() => import('./features/scheduling/SchedulingLayout'))
 
 const settingsRoute = createRoute({
   getParentRoute: () => rootRoute,
-  path: '/settings/$',
+  path: '/settings', // Use exact path, no trailing slash
 }).lazy(() => import('./features/settings/SettingsLayout'))
 
 const taxRoute = createRoute({
   getParentRoute: () => rootRoute,
-  path: '/tax/$',
+  path: '/tax',
 }).lazy(() => import('./features/tax/TaxEstimator'))
 
 const routeTree = rootRoute.addChildren([
@@ -227,7 +227,7 @@ export const router = createRouter({
 │  │      │  │                                                                           │ │
 │  │  💰  │  │  CONTENT AREA                                                            │ │
 │  │ Acct │  │                                                                           │ │
-│  │      │  │  (Rendered by active route — Accounts Home is default)                   │ │
+│  │      │  │  (Rendered by active route — Home Dashboard is default)                  │ │
 │  │  📊  │  │                                                                           │ │
 │  │ Plan │  │                                                                           │ │
 │  │      │  │                                                                           │ │
@@ -281,9 +281,9 @@ Each nav rail item maps to a module that may contain internal tabs:
 
 ---
 
-## Accounts Home Dashboard (Default Route)
+## Accounts Home (`/accounts`)
 
-> The Accounts Home is the **first thing the user sees** after loading. It prioritizes fast account selection and at-a-glance portfolio awareness.
+> The Accounts Home page is accessed via the nav rail (`Ctrl+2`). It prioritizes fast account selection and at-a-glance portfolio awareness. For the startup/default route, see [Home Dashboard](06j-gui-home.md).
 
 ### Layout
 
@@ -415,13 +415,17 @@ export const useAccountContext = () => useContext(AccountContext);
 
 | Wave | Gate MEU | Tests Activated | Cumulative | `data-testid` to Add |
 |:----:|----------|-----------------|:----------:|----------------------|
-| 0 | **MEU-46** `gui-mcp-status` | `launch.test.ts` (3), `mcp-tool.test.ts` (2) | **5** | Sidebar: `nav-accounts`, `nav-trades`, `nav-planning`, `nav-scheduling`, `nav-settings` |
+| 0 | **MEU-46** `gui-mcp-status` | `launch.test.ts` (3), `mcp-tool.test.ts` (2) | **5** | Sidebar: `nav-home`, `nav-accounts`, `nav-trades`, `nav-planning`, `nav-scheduling`, `nav-settings` |
 | 1 | **MEU-47** `gui-trades` | `trade-entry.test.ts` (5), `mode-gating.test.ts` (2) | **12** | `trades-page`, `trade-list`, `trade-row`, `add-trade-btn`, `trade-*-input` |
-| 2 | **MEU-71** `gui-accounts` | `persistence.test.ts` (2) | **14** | `accounts-page`, `account-list`, `add-account-btn` |
-| 3 | **MEU-74** `gui-backup-restore` | `backup-restore.test.ts` (2) | **16** | `backup-create-btn`, `backup-restore-btn`, `backup-passphrase-input` |
-| 4 | **MEU-48** `gui-plans` | `position-size.test.ts` (2) | **18** | `calc-account-size`, `calc-risk-percent`, `calc-result-shares` |
-| 5 | **MEU-96/99** import GUI | `import.test.ts` (2) | **20** | `import-file-input`, `import-submit-btn`, `import-result-count` |
-| 6 | **MEU-65** `market-data-gui` | `settings-market-data.test.ts` (3: nav, provider list, axe-core) | **23** | `market-data-providers`, `provider-list`, `provider-item`, `provider-detail`, `provider-save-btn`, `provider-test-btn`, `provider-test-all-btn`, `provider-remove-key-btn` |
+| 2 | **MEU-71** `gui-accounts` | `account-crud.test.ts` (3), `persistence.test.ts` (2) | **17** | `accounts-page`, `account-list`, `add-account-btn`, `account-row` |
+| 3 | **MEU-74** `gui-backup-restore` | `backup-restore.test.ts` (2) | **19** | `backup-create-btn`, `backup-restore-btn`, `backup-passphrase-input` |
+| 4 | **MEU-48** `gui-plans` | `position-size.test.ts` (2) | **21** | `calc-account-size`, `calc-risk-percent`, `calc-result-shares` |
+| 5 | **MEU-96/99** import GUI | `import.test.ts` (2) | **23** | `import-file-input`, `import-submit-btn`, `import-result-count` |
+| 6 | **MEU-65** `market-data-gui` | `settings-market-data.test.ts` (3: nav, provider list, axe-core) | **26** | `market-data-providers`, `provider-list`, `provider-item`, `provider-detail`, `provider-save-btn`, `provider-test-btn`, `provider-test-all-btn`, `provider-remove-key-btn` |
+| 7 | **MEU-170j** `gui-home` | `home-dashboard.test.ts` (3: startup load, section toggle, section reorder) | **29** | `home-page`, `dashboard-grid`, `dashboard-section-*`, `dashboard-settings-btn` |
+| 8 | **MEU-56** `gui-scheduling` | `scheduling.test.ts` (3), `scheduling-tz.test.ts` (2) | **34** | `scheduling-page`, `policy-list`, `policy-editor`, `run-history` |
+| 9 | **MEU-128** `gui-screenshot` | `screenshot-panel.test.ts` (3) | **37** | `screenshot-panel`, `screenshot-upload`, `screenshot-lightbox` |
+| 10 | Phase 12+ GUI MEUs | Per-MEU tests defined in sub-file exit criteria | **TBD** | Per-MEU `data-testid` constants |
 
 > [!IMPORTANT]
 > **Build before every E2E run.** Wave 0 tests require `npm run build` (alias for `electron-vite build`) to produce `out/main/index.js` and a healthy Python backend (automated by `global-setup.ts`). Playwright launches the compiled bundle, not source files — source changes are invisible until you rebuild.
@@ -435,7 +439,7 @@ All test IDs are defined in `ui/tests/e2e/test-ids.ts`. Constants use `SCREAMING
 
 ### Exit Criterion
 
-**MEU-170** (`e2e-all-green`): All 20 Playwright E2E tests pass end-to-end after all waves are activated.
+**MEU-170** (`e2e-all-green`): All 37+ Playwright E2E tests pass end-to-end after Waves 0–9 are activated. Wave 10 count is TBD until Phase 12+ GUI MEUs are fully specified.
 
 #### Implementation Notes (from MEU-47 cycle, 2026-03-18)
 
@@ -453,6 +457,24 @@ All test IDs are defined in `ui/tests/e2e/test-ids.ts`. Constants use `SCREAMING
 
 ---
 
+## GUI Shipping Gate (Mandatory for All GUI MEUs)
+
+> [!CAUTION]
+> **Every GUI MEU must include Playwright Electron E2E proof before completion.** A feature coded but not reachable through the app shell/navigation has zero user value. This gate prevents silent de-wiring.
+
+Before any GUI MEU can be marked complete, it must satisfy ALL of the following:
+
+1. **Route/Nav assertion**: A Playwright E2E test opens the real Electron app, navigates to the feature's page through the app shell (nav rail, command palette, or deep link), and verifies the feature's root `data-testid` is visible.
+2. **`data-testid` registration**: All interactive elements use constants from `ui/tests/e2e/test-ids.ts`. New constants are added during implementation and committed alongside the feature.
+3. **Happy path E2E**: At least one E2E test exercises the primary happy path (e.g., create → verify → cleanup for CRUD; render → interact → assert for dashboards).
+4. **Build gate**: `cd ui && npm run build && npx playwright test <target>` passes before the MEU handoff.
+5. **Wave assignment**: The MEU's tests are registered in the E2E Wave Activation Schedule above with a cumulative count.
+
+> [!NOTE]
+> GUI MEUs that are not yet assigned to a wave (Phase 12+ items in the priority matrix marked `Manual`) are **blocked** from implementation until their E2E wave is defined. The `Manual` validation label in `build-priority-matrix.md` means "E2E wave not yet assigned" — it does NOT mean manual testing is acceptable as a shipping gate.
+
+---
+
 ## Exit Criteria
 
 - Electron app launches, spawns Python backend
@@ -460,7 +482,8 @@ All test IDs are defined in `ui/tests/e2e/test-ids.ts`. Constants use `SCREAMING
 - **MRU account cards populate within 2s** from launch
 - **Lazy modules load on navigation** without full-page spinner
 - **Startup performance metrics logged** to Python backend
-- Accounts Home displays MRU cards and All Accounts table
+- **Home Dashboard** displays at startup with skeleton cards → data hydration (see [06j](06j-gui-home.md))
+- Accounts page displays MRU cards and All Accounts table (lazy-loaded via `/accounts`)
 - Account selection sets global context consumed by other modules
 - Trades table displays with image badges and full-field columns
 - Screenshot panel supports upload, paste, and lightbox viewing
@@ -484,7 +507,8 @@ All test IDs are defined in `ui/tests/e2e/test-ids.ts`. Constants use `SCREAMING
 
 - Electron main process with Python backend lifecycle management
 - **AppShell component** with left nav rail + content header + route outlet
-- **AccountsHome page** with MRU cards, "Add New" card, and All Accounts table
+- **HomePage** (Home Dashboard) with configurable section cards (startup page, in main bundle)
+- **AccountsHome page** with MRU cards, "Add New" card, and All Accounts table (lazy-loaded at `/accounts`)
 - **AccountContext provider** for global account selection
 - **Startup performance logging** via preload bridge → REST → Python logger
 - **Route-level code splitting** via TanStack Router `lazy()` route definitions + `pendingComponent`

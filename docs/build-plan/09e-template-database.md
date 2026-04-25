@@ -15,10 +15,17 @@
 
 | Surface | Entry Point | Schema Owner |
 |---------|-------------|-------------|
-| MCP `create_email_template` | Tool handler → `EmailTemplateCreateRequest` | `EmailTemplateCreateRequest` (Pydantic) |
-| MCP `update_email_template` | Tool handler → `EmailTemplateUpdateRequest` | `EmailTemplateUpdateRequest` (Pydantic) |
-| REST `POST /scheduling/templates` | Route handler → `EmailTemplateCreateRequest` | Same Pydantic model (shared) |
-| REST `PATCH /scheduling/templates/{name}` | Route handler → `EmailTemplateUpdateRequest` | Same Pydantic model (shared) |
+| MCP `create_email_template` | Tool handler → Zod schema | `createEmailTemplateSchema` (Zod, `strict()`) |
+| MCP `update_email_template` | Tool handler → Zod schema | `updateEmailTemplateSchema` (Zod, `strict()`) |
+| REST `POST /scheduling/templates` | Route handler → `EmailTemplateCreateRequest` | `EmailTemplateCreateRequest` (Pydantic, `extra="forbid"`) |
+| REST `PATCH /scheduling/templates/{name}` | Route handler → `EmailTemplateUpdateRequest` | `EmailTemplateUpdateRequest` (Pydantic, `extra="forbid"`) |
+
+> [!IMPORTANT]
+> **MCP↔Pydantic Schema Parity:** MCP tools (TypeScript, Zod schemas) proxy to REST (Python, Pydantic models).
+> The Zod schema in `mcp-server/src/tools/template-tools.ts` MUST mirror the Pydantic model field-for-field:
+> same field names, same types, same constraints (min/max length, regex patterns, enums).
+> A parity test (`tests/integration/test_mcp_schema_parity.py`) must assert that the MCP tool's Zod schema
+> and the REST endpoint's Pydantic model accept and reject the same inputs.
 
 ### Schema Definitions
 
@@ -121,11 +128,54 @@ New migration: `alembic/versions/xxxx_add_email_templates_table.py`
 
 Creates `email_templates` table with the 12 columns above. Seeds 2 default templates migrated from the hardcoded `EMAIL_TEMPLATES` dict.
 
+## 9E.1e EmailTemplatePort — Core Port (Boundary Contract)
+
+> [!CAUTION]
+> **Architecture rule:** Core MUST NOT import infrastructure. All template access from core services,
+> pipeline steps, or the policy emulator goes through this port.
+
+New file: `packages/core/src/zorivest_core/ports/email_template_port.py`
+
+```python
+from abc import ABC, abstractmethod
+from dataclasses import dataclass
+
+
+@dataclass(frozen=True)
+class EmailTemplateDTO:
+    """Read-only projection of an email template for core consumers."""
+    name: str
+    description: str | None
+    subject_template: str | None
+    body_html: str
+    body_format: str
+    required_variables: list[str]
+    sample_data_json: str | None
+    is_default: bool
+
+
+class EmailTemplatePort(ABC):
+    """Core port for email template access. Implemented by EmailTemplateRepository in infra."""
+
+    @abstractmethod
+    def get_by_name(self, name: str) -> EmailTemplateDTO | None: ...
+
+    @abstractmethod
+    def list_all(self) -> list[EmailTemplateDTO]: ...
+```
+
+**Consumers of this port:**
+- `PolicyEmulator` (09f) — validates template references exist
+- `SendStep` — resolves template at execution time
+- Any core service that needs template metadata
+
 ---
 
 ## 9E.2 EmailTemplateRepository (MEU-PH6)
 
 ### 9E.2a Design
+
+> Implements `EmailTemplatePort` from core.
 
 New file: `packages/infrastructure/src/zorivest_infra/persistence/email_template_repository.py`
 

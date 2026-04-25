@@ -182,12 +182,11 @@ cd p:\zorivest\ui && npx vitest run --reporter=verbose
 cd p:\zorivest\ui && npx tsc --noEmit
 ```
 
-### Visual Verification
+### Playwright E2E (Mandatory)
 
-- Browser subagent screenshot of watchlist with price columns
-- Verify tabular numeral alignment (decimal points line up)
-- Verify gain/loss coloring with ▲/▼ arrows
-- Verify dark palette against design tokens
+- Route `/watchlists` reachable via nav rail, watchlist table root `data-testid` visible
+- Price column renders with correct gain/loss coloring
+- See [GUI Shipping Gate](06-gui.md#gui-shipping-gate-mandatory-for-all-gui-meus)
 
 ---
 

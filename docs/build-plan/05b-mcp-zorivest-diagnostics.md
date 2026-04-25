@@ -24,7 +24,7 @@ function getAuthHeadersSafe(): Record<string, string> {
     : {};
 }
 
-const API_BASE = process.env.ZORIVEST_API_URL ?? 'http://localhost:8765/api/v1';
+const API_BASE = process.env.ZORIVEST_API_URL ?? 'http://localhost:17787/api/v1';
 
 interface ProviderStatus {
   name: string;
@@ -155,7 +155,7 @@ Check backend service process-level runtime health. Originally specified in [Pha
 import { McpServer } from '@modelcontextprotocol/sdk/server/mcp.js';
 import { z } from 'zod';
 
-const API = process.env.ZORIVEST_API_URL ?? 'http://localhost:8765/api/v1';
+const API = process.env.ZORIVEST_API_URL ?? 'http://localhost:17787/api/v1';
 
 export function registerServiceTools(server: McpServer): void {
 

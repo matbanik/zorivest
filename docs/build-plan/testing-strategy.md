@@ -46,7 +46,7 @@ let apiProcess: ChildProcess;
 
 beforeAll(async () => {
   apiProcess = spawn('uv', ['run', '--package', 'zorivest-api',
-    'uvicorn', 'zorivest_api.main:app', '--port', '8765']);
+    'uvicorn', 'zorivest_api.main:app', '--port', '17787']);
   // Poll health endpoint instead of fixed sleep
   const waitForApi = async (url: string, timeoutMs = 10000) => {
     const start = Date.now();
@@ -59,7 +59,7 @@ beforeAll(async () => {
     }
     throw new Error(`API failed to start within ${timeoutMs}ms`);
   };
-  await waitForApi('http://localhost:8765');
+  await waitForApi('http://localhost:17787');
 });
 
 afterAll(() => apiProcess?.kill());
@@ -75,7 +75,7 @@ afterAll(() => apiProcess?.kill());
 ```typescript
 describe('MCP tools against live API', () => {
   it('create_trade round-trip', async () => {
-    const res = await fetch('http://localhost:8765/api/v1/trades', {
+    const res = await fetch('http://localhost:17787/api/v1/trades', {
       method: 'POST',
       headers: { 'Content-Type': 'application/json' },
       body: JSON.stringify({
@@ -442,7 +442,7 @@ Beyond standard unit/integration/e2e tests, the following validation layers are 
 | **Runner** | `tools/fuzz_api.py` (supports `--dry-run`, `--endpoints`, `--max-examples`) |
 | **What it validates** | Property-based fuzzing of all API endpoints against OpenAPI spec |
 | **When to run** | Manual pre-release; CI step deferred to MEU-168 |
-| **Command** | `uv run python tools/fuzz_api.py --url http://localhost:8765` |
+| **Command** | `uv run python tools/fuzz_api.py --url http://localhost:17787` |
 
 ### Encryption Verification Tests ✅
 
@@ -523,7 +523,7 @@ Track eval results per feature in the handoff artifact. Use the following templa
 
 ### E2E Testing (Playwright Electron)
 
-> Status: **Scaffolded** — 20 tests in 8 files, activated incrementally via 6 waves (see [06-gui.md](06-gui.md) §E2E Waves).
+> Status: **Scaffolded** — 37+ tests in 13 files, activated incrementally via 10 waves (see [06-gui.md](06-gui.md) §E2E Waves).
 
 > [!CAUTION]
 > **GUI verification must always use Playwright E2E tests, never `browser_subagent`.** The browser tool cannot launch or interact with Electron apps — it opens a Chromium tab, not the Electron shell. Any GUI behavior that needs verification requires an E2E test in `ui/tests/e2e/`. See `.agent/skills/e2e-testing/SKILL.md` for infrastructure and patterns.
@@ -544,10 +544,14 @@ E2E tests activate incrementally as GUI pages are built. Each wave has a gate ME
 |:----:|----------|:-----:|:----------:|
 | 0 | MEU-46 `gui-mcp-status` | `launch` (3) + `mcp-tool` (2) | **5** |
 | 1 | MEU-47 `gui-trades` | `trade-entry` (5) + `mode-gating` (2) | **12** |
-| 2 | MEU-71 `gui-accounts` | `persistence` (2) | **14** |
-| 3 | MEU-74 `gui-backup-restore` | `backup-restore` (2) | **16** |
-| 4 | MEU-48 `gui-plans` | `position-size` (2) | **18** |
-| 5 | MEU-96/99 import GUI | `import` (2) | **20** |
+| 2 | MEU-71 `gui-accounts` | `account-crud` (3) + `persistence` (2) | **17** |
+| 3 | MEU-74 `gui-backup-restore` | `backup-restore` (2) | **19** |
+| 4 | MEU-48 `gui-plans` | `position-size` (2) | **21** |
+| 5 | MEU-96/99 import GUI | `import` (2) | **23** |
+| 6 | MEU-65 `market-data-gui` | `settings-market-data` (3) | **26** |
+| 7 | MEU-170j `gui-home` | `home-dashboard` (3) | **29** |
+| 8 | MEU-56 `gui-scheduling` | `scheduling` (3) + `scheduling-tz` (2) | **34** |
+| 9 | MEU-128 `gui-screenshot` | `screenshot-panel` (3) | **37** |
 
 > [!IMPORTANT]
 > **Build before every E2E run.** Wave 0 tests require `npm run build` (alias for `electron-vite build`) and a healthy Python backend (automated by `global-setup.ts`). Playwright launches the compiled `out/main/index.js`, not the source files — source changes are invisible until you rebuild. Each subsequent wave additionally requires `data-testid` attributes added to the corresponding GUI components.
@@ -573,7 +577,12 @@ E2E tests activate incrementally as GUI pages are built. Each wave has a gate ME
 | `persistence.test.ts` | 2 | Data + window bounds survive restart |
 | `mcp-tool.test.ts` | 2 | MCP guard check + settings API |
 | `import.test.ts` | 2 | CSV import → trades in DB, a11y |
-| **Total** | **20** | |
+| `account-crud.test.ts` | 3 | Create/edit/delete account, balance update |
+| `scheduling.test.ts` | 3 | Policy create, cron preview, run trigger |
+| `scheduling-tz.test.ts` | 2 | Timezone display, DST edge cases |
+| `settings-market-data.test.ts` | 3 | Provider list, test connection, API key management |
+| `screenshot-panel.test.ts` | 3 | Upload screenshot, view lightbox, delete screenshot |
+| **Total** | **37+** | Waves 0–9 (see [06-gui.md](06-gui.md) §E2E Waves) |
 
 #### Accessibility & Visual Regression
 

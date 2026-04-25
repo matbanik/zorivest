@@ -19,7 +19,7 @@ import { z } from 'zod';
 import { toolsetRegistry } from '../toolsets/registry.js';
 import { getAuthHeaders } from '../auth/bootstrap.js';
 
-const API_BASE = process.env.ZORIVEST_API_URL ?? 'http://localhost:8765/api/v1';
+const API_BASE = process.env.ZORIVEST_API_URL ?? 'http://localhost:17787/api/v1';
 
 export function registerDiscoveryTools(server: McpServer) {
 

@@ -14,7 +14,7 @@ Read all user settings or a specific setting by key.
 import { McpServer } from '@modelcontextprotocol/sdk/server/mcp.js';
 import { z } from 'zod';
 
-const API_BASE = process.env.ZORIVEST_API_URL ?? 'http://localhost:8765/api/v1';
+const API_BASE = process.env.ZORIVEST_API_URL ?? 'http://localhost:17787/api/v1';
 
 export function registerSettingsTools(server: McpServer) {
 
@@ -100,7 +100,7 @@ Immediately lock all guarded MCP tool access.
 import { McpServer } from '@modelcontextprotocol/sdk/server/mcp.js';
 import { z } from 'zod';
 
-const API_BASE = process.env.ZORIVEST_API_URL ?? 'http://localhost:8765';
+const API_BASE = process.env.ZORIVEST_API_URL ?? 'http://localhost:17787';
 
 export function registerGuardTools(server: McpServer) {
   server.tool(

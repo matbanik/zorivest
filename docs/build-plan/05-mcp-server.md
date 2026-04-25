@@ -108,7 +108,7 @@ MCP Tool Call
 ```typescript
 // mcp-server/src/middleware/mcp-guard.ts
 
-const API_BASE = process.env.ZORIVEST_API_URL ?? 'http://localhost:8765';
+const API_BASE = process.env.ZORIVEST_API_URL ?? 'http://localhost:17787';
 
 interface GuardCheckResult {
   allowed: boolean;
@@ -212,7 +212,7 @@ The MCP server must unlock the encrypted database before any tools can function.
                                               ▼
                                      ┌────────────────┐
                                      │  Python API    │
-                                     │  (:8765)       │
+                                     │  (:17787)      │
                                      │  → KeyVault    │
                                      │  → SQLCipher   │
                                      └────────────────┘
@@ -758,7 +758,7 @@ Users and IDE configurations specify which toolsets to load at startup:
 
 ```bash
 # Default (core + discovery always loaded, plus defaults)
-npx @zorivest/mcp-server --api-url http://localhost:8765
+npx @zorivest/mcp-server --api-url http://localhost:17787
 
 # Explicit toolset selection
 npx @zorivest/mcp-server --toolsets trade-analytics,market-data,accounts

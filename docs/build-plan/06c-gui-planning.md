@@ -170,6 +170,7 @@ Each item in the left pane shows:
 - Plan detail form saves all fields including strategy description and entry/exit conditions
 - R:R ratio computes live as entry/stop/target values change
 - Watchlist page supports CRUD for watchlists and their items
+- **Playwright E2E**: Routes `/plans` and `/watchlists` reachable via nav rail, root `data-testid` visible, CRUD happy paths pass (see [GUI Shipping Gate](06-gui.md#gui-shipping-gate-mandatory-for-all-gui-meus))
 
 ## Outputs
 

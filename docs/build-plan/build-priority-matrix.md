@@ -35,19 +35,19 @@
 | **15a** | Settings REST endpoints (`GET`/`PUT /settings`) | ✅ Yes | Services | `TestClient` round-trip |
 | **15b** | Settings MCP tools (`get_settings`, `update_settings`) | ✅ Yes | REST API | `vitest` with mocked `fetch()` |
 | **15c** | Command registry (`commandRegistry.ts`) ([06a](06a-gui-shell.md)) | ✅ Yes | Nothing | Vitest: all entries have unique ids, valid actions |
-| **15d** | Window state persistence (`electron-store`) ([06a](06a-gui-shell.md)) | Manual | Electron | Launch → move → close → relaunch → verify position |
+| **15d** | Window state persistence (`electron-store`) ([06a](06a-gui-shell.md)) | Playwright E2E (Wave 0) | Electron | Launch → move → close → relaunch → verify position |
 | **15e** | MCP Guard: `McpGuardModel` + REST endpoints + MCP middleware + GUI | ✅ Yes | REST API, MCP tools | Circuit breaker, panic button, per-minute/hour rate limits ([02](02-infrastructure.md), [04](04-rest-api.md), [05](05-mcp-server.md), [06f](06f-gui-settings.md)) |
 | **15f** | `zorivest_diagnose` MCP tool ([§5.8](05-mcp-server.md)) | ✅ Yes | REST API, MCP Guard | Vitest: reachable/unreachable backend, never leaks keys |
 | **15g** | Per-tool performance metrics middleware ([§5.9](05-mcp-server.md)) | ✅ Yes | Nothing | Vitest: latency recording, percentile accuracy, error rate |
 | **15h** | `zorivest_launch_gui` MCP tool ([§5.10](05-mcp-server.md)) | ✅ Yes | Nothing | Vitest: found/not-found paths, platform commands, setup instructions |
-| **15i** | MCP Server Status panel ([§6f.9](06f-gui-settings.md)) | Manual | REST API, MCP tools | Visual: status indicators, IDE config copy |
+| **15i** | MCP Server Status panel ([§6f.9](06f-gui-settings.md)) | Playwright E2E — wave TBD | REST API, MCP tools | E2E: status indicators, IDE config copy |
 | **15j** | Discovery meta-tools: `list_available_toolsets`, `describe_toolset`, `enable_toolset`, `get_confirmation_token` ([05j](05j-mcp-discovery.md)) | ✅ Yes | ToolsetRegistry | Vitest: registry enumeration, annotation echo, enable/disable toggle, MCP-local token lifecycle |
 | **15k** | `ToolsetRegistry` module + adaptive client detection ([§5.11–§5.14](05-mcp-server.md)) | ✅ Yes | Nothing | Vitest: toolset CRUD, `core` immutability, client capability negotiation |
-| **16** | React pages — Trades ([06b](06b-gui-trades.md)), Plans ([06c](06c-gui-planning.md)) | Manual | API hooks | Visual verification |
+| **16** | React pages — Trades ([06b](06b-gui-trades.md)), Plans ([06c](06c-gui-planning.md)) | Playwright E2E (Wave 1 + 4) | API hooks | E2E route/nav + happy-path verification |
 | **16.1** | Screenshot wiring — ScreenshotPanel → image REST API ([06b §Screenshot](06b-gui-trades.md)) | ✅ Yes | MEU-47 ✅, MEU-22 ✅ | Vitest: upload/delete mutations, query invalidation |
-| **16a** | Notification system ([06a](06a-gui-shell.md)) | Manual | Settings API | Visual: toast categories, suppression toggle |
-| **16b** | Command palette ([06a](06a-gui-shell.md), Ctrl+K) | Manual | Registry | Visual: search, navigate, select |
-| **16c** | UI state persistence ([06a](06a-gui-shell.md)) | Manual | Settings API | Change → restart → verify restored |
+| **16a** | Notification system ([06a](06a-gui-shell.md)) | Playwright E2E — wave TBD | Settings API | E2E toast display + suppression toggle |
+| **16b** | Command palette ([06a](06a-gui-shell.md), Ctrl+K) | Playwright E2E — wave TBD | Registry | E2E: open palette, search, navigate |
+| **16c** | UI state persistence ([06a](06a-gui-shell.md)) | Playwright E2E (Wave 0) | Settings API | E2E: change → restart → verify restored |
 
 > **Note**: Items 13 and 15 cover **core** MCP tools, discovery meta-tools, and GUI shell only. Market-data MCP tools and the Market Data Settings page depend on Phase 8 (items 21–30 in P1.5) and must not be started until P1.5 is reached.
 
@@ -62,7 +62,7 @@
 | **17** | TradeReport entity + service | ✅ Yes | Post-trade journaling with ratings, tags, images |
 | **18** | TradeReport MCP tools + API routes | ✅ Yes | `create_report`, `get_report_for_trade` |
 | **19** | Multi-account UI (account type badges, filtering) | ✅ Yes | Filter trades by account type |
-| **20** | Report GUI panel ([06b](06b-gui-trades.md): ratings, tags, lessons) | Manual | Attached to trade detail view |
+| **20** | Report GUI panel ([06b](06b-gui-trades.md): ratings, tags, lessons) | Playwright E2E — wave TBD | Attached to trade detail view |
 
 ---
 
@@ -81,7 +81,7 @@
 | **27** | Rate limiter (token-bucket per provider) + log redaction | ✅ Yes | Async token-bucket, API key masking |
 | **28** | Market data REST API endpoints (8 routes) | ✅ Yes | FastAPI under `/api/v1/market-data/` |
 | **29** | Market data MCP tools (6 tools) | ✅ Yes | TypeScript via `registerMarketDataTools` |
-| **30** | Market Data Providers GUI settings page ([06f](06f-gui-settings.md)) | Manual | Provider list, connection testing, API key management |
+| **30** | Market Data Providers GUI settings page ([06f](06f-gui-settings.md)) | Playwright E2E (Wave 6) | Provider list, connection testing, API key management |
 
 ---
 
@@ -93,15 +93,15 @@
 | **32** | TradePlan ↔ Trade linking (plan → execution) | ✅ Yes | `followed_plan` in TradeReport |
 | **33** | Watchlist entity + service | ✅ Yes | Named lists of tickers |
 | **34** | TradePlan + Watchlist MCP tools | ✅ Yes | AI agent can create/query plans |
-| **35** | Planning GUI ([06c](06c-gui-planning.md): plan cards, watchlists) | Manual | List+detail layout, conviction indicators |
-| **35a** | Account Management GUI ([06d](06d-gui-accounts.md)) | Manual | Account CRUD, Review wizard, balance history |
-| **35b** | Scheduling GUI ([06e](06e-gui-scheduling.md)) | Manual | Policy editor, cron preview, pipeline run history |
-| **35c** | Email Provider Settings GUI ([06f](06f-gui-settings.md)) | Manual | SMTP config, preset auto-fill, test connection |
-| **35d** | Backup & Restore Settings GUI ([06f](06f-gui-settings.md)) | Manual | Manual backup, restore, verify, auto-backup config |
-| **35e** | Config Export/Import GUI ([06f](06f-gui-settings.md)) | Manual | JSON export download, import with preview diff |
-| **35f** | Reset to Default on settings pages ([06f](06f-gui-settings.md)) | Manual | Source indicator, per-setting reset, bulk reset |
+| **35** | Planning GUI ([06c](06c-gui-planning.md): plan cards, watchlists) | Playwright E2E ([Wave 4](06-gui.md#wave-activation-schedule)) | List+detail layout, conviction indicators |
+| **35a** | Account Management GUI ([06d](06d-gui-accounts.md)) | Playwright E2E ([Wave 2](06-gui.md#wave-activation-schedule)) | Account CRUD, Review wizard, balance history |
+| **35b** | Scheduling GUI ([06e](06e-gui-scheduling.md)) | Playwright E2E ([Wave 8](06-gui.md#wave-activation-schedule)) | Policy editor, cron preview, pipeline run history |
+| **35c** | Email Provider Settings GUI ([06f](06f-gui-settings.md)) | Playwright E2E — wave TBD | SMTP config, preset auto-fill, test connection |
+| **35d** | Backup & Restore Settings GUI ([06f](06f-gui-settings.md)) | Playwright E2E ([Wave 3](06-gui.md#wave-activation-schedule)) | Manual backup, restore, verify, auto-backup config |
+| **35e** | Config Export/Import GUI ([06f](06f-gui-settings.md)) | Playwright E2E — wave TBD | JSON export download, import with preview diff |
+| **35f** | Reset to Default on settings pages ([06f](06f-gui-settings.md)) | Playwright E2E — wave TBD | Source indicator, per-setting reset, bulk reset |
 | **35g** | `DashboardService` + 6 REST endpoints ([03](03-service-layer.md), [06j](06j-gui-home.md)) | ✅ Yes | Read-only aggregation of accounts, trades, plans, watchlists, jobs |
-| **35h** | Home Dashboard GUI ([06j](06j-gui-home.md)) | Manual | Default startup route `/`, skeleton loading, settings (toggle/reorder sections), nav rail update |
+| **35h** | Home Dashboard GUI ([06j](06j-gui-home.md)) | Playwright E2E (Wave 7) | Default startup route `/`, skeleton loading, settings (toggle/reorder sections), nav rail update |
 
 ---
 
@@ -161,7 +161,7 @@
 | **49b** | `ServiceManager` class + IPC bridge (Electron main process) | ✅ Yes | Vitest: platform-specific start/stop/status commands |
 | **49c** | Service REST endpoints (`/service/status`, `/service/graceful-shutdown`) | ✅ Yes | `TestClient`: process metrics, graceful restart |
 | **49d** | Service MCP tools (`zorivest_service_status`, `_restart`, `_logs`) | ✅ Yes | Vitest: reachable/unreachable, restart polling, log listing |
-| **49e** | Service Manager GUI (Settings panel) + installer hooks (NSIS, first-launch) | Manual | Status polling, start/stop/restart, auto-start toggle, open log folder |
+| **49e** | Service Manager GUI (Settings panel) + installer hooks (NSIS, first-launch) | Playwright E2E — wave TBD | Status polling, start/stop/restart, auto-start toggle, open log folder |
 | **49f** | `TrayIconRenderer` (OffscreenCanvas → NativeImage) | ✅ Yes | 16/24/32px platform-aware base icons; canvas-drawn status dot (green/yellow/red/gray) + notification badge overlay; state machine (NORMAL → WARNING → ERROR → OFFLINE). No file-system icon swapping. |
 | **49g** | Tray icon integration + context menu | ✅ Yes | Wire renderer to `ServiceManager` health polling + WebSocket notification events; dynamic context menu (Show/Hide, Quick Actions, status line); OS theme detection (`nativeTheme.on('updated')`); click-to-show behavior. |
 
@@ -210,9 +210,9 @@
 |-------|------|-------------|-------|
 | **69e** | REST routes (10 groups: brokers, analytics, banking, import, ...) | ✅ Yes | `TestClient` e2e |
 | **70e** | MCP tools (22 expansion tools) | ✅ Yes | `vitest` with mocked `fetch()` |
-| **71e** | Trade detail GUI tabs (Excursion, Fees, Mistakes, Expectancy, ...) | Manual | 10 new React components |
-| **72e** | Account GUI enhancements (Bank import, Broker sync, Column mapping) | Manual | 5 new React components |
-| **73e** | Analytics dashboard GUI (planned) | Manual | SQN, drawdown, strategy, monthly P&L calendar |
+| **71e** | Trade detail GUI tabs (Excursion, Fees, Mistakes, Expectancy, ...) | Playwright E2E — wave TBD | 10 new React components |
+| **72e** | Account GUI enhancements (Bank import, Broker sync, Column mapping) | Playwright E2E — wave TBD | 5 new React components |
+| **73e** | Analytics dashboard GUI (planned) | Playwright E2E — wave TBD | SQN, drawdown, strategy, monthly P&L calendar |
 
 ---
 
@@ -276,8 +276,8 @@
 | **78** | Deferred loss carryover report | ✅ Yes | Real P&L vs reported P&L, trapped losses in chains |
 | **79** | Tax alpha savings summary | ✅ Yes | YTD savings from lot optimization + loss harvesting |
 | **80** | Error check / transaction audit | ✅ Yes | Scan for missing basis, dupes, impossible prices |
-| **81** | Tax estimator GUI (React) — [06g-gui-tax.md](06g-gui-tax.md) | Manual | Dashboard, lot viewer, wash sales, what-if, harvesting, quarterly tracker |
-| **81a** | Position calculator GUI (React) — [06h-gui-calculator.md](06h-gui-calculator.md) | Manual | Calculator modal, multi-scenario comparison, calculation history |
+| **81** | Tax estimator GUI (React) — [06g-gui-tax.md](06g-gui-tax.md) | Playwright E2E — wave TBD (Phase 12+) | Dashboard, lot viewer, wash sales, what-if, harvesting, quarterly tracker |
+| **81a** | Position calculator GUI (React) — [06h-gui-calculator.md](06h-gui-calculator.md) | Playwright E2E — wave TBD (expansion; base is [Wave 4](06-gui.md#wave-activation-schedule)) | Calculator expansion: multi-mode, scenario comparison, calculation history |
 | **82** | Section 475 / 1256 / Forex toggles (conditional) | ✅ Yes | Mark-to-Market, 60/40 futures, forex worksheet |
 
 ---

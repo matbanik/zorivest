@@ -17,6 +17,18 @@ Domain → Infrastructure → Services → REST API → MCP Server → GUI → D
                                                                 Monetization(11)
 ```
 
+### Canonical Port
+
+| Component | Port | Source |
+|-----------|------|--------|
+| **FastAPI backend** | `17787` | [backend-startup SKILL](../.agent/skills/backend-startup/SKILL.md) |
+| **WebSocket** | `17787` (sub-path `/api/v1/ws`) | [04-rest-api.md](build-plan/04-rest-api.md#websocket-wiring-contract) |
+| **Electron dev** | `5173` (Vite default) | [06-gui.md](build-plan/06-gui.md) |
+
+> [!IMPORTANT]
+> All build-plan specs that reference the backend MUST use port `17787`.
+> Do NOT hardcode `8000` (FastAPI default) or `3000` — those will fail at runtime.
+
 ---
 
 ## Build Phases
@@ -32,7 +44,7 @@ Domain → Infrastructure → Services → REST API → MCP Server → GUI → D
 | 4 | [REST API](build-plan/04-rest-api.md) | `04-rest-api.md` | Phase 3 | FastAPI routes, TestClient tests |
 | 5 | [MCP Server](build-plan/05-mcp-server.md) | `05-mcp-server.md` | Phase 4, 8 | TypeScript MCP tools, Vitest |
 | 6 | [GUI](build-plan/06-gui.md) | `06-gui.md` | Phase 4, 8 | Electron + React desktop app |
-| 7 | [Distribution](build-plan/07-distribution.md) | `07-distribution.md` | All | Electron Builder, PyPI, npm |
+| 7 | [Distribution](build-plan/07-distribution.md) | `07-distribution.md` | Phases 1–6, 8–9 (Phase 10 static artifacts only) | Electron Builder, PyPI, npm |
 | 8 | [Market Data](build-plan/08-market-data.md) | `08-market-data.md` | Phases 2–4 | 14 market data providers (12 API-key + 2 free via MEU-65), API key encryption, MCP tools |
 | 9 | [Scheduling & Pipelines](build-plan/09-scheduling.md) | `09-scheduling.md` | Phases 2–5, 8 | Policy engine, pipeline runner, APScheduler |
 | 9a | [Persistence Integration](build-plan/09a-persistence-integration.md) | `09a-persistence-integration.md` | Phase 9 | SQLAlchemy wiring, real repos |
@@ -41,7 +53,7 @@ Domain → Infrastructure → Services → REST API → MCP Server → GUI → D
 | 9d | [Pipeline Step Extensions](build-plan/09d-pipeline-step-extensions.md) | `09d-pipeline-step-extensions.md` | Phase 9c | QueryStep, ComposeStep, variables, assertions |
 | 9e | [Template Database](build-plan/09e-template-database.md) | `09e-template-database.md` | Phase 9 | EmailTemplateModel, HardenedSandbox, nh3 |
 | 9f | [Policy Emulator](build-plan/09f-policy-emulator.md) | `09f-policy-emulator.md` | Phases 9c–9e | 4-phase dry-run, output containment |
-| 10 | [Service Daemon](build-plan/10-service-daemon.md) | `10-service-daemon.md` | Phases 4, 7, 9 | Cross-platform OS service, ServiceManager |
+| 10 | [Service Daemon](build-plan/10-service-daemon.md) | `10-service-daemon.md` | Phases 4, 9 | Cross-platform OS service, ServiceManager |
 | 11 | [Monetization](build-plan/11-monetization.md) | `11-monetization.md` | Phases 2, 4, 8 | Subscription, OAuth, BYOK, usage metering |
 
 ---
@@ -216,7 +228,7 @@ Domain → Infrastructure → Services → REST API → MCP Server → GUI → D
 | MEU-46a | `mcp-rest-proxy` | 15i.1 | [06f §6f.9 Data Sources](build-plan/06f-gui-settings.md) | REST proxy endpoints for MCP tool data (toolset count, API uptime) → completes MEU-46 panel · **Note:** GUI Settings "Registered tools" field currently shows `—`; this MEU adds `GET /api/v1/mcp/toolsets` + `GET /api/v1/mcp/diagnostics` endpoints so the GUI can display real numbers · `[PD-46a]`: static catalog + API uptime only (runtime loaded state deferred to `[MCP-HTTPBROKEN]`) · Depends on: MEU-46 ✅, Phase 4 ✅, Phase 5 ✅ | ✅ |
 | MEU-47 | `gui-trades` | 16 | [06b](build-plan/06b-gui-trades.md) | React pages — Trades · **E2E Wave 1**: `trade-entry`/`mode-gating` tests (+7 = 12) | ✅ |
 | MEU-47a | `screenshot-wiring` | 16.1 | [06b §Screenshot](build-plan/06b-gui-trades.md) | Wire ScreenshotPanel to image REST API (useQuery/useMutation); add `DELETE /images/{id}` route + `ImageService.delete_image()`; thumbnail grid, lightbox, upload, delete · Depends on: MEU-47 ✅, MEU-22 ✅ | ✅ |
-| MEU-48 | `gui-plans` | 16 | [06c](build-plan/06c-gui-planning.md), [06h](build-plan/06h-gui-calculator.md) | React pages — Plans · **E2E Wave 4**: `position-size` tests (+2 = 18) · **Calculator expansion (deferred per 06h §Exit Criteria):** ① Account balance auto-load from `/api/v1/accounts` ([06h §87-93](build-plan/06h-gui-calculator.md)) — depends on MEU-71 `gui-accounts` · ② Copy-to-clipboard button on share size output · ③ Ticker field to auto-fetch entry price from market data `GET /api/v1/market/quote/{ticker}` — depends on MEU-65 `market-data-gui` for provider setup · ④ Ticker autocomplete dropdown (short + full name) using `GET /api/v1/market/search?q=` (MEU-61 API already built) — reusable for TradePlanPage ticker field too | ✅ |
+| MEU-48 | `gui-plans` | 16 | [06c](build-plan/06c-gui-planning.md), [06h](build-plan/06h-gui-calculator.md) | React pages — Plans · **E2E [Wave 4](build-plan/06-gui.md#wave-activation-schedule)**: `position-size` tests (+2 = 21) · **Calculator expansion (deferred per 06h §Exit Criteria):** ① Account balance auto-load from `/api/v1/accounts` ([06h §87-93](build-plan/06h-gui-calculator.md)) — depends on MEU-71 `gui-accounts` · ② Copy-to-clipboard button on share size output · ③ Ticker field to auto-fetch entry price from market data `GET /api/v1/market/quote/{ticker}` — depends on MEU-65 `market-data-gui` for provider setup · ④ Ticker autocomplete dropdown (short + full name) using `GET /api/v1/market/search?q=` (MEU-61 API already built) — reusable for TradePlanPage ticker field too | ✅ |
 | MEU-49 | `gui-notifications` | 16a | [06a §notify](build-plan/06a-gui-shell.md) | Notification system (toasts) | ✅ |
 | MEU-50 | `gui-command-palette` | 16b | [06a §Ctrl+K](build-plan/06a-gui-shell.md) | Command palette (Ctrl+K) | ✅ |
 | MEU-51 | `gui-state-persistence` | 16c | [06a §state](build-plan/06a-gui-shell.md) | UI state persistence | ✅ |
@@ -273,11 +285,11 @@ Domain → Infrastructure → Services → REST API → MCP Server → GUI → D
 | MEU-71 | `account-entity-api` | 35a.0 | [06d](build-plan/06d-gui-accounts.md) | Account entity + service + REST API; FK constraints already exist at infra layer (no Alembic migration needed); balance history + portfolio total endpoints | ✅ |
 | MEU-71a | `account-gui` | 35a.1 | [06d](build-plan/06d-gui-accounts.md) | Account Management GUI (list, add, edit, balance display); accounts dropdown in Trade Planner form · Depends on MEU-71 | ✅ |
 | MEU-71b | `calculator-account-integration` | 35a.2 | [06h](build-plan/06h-gui-calculator.md) | Position Calculator pulls account balance from selected account for risk % calculation · Depends on MEU-71 ✅ | ✅ |
-| MEU-72 | `gui-scheduling` | 35b | [06e](build-plan/06e-gui-scheduling.md) | Scheduling GUI · ✅ ~~`[BOUNDARY-GAP]` F4 prerequisite~~ resolved by MEU-BV6 (2026-04-11) | ⏳ |
+| MEU-72 | `gui-scheduling` | 35b | [06e](build-plan/06e-gui-scheduling.md) | Scheduling GUI · **E2E [Wave 8](build-plan/06-gui.md#wave-activation-schedule)**: `scheduling`/`scheduling-tz` tests (+5 = 34) · ✅ ~~`[BOUNDARY-GAP]` F4 prerequisite~~ resolved by MEU-BV6 (2026-04-11) | ⏳ |
 | MEU-73 | `gui-email-settings` | 35c | [06f §email](build-plan/06f-gui-settings.md) | Email Provider Settings GUI · ✅ `[BOUNDARY-GAP]` F6 resolved by MEU-BV5 (handoff 102) | ✅ |
-| MEU-74 | `gui-backup-restore` | 35d | [06f §backup](build-plan/06f-gui-settings.md) | Backup & Restore Settings GUI · **E2E Wave 3**: `backup-restore` tests (+2 = 16) | ⬜ |
-| MEU-75 | `gui-config-export` | 35e | [06f §export](build-plan/06f-gui-settings.md) | Config Export/Import GUI | ⬜ |
-| MEU-76 | `gui-reset-defaults` | 35f | [06f §reset](build-plan/06f-gui-settings.md) | Reset to Default on settings pages · ✅ ~~`[BOUNDARY-GAP]` prerequisite~~ resolved by MEU-BV8 (2026-04-11) | ⬜ |
+| MEU-74 | `gui-backup-restore` | 35d | [06f §backup](build-plan/06f-gui-settings.md) | Backup & Restore Settings GUI · **E2E [Wave 3](build-plan/06-gui.md#wave-activation-schedule)**: `backup-restore` tests (+2 = 19) | ⬜ |
+| MEU-75 | `gui-config-export` | 35e | [06f §export](build-plan/06f-gui-settings.md) | Config Export/Import GUI · **E2E wave TBD** — define wave before implementation | ⬜ |
+| MEU-76 | `gui-reset-defaults` | 35f | [06f §reset](build-plan/06f-gui-settings.md) | Reset to Default on settings pages · ✅ ~~`[BOUNDARY-GAP]` prerequisite~~ resolved by MEU-BV8 (2026-04-11) · **E2E wave TBD** — define wave before implementation | ⬜ |
 
 ---
 
@@ -349,7 +361,7 @@ Domain → Infrastructure → Services → REST API → MCP Server → GUI → D
 
 > Source: [09c-pipeline-security-hardening.md](build-plan/09c-pipeline-security-hardening.md), [09d-pipeline-step-extensions.md](build-plan/09d-pipeline-step-extensions.md), [09e-template-database.md](build-plan/09e-template-database.md), [09f-policy-emulator.md](build-plan/09f-policy-emulator.md)
 >
-> Prerequisite: P2.5b wiring complete (MEU-PW1→PW13 ✅)
+> Prerequisite: P2.5b core wiring complete (MEU-PW1→PW7, PW9, PW11→PW13 ✅); PW8 🟡 and TD1 ⬜ are non-blocking for security hardening
 > Unblocks: Full agent-first policy authoring, GUI scheduling templates, Service Daemon scheduling integration
 > Resolves: [PIPE-MUTCTX], [PIPE-NOSANDBOX], [PIPE-NOQUERYSTEP], [PIPE-NOCOMPOSE], [PIPE-NOTEMPLATEDB], [PIPE-NOVARS], [PIPE-NOASSERT], [PIPE-NOEMULATOR], [PIPE-NOEMUMCP]
 >
@@ -387,7 +399,7 @@ Domain → Infrastructure → Services → REST API → MCP Server → GUI → D
 | MEU | Slug | Matrix Item | Build Plan Ref | Description | Status |
 |-----|------|:-----------:|----------------|-------------|:------:|
 | MEU-171 | `dashboard-service` | 35g | [03 §dashboard](build-plan/03-service-layer.md), [06j §6j.2](build-plan/06j-gui-home.md) | DashboardService (read-only aggregation) + 6 REST endpoints | ⬜ |
-| MEU-172 | `gui-home-dashboard` | 35h | [06j](build-plan/06j-gui-home.md) | Home Dashboard GUI page (React) — startup route, settings, nav rail update | ⬜ |
+| MEU-172 | `gui-home-dashboard` | 35h | [06j](build-plan/06j-gui-home.md) | Home Dashboard GUI page (React) — startup route, settings, nav rail update · **E2E [Wave 7](build-plan/06-gui.md#wave-activation-schedule)**: `home-dashboard` tests (+3 = 29) | ⬜ |
 
 ---
 
@@ -402,7 +414,7 @@ Domain → Infrastructure → Services → REST API → MCP Server → GUI → D
 | MEU-92 | `service-manager` | 49b | [10 §manager](build-plan/10-service-daemon.md) | ServiceManager class + IPC bridge | ⬜ |
 | MEU-93 | `service-api` | 49c | [10 §api](build-plan/10-service-daemon.md) | Service REST endpoints (status, shutdown) | ⬜ |
 | MEU-94 | `service-mcp` | 49d | [10 §mcp](build-plan/10-service-daemon.md) | Service MCP tools (status, restart, logs) | ⬜ |
-| MEU-95 | `service-gui` | 49e | [10 §gui](build-plan/10-service-daemon.md) | Service Manager GUI + installer hooks | ⬜ |
+| MEU-95 | `service-gui` | 49e | [10 §gui](build-plan/10-service-daemon.md) | Service Manager GUI + installer hooks · **E2E wave TBD** — define wave before implementation | ⬜ |
 | MEU-95a | `tray-icon-renderer` | 49f | [10 §10.9](build-plan/10-service-daemon.md) | TrayIconRenderer: OffscreenCanvas → NativeImage, state machine, platform-aware sizing | ⬜ |
 | MEU-95b | `tray-icon-integration` | 49g | [10 §10.9](build-plan/10-service-daemon.md) | Wire renderer to ServiceManager health, notification count, context menu, theme detection | ⬜ |
 
@@ -450,9 +462,9 @@ Domain → Infrastructure → Services → REST API → MCP Server → GUI → D
 |-----|------|:-----------:|----------------|-------------|:------:|
 | MEU-118 | `expansion-api` | 69e | [matrix §expansion](build-plan/build-priority-matrix.md) | REST routes (10 groups: brokers, analytics, etc.) | ⬜ |
 | MEU-119 | `expansion-mcp` | 70e | [matrix §expansion](build-plan/build-priority-matrix.md) | MCP tools (22 expansion tools) | ⬜ |
-| MEU-120 | `gui-trade-detail-tabs` | 71e | [matrix §expansion](build-plan/build-priority-matrix.md) | Trade detail GUI tabs (10 components) | ⬜ |
-| MEU-121 | `gui-account-enhance` | 72e | [matrix §expansion](build-plan/build-priority-matrix.md) | Account GUI enhancements (5 components) | ⬜ |
-| MEU-122 | `gui-analytics-dashboard` | 73e | [matrix §expansion](build-plan/build-priority-matrix.md) | Analytics dashboard GUI | ⬜ |
+| MEU-120 | `gui-trade-detail-tabs` | 71e | [matrix §expansion](build-plan/build-priority-matrix.md) | Trade detail GUI tabs (10 components) · **E2E wave TBD** — define wave before implementation | ⬜ |
+| MEU-121 | `gui-account-enhance` | 72e | [matrix §expansion](build-plan/build-priority-matrix.md) | Account GUI enhancements (5 components) · **E2E wave TBD** — define wave before implementation | ⬜ |
+| MEU-122 | `gui-analytics-dashboard` | 73e | [matrix §expansion](build-plan/build-priority-matrix.md) | Analytics dashboard GUI · **E2E wave TBD** — define wave before implementation | ⬜ |
 
 ---
 
@@ -515,8 +527,8 @@ Domain → Infrastructure → Services → REST API → MCP Server → GUI → D
 | MEU-151 | `tax-deferred-loss` | 78 | [matrix §3E](build-plan/build-priority-matrix.md) | Deferred loss carryover report | ⬜ |
 | MEU-152 | `tax-alpha` | 79 | [matrix §3E](build-plan/build-priority-matrix.md) | Tax alpha savings summary | ⬜ |
 | MEU-153 | `tax-audit` | 80 | [matrix §3E](build-plan/build-priority-matrix.md) | Error check / transaction audit | ⬜ |
-| MEU-154 | `gui-tax` | 81 | [06g](build-plan/06g-gui-tax.md) | Tax estimator GUI (React) | ⬜ |
-| MEU-155 | `gui-calculator` | 81a | [06h](build-plan/06h-gui-calculator.md) | Position calculator GUI (React) | ⬜ |
+| MEU-154 | `gui-tax` | 81 | [06g](build-plan/06g-gui-tax.md) | Tax estimator GUI (React) · **E2E wave TBD (Phase 12+)** — define wave before implementation | ⬜ |
+| MEU-155 | `gui-calculator` | 81a | [06h](build-plan/06h-gui-calculator.md) | Position calculator GUI (React) — expansion modes (Futures/Options/Forex/Crypto), scenario comparison, calculation history, Copy-to-Plan · **E2E wave TBD (Wave 10+)** — define expansion-specific tests before implementation; base equity coverage is [Wave 4](build-plan/06-gui.md#wave-activation-schedule) (MEU-48) | ⬜ |
 | MEU-156 | `tax-section-toggles` | 82 | [matrix §3E](build-plan/build-priority-matrix.md) | Section 475/1256/Forex toggles | ⬜ |
 
 ---
@@ -542,7 +554,7 @@ Domain → Infrastructure → Services → REST API → MCP Server → GUI → D
 | MEU-177 | `google-calendar-tasks` | 11.3 | [11 §11.3](build-plan/11-monetization.md) | Calendar/Tasks API for Plan reminders | ⬜ |
 | MEU-178 | `license-enforcement` | 11.4 | [11 §11.4](build-plan/11-monetization.md) | Ed25519 JWT validation, offline grace, tier gating | ⬜ |
 | MEU-179 | `byok-ai-providers` | 11.5 | [11 §11.5](build-plan/11-monetization.md) | AI provider key CRUD (encrypted), extends Phase 8 pattern | ⬜ |
-| MEU-180 | `monetization-api-gui` | 11.7 | [11 §11.7–11.8](build-plan/11-monetization.md) | Monetization REST routes (11 endpoints) + Subscription Settings GUI | ⬜ |
+| MEU-180 | `monetization-api-gui` | 11.7 | [11 §11.7–11.8](build-plan/11-monetization.md) | Monetization REST routes (11 endpoints) + Subscription Settings GUI · **E2E wave TBD** — define wave before implementation | ⬜ |
 | MEU-181 | `usage-metering` | 11.6 | [11 §11.6](build-plan/11-monetization.md) | Usage counters, tier limits, approach-to-limit UX | ⬜ |
 
 ---
@@ -589,7 +601,7 @@ Domain → Infrastructure → Services → REST API → MCP Server → GUI → D
 |-----|------|:-----------:|----------------|-------------|:------:|
 | MEU-168 | `schemathesis-ci` | CI.A | [testing-strategy](build-plan/testing-strategy.md) §Schemathesis | Schemathesis API fuzzing as CI step (start server + fuzz + report) | ⬜ |
 | MEU-169 | `guard-auto-trip` | 15e.B | [friction-inventory](build-plan/friction-inventory.md) §FR-2.4, [05](build-plan/05-mcp-server.md) §5.9 | Auto-tripping circuit breaker state machine (CLOSED→OPEN→HALF_OPEN) + tests | ⬜ |
-| MEU-170 | `e2e-all-green` | E2E.A | [testing-strategy](build-plan/testing-strategy.md) §E2E, [06-gui](build-plan/06-gui.md) §E2E Waves | All 20 Playwright E2E tests green (final gate after Waves 0–5 complete) | ⬜ |
+| MEU-170 | `e2e-all-green` | E2E.A | [testing-strategy](build-plan/testing-strategy.md) §E2E, [06-gui](build-plan/06-gui.md) §E2E Waves | All 37+ Playwright E2E tests green (final gate after Waves 0–9 complete). Wave 10 count TBD. | ⬜ |
 | MEU-TS1 | `pyright-test-annotations` | TS.A | [testing-strategy](build-plan/testing-strategy.md) | Pyright Tier 1: fix generator fixture typing, Optional narrowing guards, mock protocol compliance, and `__mro__` access across 8 test files (13 errors) — zero production code changes | ✅ |
 | MEU-TS2 | `pyright-enum-literals` | TS.B | [testing-strategy](build-plan/testing-strategy.md), [01 §1.2](build-plan/01-domain-layer.md) | Pyright Tier 2: replace ~50 raw string literals (`"BOT"`, `"SLD"`, `"broker"`) with enum values (`TradeAction.BOT`, `AccountType.BROKER`) in test assertions — zero production code changes | ✅ |
 | MEU-TS3 | `pyright-entity-factories` | TS.C | [testing-strategy](build-plan/testing-strategy.md), [01 §1.4](build-plan/01-domain-layer.md) | Pyright Tier 3: resolve ~121 entity factory typing errors where `Column[T]` is passed as `T` — options: typed factory fns, `@overload` signatures, or scoped `# type: ignore` suppressions. 2 core service errors (Tier 4: `account_service.py` port ABC, `trade_service.py` type narrowing) included. | ✅ |

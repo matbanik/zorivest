@@ -1,6 +1,6 @@
 # Phase 7: Distribution & Release
 
-> Part of [Zorivest Build Plan](../BUILD_PLAN.md) | Prerequisites: All previous phases
+> Part of [Zorivest Build Plan](../BUILD_PLAN.md) | Prerequisites: [Phase 4](04-rest-api.md), [Phase 6](06-gui.md), Phase 10 service artifacts (WinSW XML, launchd plist, systemd unit from [10.1–10.2](10-service-daemon.md) only)
 
 ---
 
@@ -132,6 +132,20 @@ module.exports = {
 };
 ```
 
+### Phase 10 Artifact Dependency
+
+Distribution does NOT depend on the full Phase 10 service daemon implementation.
+It only requires the **static service configuration files** produced by MEU-91/92
+(WinSW XML, launchd plist, systemd unit). The service manager TypeScript class
+(MEU-93), MCP tools (MEU-95a), and GUI panel (MEU-95b) are consumed by Phase 6/5,
+not by Phase 7.
+
+Dependency graph (acyclic):
+```
+Phase 10 MEU-91/92 (config files) → Phase 7 (bundles them)
+Phase 10 MEU-93/95a/95b → Phase 6 GUI + Phase 5 MCP (consumes at runtime)
+```
+
 ### Sidecar Runtime Detection
 
 The Electron main process detects whether it's running in development or packaged mode:
@@ -196,7 +210,7 @@ npm run build
 npm publish --access public  # @zorivest/mcp-server
 ```
 
-Users install with `npx @zorivest/mcp-server --api-url http://localhost:8765` or add to their IDE's MCP configuration with a `Bearer` API key header for encrypted DB access (see [Phase 5 §5.7](05-mcp-server.md#step-57-mcp-auth-bootstrap)):
+Users install with `npx @zorivest/mcp-server --api-url http://localhost:17787` or add to their IDE's MCP configuration with a `Bearer` API key header for encrypted DB access (see [Phase 5 §5.7](05-mcp-server.md#step-57-mcp-auth-bootstrap)):
 
 ```json
 {

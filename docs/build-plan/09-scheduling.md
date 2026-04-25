@@ -1331,7 +1331,7 @@ class PowerEventRequest(BaseModel):
 
 import { powerMonitor, BrowserWindow } from 'electron';
 
-const API_BASE = 'http://localhost:8765/api/v1';
+const API_BASE = 'http://localhost:17787/api/v1';
 
 export function registerPowerEvents(win: BrowserWindow) {
   powerMonitor.on('suspend', async () => {
@@ -2660,7 +2660,7 @@ async def patch_policy_schedule(
 import { z } from 'zod';
 import { McpServer } from '@modelcontextprotocol/sdk/server/mcp.js';
 
-const API_BASE = process.env.ZORIVEST_API_URL || 'http://localhost:8765/api/v1';
+const API_BASE = process.env.ZORIVEST_API_URL || 'http://localhost:17787/api/v1';
 
 export function registerSchedulingTools(server: McpServer) {
 

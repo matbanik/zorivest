@@ -73,6 +73,48 @@ class UsageMeter:
     api_calls: int = 0
 ```
 
+### Feature Enforcement Matrix
+
+> [!IMPORTANT]
+> Every tier-gated feature MUST have a corresponding enforcement point.
+> The backend is the single enforcement authority — GUI checks are UX-only.
+
+| Feature | Free Limit | Pro Limit | Enforcement Point | Layer |
+|---------|-----------|----------|-------------------|-------|
+| Trade creation | 50/month | Unlimited | `POST /api/v1/trades` middleware | API |
+| Account count | 1 | 3 | `POST /api/v1/accounts` middleware | API |
+| AI review | 10/month | 100/month (unlimited BYOK) | `ai_review_trade` MCP tool | MCP |
+| PDF OCR import | ❌ | ✅ | `POST /api/v1/import/broker-pdf` middleware | API |
+| Tax loss harvesting | ❌ | ✅ | `harvest_losses` MCP tool + `POST /tax/harvest` | API + MCP |
+| Pipeline scheduling | 2 policies | Unlimited | `POST /api/v1/scheduling/policies` middleware | API |
+| Cloud sync | ❌ | ✅ | Sync endpoint middleware | API |
+| SSO/Audit log | ❌ | ❌ (Team only) | Auth middleware | API |
+
+**Enforcement pattern:**
+```python
+# packages/api/src/zorivest_api/middleware/subscription_guard.py
+
+class SubscriptionGuard:
+    """FastAPI dependency that checks tier + usage limits."""
+
+    def __init__(self, required_tier: SubscriptionTier = SubscriptionTier.FREE,
+                 usage_key: str | None = None, limit: int | None = None):
+        self.required_tier = required_tier
+        self.usage_key = usage_key
+        self.limit = limit
+
+    async def __call__(self, license: License = Depends(get_license),
+                       meter: UsageMeter = Depends(get_usage_meter)):
+        if license.tier.value < self.required_tier.value:
+            raise HTTPException(403, f"Requires {self.required_tier} tier")
+        if self.usage_key and self.limit:
+            current = getattr(meter, self.usage_key, 0)
+            if current >= self.limit:
+                raise HTTPException(429, f"Monthly {self.usage_key} limit reached")
+
+# Usage: Depends(SubscriptionGuard(SubscriptionTier.PRO, "trades_created", 50))
+```
+
 ---
 
 ## 11.2: OAuth Integration — Google
@@ -100,7 +142,7 @@ Electron Main Process                 Google Auth Server
 
 ```python
 # Reuses existing Phase 8 encryption pattern (MarketProviderSettingModel)
-# Stored in settings table via SettingsResolver
+# Stored via OAuthTokenPort backed by encrypted MarketProviderSettingModel rows
 
 OAUTH_SETTINGS = {
     "oauth.google.access_token": "encrypted",     # Fernet-encrypted
@@ -115,52 +157,117 @@ OAUTH_SETTINGS = {
 
 ## 11.3: Google Calendar & Tasks Integration
 
-### Trade Plan Reminders → Google Calendar
+> [!IMPORTANT]
+> Google API calls are infrastructure concerns. The core layer defines **ports** (abstract protocols);
+> the infrastructure layer provides **adapters** that make the actual HTTP calls to Google APIs.
+> Token management uses `OAuthTokenPort` — an abstract port backed by encrypted `MarketProviderSettingModel` rows (Phase 8 pattern).
+
+### Core Ports
 
 ```python
-# packages/core/src/zorivest_core/services/google_calendar_service.py
+# packages/core/src/zorivest_core/application/ports.py (additions)
 
-class GoogleCalendarService:
-    """Create/update/delete calendar events for TradePlan reminders."""
+class CalendarPort(Protocol):
+    """Abstract port for calendar event management."""
+
+    async def create_event(
+        self, summary: str, description: str,
+        start: str, end: str, reminder_minutes: int = 30
+    ) -> str:
+        """Create a calendar event, returns event_id."""
+        ...
+
+    async def delete_event(self, event_id: str) -> None: ...
+
+
+class TaskPort(Protocol):
+    """Abstract port for task management."""
+
+    async def create_task(
+        self, title: str, notes: str | None = None, due: str | None = None
+    ) -> str:
+        """Create a task item, returns task_id."""
+        ...
+
+
+class OAuthTokenPort(Protocol):
+    """Abstract port for encrypted OAuth token retrieval and storage.
+    Infrastructure layer implements this using MarketProviderSettingModel
+    with Fernet encryption at rest."""
+
+    def get_access_token(self, provider: str) -> str: ...
+    def get_refresh_token(self, provider: str) -> str: ...
+    def store_tokens(
+        self, provider: str, access: str, refresh: str, expiry: datetime
+    ) -> None: ...
+```
+
+### Infrastructure Adapters
+
+```python
+# packages/infrastructure/src/zorivest_infra/adapters/google_calendar_adapter.py
+
+class GoogleCalendarAdapter:
+    """CalendarPort implementation using Google Calendar API v3.
+
+    OAuth tokens are retrieved from OAuthTokenPort (encrypted at rest,
+    same pattern as MarketProviderSettingModel in Phase 8).
+    """
+
+    def __init__(self, token_store: OAuthTokenPort) -> None:
+        self._token_store = token_store
+
+    async def create_event(
+        self, summary: str, description: str,
+        start: str, end: str, reminder_minutes: int = 30
+    ) -> str:
+        token = self._token_store.get_access_token("google")
+        # POST to Google Calendar API v3 with Bearer token
+        ...
+
+    async def delete_event(self, event_id: str) -> None:
+        # DELETE to Google Calendar API v3
+        ...
+```
+
+```python
+# packages/infrastructure/src/zorivest_infra/adapters/google_tasks_adapter.py
+
+class GoogleTasksAdapter:
+    """TaskPort implementation using Google Tasks API v1."""
+
+    def __init__(self, token_store: OAuthTokenPort) -> None:
+        self._token_store = token_store
+
+    async def create_task(
+        self, title: str, notes: str | None = None, due: str | None = None
+    ) -> str:
+        token = self._token_store.get_access_token("google")
+        # POST to Google Tasks API v1 with Bearer token
+        ...
+```
+
+### Service Layer Usage
+
+```python
+# packages/core/src/zorivest_core/services/plan_reminder_service.py
+
+class PlanReminderService:
+    """Orchestrates trade plan reminders via CalendarPort."""
+
+    def __init__(self, calendar: CalendarPort) -> None:
+        self._calendar = calendar
 
     async def create_plan_reminder(
         self, plan: TradePlan, reminder_minutes: int = 30
     ) -> str:
-        """Create a Google Calendar event for a trade plan entry window."""
-        event = {
-            "summary": f"📈 {plan.ticker} — {plan.strategy_name}",
-            "description": f"Conviction: {plan.conviction}\nEntry: {plan.entry_price}",
-            "start": {"dateTime": plan.entry_window_start.isoformat()},
-            "end": {"dateTime": plan.entry_window_end.isoformat()},
-            "reminders": {
-                "useDefault": False,
-                "overrides": [{"method": "popup", "minutes": reminder_minutes}],
-            },
-        }
-        # POST to Google Calendar API v3
-        return await self._create_event(event)
-
-    async def delete_plan_reminder(self, event_id: str) -> None:
-        """Remove calendar event when plan is cancelled/executed."""
-        await self._delete_event(event_id)
-```
-
-### Watchlist Actions → Google Tasks
-
-```python
-class GoogleTasksService:
-    """Create task items for watchlist review actions."""
-
-    async def create_watchlist_task(
-        self, ticker: str, action: str, notes: str | None = None
-    ) -> str:
-        """Create a Google Tasks item for a watchlist action."""
-        task = {
-            "title": f"Review {ticker}: {action}",
-            "notes": notes or "",
-            "due": (datetime.now() + timedelta(days=1)).isoformat() + "Z",
-        }
-        return await self._create_task(task)
+        return await self._calendar.create_event(
+            summary=f"\U0001f4c8 {plan.ticker} \u2014 {plan.strategy_name}",
+            description=f"Conviction: {plan.conviction}\nEntry: {plan.entry_price}",
+            start=plan.entry_window_start.isoformat(),
+            end=plan.entry_window_end.isoformat(),
+            reminder_minutes=reminder_minutes,
+        )
 ```
 
 ---
@@ -252,6 +359,12 @@ class AIProviderKeyModel(Base):
 - Usage is tracked for analytics (not billing)
 - Keys are validated on save and periodically (every 24h)
 
+> [!IMPORTANT]
+> The `ai_provider_keys` table contains Fernet-encrypted API keys and **must** be added
+> to `SqlSandbox.DENY_TABLES` and excluded from MCP schema discovery (`list_db_tables`,
+> `pipeline://db-schema`) before BYOK key storage ships. This preserves the Phase 9
+> security boundary — see [09c §9C.2](09c-pipeline-security-hardening.md).
+
 ---
 
 ## 11.6: Usage Metering
@@ -273,7 +386,7 @@ class UsageMeteringService:
     def increment(self, meter: UsageMeter, resource: str, amount: int = 1) -> None:
         """Increment usage counter. Raises QuotaExceeded if over limit."""
         if not self.check_limit(meter, resource):
-            raise QuotaExceeded(resource=resource, tier=meter.tier)
+            raise QuotaExceeded(resource=resource, tier=self._license_service.get_current_tier())
         setattr(meter, resource, getattr(meter, resource) + amount)
 ```
 
@@ -439,6 +552,7 @@ class TestMonetizationAPI:
 - Calendar reminders for Trade Plans (create/delete)
 - Tasks integration for Watchlist actions
 - BYOK API key CRUD with encrypted storage and periodic validation
+- `ai_provider_keys` table added to `SqlSandbox.DENY_TABLES` and hidden from MCP DB schema discovery
 - Usage metering with approach-to-limit UX (green → yellow → red)
 - All permanently-free features accessible regardless of subscription state
 - Data never locked behind lapsed subscription (read-only degradation only)
@@ -446,8 +560,9 @@ class TestMonetizationAPI:
 ## Outputs
 
 - **Domain**: `SubscriptionTier` enum, `License` entity, `UsageMeter` entity
-- **Services**: `LicenseService`, `UsageMeteringService`, `GoogleCalendarService`, `GoogleTasksService`
-- **Infrastructure**: `AIProviderKeyModel` (SQLAlchemy), `ai_provider_keys` table
+- **Services**: `LicenseService`, `UsageMeteringService`, `PlanReminderService`
+- **Ports**: `CalendarPort`, `TaskPort`
+- **Infrastructure**: `AIProviderKeyModel` (SQLAlchemy), `ai_provider_keys` table, `GoogleCalendarAdapter`, `GoogleTasksAdapter`
 - **REST API**: 11 endpoints under `/api/v1/monetization/`
 - **MCP**: 2 tools (`zorivest_subscription_status`, `zorivest_feature_check`)
 - **GUI**: Subscription settings page (license, usage, BYOK, Google integration)

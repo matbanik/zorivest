@@ -16,7 +16,7 @@ Create a new pipeline policy from a JSON document with full validation.
 import { z } from 'zod';
 import { McpServer } from '@modelcontextprotocol/sdk/server/mcp.js';
 
-const API_BASE = process.env.ZORIVEST_API_URL || 'http://localhost:8765/api/v1';
+const API_BASE = process.env.ZORIVEST_API_URL || 'http://localhost:17787/api/v1';
 
 export function registerSchedulingTools(server: McpServer) {
 
@@ -351,6 +351,8 @@ export function registerPipelineSecurityResources(server: McpServer) {
       return { contents: [{ uri: 'pipeline://db-schema', text: JSON.stringify(schema, null, 2), mimeType: 'application/json' }] };
     }
   );
+  // Backend: GET /scheduling/db-schema filters SqlSandbox.DENY_TABLES server-side.
+  // Route owner: scheduling API router (MEU-PH9). Security contract: [09c §9C.2e](09c-pipeline-security-hardening.md).
 
   server.resource(
     'pipeline://emulator/mock-data',
@@ -429,13 +431,14 @@ List all registered pipeline step types with their parameter schemas. Includes n
 
 ### `list_db_tables` [Planned]
 
-List available DB tables with column schemas. Agent uses this to write SQL for `query` steps. Excludes sensitive tables (`encrypted_keys`, `auth_users`).
+List available DB tables with column schemas. Agent uses this to write SQL for `query` steps. Excludes all tables in `SqlSandbox.DENY_TABLES` (same deny contract used by `get_db_row_samples` and `validate_sql`).
 
 - `readOnlyHint`: true
 - `toolset`: scheduling
 
 **Input:** None
 **Output:** Array of table objects with `name`, `columns[]` (name, type, nullable)
+**Backend:** Fetches `GET /scheduling/db-schema` (same endpoint as `pipeline://db-schema`). Security contract: [09c §9C.2e](09c-pipeline-security-hardening.md).
 
 ---
 
@@ -448,6 +451,7 @@ Return sample rows from a table (via `SqlSandbox`, `DENY_TABLES` enforced). Agen
 
 **Input:** `table_name`, optional `limit` (default 5, max 20)
 **Output:** Array of row dicts
+**Backend:** Validates `table_name not in SqlSandbox.DENY_TABLES` before executing `SqlSandbox.execute()`. Security contract: [09c §9C.2e](09c-pipeline-security-hardening.md).
 
 ---
 

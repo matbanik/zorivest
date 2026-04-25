@@ -360,6 +360,7 @@ The calculator is designed for rapid keyboard use:
 - Warning messages display (position > account, risk > 3%, R:R < 1, entry == stop)
 - Division-by-zero guarded when entry == stop
 - Tab/Enter keyboard flow works without mouse
+- **Playwright E2E**: Calculator modal opens via Ctrl+Shift+C, equity computation renders correct outputs (see [GUI Shipping Gate](06-gui.md#gui-shipping-gate-mandatory-for-all-gui-meus))
 
 **Expansion (follow-up MEU):**
 - Mode selector switches between Equity, Futures, Options, Forex, and Crypto
@@ -376,6 +377,7 @@ The calculator is designed for rapid keyboard use:
 - Cross-mode scenario comparison renders correctly (Equity vs Futures vs Forex)
 - Recent calculations list shows last 10 with mode icon and Load button
 - Copy to Plan creates pre-filled trade plan and navigates to planning page
+- **Playwright E2E (Wave 10+ — define before implementation):** Mode switching renders correct fields, scenario comparison table populates, calculation history loads saved entry, Copy-to-Plan navigates to planning page with pre-filled fields (see [GUI Shipping Gate](06-gui.md#gui-shipping-gate-mandatory-for-all-gui-meus))
 
 ## Outputs
 

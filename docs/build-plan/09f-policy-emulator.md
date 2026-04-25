@@ -27,10 +27,15 @@ class PolicyEmulator:
     """4-phase dry-run engine for AI policy authoring."""
 
     def __init__(self, sandbox: SqlSandbox, template_engine: HardenedSandbox,
-                 template_repo: EmailTemplateRepository):
+                 template_port: EmailTemplatePort):
+        """
+        Args:
+            template_port: Core port (NOT infra repository).
+                           Import from zorivest_core.ports.email_template_port.
+        """
         self._sandbox = sandbox
         self._engine = template_engine
-        self._template_repo = template_repo
+        self._template_port = template_port
 
     async def emulate(self, policy_json: dict,
                       phases: list[str] = ["PARSE", "VALIDATE", "SIMULATE", "RENDER"]
@@ -60,7 +65,7 @@ class PolicyEmulator:
                 if step.type == "send":
                     tmpl_name = step.params.get("body_template")
                     if tmpl_name:
-                        tmpl = self._template_repo.get_by_name(tmpl_name)
+                        tmpl = self._template_port.get_by_name(tmpl_name)
                         if not tmpl:
                             val_errors.append(f"Template '{tmpl_name}' not found")
             ref_errors = self._check_ref_integrity(policy)

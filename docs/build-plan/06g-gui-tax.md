@@ -474,6 +474,7 @@ Users can save multiple scenarios and compare side-by-side (e.g., "Sell 100 at F
 - Wash Sale Monitor displays active chains with event timelines
 - Cross-account wash sale detection flags IRA permanent losses
 - What-If Simulator shows per-lot breakdown, tax estimate at user's bracket, and hold-savings tips
+- **Playwright E2E**: Route `/tax` reachable via nav rail, tax dashboard `data-testid` visible, summary cards render (see [GUI Shipping Gate](06-gui.md#gui-shipping-gate-mandatory-for-all-gui-meus))
 - Scenario comparison renders side-by-side for different cost basis methods
 - Loss Harvesting scanner ranks positions by harvestable amount and filters wash conflicts
 - Replacement suggestions display correlated non-identical securities

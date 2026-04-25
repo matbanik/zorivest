@@ -11,6 +11,7 @@
 
 export const SIDEBAR = {
     ROOT: 'sidebar',
+    NAV_HOME: 'nav-home',
     NAV_ACCOUNTS: 'nav-accounts',
     NAV_TRADES: 'nav-trades',
     NAV_PLANNING: 'nav-planning',

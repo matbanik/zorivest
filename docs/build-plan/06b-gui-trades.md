@@ -213,7 +213,7 @@ When a trade row is selected, a detail panel slides in from the right side of th
 import { useState } from 'react';
 import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query';
 
-const API = (window as any).__ZORIVEST_API_URL__ ?? 'http://localhost:8765/api/v1';
+const API = (window as any).__ZORIVEST_API_URL__ ?? 'http://localhost:17787/api/v1';
 
 interface TradeImage {
   id: number;
@@ -463,6 +463,7 @@ TRADE DETAIL · [Info] [Journal] [Screenshots] [Excursion] [Fees] [Mistakes] [Ro
 - Screenshot panel supports upload, paste, and lightbox viewing
 - Trade report/journal form saves with star ratings, tags, and lessons
 - Image badge column shows correct count per trade
+- **Playwright E2E**: Route `/trades` reachable via nav rail, trades table root `data-testid` visible, and create→verify happy path passes (see [GUI Shipping Gate](06-gui.md#gui-shipping-gate-mandatory-for-all-gui-meus))
 
 ## Outputs
 

@@ -36,7 +36,7 @@ Read the most recent reflection file from `docs/execution/reflections/` (sort by
 
 > Steps 1-3 happen as part of the `/create-plan` workflow.
 
-Antigravity (Opus 4.6) will:
+Antigravity (Opus 4.7) will:
 
 1. Enter **PLANNING mode** via `task_boundary`
 2. Discover progress from handoffs + meu-registry

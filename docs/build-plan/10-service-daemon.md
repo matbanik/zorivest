@@ -1,6 +1,6 @@
 # Phase 10: Service Daemon — Cross-Platform Background Service
 
-> Part of [Zorivest Build Plan](../BUILD_PLAN.md) | Prerequisites: [Phase 4](04-rest-api.md), [Phase 7](07-distribution.md), [Phase 9](09-scheduling.md) | Consumed by: [Phase 6 GUI](06-gui.md) (Settings panel), [Phase 5 MCP](05-mcp-server.md) (service tools)
+> Part of [Zorivest Build Plan](../BUILD_PLAN.md) | Prerequisites: [Phase 4](04-rest-api.md), [Phase 9](09-scheduling.md) | Consumed by: [Phase 7](07-distribution.md) (bundles service config files), [Phase 6 GUI](06-gui.md) (Settings panel), [Phase 5 MCP](05-mcp-server.md) (service tools)
 
 ---
 
@@ -40,13 +40,13 @@ Enable the Python backend (FastAPI + APScheduler + SQLCipher) to run as a **nati
 │  │  Layer 2: Python Backend (zorivest-api binary)            │   │
 │  │  ┌──────────┐  ┌──────────────┐  ┌───────────────┐       │   │
 │  │  │ FastAPI   │  │ APScheduler  │  │ SQLCipher DB  │       │   │
-│  │  │ :8765     │  │ (cron jobs)  │  │               │       │   │
+│  │  │ :17787    │  │ (cron jobs)  │  │               │       │   │
 │  │  └──────────┘  └──────────────┘  └───────────────┘       │   │
 │  └───────────────────────────────────────────────────────────┘   │
 └──────────────────────────────────────────────────────────────────┘
 
 ┌──────────────────────────────────────────────────────────────────┐
-│  Consumers (connect to backend over localhost:8765)               │
+│  Consumers (connect to backend over localhost:17787)              │
 │  ┌──────────────┐  ┌──────────────┐  ┌─────────────────────┐    │
 │  │ Electron GUI │  │ MCP Server   │  │ IDE Clients         │    │
 │  │ (React)      │  │ (TypeScript) │  │ (Cursor, Claude,..) │    │
@@ -83,6 +83,46 @@ Enable the Python backend (FastAPI + APScheduler + SQLCipher) to run as a **nati
 
 > [!IMPORTANT]
 > **Windows elevation:** `net start`/`net stop` require admin privileges. The GUI uses [`sudo-prompt`](https://www.npmjs.com/package/sudo-prompt) (or [`@vscode/sudo-prompt`](https://www.npmjs.com/package/@vscode/sudo-prompt)) to trigger a single UAC dialog when the user clicks Start/Stop/Restart. Status queries via `sc query` require no elevation.
+
+---
+
+## 10.0: Daemon Unlock Protocol (Pre-MEU-91)
+
+> [!CAUTION]
+> The daemon runs SQLCipher queries (APScheduler) without GUI interaction.
+> It MUST have a defined unlock path before any MEU-91+ implementation.
+
+### Unlock States
+
+| State | SQLCipher | Scheduler | Health `/health` |
+|-------|-----------|-----------|------------------|
+| `locked` | Closed | Paused (no jobs fire) | `{"status": "locked", "reason": "awaiting_unlock"}` |
+| `unlocked` | Open (DEK in memory) | Active | `{"status": "ok", ...}` |
+| `failed` | Closed | Paused | `{"status": "error", "reason": "unlock_failed"}` |
+
+### DEK Provisioning (Windows)
+
+1. **First launch after install:** GUI prompts passphrase → derives DEK via Argon2id → stores encrypted DEK in Windows Credential Manager (`Zorivest/DEK`).
+2. **Service start (no GUI):** Daemon reads encrypted DEK from Windows Credential Manager → unwraps with DPAPI → opens SQLCipher. If credential missing → remain in `locked` state.
+3. **GUI-assisted unlock:** If daemon is `locked`, GUI's Settings > Service panel calls `POST /api/v1/service/unlock` with the passphrase → daemon derives DEK → stores in Credential Manager → transitions to `unlocked`.
+
+### DEK Provisioning (macOS / Linux)
+
+1. macOS: Keychain Services (`security add-generic-password`)
+2. Linux: `libsecret` / `gnome-keyring` via `keyring` Python library
+
+### Restart Behavior
+
+- On daemon restart: attempt Credential Manager read → if found, auto-unlock → if not, enter `locked` state.
+- Scheduled jobs that fire while `locked` are SKIPPED with status `skipped_locked` in the run history. They do NOT queue for later execution.
+
+### Exit Criteria (Pre-MEU-91 gate)
+
+- [ ] Unlock state machine defined in domain (3 states, transitions)
+- [ ] `/health` response includes `unlock_status` field
+- [ ] `POST /api/v1/service/unlock` endpoint spec exists
+- [ ] Credential Manager read/write contract per platform
+- [ ] Scheduler skip-while-locked behavior documented
 
 ---
 
@@ -751,7 +791,7 @@ async def graceful_shutdown(
 import { McpServer } from '@modelcontextprotocol/sdk/server/mcp.js';
 import { z } from 'zod';
 
-const API = process.env.ZORIVEST_API_URL ?? 'http://localhost:8765/api/v1';
+const API = process.env.ZORIVEST_API_URL ?? 'http://localhost:17787/api/v1';
 
 export function registerServiceTools(server: McpServer): void {
 
@@ -917,7 +957,7 @@ export function registerServiceTools(server: McpServer): void {
 │                                                          │
 │  ┌─ Status ─────────────────────────────────────┐        │
 │  │ 🟢 Backend Service: Running                  │        │
-│  │    PID: 12847     Port: 8765                  │        │
+│  │    PID: 12847     Port: 17787                 │        │
 │  │    Uptime: 4h 23m                             │        │
 │  │    Memory: 84 MB  CPU: 2.3%                   │        │
 │  │                                               │        │
@@ -1058,7 +1098,7 @@ export function ServiceManagerPage() {
 
         {isRunning && health && (
           <div className="status-details">
-            <p>PID: {health.pid} &nbsp; Port: 8765</p>
+            <p>PID: {health.pid} &nbsp; Port: {health.port ?? 17787}</p>
             <p>Uptime: {formatUptime(health.uptime_seconds)}</p>
             <p>Memory: {health.memory_mb} MB &nbsp; CPU: {health.cpu_percent}%</p>
             <p>Scheduler: {health.scheduler.active_policies} active policies</p>

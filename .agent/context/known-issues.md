@@ -69,31 +69,6 @@
 
 
 
-### [PIPE-URLBUILD] — MarketDataProviderAdapter._build_url() uses hardcoded URL patterns that don't match provider APIs
-- **Severity:** High | **Component:** infrastructure (`market_data_adapter.py`) | **Discovered:** 2026-04-14 | **Status:** Open
-- **Details:** Three sub-issues in `_build_url()` and `_do_fetch()`:
-  1. **Criteria key mismatch:** Policy sends `tickers: ["AAPL", "MSFT"]` but `_build_url()` reads `criteria.get("symbol", "")` → empty string → URL like `…/quote?symbol=` → Yahoo hangs.
-  2. **Missing provider headers:** `_do_fetch()` → `fetch_with_cache()` doesn't pass `headers_template` (UA, Referer) from registry → Yahoo returns 403/captcha.
-  3. **Generic URL patterns:** Same `{base_url}/quote?symbol=` template for all 14 providers. Yahoo uses `symbols=` (plural, comma-sep), Finnhub uses single-symbol, Polygon uses snapshot endpoints.
-- **Root cause:** `_build_url()` was a skeleton from MEU-PW2, never provider-specialized.
-- **Fix:** Refactor to per-provider URL builders, pass `headers_template` into `fetch_with_cache()`, support `tickers` list → comma-joined `symbols=` param.
-
-
-### [PIPE-NOCANCEL] — No mechanism to cancel a running pipeline run (API, GUI, or internal)
-- **Severity:** High | **Component:** core, api, ui (Scheduling page) | **Discovered:** 2026-04-14 | **Status:** Open
-- **Details:** Zero cancellation infrastructure exists. No cancel endpoint, no `asyncio.Task` tracking in `PipelineRunner`, no `CancelledError` handling, no GUI cancel button. Once a run starts, the only way to stop it is to kill the backend process. This directly causes zombie runs (see PIPE-ZOMBIE) — a stuck fetch step runs indefinitely with no user intervention path.
-- **Research-backed fix approach** (sources: Prefect docs, Temporal docs, Azure Data Factory REST API, REST API design best practices, React AbortController patterns):
-  1. **Backend — Task registry:** `PipelineRunner` must store `asyncio.Task` references in a `dict[str, asyncio.Task]` keyed by `run_id`. This enables `task.cancel()` which raises `CancelledError` inside the step's `await`.
-  2. **Backend — Cancelling state:** Add `"cancelling"` to `PipelineStatus` enum as an intermediate status (Prefect pattern: run → cancelling → cancelled). Set on cancel request; runner checks this between steps and after `CancelledError`.
-  3. **Backend — Cancel endpoint:** `POST /api/v1/scheduling/runs/{run_id}/cancel` (Azure Data Factory pattern). Idempotent — calling on already-cancelled/completed run returns 200. Sets status to `"cancelling"`, calls `task.cancel()`, waits up to grace period (default 30s per Prefect), then force-kills via `asyncio.Task.cancel()`.
-  4. **Backend — Per-step token check:** Before each step execution in the runner loop, check `if run_status == "cancelling": break`. This provides cooperative cancellation at step boundaries even if `asyncio.Task.cancel()` can't interrupt a blocked I/O call (PIPE-ZOMBIE problem 2).
-  5. **GUI — Cancel button:** Run detail page: red "Cancel Run" button visible when `status === "running"`. On click → confirmation dialog → `POST .../cancel` → button changes to "Cancelling…" (disabled) → poll/SSE until status reaches `"cancelled"` or `"failed"`. UX: don't show error toast on user-initiated cancel (AbortController pattern).
-  6. **GUI — Run list indicator:** Show `🔴 Cancelling` badge in run history table during the intermediate state.
-
-
-
-
-
 
 
 
@@ -184,6 +159,8 @@
 | PIPE-PROVNORM | 2026-04-21 | _PROVIDER_SLUG_MAP normalizes display names to registry slugs (MEU-PW12) |
 | PIPE-QUOTEFIELD | 2026-04-21 | Presentation mapping (last→price, ticker→symbol) aligns template fields (MEU-PW12) |
 | PIPE-SILENTPASS | 2026-04-21 | min_records param + WARNING status on zero records (MEU-PW12) |
+| PIPE-URLBUILD | 2026-04-19 | Per-provider URL builder registry + headers_template forwarding (MEU-PW6) |
+| PIPE-NOCANCEL | 2026-04-19 | CANCELLING status + cancel endpoint + cooperative step check (MEU-PW7) |
 
 ## Template
 

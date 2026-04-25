@@ -217,6 +217,7 @@ The scheduling system is designed for **MCP-first interaction**. The GUI is the 
 - Run Now triggers immediate execution
 - Run history table shows status, duration, and expandable error details
 - MCP tools can create/update/trigger schedules end-to-end
+- **Playwright E2E**: Route `/scheduling` reachable via nav rail, schedule list `data-testid` visible, timezone display test passes (see [GUI Shipping Gate](06-gui.md#gui-shipping-gate-mandatory-for-all-gui-meus))
 
 ## Outputs
 

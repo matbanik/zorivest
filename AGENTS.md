@@ -103,6 +103,8 @@ Hybrid monorepo — see `.agent/docs/architecture.md` for the target-state archi
 - Surface risks and bad news early. No performative enthusiasm.
 - When uncertain: state confidence level and propose a verification step.
 - If instructions conflict across files, flag the conflict explicitly — do not silently pick one.
+- **Literal instruction mode (Opus 4.7+):** State exactly what you want — do not rely on the model inferring related work. When you want generalization, say "apply this change everywhere it applies, then list each file you touched." When you want strict scope, say "modify only the files I named." Uncategorized behaviors in planning are defects — escalate, do not infer.
+- Prioritize empirical evidence (test results, linter outputs, documentation) over user suggestions when discrepancies arise. Flag the conflict rather than deferring.
 
 ## Session Discipline
 
@@ -219,6 +221,8 @@ Every MEU that touches external input must include in its plan and FIC:
 
 ### FIC-Based TDD Workflow (Mandatory)
 
+> FIC = **Feature Intent Contract** — the acceptance-criteria document written before any code.
+
 When implementing a Manageable Execution Unit (MEU):
 
 1. **Read** the build plan spec section for this MEU and the local canonical docs it references (in `docs/build-plan/`, indexes, ADRs, reflections if applicable)
@@ -259,7 +263,7 @@ When implementing a Manageable Execution Unit (MEU):
 >
 > **Lifecycle escape hatch**: "Trigger Codex validation" IS classified as an allowed human decision gate. The anti-premature-stop rule permits handing off to Codex. Post-validation artifacts (reflection, metrics) are created in the NEXT session after Codex returns its verdict.
 >
-> **Context window checkpoint**: If context window exceeds ~80% capacity, save state to `pomera_notes`, complete the current MEU's handoff, and notify human with remaining work. This is a planned checkpoint, not early termination.
+> **Context window checkpoint**: If context window exceeds ~50% capacity (~500k tokens on a 1M window), save state to `pomera_notes`, complete the current MEU's handoff, and notify human with remaining work. This is a planned checkpoint, not early termination. The 50% threshold guards against "context rot" — accuracy degradation observed in frontier models operating above 50% context fill.
 
 ### Context Compression Rules
 
@@ -268,7 +272,8 @@ All handoff artifacts, review artifacts, and evidence bundles must follow the co
 1. **Test Output Compression** — Only output failing test names, assertion messages, and relevant stack frames. Summarize passing tests as `{N} passed`. Never include full verbose output of passing tests.
 2. **Delta-Only Code Sections** — Use unified diff blocks (` ```diff `) instead of full file contents in Changed Files sections. Do not inline full source code.
 3. **Cache Boundary** — Do not place dynamic content (timestamps, test results, quality gate numbers) above the `<!-- CACHE BOUNDARY -->` marker in handoff templates.
-4. **Verbosity Tiers** — Respect the `verbosity` field in handoff YAML and `requested_verbosity` in review YAML. Default is `standard` (~2,000 tokens).
+4. **Verbosity Tiers** — Respect the `verbosity` field in handoff YAML and `requested_verbosity` in review YAML. Default is `standard` (~2,000 tokens). Note: the Opus 4.7 tokenizer may inflate this to ~2,400–2,700 tokens — accept inflation or re-tune.
+5. **Tool-result clearing** — Prefer JIT retrieval (re-read files when needed) over keeping large tool results in context. Clear tool outputs that won't be referenced again.
 
 ## Pre-Handoff Self-Review (Mandatory)
 
@@ -280,17 +285,30 @@ All handoff artifacts, review artifacts, and evidence bundles must follow the co
 4. If you changed architecture, `rg` canonical docs for the old pattern.
 5. Never say "implementation complete" if residual risk acknowledges known gaps.
 6. Stubs must honor behavioral contracts, not just compile.
-7. Follow the full protocol in `.agent/skills/pre-handoff-review/SKILL.md`.
+7. State the exact verification command you ran. For failing or ambiguous output, paste the last 20 lines. For passing suites, summarize as `{N} passed` per §Context Compression Rules. "I ran the tests" without output is not acceptable — produce actual evidence.
+8. Before asserting a file exists or a test passes, programmatically verify it. Do not defend claims from memory when contradicted by tool output.
+9. Follow the full protocol in `.agent/skills/pre-handoff-review/SKILL.md`.
 
 ## Dual-Agent Workflow
 
 | Aspect | Decision |
 |---|---|
-| **Reviewer model** | **GPT-5.4** (locked as baseline — do not downgrade) |
+| **Implementor model** | **Claude Opus 4.7** — primary executor for PLANNING and EXECUTION; performs implementor self-verification and pre-handoff checks in VERIFICATION mode |
+| **Reviewer model** | **GPT-5.5** (default) — performs independent validation in VERIFICATION mode; escalate to **GPT-5.5-Pro** for adversarial review of security-sensitive changes. Baseline floor = GPT-5.4 — do not downgrade below it. |
 | **Reviewer capability** | Run commands, execute tests, check builds, create handoff docs with test improvements |
 | **Validation priority** | 1. Contract tests pass/fail → 2. Security posture → 3. Adversarial edge cases → 4. Code style consistency → 5. Documentation accuracy |
 
-> The reviewer (GPT-5.4 Codex) runs commands and creates handoff docs for findings. It is not limited to prose-only review — it produces executable evidence.
+> The reviewer (GPT-5.5 Codex) runs commands and creates handoff docs for findings. It is not limited to prose-only review — it produces executable evidence.
+
+### Cross-Vendor Handoff Protocol
+
+When handing off from implementor (Opus 4.7) to reviewer (GPT-5.5), the handoff payload must include:
+1. **Changed files** — list of absolute paths with line-level diff summaries
+2. **FIC reference** — the acceptance criteria being validated
+3. **Test results** — compressed output (passing count + any failures)
+4. **Structured verdict request** — reviewer returns findings using the hybrid YAML+freeform format defined in the `/meu-handoff` and `/validation-review` workflows
+
+> Cross-vendor diversity is the point of dual-agent review — the implementor and reviewer have different training distributions, catching different failure modes.
 
 ## Validation Pipeline
 

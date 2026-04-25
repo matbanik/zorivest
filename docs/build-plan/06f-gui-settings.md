@@ -60,7 +60,7 @@ The Market Data Settings page lets users configure API keys and monitor connecti
 import { useState } from 'react';
 import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query';
 
-const API = (window as any).__ZORIVEST_API_URL__ ?? 'http://localhost:8765/api/v1';
+const API = (window as any).__ZORIVEST_API_URL__ ?? 'http://localhost:17787/api/v1';
 
 interface ProviderStatus {
   provider_name: string;
@@ -694,7 +694,7 @@ export function McpGuardSettingsPage() {
 ├──────────────────────────────────────────────────────────┤
 │                                                          │
 │  ┌─ Connection ──────────────────────────────────┐       │
-│  │ Backend: 🟢 Connected (localhost:8765)        │       │
+│  │ Backend: 🟢 Connected (localhost:17787)        │       │
 │  │ Version: 1.0.0 (dev)                          │       │
 │  │ Database: 🟢 Unlocked                         │       │
 │  │ MCP Guard: 🟢 Active (47 calls/hr)            │       │
@@ -767,6 +767,7 @@ All templates auto-fill `url` from the detected MCP server URL and include the `
 - Display mode toggles immediately affect all dollar/percentage displays
 - Tax Profile page renders (P3 placeholder — full validation deferred)
 - Backup page: create, verify, restore cycle works end-to-end
+- **Playwright E2E**: Route `/settings` reachable via nav rail, settings root `data-testid` visible, market-data provider happy path passes (see [GUI Shipping Gate](06-gui.md#gui-shipping-gate-mandatory-for-all-gui-meus))
 - Config export produces valid JSON; import with preview applies non-sensitive settings only
 - Reset to Default removes user override and falls back correctly
 - MCP Guard page displays status, accepts threshold changes, and lock/unlock cycle works

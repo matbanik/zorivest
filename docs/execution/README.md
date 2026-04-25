@@ -22,11 +22,11 @@ Each build session follows this cycle for its project scope. Steps 3–5 may loo
 
 | Step | Agent | Action | Governing Files | Artifacts Produced |
 |------|-------|--------|----------------|--------------------|
-| **1. Create project plan** | Agent B (Opus 4.6) | Runs `/create-plan`: reads handoffs, registry, build-plan; runs spec-sufficiency gate; scopes project | `.agent/workflows/create-plan.md`, `AGENTS.md` §Operating Model | `implementation_plan.md` + `task.md` in `docs/execution/plans/{date}-{project-slug}/` |
-| **2. Validate plan** | Agent A (GPT-5.4) | Reviews plan, approves or sends correction findings | `.agent/workflows/validation-review.md`, `.agent/workflows/plan-critical-review.md` | Findings returned inline (plan artifacts live in `docs/execution/plans/`) |
-| **3. Implement via TDD** | Agent B (Opus 4.6) | FIC → Red → Green → quality checks → handoff (per MEU) | `AGENTS.md` §Testing & TDD Protocol, `.agent/workflows/tdd-implementation.md`, `.agent/workflows/meu-handoff.md` | Creates `.agent/context/handoffs/{SEQ}-{date}-{slug}-bp{NN}s{X.Y}.md` per MEU + `pomera_notes` backup + ADRs in `docs/decisions/` |
-| **4. Validate implementation** | Agent A (GPT-5.4) | Adversarial checks, banned patterns, FIC audit (per MEU) | `.agent/workflows/validation-review.md`, `.agent/roles/reviewer.md`, `.agent/roles/guardrail.md` | Codex Validation Report (appended to handoff), status transition |
-| **5. Meta-reflection** | Agent B (Opus 4.6) | Friction/quality/workflow logs → pattern extraction → design rules | `.agent/workflows/execution-session.md` §5a–5e | `docs/execution/reflections/{date}-{project-slug}-reflection.md`, `metrics.md` row, `pomera_notes` save |
+| **1. Create project plan** | Agent B (Opus 4.7) | Runs `/create-plan`: reads handoffs, registry, build-plan; runs spec-sufficiency gate; scopes project | `.agent/workflows/create-plan.md`, `AGENTS.md` §Operating Model | `implementation_plan.md` + `task.md` in `docs/execution/plans/{date}-{project-slug}/` |
+| **2. Validate plan** | Agent A (GPT-5.5) | Reviews plan, approves or sends correction findings | `.agent/workflows/validation-review.md`, `.agent/workflows/plan-critical-review.md` | Findings returned inline (plan artifacts live in `docs/execution/plans/`) |
+| **3. Implement via TDD** | Agent B (Opus 4.7) | FIC → Red → Green → quality checks → handoff (per MEU) | `AGENTS.md` §Testing & TDD Protocol, `.agent/workflows/tdd-implementation.md`, `.agent/workflows/meu-handoff.md` | Creates `.agent/context/handoffs/{SEQ}-{date}-{slug}-bp{NN}s{X.Y}.md` per MEU + `pomera_notes` backup + ADRs in `docs/decisions/` |
+| **4. Validate implementation** | Agent A (GPT-5.5) | Adversarial checks, banned patterns, FIC audit (per MEU) | `.agent/workflows/validation-review.md`, `.agent/roles/reviewer.md`, `.agent/roles/guardrail.md` | Codex Validation Report (appended to handoff), status transition |
+| **5. Meta-reflection** | Agent B (Opus 4.7) | Friction/quality/workflow logs → pattern extraction → design rules | `.agent/workflows/execution-session.md` §5a–5e | `docs/execution/reflections/{date}-{project-slug}-reflection.md`, `metrics.md` row, `pomera_notes` save |
 
 ### How Steps Chain Together
 

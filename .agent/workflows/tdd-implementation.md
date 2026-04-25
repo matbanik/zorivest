@@ -1,5 +1,5 @@
 ---
-description: TDD-first implementation workflow for Opus 4.6 — write tests, implement, handoff to Codex for validation.
+description: TDD-first implementation workflow for Opus 4.7 — write tests, implement, handoff to Codex for validation.
 ---
 
 # TDD Implementation Workflow (Opus Agent)
