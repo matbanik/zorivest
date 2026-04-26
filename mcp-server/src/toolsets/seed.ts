@@ -27,6 +27,7 @@ import { registerAccountTools } from "../tools/accounts-tools.js";
 import { registerDiscoveryTools } from "../tools/discovery-tools.js";
 import { registerMarketDataTools } from "../tools/market-data-tools.js";
 import { registerSchedulingTools, registerSchedulingResources } from "../tools/scheduling-tools.js";
+import { registerPipelineSecurityTools, registerPipelineSecurityResources } from "../tools/pipeline-security-tools.js";
 
 // ── Toolset definitions (canonical: 05-mcp-server.md §5.11 L735-745) ──
 
@@ -295,6 +296,67 @@ export const TOOLSET_DEFINITIONS: ToolsetDefinition[] = [
         register: (server: McpServer): RegisteredToolHandle[] => {
             registerSchedulingResources(server);
             return registerSchedulingTools(server);
+        },
+        loaded: false,
+        alwaysLoaded: false,
+        isDefault: false,
+    },
+    {
+        name: "pipeline-security",
+        description: "Policy emulator, SQL validation, DB schema discovery, email template CRUD and preview",
+        tools: [
+            {
+                name: "emulate_policy",
+                description: "Dry-run policy through 4-phase emulator",
+            },
+            {
+                name: "validate_sql",
+                description: "Validate SQL query against sandbox",
+            },
+            {
+                name: "list_db_tables",
+                description: "List queryable database tables",
+            },
+            {
+                name: "get_db_row_samples",
+                description: "Get sample rows from a table",
+            },
+            {
+                name: "create_email_template",
+                description: "Create a new email template",
+            },
+            {
+                name: "get_email_template",
+                description: "Get email template by name",
+            },
+            {
+                name: "list_email_templates",
+                description: "List all email templates",
+            },
+            {
+                name: "update_email_template",
+                description: "Update an email template",
+            },
+            {
+                name: "delete_email_template",
+                description: "Delete a user-created template",
+            },
+            {
+                name: "preview_email_template",
+                description: "Preview rendered template",
+            },
+            {
+                name: "list_step_types",
+                description: "List pipeline step types and parameter schemas",
+            },
+            {
+                name: "list_provider_capabilities",
+                description: "List market data providers and capabilities",
+            },
+        ],
+        register: (server: McpServer): RegisteredToolHandle[] => {
+            registerPipelineSecurityResources(server);
+            return registerPipelineSecurityTools(server);
         },
         loaded: false,
         alwaysLoaded: false,

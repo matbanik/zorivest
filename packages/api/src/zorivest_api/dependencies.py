@@ -154,6 +154,38 @@ async def get_email_provider_service(request: Request):  # noqa: ANN201
     return svc
 
 
+async def get_template_repo(request: Request):  # noqa: ANN201
+    """Resolve EmailTemplateRepository from app state (MEU-PH9)."""
+    repo = getattr(request.app.state, "template_repo", None)
+    if repo is None:
+        raise HTTPException(500, "EmailTemplateRepository not configured")
+    return repo
+
+
+async def get_policy_emulator(request: Request):  # noqa: ANN201
+    """Resolve PolicyEmulator from app state (MEU-PH9)."""
+    emu = getattr(request.app.state, "policy_emulator", None)
+    if emu is None:
+        raise HTTPException(500, "PolicyEmulator not configured")
+    return emu
+
+
+async def get_session_budget(request: Request):  # noqa: ANN201
+    """Resolve SessionBudget from app state (MEU-PH9)."""
+    budget = getattr(request.app.state, "session_budget", None)
+    if budget is None:
+        raise HTTPException(500, "SessionBudget not configured")
+    return budget
+
+
+async def get_sql_sandbox(request: Request):  # noqa: ANN201
+    """Resolve SqlSandbox from app state (MEU-PH9)."""
+    sandbox = getattr(request.app.state, "sql_sandbox", None)
+    if sandbox is None:
+        raise HTTPException(500, "SqlSandbox not configured")
+    return sandbox
+
+
 # ── Authentication providers ───────────────────────────────────────────
 
 

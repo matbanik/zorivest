@@ -28,6 +28,20 @@ Use this workflow when implementing a Manageable Execution Unit (MEU). Opus is t
 
 ## Steps
 
+### 0. Read task.md — Anchor Full Scope
+
+// turbo
+
+> [!IMPORTANT]
+> **This step is mandatory.** It ensures the workflow tracks progress against the canonical task table — whether invoked standalone or from `/execution-session`.
+
+Read the project `task.md` at `docs/execution/plans/{project-slug}/task.md`. If the user provided it as context, use that path. Otherwise, discover it from the `implementation-plan.md` YAML frontmatter or from `docs/execution/plans/` by date.
+
+1. `view_file` the canonical task.md
+2. Count `[ ]` items — this is the full work queue
+3. Identify which MEU to start with (first `[ ]` task row, or user-specified MEU)
+4. Note: Steps 1–8 below execute **per MEU**. After completing one MEU's cycle (through Step 8), return here to check for remaining `[ ]` items. If more MEUs remain in the task table, start the next MEU at Step 1.
+
 ### 1. Scope Lock
 
 // turbo
@@ -114,6 +128,9 @@ pyright packages/core/src/    # ← adjust per active phase
 ruff check packages/core/src/ # ← adjust per active phase
 ```
 
+> [!CAUTION]
+> **Anti-premature-stop checkpoint (Solution B).** Quality checks passing is a MILESTONE, not a stopping point. Do NOT summarize to user. Do NOT generate a completion report. Proceed directly to Step 6.
+
 ### 6. Full Test Suite
 
 // turbo
@@ -126,9 +143,80 @@ Run the complete test suite to check for regressions:
 pytest -x --tb=short -m "unit"
 ```
 
+> [!CAUTION]
+> **Anti-premature-stop checkpoint (Solution B).** "All tests green" is a MILESTONE, not a stopping point. You are NOT done. Do NOT summarize to user. Do NOT generate a completion report. Proceed directly to Step 6.5. There are ALWAYS more steps after this one.
+
+### 6.5. Update task.md — Track Progress
+
+> [!IMPORTANT]
+> **This step is mandatory after each MEU's quality checks pass.** It keeps the canonical task tracker in sync and drives multi-MEU continuation.
+
+1. `view_file` the canonical `task.md` at `docs/execution/plans/{project-slug}/task.md`
+2. Update all task rows completed during this MEU's TDD cycle from `[ ]` to `[x]`
+3. Count remaining `[ ]` items across ALL MEUs in the task table:
+   - If `[ ]` items remain for **the current MEU** → continue fixing (do NOT proceed to handoff)
+   - If `[ ]` items remain for **other MEUs** in scope → after completing Step 8 for this MEU, return to Step 0 §4 and start the next MEU's TDD cycle
+   - If `[ ]` items remain that are **post-MEU deliverables** (BUILD_PLAN, registry, handoffs, reflection, metrics) → proceed to Step 6.7
+   - If only `[x]` and `[B]` remain → proceed to Step 6.9
+
+> **Source of truth**: Always update the PROJECT task.md (`docs/execution/plans/...`), never only an agent workspace copy.
+
+### 6.7. Post-MEU Administrative Tasks (Solution C)
+
+> [!IMPORTANT]
+> **Execute these NOW — do not defer.** These are mandatory exit deliverables, not optional cleanup. The anti-premature-stop rule in AGENTS.md §Execution Contract explicitly names these tasks. Deferring them to a "dedicated closing step" is a known failure mode.
+
+If all MEU-scoped implementation tasks are `[x]` (or `[B]`), execute the post-MEU deliverables from `task.md` in order:
+
+1. **Update `docs/BUILD_PLAN.md`** — change completed MEU status markers (⬜ → ✅)
+2. **Update `.agent/context/meu-registry.md`** — mark completed MEUs as `done`
+3. **Update `.agent/context/current-focus.md`** — reflect new project state
+4. **Run MEU gate** — `uv run python tools/validate_codebase.py --scope meu`
+5. **Run full regression** — `uv run pytest tests/ -x --tb=short -v`
+6. **Anti-placeholder scan** — `rg "TODO|FIXME|NotImplementedError" packages/`
+7. **Audit BUILD_PLAN.md** for stale references
+8. **Create reflection** — `docs/execution/reflections/{date}-{slug}-reflection.md`
+9. **Append metrics row** — `docs/execution/metrics.md`
+
+Mark each deliverable `[x]` in `task.md` as you complete it. Do NOT batch-mark — update after each item.
+
+After all post-MEU tasks are `[x]`, proceed to Step 6.9.
+
+### 6.9. Re-Read Gate (MANDATORY — Solution A)
+
+> [!CAUTION]
+> **This step CANNOT be skipped.** It is the structural enforcement of the anti-premature-stop rule. You must physically execute the `view_file` call below before proceeding to Step 7.
+
+1. **`view_file`** the canonical `task.md` at `docs/execution/plans/{project-slug}/task.md` — do this NOW
+2. **Count** every `[ ]` item in the task table
+3. **Decision gate:**
+   - If `[ ]` count > 0 → **STOP HERE. Do NOT proceed to Step 7.** Return to the appropriate earlier step to complete remaining work.
+   - If `[ ]` count = 0 (only `[x]` and `[B]` remain) → proceed to Step 7
+
+> **Why this gate exists:** In 3 documented incidents, the agent passed quality checks, generated a summary, and stopped with 10–16 unchecked tasks remaining. This gate physically re-injects the task table into context and forces a count before any handoff or stop action.
+
 ### 7. Create Handoff Artifact
 
 Create the handoff file at `.agent/context/handoffs/{YYYY-MM-DD}-{project-slug}-handoff.md` using the format from `.agent/workflows/meu-handoff.md`.
+
+### 7.5. Instruction Coverage YAML (Mandatory)
+
+> [!CAUTION]
+> **This step is NOT optional.** Emit the Instruction Coverage YAML block BEFORE proceeding to Step 8. This is a numbered workflow step, not a suggestion — the same structural enforcement pattern as Steps 6.7 and 6.9.
+
+1. `view_file .agent/schemas/reflection.v1.yaml` — read the schema definition
+2. Emit one fenced `yaml` block matching the schema, including:
+   - `session.id` — the current conversation ID
+   - `sections` — one entry per AGENTS.md H2 section with honest `cited`/`influence` scores
+   - `loaded.workflows` — every workflow file read this session
+   - `loaded.roles` — every role adopted this session
+   - `loaded.skills` — every skill invoked this session
+   - `decisive_rules` — max 5, format `P{0-3}:{rule-id}`
+   - `conflicts` — any instruction conflicts encountered
+3. Include the YAML block in the reflection file's `## Instruction Coverage` section
+4. If the reflection file was already created in Step 6.7, update it now with the coverage YAML
+
+> **Why this step exists:** The Instruction Coverage meta-prompt at AGENTS.md EOF is truncated by the system prompt loader when AGENTS.md exceeds ~24K characters. Without this numbered step, the coverage system is completely invisible to the agent. See investigation: `instruction-coverage-investigation.md`.
 
 ### 8. Save Session State
 
@@ -148,6 +236,10 @@ pomera_notes save
 4. Linting passes (ruff)
 5. Handoff artifact created with evidence
 6. Session state saved to pomera_notes
+7. **Re-read gate passed (Step 6.9)** — `view_file` the canonical task.md was executed and confirmed zero `[ ]` items remain (or remaining items are `[B]` blocked with linked follow-up)
+8. **Post-MEU deliverables completed (Step 6.7)** — all administrative tasks (BUILD_PLAN, registry, reflection, metrics) are `[x]` in the PROJECT task.md
+9. **task.md fully updated** — all completed task rows marked `[x]` in `docs/execution/plans/{project-slug}/task.md`
+10. **Instruction Coverage YAML emitted (Step 7.5)** — reflection file contains `schema: v1` YAML block with `sections`, `loaded`, and `decisive_rules` populated per `.agent/schemas/reflection.v1.yaml`
 
 ## Failure Protocol
 

@@ -86,7 +86,8 @@ Get-ChildItem .agent/context/handoffs/*-implementation-critical-review.md |
 1. **Primary target**: the most recent `*-implementation-critical-review.md` file
 2. **Working context**: use the latest dated update inside that file as the current state
 3. If the latest update verdict is `approved`, inform the user that no open findings remain
-4. If the latest update verdict is `changes_required`, use that update's findings as the working set
+4. If the latest update verdict is `corrections_applied`, inform the user that corrections were already applied and a `/execution-critical-review` re-review is needed before further corrections
+5. If the latest update verdict is `changes_required`, use that update's findings as the working set
 
 ### Scope Override
 
@@ -202,13 +203,18 @@ Update all references. Document: "Cross-doc sweep: N files checked, M updated."
 
 ---
 
-### Step 6: Write Handoff (Reviewer)
+### Step 6: Write Handoff (Documenter — NOT Reviewer)
+
+> [!CAUTION]
+> **Self-Approval Prohibition.** The corrections agent is the implementer (coder role). It MUST NOT set the verdict to `approved`. Only a subsequent `/execution-critical-review` pass — run by the reviewer role — may set `approved`. The corrections agent sets `corrections_applied` to signal readiness for re-review.
 
 Update the same canonical implementation-critical-review handoff in `.agent/context/handoffs/`:
 
 - append a dated `Corrections Applied` section
-- include plan summary, diffs/changes made, test results, verification results, and the current verdict
+- include plan summary, diffs/changes made, test results, and verification results
+- set verdict to `corrections_applied` (never `approved` — that requires an independent reviewer pass)
 - keep the full review thread in that single file
+- update frontmatter `verdict:` field to `corrections_applied`
 
 ---
 
@@ -222,6 +228,7 @@ Update the same canonical implementation-critical-review handoff in `.agent/cont
 6. **Resolve the canonical review first.** Work from `*-implementation-critical-review.md` and update that same file.
 7. **Fix general, not specific.** Search for ALL instances of the same category across similar files.
 8. **Never touch plan documents or workflow files.** If a finding requires plan changes, defer to `/plan-corrections`.
+9. **Never self-approve.** The corrections agent MUST NOT set the review verdict to `approved`. Use `corrections_applied` to signal readiness for re-review. Only `/execution-critical-review` (reviewer role) may issue `approved`.
 
 ---
 

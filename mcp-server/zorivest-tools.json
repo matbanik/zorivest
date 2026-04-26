@@ -1,6 +1,6 @@
 {
-  "total_tools": 59,
-  "toolset_count": 9,
+  "total_tools": 71,
+  "toolset_count": 10,
   "toolsets": [
     {
       "name": "core",
@@ -111,6 +111,26 @@
       ]
     },
     {
+      "name": "pipeline-security",
+      "description": "Policy emulator, SQL validation, DB schema discovery, email template CRUD and preview",
+      "tool_count": 12,
+      "always_loaded": false,
+      "tools": [
+        "emulate_policy",
+        "validate_sql",
+        "list_db_tables",
+        "get_db_row_samples",
+        "create_email_template",
+        "get_email_template",
+        "list_email_templates",
+        "update_email_template",
+        "delete_email_template",
+        "preview_email_template",
+        "list_step_types",
+        "list_provider_capabilities"
+      ]
+    },
+    {
       "name": "tax",
       "description": "Tax estimation, wash sales, lot management, harvesting",
       "tool_count": 4,
@@ -134,5 +154,5 @@
       ]
     }
   ],
-  "generated_at": "2026-04-11T20:05:43.577Z"
+  "generated_at": "2026-04-26T19:41:01.949Z"
 }

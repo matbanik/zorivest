@@ -314,6 +314,6 @@ P2.75 (broker adapters): MEU-96 → MEU-99
 | MEU-PH5 | `compose-step` | 49.20 | ComposeStep implementation (multi-source data merging) | ✅ 2026-04-25 |
 | MEU-PH6 | `template-database` | 49.21 | EmailTemplateModel + HardenedSandbox + nh3 sanitization + template CRUD | ✅ 2026-04-25 |
 | MEU-PH7 | `policy-vars-assertions` | 49.22 | PolicyDocument `variables` + assertion gates + step-count cap + schema v2 | ✅ 2026-04-25 |
-| MEU-PH8 | `policy-emulator` | 49.23 | 4-phase emulator + output containment + session budget + error schema | ⬜ planned |
-| MEU-PH9 | `emulator-mcp-tools` | 49.24 | 11 new MCP tools: emulator, schema discovery, template CRUD, provider discovery | ⬜ planned |
-| MEU-PH10 | `default-template` | 49.25 | Pre-loaded Morning Check-In template | ⬜ planned |
+| MEU-PH8 | `policy-emulator` | 49.23 | 4-phase emulator + output containment + session budget + error schema | ✅ 2026-04-26 |
+| MEU-PH9 | `emulator-mcp-tools` | 49.24 | 11 new MCP tools: emulator, schema discovery, template CRUD, provider discovery | ✅ 2026-04-26 |
+| MEU-PH10 | `default-template` | 49.25 | Pre-loaded Morning Check-In template | ✅ 2026-04-26 |

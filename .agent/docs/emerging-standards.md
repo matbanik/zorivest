@@ -666,3 +666,23 @@ Decisions made based on web research (UX Stack Exchange, Nielsen Norman Group, I
   4. Run test → GREEN
   ```
 - **Why this matters:** Bug-fix tests serve as regression guards. Without them, the same bug can be silently reintroduced in future refactors. The test IS the documentation of what broke.
+
+### G20 — Corrections Agent Must Not Self-Approve
+
+- **Severity:** 🔴 Critical
+- **Applies to:** Workflow governance (`/execution-corrections`, `/plan-corrections`)
+- **Rule:** The corrections agent (coder role) MUST NOT set the review verdict to `approved`. After applying corrections, set verdict to `corrections_applied`. Only a subsequent critical-review pass — run by the reviewer role — may issue `approved`. The three-state lifecycle is: `changes_required` → `corrections_applied` → `approved`.
+- **Origin:** 2026-04-26 Pipeline Emulator MCP corrections — Agent set `approved` verdict in its own corrections handoff, bypassing reviewer separation of concerns. The `execution-corrections.md` Step 6 was labeled "Reviewer" but executed by the coder, creating a self-approval loop. Agent also made a forbidden write to `task.md` (changing `[B]` → `[x]`). Both violations identified by user.
+- **Bad example:**
+  ```
+  # In /execution-corrections Step 6:
+  verdict: "approved"  # ← Coder approving its own work
+  ```
+- **Good example:**
+  ```
+  # In /execution-corrections Step 6:
+  verdict: "corrections_applied"  # ← Coder signals readiness for re-review
+  # Then user runs /execution-critical-review which may set:
+  verdict: "approved"  # ← Reviewer approves independently
+  ```
+- **Why this matters:** Self-approval eliminates the quality gate that review cycles provide. The corrections agent wrote the code AND judged it sufficient — the same conflict of interest that code review processes exist to prevent. Without this guard, any number of review passes can be short-circuited by the corrections agent declaring itself done.

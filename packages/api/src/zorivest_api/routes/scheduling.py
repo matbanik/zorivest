@@ -18,7 +18,20 @@ from pydantic import BaseModel, Field, field_validator
 from pydantic.functional_validators import BeforeValidator
 from typing import Annotated
 
-from zorivest_api.dependencies import get_scheduling_service
+from zorivest_api.dependencies import (
+    get_policy_emulator,
+    get_scheduling_service,
+    get_session_budget,
+    get_sql_sandbox,
+    get_template_repo,
+)
+from zorivest_api.schemas.template_schemas import (
+    EmailTemplateCreateRequest,
+    EmailTemplateUpdateRequest,
+    EmulateRequest,
+    PreviewRequest,
+    ValidateSqlRequest,
+)
 
 
 scheduling_router = APIRouter(prefix="/api/v1/scheduling", tags=["scheduling"])
@@ -342,3 +355,323 @@ async def patch_policy_schedule(
     if result is None:
         raise HTTPException(404, detail="Policy not found")
     return result
+
+
+# ── PH9: Emulator ──────────────────────────────────────────────────────
+
+
+@scheduling_router.post("/emulator/run")
+async def emulator_run(
+    req: "EmulateRequest",
+    emulator: Any = Depends(get_policy_emulator),
+    budget: Any = Depends(get_session_budget),
+) -> Any:
+    """Run the policy emulator on a JSON policy document.
+
+    Returns a structured EmulatorResult with errors, warnings, and mock outputs.
+    Phase subset execution supported via the ``phases`` field.
+    Budget enforcement: records response bytes and rate per policy hash.
+    MEU-PH9, AC-16, F1 (budget enforcement on runtime path).
+    """
+    import hashlib
+    import json as _json
+
+    from zorivest_core.services.sql_sandbox import SecurityError
+
+    result = await emulator.emulate(req.policy_json, phases=req.phases)
+    response_payload = result.model_dump()
+
+    # Compute stable hash for budget tracking
+    policy_hash = hashlib.sha256(
+        _json.dumps(req.policy_json, sort_keys=True).encode()
+    ).hexdigest()
+    response_bytes = len(_json.dumps(response_payload).encode())
+
+    try:
+        budget.check_budget(policy_hash, response_bytes)
+    except SecurityError as exc:
+        raise HTTPException(429, detail=str(exc)) from exc
+
+    return response_payload
+
+
+@scheduling_router.get("/emulator/mock-data")
+async def get_emulator_mock_data() -> dict[str, Any]:
+    """Return sample mock data sets per step type for emulator SIMULATE phase.
+
+    Used by the ``pipeline://emulator/mock-data`` MCP resource to show AI agents
+    what synthetic data the emulator produces for each step type.
+    MEU-PH9, AC-27 (R1 correction).
+    """
+    from zorivest_core.services.policy_emulator import _get_mock_output
+
+    step_types = ("fetch", "query", "transform", "compose", "send")
+    return {st: _get_mock_output(st) for st in step_types}
+
+
+@scheduling_router.post("/validate-sql")
+async def validate_sql(
+    req: "ValidateSqlRequest",
+    sandbox: Any = Depends(get_sql_sandbox),
+) -> dict[str, Any]:
+    """Validate a SQL query against the sandbox allowlist.
+
+    Returns {valid: bool, errors: list[str]}.
+    MEU-PH9, AC-17.
+    """
+    errors = sandbox.validate_sql(req.sql)
+    return {"valid": len(errors) == 0, "errors": errors}
+
+
+# ── PH9: Schema Discovery ──────────────────────────────────────────────
+
+
+@scheduling_router.get("/db-schema")
+async def get_db_schema(
+    sandbox: Any = Depends(get_sql_sandbox),
+) -> list[dict[str, Any]]:
+    """Return database table/column schemas, DENY_TABLES excluded.
+
+    MEU-PH9, AC-19.
+    """
+    from zorivest_core.services.sql_sandbox import SqlSandbox
+
+    deny = SqlSandbox.DENY_TABLES
+    # Introspect via sandbox connection
+    conn = sandbox._connection
+    cursor = conn.execute("SELECT name FROM sqlite_master WHERE type='table'")
+    tables = [row[0] for row in cursor.fetchall() if row[0] not in deny]
+
+    result: list[dict[str, Any]] = []
+    for table_name in sorted(tables):
+        col_cursor = conn.execute(f"PRAGMA table_info({table_name})")  # noqa: S608
+        columns = [
+            {"name": row[1], "type": row[2], "nullable": not bool(row[3])}
+            for row in col_cursor.fetchall()
+        ]
+        result.append({"name": table_name, "columns": columns})
+    return result
+
+
+@scheduling_router.get("/db-schema/samples/{table}")
+async def get_db_row_samples(
+    table: str = Path(...),
+    limit: int = Query(default=5, ge=1, le=20),
+    sandbox: Any = Depends(get_sql_sandbox),
+) -> list[dict[str, Any]]:
+    """Return sample rows from a table.
+
+    Security: allowlist-only approach. Only tables present in sqlite_master
+    AND not in DENY_TABLES are accepted. Identifiers are quoted.
+    MEU-PH9, AC-20, F3 (SQL injection hardening).
+    """
+    from zorivest_core.services.sql_sandbox import SqlSandbox
+
+    # Build allowlist from actual database tables
+    conn = sandbox._connection
+    cursor = conn.execute("SELECT name FROM sqlite_master WHERE type='table'")
+    real_tables = {row[0] for row in cursor.fetchall()}
+    allowed_tables = real_tables - SqlSandbox.DENY_TABLES
+
+    if table in SqlSandbox.DENY_TABLES:
+        raise HTTPException(403, detail=f"Access denied: table '{table}' is restricted")
+    if table not in allowed_tables:
+        raise HTTPException(404, detail=f"Table '{table}' not found")
+
+    try:
+        # Safe: table is guaranteed to be a real table name from sqlite_master
+        # Quote identifier to prevent any residual injection
+        cursor = conn.execute(
+            f'SELECT * FROM "{table}" LIMIT ?',
+            (limit,),  # noqa: S608
+        )
+        columns = [desc[0] for desc in cursor.description] if cursor.description else []
+        rows = [dict(zip(columns, row)) for row in cursor.fetchall()]
+        return rows
+    except Exception as exc:
+        raise HTTPException(400, detail=str(exc)) from exc
+
+
+# ── PH9: Template CRUD ─────────────────────────────────────────────────
+
+
+@scheduling_router.post("/templates", status_code=201)
+async def create_email_template(
+    req: "EmailTemplateCreateRequest",
+    repo: Any = Depends(get_template_repo),
+) -> dict[str, Any]:
+    """Create a new email template.
+
+    MEU-PH9, AC-21.
+    """
+    import json
+    from datetime import datetime as _dt, timezone as _tz
+    from zorivest_infra.database.models import EmailTemplateModel
+
+    # Check for duplicate
+    existing = repo.get_by_name(req.name)
+    if existing is not None:
+        raise HTTPException(409, detail=f"Template '{req.name}' already exists")
+
+    model = EmailTemplateModel(
+        name=req.name,
+        description=req.description,
+        subject_template=req.subject_template,
+        body_html=req.body_html,
+        body_format=req.body_format,
+        required_variables=json.dumps(req.required_variables),
+        sample_data_json=req.sample_data_json,
+        created_at=_dt.now(_tz.utc),
+    )
+    repo.create(model)
+    return _template_to_response(repo.get_by_name(req.name))
+
+
+@scheduling_router.get("/templates")
+async def list_email_templates(
+    repo: Any = Depends(get_template_repo),
+) -> list[dict[str, Any]]:
+    """List all email templates.
+
+    MEU-PH9, AC-23.
+    """
+    templates = repo.list_all()
+    return [_template_dto_to_response(t) for t in templates]
+
+
+@scheduling_router.get("/templates/{name}")
+async def get_email_template(
+    name: str = Path(...),
+    repo: Any = Depends(get_template_repo),
+) -> dict[str, Any]:
+    """Get a single email template by name.
+
+    MEU-PH9, AC-22.
+    """
+    template = repo.get_by_name(name)
+    if template is None:
+        raise HTTPException(404, detail=f"Template '{name}' not found")
+    return _template_dto_to_response(template)
+
+
+@scheduling_router.patch("/templates/{name}")
+async def update_email_template(
+    name: str = Path(...),
+    req: "EmailTemplateUpdateRequest" = ...,  # type: ignore[assignment]
+    repo: Any = Depends(get_template_repo),
+) -> dict[str, Any]:
+    """Update an existing email template by name.
+
+    MEU-PH9, AC-24.
+    """
+    existing = repo.get_by_name(name)
+    if existing is None:
+        raise HTTPException(404, detail=f"Template '{name}' not found")
+
+    import json
+
+    update_fields: dict[str, Any] = {}
+    if req.description is not None:
+        update_fields["description"] = req.description
+    if req.subject_template is not None:
+        update_fields["subject_template"] = req.subject_template
+    if req.body_html is not None:
+        update_fields["body_html"] = req.body_html
+    if req.body_format is not None:
+        update_fields["body_format"] = req.body_format
+    if req.required_variables is not None:
+        update_fields["required_variables"] = json.dumps(req.required_variables)
+    if req.sample_data_json is not None:
+        update_fields["sample_data_json"] = req.sample_data_json
+
+    if update_fields:
+        repo.update(name, **update_fields)
+
+    return _template_to_response(repo.get_by_name(name))
+
+
+@scheduling_router.delete("/templates/{name}", status_code=204)
+async def delete_email_template(
+    name: str = Path(...),
+    repo: Any = Depends(get_template_repo),
+) -> None:
+    """Delete an email template by name. Rejects default templates with 403.
+
+    MEU-PH9, AC-30m.
+    """
+    existing = repo.get_by_name(name)
+    if existing is None:
+        raise HTTPException(404, detail=f"Template '{name}' not found")
+
+    try:
+        repo.delete(name)
+    except ValueError as e:
+        if "default" in str(e).lower():
+            raise HTTPException(
+                403, detail=f"Cannot delete default template: {name}"
+            ) from e
+        raise HTTPException(400, detail=str(e)) from e
+
+
+@scheduling_router.post("/templates/{name}/preview")
+async def preview_email_template(
+    name: str = Path(...),
+    req: "PreviewRequest" = ...,  # type: ignore[assignment]
+    repo: Any = Depends(get_template_repo),
+) -> dict[str, Any]:
+    """Preview a template rendered with sample or provided data.
+
+    MEU-PH9, AC-25.
+    """
+    import json
+
+    from zorivest_core.services.secure_jinja import HardenedSandbox
+
+    template = repo.get_by_name(name)
+    if template is None:
+        raise HTTPException(404, detail=f"Template '{name}' not found")
+
+    # Build context: use provided data or fall back to sample_data_json
+    context: dict[str, Any] = {}
+    if req.data:
+        context = req.data
+    elif template.sample_data_json:
+        context = json.loads(template.sample_data_json)
+
+    sandbox = HardenedSandbox()
+    rendered = sandbox.render_safe(template.body_html, context)
+    subject_rendered = None
+    if template.subject_template:
+        subject_rendered = sandbox.render_safe(template.subject_template, context)
+
+    return {
+        "name": name,
+        "subject_rendered": subject_rendered,
+        "body_rendered": rendered,
+    }
+
+
+# ── PH9 Helpers ─────────────────────────────────────────────────────────
+
+
+def _template_to_response(template: Any) -> dict[str, Any]:
+    """Convert template DTO or dict to response dict."""
+    if template is None:
+        return {}
+    if hasattr(template, "name"):
+        return _template_dto_to_response(template)
+    return template
+
+
+def _template_dto_to_response(dto: Any) -> dict[str, Any]:
+    """Convert EmailTemplateDTO to response dict."""
+    return {
+        "name": dto.name,
+        "description": dto.description,
+        "subject_template": dto.subject_template,
+        "body_html": dto.body_html,
+        "body_format": dto.body_format,
+        "required_variables": dto.required_variables,
+        "sample_data_json": dto.sample_data_json,
+        "is_default": dto.is_default,
+    }

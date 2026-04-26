@@ -786,6 +786,192 @@
         "title": "EmailConfigResponse",
         "type": "object"
       },
+      "EmailTemplateCreateRequest": {
+        "additionalProperties": false,
+        "description": "Request body for creating a new email template.\n\nField constraints per \u00a79E.0:\n- name: 1\u2013128 chars, lowercase alphanumeric + hyphens + underscores\n- body_html: 1\u201365536 chars\n- body_format: html or markdown",
+        "properties": {
+          "body_format": {
+            "default": "html",
+            "title": "Body Format",
+            "type": "string"
+          },
+          "body_html": {
+            "maxLength": 65536,
+            "minLength": 1,
+            "title": "Body Html",
+            "type": "string"
+          },
+          "description": {
+            "anyOf": [
+              {
+                "maxLength": 500,
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Description"
+          },
+          "name": {
+            "maxLength": 128,
+            "minLength": 1,
+            "title": "Name",
+            "type": "string"
+          },
+          "required_variables": {
+            "items": {
+              "type": "string"
+            },
+            "title": "Required Variables",
+            "type": "array"
+          },
+          "sample_data_json": {
+            "anyOf": [
+              {
+                "maxLength": 65536,
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Sample Data Json"
+          },
+          "subject_template": {
+            "anyOf": [
+              {
+                "maxLength": 500,
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Subject Template"
+          }
+        },
+        "required": [
+          "name",
+          "body_html"
+        ],
+        "title": "EmailTemplateCreateRequest",
+        "type": "object"
+      },
+      "EmailTemplateUpdateRequest": {
+        "additionalProperties": false,
+        "description": "Request body for updating an existing email template.\n\nSame field constraints as create. All fields optional except name (path key).",
+        "properties": {
+          "body_format": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Body Format"
+          },
+          "body_html": {
+            "anyOf": [
+              {
+                "maxLength": 65536,
+                "minLength": 1,
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Body Html"
+          },
+          "description": {
+            "anyOf": [
+              {
+                "maxLength": 500,
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Description"
+          },
+          "required_variables": {
+            "anyOf": [
+              {
+                "items": {
+                  "type": "string"
+                },
+                "type": "array"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Required Variables"
+          },
+          "sample_data_json": {
+            "anyOf": [
+              {
+                "maxLength": 65536,
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Sample Data Json"
+          },
+          "subject_template": {
+            "anyOf": [
+              {
+                "maxLength": 500,
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Subject Template"
+          }
+        },
+        "title": "EmailTemplateUpdateRequest",
+        "type": "object"
+      },
+      "EmulateRequest": {
+        "additionalProperties": false,
+        "description": "Request body for POST /scheduling/emulator/run.\n\nAccepts full policy JSON and optional phase subset.",
+        "properties": {
+          "phases": {
+            "anyOf": [
+              {
+                "items": {
+                  "type": "string"
+                },
+                "type": "array"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "description": "Optional phase subset: PARSE, VALIDATE, SIMULATE, RENDER",
+            "title": "Phases"
+          },
+          "policy_json": {
+            "additionalProperties": true,
+            "description": "Full PolicyDocument JSON",
+            "title": "Policy Json",
+            "type": "object"
+          }
+        },
+        "required": [
+          "policy_json"
+        ],
+        "title": "EmulateRequest",
+        "type": "object"
+      },
       "EstimateTaxRequest": {
         "properties": {
           "account_id": {
@@ -1301,6 +1487,26 @@
           "timestamp"
         ],
         "title": "PowerEventRequest",
+        "type": "object"
+      },
+      "PreviewRequest": {
+        "additionalProperties": false,
+        "description": "Request body for template preview endpoint.\n\nOptional data dict overrides sample_data_json from the template.",
+        "properties": {
+          "data": {
+            "anyOf": [
+              {
+                "additionalProperties": true,
+                "type": "object"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Data"
+          }
+        },
+        "title": "PreviewRequest",
         "type": "object"
       },
       "ProviderConfigRequest": {
@@ -2394,6 +2600,23 @@
           }
         },
         "title": "UpdateWatchlistRequest",
+        "type": "object"
+      },
+      "ValidateSqlRequest": {
+        "additionalProperties": false,
+        "description": "Request body for POST /scheduling/validate-sql.",
+        "properties": {
+          "sql": {
+            "maxLength": 10000,
+            "minLength": 1,
+            "title": "Sql",
+            "type": "string"
+          }
+        },
+        "required": [
+          "sql"
+        ],
+        "title": "ValidateSqlRequest",
         "type": "object"
       },
       "ValidationError": {
@@ -5054,6 +5277,159 @@
         ]
       }
     },
+    "/api/v1/scheduling/db-schema": {
+      "get": {
+        "description": "Return database table/column schemas, DENY_TABLES excluded.\n\nMEU-PH9, AC-19.",
+        "operationId": "get_db_schema_api_v1_scheduling_db_schema_get",
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "items": {
+                    "additionalProperties": true,
+                    "type": "object"
+                  },
+                  "title": "Response Get Db Schema Api V1 Scheduling Db Schema Get",
+                  "type": "array"
+                }
+              }
+            },
+            "description": "Successful Response"
+          }
+        },
+        "summary": "Get Db Schema",
+        "tags": [
+          "scheduling"
+        ]
+      }
+    },
+    "/api/v1/scheduling/db-schema/samples/{table}": {
+      "get": {
+        "description": "Return sample rows from a table.\n\nSecurity: allowlist-only approach. Only tables present in sqlite_master\nAND not in DENY_TABLES are accepted. Identifiers are quoted.\nMEU-PH9, AC-20, F3 (SQL injection hardening).",
+        "operationId": "get_db_row_samples_api_v1_scheduling_db_schema_samples__table__get",
+        "parameters": [
+          {
+            "in": "path",
+            "name": "table",
+            "required": true,
+            "schema": {
+              "title": "Table",
+              "type": "string"
+            }
+          },
+          {
+            "in": "query",
+            "name": "limit",
+            "required": false,
+            "schema": {
+              "default": 5,
+              "maximum": 20,
+              "minimum": 1,
+              "title": "Limit",
+              "type": "integer"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "items": {
+                    "additionalProperties": true,
+                    "type": "object"
+                  },
+                  "title": "Response Get Db Row Samples Api V1 Scheduling Db Schema Samples  Table  Get",
+                  "type": "array"
+                }
+              }
+            },
+            "description": "Successful Response"
+          },
+          "422": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HTTPValidationError"
+                }
+              }
+            },
+            "description": "Validation Error"
+          }
+        },
+        "summary": "Get Db Row Samples",
+        "tags": [
+          "scheduling"
+        ]
+      }
+    },
+    "/api/v1/scheduling/emulator/mock-data": {
+      "get": {
+        "description": "Return sample mock data sets per step type for emulator SIMULATE phase.\n\nUsed by the ``pipeline://emulator/mock-data`` MCP resource to show AI agents\nwhat synthetic data the emulator produces for each step type.\nMEU-PH9, AC-27 (R1 correction).",
+        "operationId": "get_emulator_mock_data_api_v1_scheduling_emulator_mock_data_get",
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "additionalProperties": true,
+                  "title": "Response Get Emulator Mock Data Api V1 Scheduling Emulator Mock Data Get",
+                  "type": "object"
+                }
+              }
+            },
+            "description": "Successful Response"
+          }
+        },
+        "summary": "Get Emulator Mock Data",
+        "tags": [
+          "scheduling"
+        ]
+      }
+    },
+    "/api/v1/scheduling/emulator/run": {
+      "post": {
+        "description": "Run the policy emulator on a JSON policy document.\n\nReturns a structured EmulatorResult with errors, warnings, and mock outputs.\nPhase subset execution supported via the ``phases`` field.\nBudget enforcement: records response bytes and rate per policy hash.\nMEU-PH9, AC-16, F1 (budget enforcement on runtime path).",
+        "operationId": "emulator_run_api_v1_scheduling_emulator_run_post",
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/EmulateRequest"
+              }
+            }
+          },
+          "required": true
+        },
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "title": "Response Emulator Run Api V1 Scheduling Emulator Run Post"
+                }
+              }
+            },
+            "description": "Successful Response"
+          },
+          "422": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HTTPValidationError"
+                }
+              }
+            },
+            "description": "Validation Error"
+          }
+        },
+        "summary": "Emulator Run",
+        "tags": [
+          "scheduling"
+        ]
+      }
+    },
     "/api/v1/scheduling/policies": {
       "get": {
         "description": "List all pipeline policies with schedule status.",
@@ -5768,6 +6144,306 @@
           }
         },
         "summary": "Get Step Types",
+        "tags": [
+          "scheduling"
+        ]
+      }
+    },
+    "/api/v1/scheduling/templates": {
+      "get": {
+        "description": "List all email templates.\n\nMEU-PH9, AC-23.",
+        "operationId": "list_email_templates_api_v1_scheduling_templates_get",
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "items": {
+                    "additionalProperties": true,
+                    "type": "object"
+                  },
+                  "title": "Response List Email Templates Api V1 Scheduling Templates Get",
+                  "type": "array"
+                }
+              }
+            },
+            "description": "Successful Response"
+          }
+        },
+        "summary": "List Email Templates",
+        "tags": [
+          "scheduling"
+        ]
+      },
+      "post": {
+        "description": "Create a new email template.\n\nMEU-PH9, AC-21.",
+        "operationId": "create_email_template_api_v1_scheduling_templates_post",
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/EmailTemplateCreateRequest"
+              }
+            }
+          },
+          "required": true
+        },
+        "responses": {
+          "201": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "additionalProperties": true,
+                  "title": "Response Create Email Template Api V1 Scheduling Templates Post",
+                  "type": "object"
+                }
+              }
+            },
+            "description": "Successful Response"
+          },
+          "422": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HTTPValidationError"
+                }
+              }
+            },
+            "description": "Validation Error"
+          }
+        },
+        "summary": "Create Email Template",
+        "tags": [
+          "scheduling"
+        ]
+      }
+    },
+    "/api/v1/scheduling/templates/{name}": {
+      "delete": {
+        "description": "Delete an email template by name. Rejects default templates with 403.\n\nMEU-PH9, AC-30m.",
+        "operationId": "delete_email_template_api_v1_scheduling_templates__name__delete",
+        "parameters": [
+          {
+            "in": "path",
+            "name": "name",
+            "required": true,
+            "schema": {
+              "title": "Name",
+              "type": "string"
+            }
+          }
+        ],
+        "responses": {
+          "204": {
+            "description": "Successful Response"
+          },
+          "422": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HTTPValidationError"
+                }
+              }
+            },
+            "description": "Validation Error"
+          }
+        },
+        "summary": "Delete Email Template",
+        "tags": [
+          "scheduling"
+        ]
+      },
+      "get": {
+        "description": "Get a single email template by name.\n\nMEU-PH9, AC-22.",
+        "operationId": "get_email_template_api_v1_scheduling_templates__name__get",
+        "parameters": [
+          {
+            "in": "path",
+            "name": "name",
+            "required": true,
+            "schema": {
+              "title": "Name",
+              "type": "string"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "additionalProperties": true,
+                  "title": "Response Get Email Template Api V1 Scheduling Templates  Name  Get",
+                  "type": "object"
+                }
+              }
+            },
+            "description": "Successful Response"
+          },
+          "422": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HTTPValidationError"
+                }
+              }
+            },
+            "description": "Validation Error"
+          }
+        },
+        "summary": "Get Email Template",
+        "tags": [
+          "scheduling"
+        ]
+      },
+      "patch": {
+        "description": "Update an existing email template by name.\n\nMEU-PH9, AC-24.",
+        "operationId": "update_email_template_api_v1_scheduling_templates__name__patch",
+        "parameters": [
+          {
+            "in": "path",
+            "name": "name",
+            "required": true,
+            "schema": {
+              "title": "Name",
+              "type": "string"
+            }
+          }
+        ],
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/EmailTemplateUpdateRequest"
+              }
+            }
+          },
+          "required": true
+        },
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "additionalProperties": true,
+                  "title": "Response Update Email Template Api V1 Scheduling Templates  Name  Patch",
+                  "type": "object"
+                }
+              }
+            },
+            "description": "Successful Response"
+          },
+          "422": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HTTPValidationError"
+                }
+              }
+            },
+            "description": "Validation Error"
+          }
+        },
+        "summary": "Update Email Template",
+        "tags": [
+          "scheduling"
+        ]
+      }
+    },
+    "/api/v1/scheduling/templates/{name}/preview": {
+      "post": {
+        "description": "Preview a template rendered with sample or provided data.\n\nMEU-PH9, AC-25.",
+        "operationId": "preview_email_template_api_v1_scheduling_templates__name__preview_post",
+        "parameters": [
+          {
+            "in": "path",
+            "name": "name",
+            "required": true,
+            "schema": {
+              "title": "Name",
+              "type": "string"
+            }
+          }
+        ],
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/PreviewRequest"
+              }
+            }
+          },
+          "required": true
+        },
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "additionalProperties": true,
+                  "title": "Response Preview Email Template Api V1 Scheduling Templates  Name  Preview Post",
+                  "type": "object"
+                }
+              }
+            },
+            "description": "Successful Response"
+          },
+          "422": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HTTPValidationError"
+                }
+              }
+            },
+            "description": "Validation Error"
+          }
+        },
+        "summary": "Preview Email Template",
+        "tags": [
+          "scheduling"
+        ]
+      }
+    },
+    "/api/v1/scheduling/validate-sql": {
+      "post": {
+        "description": "Validate a SQL query against the sandbox allowlist.\n\nReturns {valid: bool, errors: list[str]}.\nMEU-PH9, AC-17.",
+        "operationId": "validate_sql_api_v1_scheduling_validate_sql_post",
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/ValidateSqlRequest"
+              }
+            }
+          },
+          "required": true
+        },
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "additionalProperties": true,
+                  "title": "Response Validate Sql Api V1 Scheduling Validate Sql Post",
+                  "type": "object"
+                }
+              }
+            },
+            "description": "Successful Response"
+          },
+          "422": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HTTPValidationError"
+                }
+              }
+            },
+            "description": "Validation Error"
+          }
+        },
+        "summary": "Validate Sql",
         "tags": [
           "scheduling"
         ]

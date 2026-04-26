@@ -79,7 +79,13 @@ rg "Pattern Extraction|Patterns to KEEP" <reflection-file>  # §5b
 rg "Next Session Design Rules|RULE-" <reflection-file>      # §5c
 rg "Rule Adherence" <reflection-file>                       # Efficiency Metrics table
 rg "Instruction Coverage|schema: v1" <reflection-file>      # YAML coverage block
+rg "sections:" <reflection-file>                            # Per-section usage entries
+rg "loaded:" <reflection-file>                              # Loaded workflows/roles/skills
+rg "decisive_rules:" <reflection-file>                      # Top 5 decisive rules
 ```
+
+> [!CAUTION]
+> **If `rg "sections:" <reflection-file>` returns 0 matches, the Instruction Coverage YAML is missing.** This means Step 7.5 of `tdd-implementation.md` was skipped. Execute it now: `view_file .agent/schemas/reflection.v1.yaml`, then emit the YAML block in the reflection file.
 
 If ANY marker is missing → `view_file: docs/execution/reflections/TEMPLATE.md` and rewrite the reflection using the template structure.
 

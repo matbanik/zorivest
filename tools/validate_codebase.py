@@ -37,7 +37,10 @@ DEFERRAL_PATTERN = (
 
 HANDOFF_DIR = ".agent/context/handoffs/"
 HANDOFF_EVIDENCE_PATTERNS = [
-    (r"Evidence bundle location|FAIL_TO_PASS Evidence", "Evidence/FAIL_TO_PASS"),
+    (
+        r"Evidence bundle location|FAIL_TO_PASS Evidence|### FAIL_TO_PASS",
+        "Evidence/FAIL_TO_PASS",
+    ),
     (r"Pass/fail matrix|Commands Executed", "Pass-fail/Commands"),
     (r"Commands run|Codex Validation Report", "Commands/Codex Report"),
 ]
