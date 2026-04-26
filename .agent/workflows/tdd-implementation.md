@@ -128,7 +128,7 @@ pytest -x --tb=short -m "unit"
 
 ### 7. Create Handoff Artifact
 
-Create the handoff file at `.agent/context/handoffs/{SEQ}-{YYYY-MM-DD}-{slug}-bp{NN}s{X.Y}.md` using the format from `.agent/workflows/meu-handoff.md`.
+Create the handoff file at `.agent/context/handoffs/{YYYY-MM-DD}-{project-slug}-handoff.md` using the format from `.agent/workflows/meu-handoff.md`.
 
 ### 8. Save Session State
 

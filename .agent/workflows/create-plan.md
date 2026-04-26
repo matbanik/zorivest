@@ -144,7 +144,7 @@ The plan must include:
 - Exact validation commands
 - Explicit stop conditions
 - Research URLs or document paths for any behavior resolved outside the target build-plan section
-- Handoff file paths using the naming convention: `{SEQ}-{YYYY-MM-DD}-{slug}-bp{NN}s{X.Y}.md`
+- Handoff file paths using the naming convention: `{YYYY-MM-DD}-{project-slug}-handoff.md`
 
 No plan may defer required behavior merely because the build plan is thin. The planner must either resolve the behavior from sources or stop on an explicit human decision gate before execution.
 
@@ -198,33 +198,27 @@ Before calling `notify_user` to present results:
 
 ## Handoff Naming Convention
 
-Handoffs use sequenced names that encode build-plan traceability:
+Handoffs use date-based names with descriptive project slugs:
 
 ```
-{SEQ}-{YYYY-MM-DD}-{slug}-bp{NN}s{X.Y}.md
+{YYYY-MM-DD}-{project-slug}-handoff.md
 ```
 
 | Part | Meaning | Example |
 |------|---------|---------|
-| `{SEQ}` | 3-digit global sequence | `001` |
-| `{YYYY-MM-DD}` | Date completed | `2026-03-06` |
-| `{slug}` | Descriptive slug | `calculator` |
-| `bp{NN}s{X.Y}` | Build-plan file + section | `bp01s1.3` |
+| `{YYYY-MM-DD}` | Date completed | `2026-04-25` |
+| `{project-slug}` | Descriptive slug | `pipeline-capabilities` |
+| `-handoff` | Artifact type suffix | `-handoff` |
 
-For a single MEU spanning multiple build-plan sections, join with `+`:
-- `bp01s1.4+1.5` = build-plan 01, sections 1.4 and 1.5
-
-**Sequence bootstrap:** If no sequenced handoffs exist yet (legacy files use `YYYY-MM-DD-` prefix), start at `001`.
-Otherwise, increment from the highest `{SEQ}` found in `.agent/context/handoffs/`.
+**Same-day collision:** Append MEU range (e.g., `-ph4-ph7-handoff.md`) or letter (`-a`, `-b`).
 
 Examples:
 ```
-001-2026-03-06-calculator-bp01s1.3.md
-002-2026-03-07-enums-bp01s1.2.md
-003-2026-03-08-entities-bp01s1.4+1.5.md  ← single MEU covering sections 1.4 and 1.5
+2026-04-25-pipeline-capabilities-ph4-ph7-handoff.md
+2026-04-25-pipeline-security-hardening-ph3-handoff.md
 ```
 
-> **One handoff per MEU.** Each MEU in a project gets its own sequenced handoff. A multi-MEU project produces multiple handoff files (e.g., 003, 004, 005).
+> **Multi-MEU projects** may use one combined handoff or one per MEU — decide based on scope.
 
 ## Exit Criteria
 

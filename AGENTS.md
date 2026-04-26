@@ -235,7 +235,7 @@ When implementing a Manageable Execution Unit (MEU):
 5. **Implement** — write just enough code to make tests pass (Green phase)
 6. **Refactor** — clean up while keeping tests green
 7. **Run checks**: `pytest -x --tb=short -m "unit"`, `pyright`, `ruff check`
-8. **Create handoff** at `.agent/context/handoffs/{SEQ}-{YYYY-MM-DD}-{slug}-bp{NN}s{X.Y}.md`
+8. **Create handoff** at `.agent/context/handoffs/{YYYY-MM-DD}-{project-slug}-handoff.md`
 
 > ⚠️ **Test Immutability**: Once tests are written in Red phase, do NOT modify test assertions or expected values in Green phase. If a test expectation is wrong, fix the *implementation*, not the *test*. The only acceptable test modification in Green phase is fixing test setup/fixtures, never assertions.
 
@@ -269,6 +269,8 @@ When implementing a Manageable Execution Unit (MEU):
 > **Context window checkpoint**: If context window exceeds ~50% capacity (~500k tokens on a 1M window), save state to `pomera_notes`, complete the current MEU's handoff, and notify human with remaining work. This is a planned checkpoint, not early termination. The 50% threshold guards against "context rot" — accuracy degradation observed in frontier models operating above 50% context fill.
 >
 > **Post-checkpoint continuity:** When resuming from a context checkpoint or truncation, re-read `task.md` BEFORE taking any action. If unchecked `[ ]` items remain, you are mid-workflow — do NOT stop after resolving the first issue. Continue executing the task table sequentially until blocked or complete. "All tests green" is a milestone, not a stopping point.
+
+> Invoke `.agent/skills/completion-preflight/SKILL.md` before any stop, summary, or "implementation complete" report. This is the procedural enforcement of the re-read gate. After context truncation, invoke the skill's §Post-Truncation Recovery Sequence BEFORE addressing any checkpoint issue.
 
 ### Context Compression Rules
 
@@ -406,12 +408,48 @@ See `.agent/docs/code-quality.md` for full examples and forbidden patterns.
   - **Always** use `git commit -m "message"` — never bare `git commit` (hangs on editor).
   - **Never** use interactive git commands (`git rebase -i`, `git commit --amend` without `--no-edit`).
 
-## Handoff Protocol
+## Artifact Naming Convention
 
-At session end, create or update a handoff file:
+> [!IMPORTANT]
+> **Date-based naming (going forward).** All new handoffs and reflections use date-based naming. Legacy files (001–125) with sequence prefixes remain untouched. Do NOT use sequence numbers on new artifacts.
 
-- Path: `.agent/context/handoffs/{SEQ}-{YYYY-MM-DD}-{slug}-bp{NN}s{X.Y}.md`
-- Template: `.agent/context/handoffs/TEMPLATE.md`
+### Handoffs
+
+```
+{YYYY-MM-DD}-{project-slug}-handoff.md
+```
+
+- **Path**: `.agent/context/handoffs/`
+- **Template**: `.agent/context/handoffs/TEMPLATE.md`
+- **Same-day collision**: append MEU range suffix (e.g., `-ph4-ph7-handoff.md`) or letter (`-a`, `-b`)
+- **Review files**: `{YYYY-MM-DD}-{project-slug}-plan-critical-review.md` or `-implementation-critical-review.md`
+
+### Reflections
+
+```
+{YYYY-MM-DD}-{project-slug}-reflection.md
+```
+
+- **Path**: `docs/execution/reflections/`
+- **Template**: `docs/execution/reflections/TEMPLATE.md`
+
+### Template-First Rule (Mandatory)
+
+> [!CAUTION]
+> **Before creating ANY handoff, reflection, or review file, `view_file` its canonical template.** Do NOT write artifacts from memory. This is not optional.
+
+Required `view_file` calls before artifact creation:
+
+- **Handoff** → `view_file: .agent/context/handoffs/TEMPLATE.md`
+- **Reflection** → `view_file: docs/execution/reflections/TEMPLATE.md`
+- **Plan review** → `view_file: .agent/context/handoffs/REVIEW-TEMPLATE.md`
+- **Implementation review** → `view_file: .agent/context/handoffs/REVIEW-TEMPLATE.md`
+
+If you skip the template read, `completion-preflight` will catch the structural non-compliance and force a rewrite. Read it first to avoid rework.
+
+### Rationale (Research-backed)
+
+Date-based naming is preferred for review artifacts because: (1) temporal context is the primary metadata for reviewers, (2) it eliminates global state dependency that causes naming collisions across agents/sessions, (3) the project slug already disambiguates same-day files. Sequential numbering adds no semantic value when the slug carries the ordering signal.
 
 ## Skills
 
@@ -422,6 +460,7 @@ At session end, create or update a handoff file:
 | Codebase Quality Gate | `.agent/skills/quality-gate/SKILL.md` | Validation pipeline: type checks, linting, tests, anti-placeholder scans, evidence checks. Supports phase-level and MEU-scoped runs. |
 | Pre-Handoff Review | `.agent/skills/pre-handoff-review/SKILL.md` | Self-review protocol addressing 10 recurring patterns from critical review analysis. Reduces average review passes from 4-11 to 3-5. |
 | Terminal Pre-Flight | `.agent/skills/terminal-preflight/SKILL.md` | Mandatory pre-flight checklist for terminal commands. Enforces the redirect-to-file pattern to prevent PowerShell buffer saturation and session hangs. |
+| Completion Pre-Flight | `.agent/skills/completion-preflight/SKILL.md` | Mandatory pre-flight checklist before stop/report events. Enforces task.md re-read gate and post-truncation recovery sequence to prevent premature stop. |
 
 ## MCP Servers
 

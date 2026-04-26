@@ -68,7 +68,7 @@ If implementation is blocked or incomplete, the task status becomes `blocked`, *
 
 Create one handoff file per MEU:
 
-`.agent/context/handoffs/{SEQ}-{YYYY-MM-DD}-{slug}-bp{NN}s{X.Y}.md`
+`.agent/context/handoffs/{YYYY-MM-DD}-{project-slug}-handoff.md`
 
 Use `.agent/context/handoffs/TEMPLATE.md`.
 

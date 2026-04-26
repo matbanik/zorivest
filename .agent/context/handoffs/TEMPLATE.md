@@ -1,5 +1,4 @@
 ---
-seq: "{SEQ}"
 date: "{YYYY-MM-DD}"
 project: "{project-slug}"
 meu: "{MEU-ID}"
@@ -14,7 +13,7 @@ reviewer: "{reviewer-name}"
 predecessor: "{previous-handoff-filename or none}"
 ---
 
-# Handoff: {SEQ}-{YYYY-MM-DD}-{project-slug}-bp{NN}s{X.Y}
+# Handoff: {YYYY-MM-DD}-{project-slug}-handoff
 
 > **Status**: `draft` | `in_progress` | `complete` | `blocked`
 > **Action Required**: `VALIDATE_AND_APPROVE` | `REVIEW_CORRECTIONS` | `EXECUTE`

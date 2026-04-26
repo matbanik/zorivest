@@ -20,7 +20,7 @@ from typing import Any
 import hashlib
 
 import structlog
-from pydantic import BaseModel, Field, field_validator
+from pydantic import BaseModel, ConfigDict, Field, field_validator, model_validator
 
 from zorivest_core.domain.enums import PipelineStatus, StepErrorMode
 
@@ -133,13 +133,18 @@ class PolicyDocument(BaseModel):
 
     This is the unit of authoring: AI agents create PolicyDocuments
     via MCP, which are validated, stored, and scheduled for execution.
+
+    Schema v2 adds: variables, query/compose step types, assertion kind.
     """
 
-    schema_version: int = Field(default=1, ge=1, le=99)
+    model_config = ConfigDict(extra="forbid")
+
+    schema_version: int = Field(default=1, ge=1, le=2)
     name: str = Field(..., min_length=1, max_length=128)
     metadata: PolicyMetadata = Field(default_factory=PolicyMetadata)
     trigger: TriggerConfig
-    steps: list[PolicyStep] = Field(..., min_length=1, max_length=10)
+    steps: list[PolicyStep] = Field(..., min_length=1, max_length=20)
+    variables: dict[str, Any] = Field(default_factory=dict)
 
     @field_validator("steps")
     @classmethod
@@ -149,6 +154,28 @@ class PolicyDocument(BaseModel):
             dupes = [x for x in ids if ids.count(x) > 1]
             raise ValueError(f"Duplicate step IDs: {set(dupes)}")
         return v
+
+    @model_validator(mode="after")
+    def enforce_version_features(self) -> "PolicyDocument":
+        """Reject v2 features used with schema_version=1 (§9D.6b)."""
+        v2_step_types = {"query", "compose"}
+        has_assertion_steps = any(
+            s.params.get("kind") == "assertion" for s in self.steps
+        )
+
+        has_v2_features = (
+            bool(self.variables)
+            or any(s.type in v2_step_types for s in self.steps)
+            or has_assertion_steps
+        )
+
+        if has_v2_features and self.schema_version < 2:
+            raise ValueError(
+                "Features used require schema_version >= 2: "
+                "variables, query/compose step types, or assertion kind. "
+                "Set schema_version: 2 in your policy JSON."
+            )
+        return self
 
 
 # ---------------------------------------------------------------------------
@@ -180,6 +207,8 @@ class StepContext:
     policy_hash: str = ""
     # §9C.4d: Cumulative URL fetch counter (policy-level cap = 10)
     fetch_url_count: int = 0
+    # §9D.3c: Policy-level variables for ref resolution
+    variables: dict[str, Any] = dc_field(default_factory=dict)
 
     def get_output(self, step_id: str) -> Any:
         """Get a prior step's output by step_id (returns isolated deep copy)."""

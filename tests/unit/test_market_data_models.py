@@ -42,7 +42,7 @@ def _session(engine) -> Session:
 
 
 class TestTableCount:
-    """AC-3: 35 tables exist after create_all (31 existing + 4 new)."""
+    """AC-3: 36 tables exist after create_all (31 + 4 market + 1 email_templates)."""
 
     def test_market_ohlcv_table_exists(self) -> None:
         engine = _engine()
@@ -64,10 +64,10 @@ class TestTableCount:
         tables = inspect(engine).get_table_names()
         assert "market_fundamentals" in tables
 
-    def test_total_table_count_is_35(self) -> None:
+    def test_total_table_count_is_36(self) -> None:
         engine = _engine()
         tables = inspect(engine).get_table_names()
-        assert len(tables) == 35
+        assert len(tables) == 36
 
 
 # ── AC-1: Column types and constraints ─────────────────────────────────────

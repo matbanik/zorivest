@@ -461,7 +461,6 @@ class TestLiveWiring:
             # 1. Create a policy via the live service
             valid_policy = {
                 "name": "V1 Live Route Test",
-                "description": "End-to-end route test",
                 "trigger": {
                     "type": "manual",
                     "cron_expression": "0 9 * * *",

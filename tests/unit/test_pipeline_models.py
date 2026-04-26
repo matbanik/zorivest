@@ -251,7 +251,7 @@ class TestTriggerConfig:
 
 
 # ---------------------------------------------------------------------------
-# AC-7: PolicyDocument.steps must have 1-10 items
+# AC-7: PolicyDocument.steps must have 1-20 items
 # ---------------------------------------------------------------------------
 
 
@@ -270,12 +270,12 @@ class TestPolicyDocument:
             PolicyDocument(**_minimal_policy(steps=[]))
 
     def test_steps_max_length(self) -> None:
-        steps = [_minimal_step(id=f"step_{i}") for i in range(10)]
+        steps = [_minimal_step(id=f"step_{i}") for i in range(20)]
         p = PolicyDocument(**_minimal_policy(steps=steps))
-        assert len(p.steps) == 10
+        assert len(p.steps) == 20
 
     def test_steps_too_many(self) -> None:
-        steps = [_minimal_step(id=f"step_{i}") for i in range(11)]
+        steps = [_minimal_step(id=f"step_{i}") for i in range(21)]
         with pytest.raises(PydanticValidationError):
             PolicyDocument(**_minimal_policy(steps=steps))
 

@@ -70,3 +70,31 @@ class ConditionEvaluator:
                 return value is not None
             case _:
                 raise ValueError(f"Unknown operator: {op}")
+
+    @staticmethod
+    def evaluate_assertion(
+        actual: Any,
+        operator: str,
+        expected: Any,
+        *,
+        use_abs: bool = False,
+    ) -> bool:
+        """Evaluate an assertion with optional arithmetic transforms (§9D.4c).
+
+        Supports abs() wrapping of actual value before comparison.
+        """
+        value = abs(actual) if use_abs else actual
+        op_map = {
+            "eq": SkipConditionOperator.EQ,
+            "ne": SkipConditionOperator.NE,
+            "gt": SkipConditionOperator.GT,
+            "lt": SkipConditionOperator.LT,
+            "ge": SkipConditionOperator.GE,
+            "le": SkipConditionOperator.LE,
+        }
+        skip_op = op_map.get(operator)
+        if skip_op is None:
+            raise ValueError(f"Unknown assertion operator: {operator}")
+
+        evaluator = ConditionEvaluator()
+        return evaluator._compare(value, skip_op, expected)

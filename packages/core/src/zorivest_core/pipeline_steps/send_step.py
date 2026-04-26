@@ -239,13 +239,14 @@ class SendStep(RegisteredStep):
         return {"sent": sent, "failed": failed, "deliveries": deliveries}
 
     def _resolve_body(self, params: Params, context: StepContext) -> str:
-        """Resolve email body with four-tier priority chain.
+        """Resolve email body with five-tier priority chain (§9E.5a).
 
         Priority order:
         1. params.html_body   — explicit override from prior step (e.g. render)
-        2. EMAIL_TEMPLATES lookup + Jinja2 render — when body_template matches
-        3. Raw body_template string — graceful fallback for unknown names
-        4. Default "<p>Report attached</p>" — when nothing is provided
+        2. DB lookup via template_port — user-managed templates from database
+        3. EMAIL_TEMPLATES lookup + Jinja2 render — hardcoded registry templates
+        4. Raw body_template string — graceful fallback for unknown names
+        5. Default "<p>Report attached</p>" — when nothing is provided
 
         Template context variables provided to Jinja2:
         - generated_at: ISO timestamp of rendering time
@@ -259,21 +260,55 @@ class SendStep(RegisteredStep):
         if params.html_body:
             return params.html_body
 
-        # Tier 4 early exit: nothing provided
+        # Tier 5 early exit: nothing provided
         if not params.body_template:
             return "<p>Report attached</p>"
 
-        # Tier 2: look up body_template in EMAIL_TEMPLATES registry
+        # Build render context (shared by Tier 2 and 3)
+        render_ctx: dict[str, Any] = {
+            "generated_at": datetime.now(tz.utc).strftime("%Y-%m-%d %H:%M UTC"),
+            "policy_id": context.policy_id,
+            "run_id": context.run_id,
+        }
+        for key, value in context.outputs.items():
+            if key not in render_ctx:
+                render_ctx[key] = value
+            if isinstance(value, dict):
+                for inner_key, inner_value in value.items():
+                    if inner_key not in render_ctx:
+                        render_ctx[inner_key] = inner_value
+
+        # Tier 2: DB lookup via template_port (§9E.5a)
+        template_port = context.outputs.get("template_port")
+        if template_port is not None:
+            dto = template_port.get_by_name(params.body_template)
+            if dto is not None:
+                # Render via HardenedSandbox for security
+                from zorivest_core.services.secure_jinja import HardenedSandbox
+
+                sandbox = HardenedSandbox()
+                rendered = sandbox.render_safe(dto.body_html, render_ctx)
+                # §9E.4a: Honor body_format — render markdown through
+                # safe_render_markdown() for sanitized HTML output
+                if dto.body_format == "markdown":
+                    from zorivest_core.services.safe_markdown import (
+                        safe_render_markdown,
+                    )
+
+                    return safe_render_markdown(rendered)
+                return rendered
+
+        # Tier 3: look up body_template in EMAIL_TEMPLATES registry
         template_source: str | None = None
         try:
             from zorivest_infra.rendering.email_templates import EMAIL_TEMPLATES
 
             template_source = EMAIL_TEMPLATES.get(params.body_template)
         except ImportError:
-            pass  # infra not available — fall through to tier 3
+            pass  # infra not available — fall through to tier 4
 
         if template_source is None:
-            # Tier 3: unknown template name → raw string fallback
+            # Tier 4: unknown template name → raw string fallback
             return params.body_template
 
         # Render the template via Jinja2 engine
@@ -292,22 +327,6 @@ class SendStep(RegisteredStep):
                 engine = Environment(loader=BaseLoader(), autoescape=True)
 
         tmpl = engine.from_string(template_source)
-        render_ctx: dict[str, Any] = {
-            "generated_at": datetime.now(tz.utc).strftime("%Y-%m-%d %H:%M UTC"),
-            "policy_id": context.policy_id,
-            "run_id": context.run_id,
-        }
-        # Merge pipeline step outputs as template variables (AC-7: two-level merge)
-        # For dict-valued outputs, promote inner keys to top-level context.
-        # First-wins: existing keys (generated_at, policy_id, run_id) are preserved.
-        for key, value in context.outputs.items():
-            if key not in render_ctx:
-                render_ctx[key] = value
-            # AC-7: Two-level merge — promote inner keys of dict outputs
-            if isinstance(value, dict):
-                for inner_key, inner_value in value.items():
-                    if inner_key not in render_ctx:
-                        render_ctx[inner_key] = inner_value
 
         return tmpl.render(**render_ctx)
 

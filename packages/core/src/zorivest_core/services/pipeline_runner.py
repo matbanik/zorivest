@@ -161,6 +161,7 @@ class PipelineRunner:
             logger=run_log,
             policy_hash=content_hash,
             approval_snapshot=approval_snapshot,
+            variables=dict(policy.variables) if policy.variables else {},
         )
 
         # Persist run record — conditional on whether run_id was pre-created
@@ -307,8 +308,10 @@ class PipelineRunner:
             await self._persist_step(run_id, step_def, result, attempt=0)
             return result
 
-        # 4. Resolve refs in params
-        resolved_params = self.ref_resolver.resolve(step_def.params, context)
+        # 4. Resolve refs in params (with policy-level variables)
+        resolved_params = self.ref_resolver.resolve(
+            step_def.params, context, variables=context.variables
+        )
 
         # 4b. §9C.4d: Enforce policy-level URL cap for fetch steps
         if step_def.type == "fetch":

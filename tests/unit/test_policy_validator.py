@@ -78,10 +78,10 @@ class TestValidPolicy:
 
 
 class TestSchemaVersion:
-    def test_version_2_rejected(self) -> None:
+    def test_version_2_accepted(self) -> None:
         doc = _build_policy(schema_version=2)
         errors = validate_policy(doc)
-        assert any(e.field == "schema_version" for e in errors)
+        assert not any(e.field == "schema_version" for e in errors)
 
     def test_version_1_accepted(self) -> None:
         doc = _build_policy(schema_version=1)
@@ -90,7 +90,7 @@ class TestSchemaVersion:
 
 
 # ---------------------------------------------------------------------------
-# AC-3: Rejects >10 steps (Pydantic catches this too, but validator double-checks)
+# AC-3: Rejects >20 steps (Pydantic catches this too, but validator double-checks)
 # ---------------------------------------------------------------------------
 
 

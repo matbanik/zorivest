@@ -100,7 +100,7 @@ def validate_policy(doc: PolicyDocument) -> list[ValidationError]:
     errors: list[ValidationError] = []
 
     # 1. Schema version
-    if doc.schema_version != 1:
+    if doc.schema_version not in (1, 2):
         errors.append(
             ValidationError(
                 "schema_version", f"Unsupported version: {doc.schema_version}"
@@ -108,9 +108,9 @@ def validate_policy(doc: PolicyDocument) -> list[ValidationError]:
         )
 
     # 2. Step count (defense-in-depth; Pydantic also validates this)
-    if len(doc.steps) > 10:
+    if len(doc.steps) > 20:
         errors.append(
-            ValidationError("steps", f"Max 10 steps allowed, got {len(doc.steps)}")
+            ValidationError("steps", f"Max 20 steps allowed, got {len(doc.steps)}")
         )
 
     # 3. Step types exist in registry
@@ -146,6 +146,12 @@ def validate_policy(doc: PolicyDocument) -> list[ValidationError]:
     # For each step with a known type in STEP_REGISTRY, validate step.params
     # against the step class's Params model. Invalid values → 422 at boundary.
     _check_step_params(doc, errors)
+
+    # 8. v2 feature gating (defense-in-depth, mirrors model_validator)
+    _check_v2_features(doc, errors)
+
+    # 9. Unused variable warning (v2 only)
+    _check_unused_variables(doc, errors)
 
     return errors
 
@@ -337,3 +343,105 @@ def _check_step_params(doc: PolicyDocument, errors: list[ValidationError]) -> No
                         severity="error",
                     )
                 )
+
+
+def _check_v2_features(doc: PolicyDocument, errors: list[ValidationError]) -> None:
+    """Rule 8: reject v2 features when schema_version=1 (defense-in-depth).
+
+    This mirrors the model_validator on PolicyDocument, but provides
+    defense-in-depth validation at the policy_validator layer. This catches
+    cases where the model_validator is bypassed (e.g., direct attribute set).
+    """
+    if doc.schema_version >= 2:
+        return  # v2 features are allowed on v2 schemas
+
+    # Check for v2 step types
+    v2_step_types = {"query", "compose"}
+    for step in doc.steps:
+        if step.type in v2_step_types:
+            errors.append(
+                ValidationError(
+                    f"steps[{step.id}].type",
+                    f"Step type '{step.type}' requires schema_version >= 2 (v2 feature)",
+                )
+            )
+
+    # Check for assertion kind
+    for step in doc.steps:
+        if step.params.get("kind") == "assertion":
+            errors.append(
+                ValidationError(
+                    f"steps[{step.id}].params.kind",
+                    "Assertion kind requires schema_version >= 2 (v2 feature)",
+                )
+            )
+
+    # Check for {var: ...} refs in params
+    var_refs = _scan_for_var_refs(doc)
+    for step_id, path in var_refs:
+        errors.append(
+            ValidationError(
+                f"steps[{step_id}].params.{path}",
+                'Variable refs {{"var": ...}} require schema_version >= 2 (v2 feature)',
+            )
+        )
+
+
+def _scan_for_var_refs(doc: PolicyDocument) -> list[tuple[str, str]]:
+    """Find all {var: ...} references in step params."""
+    found: list[tuple[str, str]] = []
+    for step in doc.steps:
+        _find_var_refs(step.params, step.id, "", found)
+    return found
+
+
+def _find_var_refs(
+    obj: Any,
+    step_id: str,
+    path: str,
+    found: list[tuple[str, str]],
+) -> None:
+    """Recursively scan for {var: ...} dicts."""
+    if isinstance(obj, dict):
+        if "var" in obj and len(obj) == 1:
+            found.append((step_id, path or "root"))
+        else:
+            for k, v in obj.items():
+                _find_var_refs(v, step_id, f"{path}.{k}" if path else k, found)
+    elif isinstance(obj, list):
+        for i, item in enumerate(obj):
+            _find_var_refs(item, step_id, f"{path}[{i}]", found)
+
+
+def _check_unused_variables(doc: PolicyDocument, errors: list[ValidationError]) -> None:
+    """Rule 9: warn about unused variables in v2 policies."""
+    if doc.schema_version < 2 or not doc.variables:
+        return
+
+    # Collect referenced variable names from step params
+    referenced_vars: set[str] = set()
+    for step in doc.steps:
+        _collect_referenced_var_names(step.params, referenced_vars)
+
+    unused = set(doc.variables.keys()) - referenced_vars
+    for var_name in sorted(unused):
+        errors.append(
+            ValidationError(
+                f"variables.{var_name}",
+                f"Unused variable '{var_name}' defined but never referenced",
+                severity="warning",
+            )
+        )
+
+
+def _collect_referenced_var_names(obj: Any, names: set[str]) -> None:
+    """Recursively collect all variable names from {var: ...} refs."""
+    if isinstance(obj, dict):
+        if "var" in obj and len(obj) == 1:
+            names.add(obj["var"])
+        else:
+            for v in obj.values():
+                _collect_referenced_var_names(v, names)
+    elif isinstance(obj, list):
+        for item in obj:
+            _collect_referenced_var_names(item, names)

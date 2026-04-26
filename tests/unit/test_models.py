@@ -17,7 +17,7 @@ from zorivest_infra.database.models import (
     WatchlistModel,
 )
 
-# Expected 35 table names from the spec (21 original + 9 scheduling + 1 email + 4 market data)
+# Expected 36 table names from the spec (21 original + 9 scheduling + 1 email_provider + 1 email_templates + 4 market data)
 EXPECTED_TABLES = {
     "trades",
     "images",
@@ -57,6 +57,8 @@ EXPECTED_TABLES = {
     "market_quotes",
     "market_news",
     "market_fundamentals",
+    # MEU-PH6 email templates
+    "email_templates",
 }
 
 
@@ -68,7 +70,7 @@ def _engine():
 
 
 class TestSchemaCreation:
-    """AC-13.1: All 35 tables are created without errors."""
+    """AC-13.1: All 36 tables are created without errors."""
 
     def test_create_all_tables(self) -> None:
         engine = _engine()
@@ -76,10 +78,10 @@ class TestSchemaCreation:
         actual_tables = set(inspector.get_table_names())
         assert EXPECTED_TABLES == actual_tables
 
-    def test_exactly_35_tables(self) -> None:
+    def test_exactly_36_tables(self) -> None:
         engine = _engine()
         inspector = inspect(engine)
-        assert len(inspector.get_table_names()) == 35
+        assert len(inspector.get_table_names()) == 36
 
 
 class TestColumnTypes:

@@ -310,10 +310,10 @@ P2.75 (broker adapters): MEU-96 → MEU-99
 | MEU-PH1 | `stepcontext-safety` | 49.16 | StepContext `safe_deepcopy` + `Secret` carrier class + depth/byte guards | ✅ done |
 | MEU-PH2 | `sql-sandbox` | 49.17 | SQL sandbox: `set_authorizer` + `mode=ro` + AST allowlist + `progress_handler` + secrets scan + policy content IDs | ✅ done |
 | MEU-PH3 | `send-fetch-guards` | 49.18 | SendStep confirmation gate + FetchStep MIME/fan-out validation | ✅ done |
-| MEU-PH4 | `query-step` | 49.19 | QueryStep implementation (read-only SQL via sandbox) | ⬜ planned |
-| MEU-PH5 | `compose-step` | 49.20 | ComposeStep implementation (multi-source data merging) | ⬜ planned |
-| MEU-PH6 | `template-database` | 49.21 | EmailTemplateModel + HardenedSandbox + nh3 sanitization + template CRUD | ⬜ planned |
-| MEU-PH7 | `policy-vars-assertions` | 49.22 | PolicyDocument `variables` + assertion gates + step-count cap | ⬜ planned |
+| MEU-PH4 | `query-step` | 49.19 | QueryStep implementation (read-only SQL via sandbox) | ✅ 2026-04-25 |
+| MEU-PH5 | `compose-step` | 49.20 | ComposeStep implementation (multi-source data merging) | ✅ 2026-04-25 |
+| MEU-PH6 | `template-database` | 49.21 | EmailTemplateModel + HardenedSandbox + nh3 sanitization + template CRUD | ✅ 2026-04-25 |
+| MEU-PH7 | `policy-vars-assertions` | 49.22 | PolicyDocument `variables` + assertion gates + step-count cap + schema v2 | ✅ 2026-04-25 |
 | MEU-PH8 | `policy-emulator` | 49.23 | 4-phase emulator + output containment + session budget + error schema | ⬜ planned |
 | MEU-PH9 | `emulator-mcp-tools` | 49.24 | 11 new MCP tools: emulator, schema discovery, template CRUD, provider discovery | ⬜ planned |
 | MEU-PH10 | `default-template` | 49.25 | Pre-loaded Morning Check-In template | ⬜ planned |

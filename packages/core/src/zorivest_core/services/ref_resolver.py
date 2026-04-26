@@ -12,20 +12,31 @@ from zorivest_core.domain.pipeline import StepContext
 
 
 class RefResolver:
-    """Resolves ``{"ref": "ctx.<step_id>.output.<path>"}`` references in step params."""
+    """Resolves ``{"ref": "ctx.<step_id>.<path>"}`` and ``{"var": "<name>"}``
+    references in step params.
+    """
 
-    def resolve(self, params: dict, context: StepContext) -> dict:
-        """Return a new dict with all refs resolved."""
-        return self._walk(params, context)
+    def resolve(
+        self,
+        params: dict,
+        context: StepContext,
+        *,
+        variables: dict | None = None,
+    ) -> dict:
+        """Return a new dict with all refs and var refs resolved."""
+        return self._walk(params, context, variables or {})
 
-    def _walk(self, obj: Any, context: StepContext) -> Any:
+    def _walk(self, obj: Any, context: StepContext, variables: dict) -> Any:
         if isinstance(obj, dict):
-            # Single-key dict with "ref" → resolve
+            # Single-key dict with "ref" → resolve ctx ref
             if "ref" in obj and len(obj) == 1:
                 return self._resolve_ref(obj["ref"], context)
-            return {k: self._walk(v, context) for k, v in obj.items()}
+            # Single-key dict with "var" → resolve variable
+            if "var" in obj and len(obj) == 1:
+                return self._resolve_var(obj["var"], variables)
+            return {k: self._walk(v, context, variables) for k, v in obj.items()}
         elif isinstance(obj, list):
-            return [self._walk(item, context) for item in obj]
+            return [self._walk(item, context, variables) for item in obj]
         return obj
 
     def _resolve_ref(self, ref_path: str, context: StepContext) -> Any:
@@ -58,3 +69,9 @@ class RefResolver:
                 )
 
         return value
+
+    def _resolve_var(self, var_name: str, variables: dict) -> Any:
+        """Resolve a variable reference to its value (§9D.3b)."""
+        if var_name not in variables:
+            raise ValueError(f"Undefined variable: {var_name}")
+        return variables[var_name]

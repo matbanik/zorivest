@@ -8,7 +8,7 @@ Use this workflow when validating a completed MEU. Codex is the **validation age
 
 ## Prerequisites
 
-- Read the MEU handoff artifact at `.agent/context/handoffs/{SEQ}-{YYYY-MM-DD}-{slug}-bp{NN}s{X.Y}.md`
+- Read the MEU handoff artifact at `.agent/context/handoffs/{YYYY-MM-DD}-{project-slug}-handoff.md`
 - Read ALL changed files listed in the handoff (full content, not just diffs)
 - Read `docs/build-plan/testing-strategy.md` for test standards
 - Read `.agent/roles/reviewer.md` for adversarial checklist

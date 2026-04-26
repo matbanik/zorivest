@@ -324,8 +324,8 @@ class TestPipelineUrlCap:
             ref_resolver=MagicMock(),
             condition_evaluator=MagicMock(),
         )
-        # ref_resolver.resolve returns params as-is
-        runner.ref_resolver.resolve.side_effect = lambda p, c: p
+        # ref_resolver.resolve returns params as-is (accept variables kwarg)
+        runner.ref_resolver.resolve.side_effect = lambda p, c, **kw: p
         # condition_evaluator returns False for skip_if
         runner.condition_evaluator.evaluate.return_value = False
 

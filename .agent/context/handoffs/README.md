@@ -1,32 +1,34 @@
 # Handoffs
 
-This folder stores handoff files — one per MEU within a project session.
+This folder stores handoff files — one per MEU or multi-MEU project.
 
-## Naming Convention
+## Naming Convention (Going Forward)
 
 ```
-{SEQ}-{YYYY-MM-DD}-{slug}-bp{NN}s{X.Y}.md
+{YYYY-MM-DD}-{project-slug}-handoff.md
 ```
 
 | Part | Meaning | Example |
 |------|---------|---------|
-| `{SEQ}` | 3-digit global sequence | `001` |
-| `{YYYY-MM-DD}` | Date completed | `2026-03-06` |
-| `{slug}` | Descriptive slug | `calculator` |
-| `bp{NN}s{X.Y}` | Build-plan file + section | `bp01s1.3` |
+| `{YYYY-MM-DD}` | Date completed | `2026-04-25` |
+| `{project-slug}` | Descriptive project slug | `pipeline-capabilities` |
+| `-handoff` | Artifact type suffix | `-handoff` |
 
 Examples:
-- `001-2026-03-06-calculator-bp01s1.3.md`
-- `002-2026-03-07-enums-bp01s1.2.md`
-- `003-2026-03-08-entities-bp01s1.4+1.5.md` (single MEU covering sections 1.4 and 1.5)
+- `2026-04-25-pipeline-capabilities-ph4-ph7-handoff.md` (multi-MEU, same-day disambiguation via MEU range)
+- `2026-04-25-pipeline-security-hardening-ph3-handoff.md`
 
-For multi-section MEUs, join section numbers with `+` (e.g., `bp01s1.4+1.5`).
+**Same-day collision:** Append MEU range or letter suffix (`-a`, `-b`) when multiple handoffs share the same date and project slug.
 
-**Sequence bootstrap:** If no sequenced handoffs exist yet (legacy files use `YYYY-MM-DD-` prefix), start at `001`.
+**Multi-MEU projects** may use one combined handoff per project or one per MEU — decide based on scope.
 
-**One handoff per MEU.** Each MEU gets its own sequenced file. A multi-MEU project produces multiple handoffs.
+### Legacy Convention (files 001–125)
 
-Determine the next sequence number from the highest `{SEQ}` found in this folder.
+Existing sequenced files use the original convention. **Do NOT rename them** — they are referenced from review artifacts, registries, and other docs.
+
+```
+{SEQ}-{YYYY-MM-DD}-{slug}-bp{NN}s{X.Y}.md
+```
 
 ## Template
 
@@ -37,8 +39,8 @@ Start from: [`.agent/context/handoffs/TEMPLATE.md`](TEMPLATE.md) (v2.1)
 Review artifacts use a separate template and naming convention:
 
 ```
-{plan-folder-name}-plan-critical-review.md
-{plan-folder-name}-implementation-critical-review.md
+{YYYY-MM-DD}-{project-slug}-plan-critical-review.md
+{YYYY-MM-DD}-{project-slug}-implementation-critical-review.md
 ```
 
 Start from: [`.agent/context/handoffs/REVIEW-TEMPLATE.md`](REVIEW-TEMPLATE.md) (v2.1)
@@ -51,7 +53,6 @@ One rolling review file per plan folder. Append dated sections for rechecks inst
 
 | Field | Type | Required | Values |
 |-------|------|----------|--------|
-| `seq` | string | ✅ | 3-digit global sequence |
 | `date` | string | ✅ | YYYY-MM-DD |
 | `project` | string | ✅ | project slug |
 | `meu` | string | ✅ | MEU identifier |
@@ -98,5 +99,12 @@ v2.1 is backward-compatible with v2.0. Changes are additive:
 - **Added** test output compression guidance in Evidence section
 - **Added** delta-only code guidance in Changed Files section
 - **Preserved** all existing sections and fields from v2.0
+- **Removed** `seq` field from required YAML (legacy files retain it)
 
-Existing handoffs (001–104) remain valid under v2.0. No retrofitting required.
+Existing handoffs (001–125) remain valid under v2.0. No retrofitting required.
+
+### v2.1 → v2.2 Convention Change (2026-04-25)
+
+- **Changed** file naming from `{SEQ}-{YYYY-MM-DD}-{slug}-bp{NN}s{X.Y}.md` to `{YYYY-MM-DD}-{project-slug}-handoff.md`
+- **Rationale** (Research-backed): Date-based naming eliminates global sequence state dependency, prevents cross-agent naming collisions, and provides temporal context that reviewers prioritize over linear ordering
+- **Legacy files untouched**: Files 001–125 retain original names — they are referenced from review artifacts and registries

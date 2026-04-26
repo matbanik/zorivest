@@ -254,6 +254,30 @@ class EmailProviderModel(Base):
     updated_at = Column(DateTime, nullable=True)
 
 
+# ── Email Template Models (§9E.1c) ────────────────────────────────────────
+
+
+class EmailTemplateModel(Base):
+    """User-managed email templates for pipeline SendStep (§9E.1c)."""
+
+    __tablename__ = "email_templates"
+
+    id = Column(Integer, primary_key=True, autoincrement=True)
+    name = Column(String(128), unique=True, nullable=False)
+    description = Column(Text, nullable=True)
+    subject_template = Column(String(256), nullable=True)
+    body_html = Column(Text, nullable=False)
+    body_format = Column(
+        String(20), nullable=False, default="html"
+    )  # "html" | "markdown"
+    required_variables = Column(Text, nullable=True)  # JSON list
+    sample_data_json = Column(Text, nullable=True)  # JSON dict for preview
+    is_default = Column(Boolean, default=False)
+    created_at = Column(DateTime, nullable=False)
+    updated_at = Column(DateTime, nullable=True)
+    created_by = Column(String(128), nullable=True)
+
+
 # ── Guard/Circuit Breaker ─────────────────────────────────────────────────
 
 

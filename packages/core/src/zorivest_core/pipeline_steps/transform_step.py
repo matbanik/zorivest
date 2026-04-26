@@ -32,10 +32,30 @@ _PRESENTATION_MAP: dict[str, str] = {
 }
 
 
+class AssertionDef(BaseModel):
+    """Definition of a single assertion gate (§9D.4b)."""
+
+    model_config = {"extra": "forbid"}
+
+    field_ref: str = Field(..., description="Dot-path ctx ref to the value to check")
+    operator: str = Field(
+        ..., description="Comparison operator: eq, ne, gt, lt, ge, le"
+    )
+    expected: Any = Field(..., description="Expected value to compare against")
+    severity: str = Field(
+        default="fatal",
+        description="'fatal' halts pipeline, 'warning' continues",
+    )
+
+
 class TransformStep(RegisteredStep):
     """Transform raw market data: map fields, validate, write to DB.
 
     Auto-registers as ``type_name="transform"`` in the step registry.
+
+    Supports two modes via ``kind`` discriminator:
+    - ``"transform"`` (default): standard data transformation pipeline
+    - ``"assertion"``: data integrity assertion gates (§9D.4)
     """
 
     type_name = "transform"
@@ -46,6 +66,10 @@ class TransformStep(RegisteredStep):
 
         model_config = {"extra": "forbid"}
 
+        kind: str = Field(
+            default="transform",
+            description="Step mode: 'transform' (default) or 'assertion'",
+        )
         target_table: str = Field(..., description="Target table for transformed data")
         mapping: str = Field(
             default="auto",
@@ -86,6 +110,11 @@ class TransformStep(RegisteredStep):
                 "Minimum expected record count. "
                 "0 records with min_records > 0 returns WARNING status."
             ),
+        )
+        # PH7: Assertion definitions (only used when kind="assertion")
+        assertions: list[AssertionDef] | None = Field(
+            default=None,
+            description="Assertion definitions for kind='assertion' mode",
         )
 
     @staticmethod
@@ -146,6 +175,10 @@ class TransformStep(RegisteredStep):
         )
 
         p = self.Params(**params)
+
+        # Assertion gate mode (§9D.4b)
+        if p.kind == "assertion":
+            return await self._run_assertions(p, context)
 
         # 1. Resolve source data (AC-1)
         source_output = self._resolve_source(p.source_step_id, context)
@@ -373,4 +406,67 @@ class TransformStep(RegisteredStep):
             df=df,
             table=target_table,
             disposition=write_disposition,
+        )
+
+    async def _run_assertions(
+        self, p: "TransformStep.Params", context: StepContext
+    ) -> StepResult:
+        """Execute assertion gates (§9D.4b).
+
+        Each assertion evaluates a ctx ref against an expected value.
+        Fatal failures → FAILED status (pipeline halts).
+        Warning failures → SUCCESS status with assertion_results list.
+        """
+        from zorivest_core.services.condition_evaluator import ConditionEvaluator
+
+        evaluator = ConditionEvaluator()
+
+        if not p.assertions:
+            return StepResult(
+                status=PipelineStatus.SUCCESS,
+                output={"assertion_results": []},
+            )
+
+        failures: list[dict] = []
+        for assertion in p.assertions:
+            # Resolve the field ref to get the actual value
+            value = evaluator._resolve_field(assertion.field_ref, context)
+
+            # Map assertion operator string to SkipConditionOperator
+            op_map = {
+                "eq": "eq",
+                "ne": "ne",
+                "gt": "gt",
+                "lt": "lt",
+                "ge": "ge",
+                "le": "le",
+            }
+            from zorivest_core.domain.pipeline import SkipConditionOperator
+
+            op_str = op_map.get(assertion.operator)
+            if op_str is None:
+                raise ValueError(f"Unknown assertion operator: {assertion.operator}")
+
+            op = SkipConditionOperator(op_str)
+            result = evaluator._compare(value, op, assertion.expected)
+            if not result:
+                failures.append(
+                    {
+                        "field": assertion.field_ref,
+                        "expected": assertion.expected,
+                        "actual": value,
+                        "severity": assertion.severity,
+                    }
+                )
+
+        fatal_failures = [f for f in failures if f["severity"] == "fatal"]
+        if fatal_failures:
+            return StepResult(
+                status=PipelineStatus.FAILED,
+                output={"assertion_failures": failures},
+            )
+
+        return StepResult(
+            status=PipelineStatus.SUCCESS,
+            output={"assertion_results": failures},
         )

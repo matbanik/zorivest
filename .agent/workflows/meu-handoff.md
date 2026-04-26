@@ -15,23 +15,23 @@ This document defines the handoff artifact format for passing work between agent
 ## Handoff Artifact Location
 
 ```
-`.agent/context/handoffs/{SEQ}-{YYYY-MM-DD}-{slug}-bp{NN}s{X.Y}.md`
+`.agent/context/handoffs/{YYYY-MM-DD}-{project-slug}-handoff.md`
 
 Where:
-- `{SEQ}` = 3-digit global sequence (check highest existing in handoffs folder)
 - `{YYYY-MM-DD}` = date completed
-- `{slug}` = descriptive slug
-- `bp{NN}s{X.Y}` = build-plan file number + section (e.g., `bp01s1.3`)
+- `{project-slug}` = descriptive project slug
+- `-handoff` = artifact type suffix
+- Same-day collision: append MEU range (e.g., `-ph4-ph7-handoff.md`) or letter (`-a`, `-b`)
 ```
 
-Example: `.agent/context/handoffs/001-2026-03-06-calculator-bp01s1.3.md`
+Example: `.agent/context/handoffs/2026-04-25-pipeline-capabilities-ph4-ph7-handoff.md`
 
 ## Template
 
 > **Start from** [`.agent/context/handoffs/TEMPLATE.md`](file:///p:/zorivest/.agent/context/handoffs/TEMPLATE.md) (v2.1)
 >
 > Copy the template, fill all placeholder fields, and ensure:
-> - YAML frontmatter `seq`, `date`, `project`, `meu`, `status`, `action_required`, `verbosity` are populated
+> - YAML frontmatter `date`, `project`, `meu`, `status`, `action_required`, `verbosity` are populated
 > - `action_required` is set to `VALIDATE_AND_APPROVE` for new handoffs
 > - `verbosity` defaults to `standard` unless explicitly overridden
 > - AC table has source labels for every criterion
@@ -101,7 +101,7 @@ Before applying a fix to "similar locations," classify each candidate:
 
 Every handoff is stored in two places for redundancy:
 
-1. **File**: `.agent/context/handoffs/{SEQ}-{date}-{slug}-bp{NN}s{X.Y}.md`
+1. **File**: `.agent/context/handoffs/{YYYY-MM-DD}-{project-slug}-handoff.md`
 2. **pomera_notes**: `Memory/Session/Zorivest-{project-slug}-{date}`
 
 The file is the primary artifact. pomera_notes is the backup for cross-session search.

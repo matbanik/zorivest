@@ -117,6 +117,18 @@
 
 ---
 
+### [PREMATURE-STOP] — Context truncation caused 16 task items to be silently dropped ✅ RESOLVED
+- **Severity:** ~~High~~ → Resolved (2026-04-25)
+- **Component:** Agent workflow (AGENTS.md, skills)
+- **Discovered:** 2026-04-25 (pipeline-capabilities session, conversation `9986e441`)
+- **Status:** ✅ **Resolved — completion-preflight skill created + AGENTS.md amended**
+- **Root cause:** After context truncation, "all tests green" was treated as completion. 16 unchecked task items (rows 19–34) were dropped because: (1) no re-read of project task.md occurred post-truncation, (2) agent workspace copy was updated instead of project copy, (3) no programmatic completion gate existed.
+- **Fix:** Created `.agent/skills/completion-preflight/SKILL.md` — a deterministic re-read gate modeled on `terminal-preflight`. Added AGENTS.md cross-reference (line ~273) and Knowledge Item (pomera note #937).
+- **RCA:** [premature_stop_analysis.md](file:///p:/zorivest/_inspiration/agents_md_research/premature_stop_analysis.md)
+- **Defense layers:** (1) AGENTS.md prose, (2) completion-preflight skill, (3) KI `Zorivest/Completion-Gate-Protocol`, (4) pomera session saves
+
+---
+
 ### [TEST-DRIFT-MDS] — 5 tests in test_market_data_service.py fail due to wiring changes ✅ RESOLVED
 - **Severity:** ~~Medium~~ → Resolved (2026-04-12)
 - **Component:** tests (unit)
