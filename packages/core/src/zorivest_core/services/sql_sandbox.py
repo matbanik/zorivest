@@ -64,6 +64,7 @@ class SqlSandbox:
                         When provided, the sandbox uses this connection instead
                         of opening one via sqlite3.connect().
         """
+        self._db_path = db_path
         if connection is not None:
             self._conn = connection
         else:
@@ -178,6 +179,59 @@ class SqlSandbox:
 
         columns = [d[0] for d in cursor.description]
         return [dict(zip(columns, row)) for row in cursor.fetchall()]
+
+    def list_tables(self) -> list[str]:
+        """Return table names visible to the sandbox (DENY_TABLES excluded).
+
+        Uses a separate read-only connection for sqlite_master introspection,
+        since the sandboxed connection's authorizer blocks sqlite_master reads
+        (AC-2.6).
+        """
+        # Open a separate read-only connection for introspection only
+        introspection_conn = sqlite3.connect(f"file:{self._db_path}?mode=ro", uri=True)
+        try:
+            cursor = introspection_conn.execute(
+                "SELECT name FROM sqlite_master WHERE type='table'"
+            )
+            all_tables = {row[0] for row in cursor.fetchall()}
+        finally:
+            introspection_conn.close()
+
+        return sorted(all_tables - self.DENY_TABLES)
+
+    def table_info(self, table_name: str) -> list[dict[str, Any]]:
+        """Return column metadata for an allowed table.
+
+        Args:
+            table_name: Name of the table to inspect.
+
+        Returns:
+            List of dicts with keys: name, type, nullable.
+
+        Raises:
+            ValueError: If the table is in DENY_TABLES or doesn't exist.
+        """
+        if table_name in self.DENY_TABLES:
+            raise ValueError(f"Table '{table_name}' is denied")
+
+        # Check table exists via list_tables
+        if table_name not in self.list_tables():
+            raise ValueError(f"Table '{table_name}' not found")
+
+        # Use a separate read-only connection for PRAGMA introspection
+        introspection_conn = sqlite3.connect(f"file:{self._db_path}?mode=ro", uri=True)
+        try:
+            cursor = introspection_conn.execute(
+                f'PRAGMA table_info("{table_name}")'  # noqa: S608
+            )
+            columns = [
+                {"name": row[1], "type": row[2], "nullable": not bool(row[3])}
+                for row in cursor.fetchall()
+            ]
+        finally:
+            introspection_conn.close()
+
+        return columns
 
     def _check_timeout(self) -> int:
         """L5: Progress handler — abort after 2 seconds."""

@@ -574,3 +574,99 @@ class TestSandboxConnectionInjection:
 
         sandbox.close()
         injected_conn.close()
+
+
+# ---------------------------------------------------------------------------
+# AC-2.20: list_tables() returns non-denied tables
+# ---------------------------------------------------------------------------
+
+
+class TestListTables:
+    """AC-2.20: SqlSandbox.list_tables() introspects schema safely."""
+
+    def test_list_tables_returns_allowed_tables(self, tmp_path: object) -> None:
+        """list_tables returns tables NOT in DENY_TABLES."""
+        from zorivest_core.services.sql_sandbox import SqlSandbox
+
+        db_path = os.path.join(str(tmp_path), "test.db")
+        conn = sqlite3.connect(db_path)
+        conn.execute("CREATE TABLE trades (id INTEGER, ticker TEXT)")
+        conn.execute("CREATE TABLE accounts (id INTEGER, name TEXT)")
+        conn.execute("CREATE TABLE settings (key TEXT, value TEXT)")
+        conn.close()
+
+        sandbox = SqlSandbox(db_path)
+        tables = sandbox.list_tables()
+        assert "trades" in tables
+        assert "accounts" in tables
+        assert "settings" not in tables  # DENY_TABLES
+
+    def test_list_tables_excludes_sqlite_master(self, tmp_path: object) -> None:
+        """list_tables does not include sqlite_master or sqlite_schema."""
+        from zorivest_core.services.sql_sandbox import SqlSandbox
+
+        db_path = os.path.join(str(tmp_path), "test.db")
+        conn = sqlite3.connect(db_path)
+        conn.execute("CREATE TABLE trades (id INTEGER)")
+        conn.close()
+
+        sandbox = SqlSandbox(db_path)
+        tables = sandbox.list_tables()
+        assert "sqlite_master" not in tables
+        assert "sqlite_schema" not in tables
+
+
+# ---------------------------------------------------------------------------
+# AC-2.21: table_info() returns column metadata
+# ---------------------------------------------------------------------------
+
+
+class TestTableInfo:
+    """AC-2.21: SqlSandbox.table_info() returns column schema for allowed tables."""
+
+    def test_table_info_returns_columns(self, tmp_path: object) -> None:
+        """table_info returns column name, type, nullable for each column."""
+        from zorivest_core.services.sql_sandbox import SqlSandbox
+
+        db_path = os.path.join(str(tmp_path), "test.db")
+        conn = sqlite3.connect(db_path)
+        conn.execute(
+            "CREATE TABLE trades (id INTEGER NOT NULL, ticker TEXT, price REAL)"
+        )
+        conn.close()
+
+        sandbox = SqlSandbox(db_path)
+        columns = sandbox.table_info("trades")
+        assert len(columns) == 3
+        # Check structure
+        assert columns[0]["name"] == "id"
+        assert columns[0]["type"] == "INTEGER"
+        assert columns[0]["nullable"] is False
+        assert columns[1]["name"] == "ticker"
+        assert columns[1]["nullable"] is True
+
+    def test_table_info_denied_table_raises(self, tmp_path: object) -> None:
+        """table_info on a DENY_TABLE raises ValueError."""
+        from zorivest_core.services.sql_sandbox import SqlSandbox
+
+        db_path = os.path.join(str(tmp_path), "test.db")
+        conn = sqlite3.connect(db_path)
+        conn.execute("CREATE TABLE settings (key TEXT, value TEXT)")
+        conn.close()
+
+        sandbox = SqlSandbox(db_path)
+        with pytest.raises(ValueError, match="denied"):
+            sandbox.table_info("settings")
+
+    def test_table_info_missing_table_raises(self, tmp_path: object) -> None:
+        """table_info on a non-existent table raises ValueError."""
+        from zorivest_core.services.sql_sandbox import SqlSandbox
+
+        db_path = os.path.join(str(tmp_path), "test.db")
+        conn = sqlite3.connect(db_path)
+        conn.execute("CREATE TABLE trades (id INTEGER)")
+        conn.close()
+
+        sandbox = SqlSandbox(db_path)
+        with pytest.raises(ValueError, match="not found"):
+            sandbox.table_info("nonexistent")

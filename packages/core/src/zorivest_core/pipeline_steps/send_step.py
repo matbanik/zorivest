@@ -277,6 +277,20 @@ class SendStep(RegisteredStep):
                 for inner_key, inner_value in value.items():
                     if inner_key not in render_ctx:
                         render_ctx[inner_key] = inner_value
+                    # Flatten QueryStep's {output_key: {query_name: [rows]}}
+                    # so template can access query results by query name.
+                    # When output_key == query_name, the shallow pass sets
+                    # the key to a dict wrapper; the deep pass must overwrite
+                    # it with the actual list so templates can iterate rows.
+                    if isinstance(inner_value, dict):
+                        for deep_key, deep_value in inner_value.items():
+                            if deep_key not in render_ctx:
+                                render_ctx[deep_key] = deep_value
+                            elif isinstance(deep_value, list) and isinstance(
+                                render_ctx.get(deep_key), dict
+                            ):
+                                # List (row data) wins over dict wrapper
+                                render_ctx[deep_key] = deep_value
 
         # Tier 2: DB lookup via template_port (§9E.5a)
         template_port = context.outputs.get("template_port")

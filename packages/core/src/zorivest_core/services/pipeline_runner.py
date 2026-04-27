@@ -81,6 +81,7 @@ class PipelineRunner:
         sql_sandbox: Any | None = None,
         report_repository: Any | None = None,
         template_engine: Any | None = None,
+        template_port: Any | None = None,
         pipeline_state_repo: Any | None = None,
         fetch_cache_repo: Any | None = None,
     ) -> None:
@@ -97,6 +98,7 @@ class PipelineRunner:
         self._sql_sandbox = sql_sandbox
         self._report_repository = report_repository
         self._template_engine = template_engine
+        self._template_port = template_port
         self._pipeline_state_repo = pipeline_state_repo
         self._fetch_cache_repo = fetch_cache_repo
         self._active_tasks: dict[str, asyncio.Task[Any]] = {}
@@ -146,6 +148,7 @@ class PipelineRunner:
             "sql_sandbox": self._sql_sandbox,
             "report_repository": self._report_repository,
             "template_engine": self._template_engine,
+            "template_port": self._template_port,
             "pipeline_state_repo": self._pipeline_state_repo,
             "fetch_cache_repo": self._fetch_cache_repo,
         }

@@ -121,9 +121,9 @@ class FakeSqlSandbox:
     def __init__(self) -> None:
         import sqlite3
 
-        self._connection = sqlite3.connect(":memory:", check_same_thread=False)
+        self._conn = sqlite3.connect(":memory:", check_same_thread=False)
         # Create a trades table for samples test
-        self._connection.execute(
+        self._conn.execute(
             "CREATE TABLE trades (exec_id TEXT, instrument TEXT, price REAL)"
         )
 
@@ -134,6 +134,40 @@ class FakeSqlSandbox:
             if upper.startswith(keyword):
                 return [f"Blocked: {keyword} statement"]
         return []
+
+    def list_tables(self) -> list[str]:
+        """Return allowed table names from the in-memory DB."""
+        cursor = self._conn.execute("SELECT name FROM sqlite_master WHERE type='table'")
+        all_tables = {row[0] for row in cursor.fetchall()}
+        return sorted(all_tables - self.DENY_TABLES)
+
+    def table_info(self, table_name: str) -> list[dict[str, object]]:
+        """Return column metadata for a table."""
+        if table_name in self.DENY_TABLES:
+            raise ValueError(f"Table '{table_name}' is denied")
+        cursor = self._conn.execute(f'PRAGMA table_info("{table_name}")')
+        return [
+            {"name": row[1], "type": row[2], "nullable": not bool(row[3])}
+            for row in cursor.fetchall()
+        ]
+
+    def execute(self, sql: str, binds: dict[str, object]) -> list[dict[str, object]]:
+        """Execute a query and return rows as dicts."""
+        import re
+
+        # Convert :name binds to ? positional for sqlite3
+        params: list[object] = []
+
+        def replacer(m: re.Match[str]) -> str:
+            params.append(binds[m.group(1)])
+            return "?"
+
+        positional_sql = re.sub(r":(\w+)", replacer, sql)
+        cursor = self._conn.execute(positional_sql, params)
+        if cursor.description is None:
+            return []
+        columns = [d[0] for d in cursor.description]
+        return [dict(zip(columns, row)) for row in cursor.fetchall()]
 
 
 @pytest.fixture()

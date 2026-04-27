@@ -434,21 +434,11 @@ async def get_db_schema(
 
     MEU-PH9, AC-19.
     """
-    from zorivest_core.services.sql_sandbox import SqlSandbox
-
-    deny = SqlSandbox.DENY_TABLES
-    # Introspect via sandbox connection
-    conn = sandbox._connection
-    cursor = conn.execute("SELECT name FROM sqlite_master WHERE type='table'")
-    tables = [row[0] for row in cursor.fetchall() if row[0] not in deny]
+    tables = sandbox.list_tables()
 
     result: list[dict[str, Any]] = []
-    for table_name in sorted(tables):
-        col_cursor = conn.execute(f"PRAGMA table_info({table_name})")  # noqa: S608
-        columns = [
-            {"name": row[1], "type": row[2], "nullable": not bool(row[3])}
-            for row in col_cursor.fetchall()
-        ]
+    for table_name in tables:
+        columns = sandbox.table_info(table_name)
         result.append({"name": table_name, "columns": columns})
     return result
 
@@ -461,32 +451,25 @@ async def get_db_row_samples(
 ) -> list[dict[str, Any]]:
     """Return sample rows from a table.
 
-    Security: allowlist-only approach. Only tables present in sqlite_master
-    AND not in DENY_TABLES are accepted. Identifiers are quoted.
+    Security: allowlist-only approach. Only tables present in list_tables()
+    (DENY_TABLES excluded) are accepted. Query executes through sandbox.execute().
     MEU-PH9, AC-20, F3 (SQL injection hardening).
     """
     from zorivest_core.services.sql_sandbox import SqlSandbox
 
-    # Build allowlist from actual database tables
-    conn = sandbox._connection
-    cursor = conn.execute("SELECT name FROM sqlite_master WHERE type='table'")
-    real_tables = {row[0] for row in cursor.fetchall()}
-    allowed_tables = real_tables - SqlSandbox.DENY_TABLES
-
     if table in SqlSandbox.DENY_TABLES:
         raise HTTPException(403, detail=f"Access denied: table '{table}' is restricted")
+
+    allowed_tables = sandbox.list_tables()
     if table not in allowed_tables:
         raise HTTPException(404, detail=f"Table '{table}' not found")
 
     try:
-        # Safe: table is guaranteed to be a real table name from sqlite_master
-        # Quote identifier to prevent any residual injection
-        cursor = conn.execute(
-            f'SELECT * FROM "{table}" LIMIT ?',
-            (limit,),  # noqa: S608
+        # Execute through the sandbox's public API
+        rows = sandbox.execute(
+            f'SELECT * FROM "{table}" LIMIT :limit',  # noqa: S608
+            {"limit": limit},
         )
-        columns = [desc[0] for desc in cursor.description] if cursor.description else []
-        rows = [dict(zip(columns, row)) for row in cursor.fetchall()]
         return rows
     except Exception as exc:
         raise HTTPException(400, detail=str(exc)) from exc

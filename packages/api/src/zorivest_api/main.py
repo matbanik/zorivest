@@ -341,6 +341,13 @@ async def lifespan(app: FastAPI) -> AsyncGenerator[None, None]:
         rate_limiter=_pipeline_rate_limiter,
     )
 
+    # ── PH9: Template CRUD services (created early for runner injection) ──
+    from zorivest_infra.database.email_template_repository import (
+        EmailTemplateRepository,
+    )
+
+    _template_repo = EmailTemplateRepository(uow._session)  # noqa: SLF001
+
     pipeline_runner = PipelineRunner(
         uow,
         RefResolver(),
@@ -353,6 +360,7 @@ async def lifespan(app: FastAPI) -> AsyncGenerator[None, None]:
         sql_sandbox=_sql_sandbox,
         report_repository=uow.reports,
         template_engine=_template_engine,
+        template_port=_template_repo,
         pipeline_state_repo=uow.pipeline_state,
         fetch_cache_repo=uow.fetch_cache,
     )
@@ -388,15 +396,11 @@ async def lifespan(app: FastAPI) -> AsyncGenerator[None, None]:
         audit_logger=audit_adapter,
     )
 
-    # ── PH9: Emulator + template CRUD services ──────────────────────────
-    from zorivest_infra.database.email_template_repository import (
-        EmailTemplateRepository,
-    )
+    # ── PH9: Emulator + budget services ──────────────────────────────────
     from zorivest_core.services.policy_emulator import PolicyEmulator
     from zorivest_core.services.emulator_budget import SessionBudget
     from zorivest_core.services.secure_jinja import HardenedSandbox
 
-    _template_repo = EmailTemplateRepository(uow._session)  # noqa: SLF001
     _hardened_sandbox = HardenedSandbox()
     _policy_emulator = PolicyEmulator(
         sandbox=_sql_sandbox,
