@@ -219,6 +219,18 @@ describe('useDeletePolicy', () => {
 describe('useApprovePolicy', () => {
     beforeEach(() => {
         mockApiFetch.mockReset()
+        // PH11: approvePolicy() now calls window.electronAPI.generateApprovalToken()
+        // via IPC before making the API call. Must mock this in jsdom.
+        ;(window as any).electronAPI = {
+            generateApprovalToken: vi.fn().mockResolvedValue({
+                token: 'a'.repeat(64),
+                expiresAt: Date.now() + 300_000,
+            }),
+        }
+    })
+
+    afterEach(() => {
+        delete (window as any).electronAPI
     })
 
     it('AC-A5: invalidates list + detail on approve', async () => {
