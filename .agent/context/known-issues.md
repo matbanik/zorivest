@@ -17,6 +17,19 @@
 - **Audit ref:** [MCP Architecture Audit](file:///C:/Users/Mat/.gemini/antigravity/brain/69b797d5-e9b0-4da0-bf94-76d71b96b916/mcp-architecture-audit.md) §Finding 1
 
 
+### [MCP-TOOLAUDIT] — 12 findings from comprehensive MCP tool CRUD audit
+- **Severity:** High (1 High, 7 Medium, 4 Low)
+- **Component:** mcp-server, api
+- **Discovered:** 2026-04-27
+- **Status:** Open — needs prioritized remediation
+- **Details:** Full audit of 74 MCP tools across 10 toolsets. 54 passed, 7 failed, 4 partial.
+- **High:** `delete_trade` returns 500 Internal Server Error on valid exec_id — trades created via MCP cannot be deleted.
+- **Medium:** `list_bank_accounts` (404), `list_brokers` (404), `resolve_identifiers` (404) — endpoints not implemented. `get_market_news` (503 Finnhub 422). `update_settings` returns 422 with `[object Object]` serialization bug. `create_trade_plan` 409 — no list/delete tools for stale plans. `emulate_policy` schema undocumented. Tax toolset reports 4 tools loaded but none callable.
+- **Low:** No `delete_watchlist` tool. `list_provider_capabilities` identical to `list_market_providers` (redundant). `get_sec_filings` 503 (expected — no API key).
+- **Consolidation:** 74 tools should be reduced to ~12 compound resource-centric tools (84% reduction) per audit recommendation.
+- **Audit ref:** [MCP Tool Audit Report](MCP/mcp-tool-audit-report.md)
+
+
 ### [MCP-POLICYGAP] — Missing MCP tools for delete_policy and update_policy force REST bypass
 - **Severity:** High (architecture gap)
 - **Component:** mcp-server (`scheduling` toolset)
@@ -66,21 +79,7 @@
 - **Test IDs:** Follow existing pattern — `scheduling-tab-report-policies`, `scheduling-tab-email-templates`, `template-list`, `template-detail`, `template-preview-btn`, `template-preview-iframe`
 
 
-### [PIPE-NOLOCALQUERY] — No pipeline step type for querying local DB tables (trades, plans, watchlists, accounts)
-- **Severity:** Medium (feature gap)
-- **Component:** core (`pipeline_steps/`), infrastructure (`adapters/`)
-- **Discovered:** 2026-04-21
-- **Status:** Open — needs MEU scoping
-- **Details:** `FetchStep` is hard-wired to `MarketDataProviderAdapter` (external HTTP only). It cannot query local DB tables like `trades`, `trade_plans`, `watchlists`, or `accounts`. `StoreReportStep` has `data_queries` (sandboxed SQL → snapshot), but that output goes into `report_data` / `snapshot_json`, not into the transform pipeline. `CriteriaResolver` supports `db_query` criteria type, but only for resolving date ranges — not for fetching record sets.
-- **Impact:** Policies cannot build reports that combine external market data with internal portfolio data (e.g., "show my watchlist tickers with current prices" or "compare trade plan targets vs actual prices").
-- **Proposed fix:** New `QueryStep` (`type_name="query"`) — a lightweight step that:
-  1. Accepts `sql` (parameterized) + `output_key` in params
-  2. Executes read-only SQL via `context.outputs["db_connection"]` (same sandbox as `StoreReportStep`)
-  3. Returns records in the same `{output_key: [...]}` shape as `TransformStep` output
-  4. Feeds directly into `TransformStep` (via `source_step_id`) or `SendStep` template context
-  5. No external HTTP, no cache, no provider — pure local data extraction
-- **Alternative considered:** Extending `FetchStep` with `provider: "local"` — rejected because it conflates external I/O (rate-limited, cached, provider-specific) with local SQL (instant, no auth, no envelope). Separate step type is cleaner.
-- **MEU scope:** New MEU under Phase 9 (Scheduling). Depends on: existing `db_connection` injection (already wired in `main.py`), `StepContext.outputs` pattern, `RegisteredStep` auto-registration.
+
 
 
 ### [PIPE-DROPPDF] — Drop PDF output, replace with Markdown rendering for AI-friendly reports
@@ -118,13 +117,13 @@
 - **Severity:** Medium
 - **Component:** mcp-server
 - **Discovered:** 2026-04-12
-- **Status:** Open — requires full audit of all 9 toolsets
+- **Status:** Open — audit completed 2026-04-27, remediation pending. See [MCP-TOOLAUDIT] and [MCP Tool Audit Report](MCP/mcp-tool-audit-report.md) §Tool Consolidation Reflection.
 - **Details:** Server instructions and tool descriptions are too terse for AI agents to discover and correctly use multi-step workflows. Confirmed gaps in scheduling toolset: (1) server instructions say only "Automated task scheduling" — no mention of policy CRUD or pipeline execution, (2) `run_pipeline` description doesn't explain the approval prerequisite or error return shape, (3) `create_policy` has no example of the expected `policy_json` structure, (4) `pipeline://policies/schema` and `pipeline://step-types` MCP resources aren't referenced in any tool description, (5) no workflow guidance for the `create → approve → run` lifecycle. Similar gaps likely exist across `accounts`, `trade-analytics`, `trade-planning`, `market-data`, and other toolsets.
-- **Sub-issue — Template registry not exposed to MCP layer (2026-04-20):**
+- **Sub-issue — Template registry not exposed to MCP layer (2026-04-20):** *(Partially resolved by MEU-PH9 ✅: template CRUD MCP tools added — `list_email_templates`, `get_email_template`, `create_email_template`, `update_email_template`, `preview_email_template`. `pipeline://templates` resource added. Remaining: broader TD1 audit of all 9 toolset descriptions.)*
   - `create_policy` input is `z.record(z.unknown())` — completely opaque. AI agents cannot discover available template names (`daily_quote_summary`, `generic_report`), their required Jinja2 variables (`quotes`, `records`), variable field shapes (`q.symbol`, `q.price`, etc.), or how steps must be wired for data to flow into the template.
-  - No `pipeline://templates` resource exists. `EMAIL_TEMPLATES` dict lives only in Python infrastructure, invisible to the MCP layer.
-  - **Pre-implementation research:** [mcp-template-discoverability-gap.md](scheduling/mcp-template-discoverability-gap.md) — proposed solutions include a `pipeline://templates` MCP resource, enriched `create_policy` description, and `GET /scheduling/templates` backend endpoint.
-  - **Dependency:** MEU-PW12 must land first (defines final template variable contracts); TD1 then exposes them through MCP.
+  - ~~No `pipeline://templates` resource exists.~~ → Added by MEU-PH9. `EMAIL_TEMPLATES` dict migrated to DB-backed `EmailTemplateModel`.
+  - **Pre-implementation research:** [mcp-template-discoverability-gap.md](scheduling/mcp-template-discoverability-gap.md)
+  - **Remaining work:** TD1 audit — enrich `create_policy` description with step-wiring examples and template variable contracts.
 - **Next steps:** Full audit of all toolset descriptions against their actual API contracts. Improve server instructions with toolset workflow summaries. Add `policy_json` examples to `create_policy`. Reference MCP resources from tool descriptions. Add `pipeline://templates` resource exposing template registry with variable contracts. Ensure all tool descriptions include prerequisite state, return shape hints, and error conditions.
 
 
@@ -137,7 +136,7 @@
 ### [MCP-TOOLCAP] — IDE tool limits render 68-tool flat registration non-viable
 - **Severity:** Critical
 - **Component:** mcp-server
-- **Status:** Mitigated by Design — three-tier strategy (static ≤40 for Cursor, dynamic toolsets for VS Code, full for CLI/API)
+- **Status:** Mitigated by Design — three-tier strategy (static ≤40 for Cursor, dynamic toolsets for VS Code, full for CLI/API). 2026-04-27 audit proposes 74→12 compound-tool consolidation. See [MCP Tool Audit Report](MCP/mcp-tool-audit-report.md) §Tool Consolidation Reflection.
 
 ### [MCP-ZODSTRIP] — `server.tool()` silently strips arguments with z.object()
 - **Severity:** Critical
@@ -221,6 +220,7 @@
 | PIPE-SILENTPASS | 2026-04-21 | min_records param + WARNING status on zero records (MEU-PW12) |
 | PIPE-URLBUILD | 2026-04-19 | Per-provider URL builder registry + headers_template forwarding (MEU-PW6) |
 | PIPE-NOCANCEL | 2026-04-19 | CANCELLING status + cancel endpoint + cooperative step check (MEU-PW7) |
+| PIPE-NOLOCALQUERY | 2026-04-25 | QueryStep (MEU-PH4) provides local DB query capability |
 
 ## Template
 

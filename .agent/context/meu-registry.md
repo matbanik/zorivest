@@ -192,7 +192,7 @@ P2.75 (broker adapters): MEU-96 → MEU-99
 |-----|------|:------:|-------------|:------|
 | MEU-47a | `screenshot-wiring` | 16.1 | Wire ScreenshotPanel to image REST API (useQuery/useMutation + DELETE route + ImageService.delete_image) | ✅ 2026-04-07 |
 | MEU-70a | `watchlist-redesign-plan-size` | 06i | Watchlist visual redesign (professional data table, dark palette, colorblind toggle) + `position_size` full-stack propagation + calculator write-back (65 tests) | ✅ 2026-04-11 |
-| MEU-72 | `gui-scheduling` | 35b | Scheduling & Pipeline GUI: policy list+detail, CodeMirror JSON editor, cron preview, run history, execution controls, default TZ setting, MCP toolset loading | ⏳ 2026-04-12 (pending Codex) |
+| MEU-72 | `gui-scheduling` | 35b | Scheduling & Pipeline GUI: policy list+detail, CodeMirror JSON editor, cron preview, run history, execution controls, default TZ setting, MCP toolset loading | ✅ 2026-04-12 |
 
 ## P2: Home Dashboard
 
@@ -317,3 +317,22 @@ P2.75 (broker adapters): MEU-96 → MEU-99
 | MEU-PH8 | `policy-emulator` | 49.23 | 4-phase emulator + output containment + session budget + error schema | ✅ 2026-04-26 |
 | MEU-PH9 | `emulator-mcp-tools` | 49.24 | 11 new MCP tools: emulator, schema discovery, template CRUD, provider discovery | ✅ 2026-04-26 |
 | MEU-PH10 | `default-template` | 49.25 | Pre-loaded Morning Check-In template | ✅ 2026-04-26 |
+
+## P2.5d: Approval Security & Validation Hardening
+
+> Source: [09g](../../docs/build-plan/09g-approval-security.md), [09f ext](../../docs/build-plan/09f-policy-emulator.md)
+> Prerequisite: P2.5c complete (MEU-PH1→PH10 ✅)
+> Resolves: [MCP-APPROVBYPASS], [MCP-POLICYGAP], [EMULATOR-VALIDATE]
+
+| MEU | Slug | Matrix | Description | Status |
+|-----|------|:------:|-------------|:------:|
+| MEU-PH11 | `approval-csrf-token` | 49.26 | CSRF challenge token: Electron IPC → API middleware on `POST /approve`; single-use, 5-min TTL, policy-scoped | ⬜ planned |
+| MEU-PH12 | `mcp-scheduling-gap-fill` | 49.27 | 3 MCP tools: `delete_policy` (destructive + confirm), `update_policy`, `get_email_config` | ⬜ planned |
+| MEU-PH13 | `emulator-validate-hardening` | 49.28 | VALIDATE improvements: EXPLAIN SQL, SMTP check, step output wiring validation | ⬜ planned |
+
+## Other New MEUs (cross-phase)
+
+| MEU | Slug | Matrix | Description | Status |
+|-----|------|:------:|-------------|:------:|
+| MEU-72b | `gui-email-templates` | 35b.2 | Email Templates tab in SchedulingLayout (CRUD, preview, default protection). Depends on MEU-72. [06k](../../docs/build-plan/06k-gui-email-templates.md) | ⬜ planned |
+| MEU-PW14 | `pipeline-markdown-migration` | 49.29 | PDF removal, Markdown rendering, Playwright dep cleanup. [09h](../../docs/build-plan/09h-pipeline-markdown-migration.md) | ⬜ planned |

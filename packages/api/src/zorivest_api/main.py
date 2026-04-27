@@ -94,6 +94,7 @@ from zorivest_core.services.sql_sandbox import SqlSandbox
 from zorivest_infra.rendering.template_engine import create_template_engine
 from zorivest_infra.market_data.market_data_adapter import MarketDataProviderAdapter
 from zorivest_infra.market_data.pipeline_rate_limiter import PipelineRateLimiter
+from zorivest_api.middleware.approval_token import ApprovalTokenValidator
 
 # ── Tag metadata ────────────────────────────────────────────────────────
 
@@ -402,10 +403,20 @@ async def lifespan(app: FastAPI) -> AsyncGenerator[None, None]:
     from zorivest_core.services.secure_jinja import HardenedSandbox
 
     _hardened_sandbox = HardenedSandbox()
+
+    # PH13: SMTP readiness checker from wired EmailProviderService (Finding #1)
+    # The checker returns True if SMTP host + password are configured.
+    _email_svc = app.state.email_provider_service
+
+    def _check_email_configured() -> bool:
+        config = _email_svc.get_config()
+        return bool(config.get("smtp_host")) and bool(config.get("has_password"))
+
     _policy_emulator = PolicyEmulator(
         sandbox=_sql_sandbox,
         template_engine=_hardened_sandbox,
         template_port=_template_repo,
+        email_config_checker=_check_email_configured,
     )
     _session_budget = SessionBudget()
 
@@ -413,6 +424,29 @@ async def lifespan(app: FastAPI) -> AsyncGenerator[None, None]:
     app.state.policy_emulator = _policy_emulator
     app.state.session_budget = _session_budget
     app.state.sql_sandbox = _sql_sandbox
+
+    # ── PH11: CSRF approval token validator ─────────────────────────────
+    # Electron main process sets ZORIVEST_APPROVAL_CALLBACK_PORT when it
+    # starts its internal validation HTTP server.  The API calls back to
+    # that server to validate single-use approval tokens.
+    _approval_port = os.environ.get("ZORIVEST_APPROVAL_CALLBACK_PORT")
+    if _approval_port:
+        _callback_url = f"http://127.0.0.1:{_approval_port}/internal/validate-token"
+        app.state.approval_token_validator = ApprovalTokenValidator(_callback_url)
+        import structlog as _atv_log
+
+        _atv_log.get_logger().info(
+            "approval_token_validator_configured",
+            callback_url=_callback_url,
+        )
+    else:
+        import structlog as _atv_log
+
+        _atv_log.get_logger().warning(
+            "approval_token_validator_not_configured",
+            reason="ZORIVEST_APPROVAL_CALLBACK_PORT not set — "
+            "approval endpoint will reject all requests",
+        )
 
     # ── PH10: Seed default templates ────────────────────────────────────
     _seed_default_templates(_template_repo, uow._session)  # noqa: SLF001

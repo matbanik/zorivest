@@ -25,7 +25,7 @@ class EmulatorError(BaseModel):
         description=(
             "Error category: SCHEMA_INVALID, REF_UNRESOLVED, SQL_BLOCKED, "
             "TEMPLATE_MISSING, VARIABLE_UNUSED, SIMULATE_ERROR, RENDER_ERROR, "
-            "OUTPUT_TOO_LARGE"
+            "OUTPUT_TOO_LARGE, SQL_SCHEMA_ERROR, SMTP_NOT_CONFIGURED, STEP_WIRING_ERROR"
         ),
     )
     field: str | None = None

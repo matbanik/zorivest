@@ -119,9 +119,18 @@ export function deletePolicy(policyId: string): Promise<void> {
     })
 }
 
-export function approvePolicy(policyId: string): Promise<Policy> {
+export async function approvePolicy(policyId: string): Promise<Policy> {
+    // PH11: Get CSRF approval token from Electron main process via IPC
+    const tokenResult = await (window as any).electronAPI?.generateApprovalToken(policyId)
+    if (!tokenResult?.token) {
+        throw new Error('Failed to obtain approval token from Electron main process')
+    }
+
     return apiFetch<Policy>(`${BASE}/policies/${policyId}/approve`, {
         method: 'POST',
+        headers: {
+            'X-Approval-Token': tokenResult.token,
+        },
     })
 }
 

@@ -1,0 +1,139 @@
+{
+  "version": 1,
+  "date": "2026-04-27T22:00:00Z",
+  "agent": "Antigravity (Gemini)",
+  "backend_version": "0.1.0",
+  "toolsets": {
+    "core": {
+      "expected_count": 4,
+      "tools": ["get_settings", "update_settings", "zorivest_diagnose", "zorivest_launch_gui"]
+    },
+    "discovery": {
+      "expected_count": 4,
+      "tools": ["list_available_toolsets", "describe_toolset", "enable_toolset", "get_confirmation_token"]
+    },
+    "trade-analytics": {
+      "expected_count": 7,
+      "tools": ["list_trades", "delete_trade", "create_report", "get_report_for_trade", "get_round_trips", "get_trade_screenshots", "attach_screenshot"]
+    },
+    "trade-planning": {
+      "expected_count": 8,
+      "tools": ["create_trade", "calculate_position_size", "create_trade_plan", "create_watchlist", "list_watchlists", "get_watchlist", "add_to_watchlist", "remove_from_watchlist"]
+    },
+    "market-data": {
+      "expected_count": 7,
+      "tools": ["get_stock_quote", "search_ticker", "get_market_news", "get_sec_filings", "list_market_providers", "list_provider_capabilities", "test_market_provider"]
+    },
+    "accounts": {
+      "expected_count": 16,
+      "tools": ["list_accounts", "get_account", "create_account", "update_account", "delete_account", "archive_account", "reassign_trades", "record_balance", "list_bank_accounts", "list_brokers", "sync_broker", "import_broker_csv", "import_broker_pdf", "import_bank_statement", "get_account_review_checklist", "get_cost_of_free"]
+    },
+    "scheduling": {
+      "expected_count": 9,
+      "tools": ["list_policies", "create_policy", "update_policy", "delete_policy", "update_policy_schedule", "run_pipeline", "preview_report", "get_pipeline_history", "ai_review_trade"]
+    },
+    "pipeline-security": {
+      "expected_count": 12,
+      "tools": ["emulate_policy", "validate_sql", "list_db_tables", "get_db_row_samples", "list_email_templates", "get_email_template", "create_email_template", "update_email_template", "delete_email_template", "preview_email_template", "list_step_types", "list_provider_capabilities"]
+    },
+    "tax": {
+      "expected_count": 4,
+      "tools": ["estimate_tax", "find_wash_sales", "manage_lots", "harvest_losses"],
+      "notes": "Ghost toolset — described by describe_toolset but no tools are callable via MCP"
+    },
+    "behavioral": {
+      "expected_count": 3,
+      "tools": ["get_expectancy_metrics", "get_sqn", "simulate_drawdown"]
+    }
+  },
+  "results": {
+    "list_accounts": { "status": "pass", "http_code": 200 },
+    "get_account": { "status": "pass", "http_code": 200 },
+    "create_account": { "status": "pass", "http_code": 200 },
+    "update_account": { "status": "pass", "http_code": 200 },
+    "delete_account": { "status": "pass", "http_code": 200, "notes": "Requires confirmation token" },
+    "archive_account": { "status": "pass", "http_code": 200 },
+    "record_balance": { "status": "pass", "http_code": 200 },
+    "get_account_review_checklist": { "status": "pass", "http_code": 200 },
+    "list_bank_accounts": { "status": "fail", "http_code": 404, "error": "Not Found", "issue_id": "MCP-TOOLAUDIT" },
+    "list_brokers": { "status": "fail", "http_code": 404, "error": "Not Found", "issue_id": "MCP-TOOLAUDIT" },
+
+    "list_trades": { "status": "pass", "http_code": 200 },
+    "create_trade": { "status": "pass", "http_code": 200, "notes": "Requires confirmation token" },
+    "delete_trade": { "status": "fail", "http_code": 500, "error": "Internal Server Error", "issue_id": "MCP-TOOLAUDIT" },
+    "create_report": { "status": "pass", "http_code": 200 },
+    "get_report_for_trade": { "status": "pass", "http_code": 200 },
+    "get_round_trips": { "status": "pass", "http_code": 200 },
+    "get_trade_screenshots": { "status": "pass", "http_code": 200 },
+
+    "list_watchlists": { "status": "pass", "http_code": 200 },
+    "create_watchlist": { "status": "pass", "http_code": 200 },
+    "get_watchlist": { "status": "pass", "http_code": 200 },
+    "add_to_watchlist": { "status": "pass", "http_code": 200 },
+    "remove_from_watchlist": { "status": "pass", "http_code": 200 },
+
+    "list_email_templates": { "status": "pass", "http_code": 200 },
+    "get_email_template": { "status": "pass", "http_code": 200 },
+    "create_email_template": { "status": "pass", "http_code": 200 },
+    "update_email_template": { "status": "pass", "http_code": 200 },
+    "delete_email_template": { "status": "pass", "http_code": 200 },
+    "preview_email_template": { "status": "pass", "http_code": 200 },
+
+    "search_ticker": { "status": "pass", "http_code": 200 },
+    "get_stock_quote": { "status": "pass", "http_code": 200 },
+    "get_market_news": { "status": "fail", "http_code": 503, "error": "Finnhub returned 422 for news", "issue_id": "MCP-TOOLAUDIT" },
+    "get_sec_filings": { "status": "fail", "http_code": 503, "error": "SEC API not configured", "issue_id": "MCP-TOOLAUDIT", "notes": "Expected — no API key" },
+    "list_market_providers": { "status": "pass", "http_code": 200 },
+    "list_provider_capabilities": { "status": "pass", "http_code": 200, "notes": "Redundant — identical output to list_market_providers" },
+    "test_market_provider": { "status": "pass", "http_code": 200, "notes": "Returns stub response" },
+
+    "get_settings": { "status": "pass", "http_code": 200 },
+    "update_settings": { "status": "fail", "http_code": 422, "error": "[object Object] serialization bug", "issue_id": "MCP-TOOLAUDIT" },
+    "zorivest_diagnose": { "status": "pass", "http_code": 200 },
+    "get_email_config": { "status": "pass", "http_code": 200 },
+
+    "calculate_position_size": { "status": "pass", "http_code": 200 },
+    "create_trade_plan": { "status": "fail", "http_code": 409, "error": "Duplicate active plan", "issue_id": "MCP-TOOLAUDIT", "notes": "No list/delete tools for stale plans" },
+    "detect_options_strategy": { "status": "pass", "http_code": 200 },
+
+    "get_expectancy_metrics": { "status": "pass", "http_code": 200 },
+    "get_sqn": { "status": "pass", "http_code": 200 },
+    "simulate_drawdown": { "status": "pass", "http_code": 200 },
+    "get_strategy_breakdown": { "status": "pass", "http_code": 200 },
+    "get_fee_breakdown": { "status": "pass", "http_code": 200 },
+    "get_cost_of_free": { "status": "pass", "http_code": 200 },
+    "estimate_pfof_impact": { "status": "pass", "http_code": 200 },
+
+    "list_policies": { "status": "pass", "http_code": 200 },
+    "get_pipeline_history": { "status": "pass", "http_code": 200 },
+    "list_step_types": { "status": "pass", "http_code": 200 },
+
+    "validate_sql": { "status": "pass", "http_code": 200, "notes": "Correctly blocks DDL" },
+    "list_db_tables": { "status": "pass", "http_code": 200 },
+    "get_db_row_samples": { "status": "pass", "http_code": 200 },
+    "emulate_policy": { "status": "partial", "http_code": 200, "notes": "Works but PolicyDocument schema undocumented" },
+    "resolve_identifiers": { "status": "fail", "http_code": 404, "error": "Not Found", "issue_id": "MCP-TOOLAUDIT" },
+
+    "list_available_toolsets": { "status": "pass", "http_code": 200 },
+    "describe_toolset": { "status": "pass", "http_code": 200 },
+    "get_confirmation_token": { "status": "pass", "http_code": 200 },
+
+    "enrich_trade_excursion": { "status": "pass", "http_code": 200 },
+    "score_execution_quality": { "status": "pass", "http_code": 200 },
+    "ai_review_trade": { "status": "pass", "http_code": 200, "notes": "Returns stub response" }
+  },
+  "summary": {
+    "total_tools": 74,
+    "tested": 65,
+    "passed": 54,
+    "failed": 7,
+    "partial": 4,
+    "untestable": 9,
+    "consolidation_score": 6.17,
+    "consolidation_target": 12,
+    "issues_found": 12,
+    "issues_high": 1,
+    "issues_medium": 7,
+    "issues_low": 4
+  }
+}

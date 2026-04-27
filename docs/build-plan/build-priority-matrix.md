@@ -1,6 +1,6 @@
 # Build Priority Matrix
 
-> Part of [Zorivest Build Plan](../BUILD_PLAN.md) — The build order across all priority levels (212 items).
+> Part of [Zorivest Build Plan](../BUILD_PLAN.md) — The build order across all priority levels (217 items).
 
 ---
 
@@ -96,6 +96,7 @@
 | **35** | Planning GUI ([06c](06c-gui-planning.md): plan cards, watchlists) | Playwright E2E ([Wave 4](06-gui.md#wave-activation-schedule)) | List+detail layout, conviction indicators |
 | **35a** | Account Management GUI ([06d](06d-gui-accounts.md)) | Playwright E2E ([Wave 2](06-gui.md#wave-activation-schedule)) | Account CRUD, Review wizard, balance history |
 | **35b** | Scheduling GUI ([06e](06e-gui-scheduling.md)) | Playwright E2E ([Wave 8](06-gui.md#wave-activation-schedule)) | Policy editor, cron preview, pipeline run history |
+| **35b.2** | Email Templates tab ([06k](06k-gui-email-templates.md)) (MEU-72b) | Playwright E2E ([Wave 8](06-gui.md#wave-activation-schedule)) | Template CRUD, preview iframe, default protection. Depends on 35b |
 | **35c** | Email Provider Settings GUI ([06f](06f-gui-settings.md)) | Playwright E2E — wave TBD | SMTP config, preset auto-fill, test connection |
 | **35d** | Backup & Restore Settings GUI ([06f](06f-gui-settings.md)) | Playwright E2E ([Wave 3](06-gui.md#wave-activation-schedule)) | Manual backup, restore, verify, auto-backup config |
 | **35e** | Config Export/Import GUI ([06f](06f-gui-settings.md)) | Playwright E2E — wave TBD | JSON export download, import with preview diff |
@@ -148,6 +149,19 @@
 | **49.23** | 4-phase policy emulator + output containment (MEU-PH8) | ✅ Yes | PARSE→VALIDATE→SIMULATE→RENDER, 64 KiB session budget, SHA-256 RENDER, `EmulatorError`/`EmulatorResult` Pydantic models (15 tests). [09f](09f-policy-emulator.md) |
 | **49.24** | 11 new MCP tools: emulator, schema discovery, template CRUD (MEU-PH9) | ✅ Yes | TypeScript via `registerPipelineSecurityTools`, Vitest mocks. [05g](05g-mcp-scheduling.md) |
 | **49.25** | Default Morning Check-In template (MEU-PH10) | ✅ Yes | Pre-seeded Alembic migration, multi-section template. [09e §9E.6](09e-template-database.md) |
+
+---
+
+## P2.5d — Approval Security & Validation Hardening
+
+> **Source**: [09g-approval-security.md](09g-approval-security.md), [09f-policy-emulator.md](09f-policy-emulator.md) (extension). See also [09h-pipeline-markdown-migration.md](09h-pipeline-markdown-migration.md).
+
+| Order | What | Tests First? | Notes |
+|-------|------|-------------|-------|
+| **49.26** | CSRF approval token: Electron IPC → API middleware (MEU-PH11) | ✅ Yes | Single-use, 5-min TTL, policy-scoped. Blocks agent self-approval. [09g §1](09g-approval-security.md) |
+| **49.27** | MCP scheduling gap fill: `delete_policy`, `update_policy`, `get_email_config` (MEU-PH12) | ✅ Yes | `delete_policy` requires confirmation token. [09g §2](09g-approval-security.md) |
+| **49.28** | Emulator VALIDATE phase hardening (MEU-PH13) | ✅ Yes | EXPLAIN SQL errors, SMTP config check, step wiring validation. [09f ext](09f-policy-emulator.md) |
+| **49.29** | Pipeline Markdown migration (MEU-PW14) | ✅ Yes | PDF removal, `_render_markdown()`, Playwright dep cleanup. [09h](09h-pipeline-markdown-migration.md) |
 
 ---
 

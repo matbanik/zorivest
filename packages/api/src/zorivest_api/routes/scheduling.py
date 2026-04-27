@@ -14,6 +14,8 @@ from datetime import datetime
 from typing import Any
 
 from fastapi import APIRouter, Depends, HTTPException, Path, Query
+
+from zorivest_api.middleware.approval_token import validate_approval_token
 from pydantic import BaseModel, Field, field_validator
 from pydantic.functional_validators import BeforeValidator
 from typing import Annotated
@@ -206,6 +208,7 @@ async def delete_policy(
 @scheduling_router.post("/policies/{policy_id}/approve", response_model=PolicyResponse)
 async def approve_policy(
     policy_id: str,
+    _token: None = Depends(validate_approval_token),
     service: Any = Depends(get_scheduling_service),
 ) -> Any:
     """Approve a policy for execution and schedule it."""

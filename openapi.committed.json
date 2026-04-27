@@ -786,6 +786,43 @@
         "title": "EmailConfigResponse",
         "type": "object"
       },
+      "EmailStatusResponse": {
+        "additionalProperties": false,
+        "description": "Minimal email readiness \u2014 no credentials exposed (AC-20).",
+        "properties": {
+          "configured": {
+            "title": "Configured",
+            "type": "boolean"
+          },
+          "host": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Host"
+          },
+          "provider": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Provider"
+          }
+        },
+        "required": [
+          "configured"
+        ],
+        "title": "EmailStatusResponse",
+        "type": "object"
+      },
       "EmailTemplateCreateRequest": {
         "additionalProperties": false,
         "description": "Request body for creating a new email template.\n\nField constraints per \u00a79E.0:\n- name: 1\u2013128 chars, lowercase alphanumeric + hyphens + underscores\n- body_html: 1\u201365536 chars\n- body_format: html or markdown",
@@ -5306,7 +5343,7 @@
     },
     "/api/v1/scheduling/db-schema/samples/{table}": {
       "get": {
-        "description": "Return sample rows from a table.\n\nSecurity: allowlist-only approach. Only tables present in sqlite_master\nAND not in DENY_TABLES are accepted. Identifiers are quoted.\nMEU-PH9, AC-20, F3 (SQL injection hardening).",
+        "description": "Return sample rows from a table.\n\nSecurity: allowlist-only approach. Only tables present in list_tables()\n(DENY_TABLES excluded) are accepted. Query executes through sandbox.execute().\nMEU-PH9, AC-20, F3 (SQL injection hardening).",
         "operationId": "get_db_row_samples_api_v1_scheduling_db_schema_samples__table__get",
         "parameters": [
           {
@@ -6620,6 +6657,28 @@
           }
         },
         "summary": "Save Email Config",
+        "tags": [
+          "email-settings"
+        ]
+      }
+    },
+    "/api/v1/settings/email/status": {
+      "get": {
+        "description": "Get minimal SMTP readiness without exposing credentials.\n\nAC-20: Returns {configured, provider, host} \u2014 no username, password, port.\nUsed by MCP get_email_config tool to check email readiness.",
+        "operationId": "get_email_status_api_v1_settings_email_status_get",
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/EmailStatusResponse"
+                }
+              }
+            },
+            "description": "Successful Response"
+          }
+        },
+        "summary": "Get Email Status",
         "tags": [
           "email-settings"
         ]

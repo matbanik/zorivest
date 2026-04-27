@@ -73,6 +73,16 @@ class TestConnectionResponse(BaseModel):
     message: str
 
 
+class EmailStatusResponse(BaseModel):
+    """Minimal email readiness — no credentials exposed (AC-20)."""
+
+    model_config = ConfigDict(extra="forbid")
+
+    configured: bool
+    provider: str | None = None
+    host: str | None = None
+
+
 # ── Routes ─────────────────────────────────────────────────────────────────
 
 
@@ -114,3 +124,24 @@ async def test_email_connection(
     if not result["success"]:
         raise HTTPException(status_code=422, detail=result["message"])
     return result
+
+
+@email_settings_router.get("/status", response_model=EmailStatusResponse)
+async def get_email_status(
+    svc: Any = Depends(get_email_provider_service),
+) -> Any:
+    """Get minimal SMTP readiness without exposing credentials.
+
+    AC-20: Returns {configured, provider, host} — no username, password, port.
+    Used by MCP get_email_config tool to check email readiness.
+    """
+    config = svc.get_config()
+    has_host = bool(config.get("smtp_host"))
+    has_password = bool(config.get("has_password"))
+    configured = has_host and has_password
+
+    return EmailStatusResponse(
+        configured=configured,
+        provider=config.get("provider_preset"),
+        host=config.get("smtp_host"),
+    )

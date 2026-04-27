@@ -135,3 +135,13 @@
 - **Discovered:** 2026-04-05
 - **Status:** ✅ **Resolved — silently fixed during MEU-65a market data service wiring**
 - **Verification:** `pytest tests/unit/test_market_data_service.py` → 13 passed in 0.30s (2026-04-12)
+
+---
+
+### [PIPE-NOLOCALQUERY] — No pipeline step type for querying local DB tables ✅ RESOLVED
+- **Severity:** ~~Medium~~ → Resolved (2026-04-25)
+- **Component:** core (`pipeline_steps/`)
+- **Discovered:** 2026-04-21
+- **Status:** ✅ **Resolved by MEU-PH4 (QueryStep) — 2026-04-25**
+- **Details:** `FetchStep` was hard-wired to `MarketDataProviderAdapter` (external HTTP only). Could not query local DB tables.
+- **Fix:** MEU-PH4 implemented `QueryStep` (`type_name="query"`) — read-only SQL via `SqlSandbox`, parameterized binds, row limit, ref support. 8 unit tests.

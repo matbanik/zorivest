@@ -16,6 +16,11 @@ import { join } from 'path'
 import Store from 'electron-store'
 import { PythonManager } from './python-manager'
 import { getStoredBounds, saveWindowBounds } from './window-state'
+import {
+    generateApprovalToken,
+    validateCallbackPayload,
+    startCleanupInterval,
+} from './approval-token-manager'
 
 /** Build custom application menu with Zorivest-specific Help links */
 function createAppMenu(): void {
@@ -48,6 +53,8 @@ function createAppMenu(): void {
 const pythonManager = new PythonManager()
 let mainWindow: BrowserWindow | null = null
 let splashWindow: BrowserWindow | null = null
+let cleanupTimer: ReturnType<typeof setInterval> | null = null
+let validationServer: import('node:http').Server | null = null
 
 /** Create the splash window shown during startup */
 function createSplashWindow(): BrowserWindow {
@@ -147,12 +154,21 @@ function registerIpcHandlers(): void {
             shell.openExternal(url)
         }
     })
+
+    // Approval token IPC (PH11: CSRF approval tokens)
+    ipcMain.handle('generate-approval-token', (_event, policyId: string) => {
+        return generateApprovalToken(policyId)
+    })
 }
 
 /** App startup sequence */
 app.whenReady().then(async () => {
     registerIpcHandlers()
     createAppMenu()
+
+    // Start approval token cleanup and internal validation HTTP server
+    cleanupTimer = startCleanupInterval()
+    validationServer = await startApprovalValidationServer()
 
     const isDev = !!process.env.ELECTRON_RENDERER_URL
 
@@ -218,5 +234,67 @@ app.on('window-all-closed', () => {
 
 // Graceful shutdown
 app.on('before-quit', async () => {
+    if (cleanupTimer) clearInterval(cleanupTimer)
+    if (validationServer) validationServer.close()
     await pythonManager.stop()
 })
+
+// ── Internal Approval Token Validation HTTP Server ──────────────────────
+
+/** Default port for the internal approval token validation server (127.0.0.1 only). */
+const APPROVAL_CALLBACK_DEFAULT_PORT = 17788
+
+async function startApprovalValidationServer(): Promise<import('node:http').Server> {
+    const http = await import('node:http')
+
+    const server = http.createServer((req, res) => {
+        if (req.method === 'POST' && req.url === '/internal/validate-token') {
+            let body = ''
+            req.on('data', (chunk: Buffer) => { body += chunk.toString() })
+            req.on('end', () => {
+                try {
+                    const parsed = JSON.parse(body)
+                    const result = validateCallbackPayload(parsed)
+                    const statusCode = result.valid || result.reason !== 'EXTRA_FIELDS' && result.reason !== 'INVALID_TYPES' ? 200 : 400
+                    res.writeHead(statusCode, { 'Content-Type': 'application/json' })
+                    res.end(JSON.stringify(result))
+                } catch {
+                    res.writeHead(400, { 'Content-Type': 'application/json' })
+                    res.end(JSON.stringify({ valid: false, reason: 'PARSE_ERROR' }))
+                }
+            })
+        } else {
+            res.writeHead(404)
+            res.end()
+        }
+    })
+
+    // Use well-known port so the API process can find us in dev mode
+    // (concurrently starts API and Electron as sibling processes, so
+    // process.env changes in Electron don't reach the API).
+    const port = parseInt(
+        process.env.ZORIVEST_APPROVAL_CALLBACK_PORT || String(APPROVAL_CALLBACK_DEFAULT_PORT),
+        10,
+    )
+
+    return new Promise((resolve, reject) => {
+        server.on('error', (err: NodeJS.ErrnoException) => {
+            if (err.code === 'EADDRINUSE') {
+                console.warn(`[approval] Port ${port} in use — falling back to random port`)
+                server.listen(0, '127.0.0.1', () => {
+                    const addr = server.address() as import('node:net').AddressInfo
+                    process.env.ZORIVEST_APPROVAL_CALLBACK_PORT = String(addr.port)
+                    console.log(`[approval] Internal validation server on 127.0.0.1:${addr.port}`)
+                    resolve(server)
+                })
+            } else {
+                reject(err)
+            }
+        })
+        server.listen(port, '127.0.0.1', () => {
+            process.env.ZORIVEST_APPROVAL_CALLBACK_PORT = String(port)
+            console.log(`[approval] Internal validation server on 127.0.0.1:${port}`)
+            resolve(server)
+        })
+    })
+}

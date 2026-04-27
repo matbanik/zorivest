@@ -47,3 +47,10 @@ contextBridge.exposeInMainWorld('electron', {
         ipcRenderer.invoke('open-external', url)
     },
 })
+
+contextBridge.exposeInMainWorld('electronAPI', {
+    /** Generate a single-use CSRF approval token for policy approval. PH11. */
+    generateApprovalToken(policyId: string): Promise<{ token: string; expiresAt: number }> {
+        return ipcRenderer.invoke('generate-approval-token', policyId)
+    },
+})

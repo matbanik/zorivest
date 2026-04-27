@@ -1,5 +1,5 @@
 {
-  "total_tools": 71,
+  "total_tools": 74,
   "toolset_count": 10,
   "toolsets": [
     {
@@ -99,7 +99,7 @@
     {
       "name": "scheduling",
       "description": "Policy CRUD, pipeline execution, scheduler status, run history",
-      "tool_count": 6,
+      "tool_count": 9,
       "always_loaded": false,
       "tools": [
         "create_policy",
@@ -107,7 +107,10 @@
         "run_pipeline",
         "preview_report",
         "update_policy_schedule",
-        "get_pipeline_history"
+        "get_pipeline_history",
+        "delete_policy",
+        "update_policy",
+        "get_email_config"
       ]
     },
     {
@@ -154,5 +157,5 @@
       ]
     }
   ],
-  "generated_at": "2026-04-26T19:41:01.949Z"
+  "generated_at": "2026-04-27T17:56:29.842Z"
 }

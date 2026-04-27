@@ -7,7 +7,7 @@
     "scripts": {
         "dev": "concurrently -k -n ui,api -c cyan,yellow \"npm:dev:ui\" \"npm:dev:api\"",
         "dev:ui": "cross-env ZORIVEST_BACKEND_URL=http://127.0.0.1:17787 electron-vite dev",
-        "dev:api": "cd ../packages/api && cross-env ZORIVEST_DEV_UNLOCK=1 uv run uvicorn zorivest_api.main:app --host 127.0.0.1 --port 17787 --reload",
+        "dev:api": "cd ../packages/api && cross-env ZORIVEST_DEV_UNLOCK=1 ZORIVEST_APPROVAL_CALLBACK_PORT=17788 uv run uvicorn zorivest_api.main:app --host 127.0.0.1 --port 17787 --reload",
         "dev:ui-only": "electron-vite dev",
         "build": "electron-vite build",
         "preview": "electron-vite preview",

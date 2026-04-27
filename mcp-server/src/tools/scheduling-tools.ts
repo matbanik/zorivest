@@ -14,6 +14,7 @@ import { z } from "zod";
 import { fetchApi } from "../utils/api-client.js";
 import { withMetrics } from "../middleware/metrics.js";
 import { withGuard } from "../middleware/mcp-guard.js";
+import { withConfirmation } from "../middleware/confirmation.js";
 import type { RegisteredToolHandle } from "../toolsets/registry.js";
 
 /**
@@ -397,6 +398,176 @@ export function registerSchedulingTools(
                             ? `/scheduling/policies/${params.policy_id}/runs?limit=${params.limit}`
                             : `/scheduling/runs?limit=${params.limit}`;
                         const result = await fetchApi(url);
+
+                        return {
+                            content: [
+                                {
+                                    type: "text" as const,
+                                    text: JSON.stringify(result),
+                                },
+                            ],
+                        };
+                    },
+                ),
+            ),
+        ),
+    );
+
+    // ── delete_policy ──────────────────────────────────────────────────
+    // PH12: Spec 09g §9G.2b — destructive + confirmation gate
+    handles.push(
+        server.registerTool(
+            "delete_policy",
+            {
+                description:
+                    "Delete a scheduling policy by ID. This is a destructive operation that requires confirmation on static clients. " +
+                    "Prerequisites: Use list_policies to find the policy_id. Returns 404 if the policy does not exist. " +
+                    "The policy's scheduled job is also removed.",
+                inputSchema: z.object({
+                    policy_id: z.string().describe("Policy UUID to delete"),
+                    confirmation_token: z
+                        .string()
+                        .optional()
+                        .describe(
+                            "Confirmation token from get_confirmation_token (required on static/annotation-unaware clients)",
+                        ),
+                }).strict(),
+                annotations: {
+                    readOnlyHint: false,
+                    destructiveHint: true,
+                    idempotentHint: true,
+                    openWorldHint: false,
+                },
+                _meta: {
+                    toolset: "scheduling",
+                    alwaysLoaded: false,
+                },
+            },
+            withMetrics(
+                "delete_policy",
+                withGuard(
+                    withConfirmation(
+                        "delete_policy",
+                        async (
+                            params: { policy_id: string },
+                            _extra: unknown,
+                        ) => {
+                            const result = await fetchApi(
+                                `/scheduling/policies/${params.policy_id}`,
+                                { method: "DELETE" },
+                            );
+
+                            return {
+                                content: [
+                                    {
+                                        type: "text" as const,
+                                        text: JSON.stringify(result),
+                                    },
+                                ],
+                            };
+                        },
+                    ),
+                ),
+            ),
+        ),
+    );
+
+    // ── update_policy ─────────────────────────────────────────────────
+    // PH12: Spec 09g §9G.2b — in-place update, resets approval
+    handles.push(
+        server.registerTool(
+            "update_policy",
+            {
+                description:
+                    "Update an existing scheduling policy. Replaces the policy_json with the provided content. " +
+                    "This resets the policy's approval status — the policy must be re-approved before execution. " +
+                    "Prerequisites: Use list_policies or get_policy to confirm the policy exists. " +
+                    "Returns the updated policy object or 422 on validation errors.",
+                inputSchema: z.object({
+                    policy_id: z
+                        .string()
+                        .describe("Policy UUID to update"),
+                    policy_json: z
+                        .record(z.unknown())
+                        .describe("Updated PolicyDocument JSON object"),
+                }).strict(),
+                annotations: {
+                    readOnlyHint: false,
+                    destructiveHint: false,
+                    idempotentHint: true,
+                    openWorldHint: false,
+                },
+                _meta: {
+                    toolset: "scheduling",
+                    alwaysLoaded: false,
+                },
+            },
+            withMetrics(
+                "update_policy",
+                withGuard(
+                    async (
+                        params: {
+                            policy_id: string;
+                            policy_json: Record<string, unknown>;
+                        },
+                        _extra: unknown,
+                    ) => {
+                        const result = await fetchApi(
+                            `/scheduling/policies/${params.policy_id}`,
+                            {
+                                method: "PUT",
+                                headers: {
+                                    "Content-Type": "application/json",
+                                },
+                                body: JSON.stringify({
+                                    policy_json: params.policy_json,
+                                }),
+                            },
+                        );
+
+                        return {
+                            content: [
+                                {
+                                    type: "text" as const,
+                                    text: JSON.stringify(result),
+                                },
+                            ],
+                        };
+                    },
+                ),
+            ),
+        ),
+    );
+
+    // ── get_email_config ──────────────────────────────────────────────
+    // PH12: Spec 09g §9G.2c L255 — SMTP readiness without credentials
+    handles.push(
+        server.registerTool(
+            "get_email_config",
+            {
+                description:
+                    "Check email/SMTP configuration readiness. Returns {configured: bool, provider: string|null, host: string|null}. " +
+                    "No credentials are exposed. Use this to verify SMTP is configured before " +
+                    "creating policies with email send steps.",
+                inputSchema: {},
+                annotations: {
+                    readOnlyHint: true,
+                    destructiveHint: false,
+                    idempotentHint: true,
+                    openWorldHint: false,
+                },
+                _meta: {
+                    toolset: "scheduling",
+                    alwaysLoaded: false,
+                },
+            },
+            withMetrics(
+                "get_email_config",
+                withGuard(
+                    async (_params: unknown, _extra: unknown) => {
+                        const result = await fetchApi(
+                            "/settings/email/status",
+                        );
 
                         return {
                             content: [

@@ -176,6 +176,9 @@ If all MEU-scoped implementation tasks are `[x]` (or `[B]`), execute the post-ME
 6. **Anti-placeholder scan** — `rg "TODO|FIXME|NotImplementedError" packages/`
 7. **Audit BUILD_PLAN.md** for stale references
 8. **Create reflection** — `docs/execution/reflections/{date}-{slug}-reflection.md`
+   - **MUST** `view_file: docs/execution/reflections/TEMPLATE.md` before writing — Template-First Rule (AGENTS.md §436)
+   - Follow the full 7-section structure: Friction Log → Quality Signals → Workflow Signals → Pattern Extraction → Design Rules → Next Day Outline → Efficiency Metrics → Instruction Coverage YAML
+   - See `execution-session.md §5` for section descriptions. The YAML block is section 7 of 7 — not the entire file.
 9. **Append metrics row** — `docs/execution/metrics.md`
 
 Mark each deliverable `[x]` in `task.md` as you complete it. Do NOT batch-mark — update after each item.

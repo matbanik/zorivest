@@ -292,6 +292,18 @@ export const TOOLSET_DEFINITIONS: ToolsetDefinition[] = [
                 name: "get_pipeline_history",
                 description: "Get pipeline execution history",
             },
+            {
+                name: "delete_policy",
+                description: "Delete a policy (destructive, requires confirmation)",
+            },
+            {
+                name: "update_policy",
+                description: "Update policy content (resets approval)",
+            },
+            {
+                name: "get_email_config",
+                description: "Check SMTP readiness (no credentials)",
+            },
         ],
         register: (server: McpServer): RegisteredToolHandle[] => {
             registerSchedulingResources(server);

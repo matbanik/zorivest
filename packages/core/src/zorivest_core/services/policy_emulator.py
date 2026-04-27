@@ -19,6 +19,7 @@ Spec reference: 09f §9F.1, §9F.2, §9F.4
 from __future__ import annotations
 
 import hashlib
+from collections.abc import Callable
 from typing import Any
 
 from pydantic import ValidationError
@@ -98,6 +99,7 @@ class PolicyEmulator:
         sandbox: SqlSandbox,
         template_engine: HardenedSandbox,
         template_port: EmailTemplatePort,
+        email_config_checker: Callable[[], bool] | None = None,
     ) -> None:
         """Initialize emulator with security services.
 
@@ -105,10 +107,13 @@ class PolicyEmulator:
             sandbox: SQL sandbox for query validation (validate_sql only).
             template_engine: Hardened Jinja2 sandbox for template rendering.
             template_port: Core port for template lookup (NOT infra repo).
+            email_config_checker: Callable returning True if SMTP is configured.
+                                  If None, SMTP check is skipped (backward compat).
         """
         self._sandbox = sandbox
         self._engine = template_engine
         self._template_port = template_port
+        self._email_config_checker = email_config_checker
 
     async def emulate(
         self,
@@ -235,6 +240,69 @@ class PolicyEmulator:
         ref_errors = self._check_ref_integrity(policy)
         for ref_err in ref_errors:
             result.errors.append(ref_err)
+
+        # PH13: EXPLAIN SQL schema check (AC-26/AC-27)
+        for step in policy.steps:
+            if step.type == "query":
+                for query in step.params.get("queries", []):
+                    sql = query.get("sql", "")
+                    try:
+                        self._sandbox.execute(f"EXPLAIN {sql}", {})
+                    except Exception as e:
+                        result.errors.append(
+                            EmulatorError(
+                                phase="VALIDATE",
+                                error_type="SQL_SCHEMA_ERROR",
+                                step_id=step.id,
+                                message=str(e),
+                            )
+                        )
+
+        # PH13: SMTP readiness check (AC-28/AC-29)
+        # Only email-channel send steps require SMTP — local_file steps do not.
+        has_email_send_steps = any(
+            s.type == "send" and s.params.get("channel") == "email"
+            for s in policy.steps
+        )
+        if has_email_send_steps and self._email_config_checker is not None:
+            if not self._email_config_checker():
+                result.errors.append(
+                    EmulatorError(
+                        phase="VALIDATE",
+                        error_type="SMTP_NOT_CONFIGURED",
+                        message="Policy has send steps but SMTP email is not configured. "
+                        "Configure email settings before running this policy.",
+                    )
+                )
+
+        # PH13: Step wiring validation (AC-30..AC-33)
+        step_map = {s.id: s for s in policy.steps}
+        for step in policy.steps:
+            if step.type == "send":
+                body_from = step.params.get("body_from_step")
+                if body_from:
+                    target = step_map.get(body_from)
+                    if target is None:
+                        result.errors.append(
+                            EmulatorError(
+                                phase="VALIDATE",
+                                error_type="STEP_WIRING_ERROR",
+                                step_id=step.id,
+                                field=f"steps[{step.id}].params.body_from_step",
+                                message=f"body_from_step references nonexistent step '{body_from}'",
+                            )
+                        )
+                    elif target.type not in ("render", "compose"):
+                        result.errors.append(
+                            EmulatorError(
+                                phase="VALIDATE",
+                                error_type="STEP_WIRING_ERROR",
+                                step_id=step.id,
+                                field=f"steps[{step.id}].params.body_from_step",
+                                message=f"body_from_step references step '{body_from}' of type "
+                                f"'{target.type}', expected 'render' or 'compose'",
+                            )
+                        )
 
         if result.errors:
             result.valid = False

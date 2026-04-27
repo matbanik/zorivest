@@ -24,8 +24,8 @@ describe("registerSchedulingTools", () => {
         };
 
         const handles = registerSchedulingTools(mockServer as never);
-        expect(handles).toHaveLength(6);
-        expect(mockServer.registerTool).toHaveBeenCalledTimes(6);
+        expect(handles).toHaveLength(9);
+        expect(mockServer.registerTool).toHaveBeenCalledTimes(9);
     });
 
     it("registers tools with correct names", async () => {
@@ -51,6 +51,10 @@ describe("registerSchedulingTools", () => {
         expect(registeredNames).toContain("preview_report");
         expect(registeredNames).toContain("update_policy_schedule");
         expect(registeredNames).toContain("get_pipeline_history");
+        // PH12 gap-fill tools
+        expect(registeredNames).toContain("delete_policy");
+        expect(registeredNames).toContain("update_policy");
+        expect(registeredNames).toContain("get_email_config");
     });
 
     it("registers tools with scheduling toolset metadata", async () => {
@@ -121,7 +125,7 @@ describe("registerSchedulingResources", () => {
 // ── Seed registry integration ─────────────────────────────────────────
 
 describe("seedRegistry scheduling toolset", () => {
-    it("scheduling toolset has 6 tools in seed definition", async () => {
+    it("scheduling toolset has 9 tools in seed definition", async () => {
         const { toolsetRegistry } = await import(
             "../src/toolsets/registry.js"
         );
@@ -131,7 +135,7 @@ describe("seedRegistry scheduling toolset", () => {
 
         const scheduling = toolsetRegistry.get("scheduling");
         expect(scheduling).toBeDefined();
-        expect(scheduling!.tools).toHaveLength(6);
+        expect(scheduling!.tools).toHaveLength(9);
         expect(scheduling!.alwaysLoaded).toBe(false);
         expect(scheduling!.isDefault).toBe(false);
     });

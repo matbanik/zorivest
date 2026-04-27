@@ -71,18 +71,23 @@ When Step 6 (artifact structural compliance) fires, run these checks on each art
 
 ### Reflection files (`docs/execution/reflections/{date}-{slug}-reflection.md`)
 
-Required markers — grep the file for each. If missing, the reflection is non-compliant:
+Required markers — grep the file for each. **ALL must match or the reflection is non-compliant:**
 
 ```powershell
-rg "Friction Log|Execution Trace" <reflection-file>        # §5a
-rg "Pattern Extraction|Patterns to KEEP" <reflection-file>  # §5b
-rg "Next Session Design Rules|RULE-" <reflection-file>      # §5c
-rg "Rule Adherence" <reflection-file>                       # Efficiency Metrics table
+# Run ALL of these. If ANY returns 0 matches, the reflection MUST be rewritten.
+rg "Friction Log|Execution Trace" <reflection-file>        # §5a — Execution trace section
+rg "Pattern Extraction|Patterns to KEEP" <reflection-file>  # §5b — Pattern extraction section
+rg "Next Session Design Rules|RULE-" <reflection-file>      # §5c — Design rules section
+rg "Efficiency Metrics" <reflection-file>                   # Metrics table
+rg "Rule Adherence" <reflection-file>                       # Rules sampled table
 rg "Instruction Coverage|schema: v1" <reflection-file>      # YAML coverage block
 rg "sections:" <reflection-file>                            # Per-section usage entries
 rg "loaded:" <reflection-file>                              # Loaded workflows/roles/skills
 rg "decisive_rules:" <reflection-file>                      # Top 5 decisive rules
 ```
+
+> [!CAUTION]
+> **Hard gate — not advisory.** If ANY marker above returns 0 matches, the reflection is structurally non-compliant. Execute: `view_file: docs/execution/reflections/TEMPLATE.md`, then rewrite the reflection using the full 7-section template structure. The YAML block alone is NOT a valid reflection — it is section 7 of 7.
 
 > [!CAUTION]
 > **If `rg "sections:" <reflection-file>` returns 0 matches, the Instruction Coverage YAML is missing.** This means Step 7.5 of `tdd-implementation.md` was skipped. Execute it now: `view_file .agent/schemas/reflection.v1.yaml`, then emit the YAML block in the reflection file.

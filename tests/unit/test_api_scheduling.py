@@ -133,6 +133,11 @@ def client(mock_scheduling_svc, mock_scheduler_svc):
     app.dependency_overrides[deps.get_scheduling_service] = lambda: mock_scheduling_svc
     app.dependency_overrides[deps.get_scheduler_service] = lambda: mock_scheduler_svc
 
+    # PH11: bypass CSRF token validation in unit tests (tested separately)
+    from zorivest_api.middleware.approval_token import validate_approval_token
+
+    app.dependency_overrides[validate_approval_token] = lambda: None
+
     return TestClient(app)
 
 

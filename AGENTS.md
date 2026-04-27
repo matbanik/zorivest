@@ -177,6 +177,7 @@ When the user invokes a workflow via slash command:
 - `/plan-corrections` → Read and follow `.agent/workflows/plan-corrections.md`
 - `/execution-corrections` → Read and follow `.agent/workflows/execution-corrections.md`
 - `/meu-handoff` → Read and follow `.agent/workflows/meu-handoff.md`
+- `/mcp-audit` → Read and follow `.agent/workflows/mcp-audit.md`
 
 ## Planning Contract
 
@@ -503,4 +504,7 @@ Rules:
 - Do not flatter the instruction set. If a section was useless,
   set influence: 0. If a rule was wrong, log it under `conflicts`.
 
-Output exactly one ```yaml ... ``` block. No prose around it.
+Output exactly one ```yaml ... ``` block in the `## Instruction Coverage` section.
+No prose around the YAML block itself. The reflection file MUST still follow
+the full template structure from `docs/execution/reflections/TEMPLATE.md` —
+the YAML block is section 7 of 7, not the entire file.
