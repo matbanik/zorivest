@@ -2,9 +2,10 @@
 
 ## Current Priority
 
-P2.5d Approval Security — COMPLETE (PH11+PH12+PH13 done). Full suite: 2391 passed, 23 skipped, pyright 0 errors, ruff clean, MCP build 74 tools across 10 toolsets.
+Pipeline Remediation — COMPLETE (MEU-PW14 + MEU-72b done). PW14: PDF→Markdown migration. 72b: Email Templates GUI tab. Full suite: 464 UI tests, Python suite all pass, 8/8 MEU gate.
 
 ## Next Steps
 
-1. Codex review of PH11/PH12/PH13 handoff
-2. Next project selection — likely P2 GUI features or P2.6 Service Daemon
+1. Codex review of pipeline-remediation handoff
+2. Run Wave 8 E2E tests when Electron available
+3. Next project selection per known-issues priority

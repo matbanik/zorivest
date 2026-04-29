@@ -102,9 +102,9 @@ class TestSendStepConfirmationGate:
 
         params = {
             "channel": "local_file",
-            "recipients": ["/tmp/report.pdf"],
+            "recipients": ["/tmp/report.md"],
             "requires_confirmation": True,
-            "pdf_path": "/tmp/source.pdf",
+            "html_body": "<h1>Test</h1>",
         }
 
         # Should NOT raise — the confirmation gate should pass
@@ -130,9 +130,9 @@ class TestSendStepConfirmationGate:
 
         params = {
             "channel": "local_file",
-            "recipients": ["/tmp/report.pdf"],
+            "recipients": ["/tmp/report.md"],
             "requires_confirmation": False,
-            "pdf_path": "/tmp/source.pdf",
+            "html_body": "<h1>Test</h1>",
         }
 
         result = await step.execute(params, ctx)
@@ -157,9 +157,9 @@ class TestSendStepConfirmationGate:
 
         params = {
             "channel": "local_file",
-            "recipients": ["/tmp/report.pdf"],
+            "recipients": ["/tmp/report.md"],
             "requires_confirmation": False,
-            "pdf_path": "/tmp/source.pdf",
+            "html_body": "<h1>Test</h1>",
         }
 
         # Must raise — no approval record means opt-out is not honored

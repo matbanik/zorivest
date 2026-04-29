@@ -17,13 +17,14 @@ interface NavItem {
     icon: LucideIcon
 }
 
-const navItems: NavItem[] = [
+const mainNavItems: NavItem[] = [
     { label: 'Accounts', path: '/', icon: LayoutDashboard },
     { label: 'Trades', path: '/trades', icon: ArrowLeftRight },
     { label: 'Planning', path: '/planning', icon: CalendarClock },
     { label: 'Scheduling', path: '/scheduling', icon: Calendar },
-    { label: 'Settings', path: '/settings', icon: Settings },
 ]
+
+const settingsItem: NavItem = { label: 'Settings', path: '/settings', icon: Settings }
 
 const navTestIds: Record<string, string> = {
     '/': 'nav-accounts',
@@ -60,39 +61,43 @@ export default function NavRail({ currentPath, onNavigate }: NavRailProps) {
         }
     }
 
+    const renderNavLink = (item: NavItem) => {
+        const isActive = activePath === item.path
+        const Icon = item.icon
+        return (
+            <a
+                key={item.path}
+                href={`#${item.path}`}
+                data-testid={navTestIds[item.path]}
+                aria-current={isActive ? 'page' : undefined}
+                title={isCollapsed ? item.label : undefined}
+                onClick={(e) => {
+                    e.preventDefault()
+                    handleNavigate(item.path)
+                }}
+                className={`flex items-center gap-3 px-3 py-2 rounded-md text-sm transition-colors
+                ${isActive ? 'bg-bg-elevated text-fg' : 'text-fg-muted hover:bg-bg-elevated hover:text-fg'}
+                ${isCollapsed ? 'justify-center' : ''}`}
+            >
+                <Icon size={18} aria-hidden="true" />
+                {!isCollapsed && <span>{item.label}</span>}
+            </a>
+        )
+    }
+
     return (
         <nav
             aria-label="Main navigation"
             className={`nav-rail ${isCollapsed ? 'nav-rail--collapsed' : ''}`}
         >
+            {/* Primary nav items */}
             <div className="flex flex-col gap-1 p-2 flex-1">
-                {navItems.map((item) => {
-                    const isActive = activePath === item.path
-                    const Icon = item.icon
-                    return (
-                        <a
-                            key={item.path}
-                            href={`#${item.path}`}
-                            data-testid={navTestIds[item.path]}
-                            aria-current={isActive ? 'page' : undefined}
-                            title={isCollapsed ? item.label : undefined}
-                            onClick={(e) => {
-                                e.preventDefault()
-                                handleNavigate(item.path)
-                            }}
-                            className={`flex items-center gap-3 px-3 py-2 rounded-md text-sm transition-colors
-                ${isActive ? 'bg-bg-elevated text-fg' : 'text-fg-muted hover:bg-bg-elevated hover:text-fg'}
-                ${isCollapsed ? 'justify-center' : ''}`}
-                        >
-                            <Icon size={18} aria-hidden="true" />
-                            {!isCollapsed && <span>{item.label}</span>}
-                        </a>
-                    )
-                })}
+                {mainNavItems.map(renderNavLink)}
             </div>
 
-            {/* Collapse toggle at bottom */}
-            <div className="p-2 border-t border-bg-elevated">
+            {/* Bottom-pinned: Settings + Collapse */}
+            <div className="p-2 border-t border-bg-elevated flex flex-col gap-1">
+                {renderNavLink(settingsItem)}
                 <button
                     data-testid="nav-collapse-toggle"
                     onClick={toggleRail}

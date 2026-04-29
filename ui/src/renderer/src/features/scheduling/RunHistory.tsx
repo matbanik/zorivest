@@ -132,7 +132,10 @@ function RunDetailExpanded({ runId }: { runId: string }) {
 
 // ── RunHistory ─────────────────────────────────────────────────────────
 
-export default function RunHistory({ runs, isLoading, timezone }: RunHistoryProps) {
+export default function RunHistory({ runs: rawRuns, isLoading, timezone }: RunHistoryProps) {
+    // F1: Defensive normalization — API may return {} instead of [] when
+    // useQuery data is not undefined (so the `= []` default doesn't apply)
+    const runs = Array.isArray(rawRuns) ? rawRuns : []
     const [expandedRunId, setExpandedRunId] = useState<string | null>(null)
     const [searchQuery, setSearchQuery] = useState('')
     const [currentPage, setCurrentPage] = useState(0)

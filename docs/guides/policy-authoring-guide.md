@@ -314,17 +314,17 @@ Requires in `context.outputs`:
 ## Step 4: Render
 
 **Type name:** `render`
-**Side effects:** Yes (may create PDF files)
+**Side effects:** No
 **Source:** [`render_step.py`](../../packages/core/src/zorivest_core/pipeline_steps/render_step.py)
 
-Renders report data to HTML and/or PDF using Jinja2 templates and Playwright.
+Renders report data to HTML or Markdown using Jinja2 templates.
 
 ### Parameters
 
 | Parameter | Type | Default | Dynamic | Description |
 |-----------|------|---------|---------|-------------|
 | `template` | string | *required* | ✅ | Jinja2 template name |
-| `output_format` | string | `"both"` | ✅ | Output: `html`, `pdf`, or `both` |
+| `output_format` | string | `"html"` | ✅ | Output: `html` or `markdown` only (PDF removed per §9H) |
 | `chart_settings` | object | `{}` | ✅ | Chart rendering config (reserved for future use) |
 
 ### Output Shape
@@ -332,9 +332,18 @@ Renders report data to HTML and/or PDF using Jinja2 templates and Playwright.
 ```json
 {
   "html": "<!DOCTYPE html>...",
-  "pdf_path": "reports/daily_report.pdf",
   "template": "daily_quote_summary",
-  "output_format": "both"
+  "output_format": "html"
+}
+```
+
+For `output_format: "markdown"`:
+
+```json
+{
+  "markdown": "# Report Title\n| col1 | col2 |\n...",
+  "template": "daily_quote_summary",
+  "output_format": "markdown"
 }
 ```
 
@@ -343,8 +352,7 @@ Renders report data to HTML and/or PDF using Jinja2 templates and Playwright.
 | Item | Status | Details |
 |------|--------|---------|
 | Template engine | 🔒 Hardcoded | Looks for `template_engine` in context. Falls back to inline Jinja2 `from_string()`. |
-| PDF renderer | 🔒 Hardcoded | Playwright via `zorivest_infra.rendering.pdf_renderer`. Not available if Playwright not installed. |
-| PDF output path | 🔒 Hardcoded | `reports/{report_name}.pdf`. No configurable output directory. |
+| Markdown renderer | 🔒 Hardcoded | `_render_markdown()` generates Markdown tables from records/quotes data. |
 | Data source | 🔒 Hardcoded | Reads from `context.outputs["report_data"]`. Only populated by `StoreReportStep`. |
 
 > ⚠️ **RenderStep reads from `report_data` in context**, which is set by StoreReportStep. If you skip StoreReportStep, RenderStep has no data. For the email-only workflow (Fetch → Transform → Send), RenderStep is typically skipped — SendStep handles template rendering internally.
@@ -369,8 +377,8 @@ Delivers reports via email (SMTP) or local file copy.
 | `body_template` | string | `""` | ✅ | Template name from `EMAIL_TEMPLATES` registry |
 | `report_id` | string | `null` | ✅ | Report ID from store_report step (for dedup) |
 | `snapshot_hash` | string | `null` | ✅ | Snapshot hash from store_report step (for dedup) |
-| `pdf_path` | string | `null` | ✅ | PDF attachment path from render step |
 | `html_body` | string | `null` | ✅ | Pre-rendered HTML body (overrides template) |
+| `attachment_path` | string | `null` | ✅ | Optional path to a `.md` file to attach (§9H.2). Only `.md` files accepted; `.pdf` rejected with error. |
 
 ### Body Resolution (4-tier priority)
 
@@ -396,13 +404,13 @@ When using Tier 2 (template rendering), these variables are available in Jinja2:
 
 ### `local_file` Channel
 
-When `channel: "local_file"`, `recipients` contains destination file paths and `pdf_path` is the source file to copy:
+When `channel: "local_file"`, `recipients` contains destination file paths. The rendered HTML body is written as a `.md` file to each path:
 
 ```json
 {
   "channel": "local_file",
-  "recipients": ["C:/reports/daily_quote.pdf"],
-  "pdf_path": "reports/daily_report.pdf"
+  "recipients": ["C:/reports/daily_quote.md"],
+  "html_body": "<h1>Daily Report</h1><p>Content here</p>"
 }
 ```
 
@@ -470,7 +478,7 @@ This is the most common pattern. No RenderStep or StoreReportStep needed.
 - `output_key: "quotes"` matches the template variable `{% for q in quotes %}`
 - SendStep's two-level merge promotes `quotes` from transform output into template context
 
-#### Pattern B: Fetch → Transform → Store → Render → Send (full pipeline with PDF)
+#### Pattern B: Fetch → Transform → Store → Render → Send (full pipeline with HTML)
 
 ```json
 {
@@ -514,7 +522,7 @@ This is the most common pattern. No RenderStep or StoreReportStep needed.
       "type": "render",
       "params": {
         "template": "generic_report",
-        "output_format": "both"
+        "output_format": "html"
       }
     },
     {
@@ -525,7 +533,6 @@ This is the most common pattern. No RenderStep or StoreReportStep needed.
         "recipients": ["you@example.com"],
         "subject": "Monthly Performance Report",
         "body_template": "generic_report",
-        "pdf_path": { "ref": "ctx.render_report.pdf_path" },
         "report_id": { "ref": "ctx.store_snapshot.report_id" },
         "snapshot_hash": { "ref": "ctx.store_snapshot.snapshot_hash" }
       }
@@ -540,8 +547,8 @@ Any step parameter can use `{ "ref": "ctx.<step_id>.<field>" }` to reference out
 
 ```json
 {
-  "pdf_path": { "ref": "ctx.render_report.pdf_path" },
-  "report_id": { "ref": "ctx.store_snapshot.report_id" }
+  "report_id": { "ref": "ctx.store_snapshot.report_id" },
+  "snapshot_hash": { "ref": "ctx.store_snapshot.snapshot_hash" }
 }
 ```
 
@@ -707,7 +714,6 @@ Applied after validation, before output:
 | Cache TTL / market-closed multiplier | `fetch_step.py` constants | Low |
 | Provider slug normalization | `field_mappings.py` `_PROVIDER_SLUG_MAP` | Low |
 | Jinja2 custom filters (`currency`) | `template_engine.py` | Low |
-| PDF output directory | `render_step.py` `_render_pdf()` | Low |
 | **Local DB query as data source** | **Not implemented** | **High** |
 
 ---

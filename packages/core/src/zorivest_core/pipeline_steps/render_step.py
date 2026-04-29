@@ -1,8 +1,8 @@
 # packages/core/src/zorivest_core/pipeline_steps/render_step.py
-"""RenderStep — render reports to HTML/PDF (§9.7).
+"""RenderStep — render reports to HTML/Markdown (§9.7, §9H).
 
-Spec: 09-scheduling.md §9.7a–c
-MEU: 87
+Spec: 09-scheduling.md §9.7a–c, 09h-pipeline-markdown-migration.md
+MEU: 87, PW14
 """
 
 from __future__ import annotations
@@ -15,11 +15,18 @@ from zorivest_core.domain.enums import PipelineStatus
 from zorivest_core.domain.pipeline import StepContext, StepResult
 from zorivest_core.domain.step_registry import RegisteredStep
 
+# Valid output formats after PDF removal (§9H.4)
+_VALID_OUTPUT_FORMATS = {"html", "markdown"}
+
 
 class RenderStep(RegisteredStep):
-    """Render reports to HTML and/or PDF.
+    """Render reports to HTML and/or Markdown.
 
     Auto-registers as ``type_name="render"`` in the step registry.
+
+    Output formats (§9H.4):
+    - "html" (default): Jinja2 template rendering for email body
+    - "markdown": Markdown table rendering for MCP/file/AI consumption
     """
 
     type_name = "render"
@@ -32,8 +39,8 @@ class RenderStep(RegisteredStep):
 
         template: str = Field(..., description="Jinja2 template name")
         output_format: str = Field(
-            default="both",
-            description="Output format: 'html', 'pdf', or 'both'",
+            default="html",
+            description="Output format: 'html' or 'markdown'",
         )
         chart_settings: dict[str, Any] = Field(
             default_factory=dict,
@@ -43,50 +50,40 @@ class RenderStep(RegisteredStep):
     async def execute(self, params: dict, context: StepContext) -> StepResult:
         """Execute the render step.
 
-        1. Get report data from prior step context
+        1. Validate params and output_format
         2. Render HTML via _render_html() hook (Jinja2 when available)
-        3. Render PDF via _render_pdf() hook (Playwright when available)
-        4. Return output paths/content
+        3. Or render Markdown via _render_markdown()
+        4. Return output content
         """
         p = self.Params(**params)
 
-        # 1. Get report data from context (set by StoreReportStep)
+        # §9H.4: Reject removed formats
+        if p.output_format not in _VALID_OUTPUT_FORMATS:
+            raise ValueError(
+                f"Invalid output_format '{p.output_format}'. "
+                f"Allowed: {sorted(_VALID_OUTPUT_FORMATS)}"
+            )
+
+        # Get report data from context (set by StoreReportStep)
         report_data: dict[str, Any] = context.outputs.get("report_data", {})
         report_name = report_data.get("report_name", "unnamed")
 
-        # 2. Render HTML via hook
-        html: str | None = None
-        if p.output_format in ("html", "both"):
+        output: dict[str, Any] = {
+            "template": p.template,
+            "output_format": p.output_format,
+        }
+
+        if p.output_format == "html":
             html = self._render_html(
                 report_name=report_name,
                 report_data=report_data,
                 template=p.template,
                 context=context,
             )
-
-        # 3. Render PDF via hook
-        pdf_path: str | None = None
-        if p.output_format in ("pdf", "both") and html:
-            pdf_path = self._render_pdf(
-                html_content=html,
-                report_name=report_name,
-                context=context,
-            )
-
-        output: dict[str, Any] = {
-            "html": html,
-            "pdf_path": pdf_path,
-            "template": p.template,
-            "output_format": p.output_format,
-        }
-
-        # If PDF was requested but rendering failed, report failure
-        if p.output_format in ("pdf", "both") and pdf_path is None:
-            return StepResult(
-                status=PipelineStatus.FAILED,
-                output=output,
-                error="PDF rendering failed: Playwright unavailable",
-            )
+            output["html"] = html
+        elif p.output_format == "markdown":
+            markdown = self._render_markdown(report_data, template_name=p.template)
+            output["markdown"] = markdown
 
         return StepResult(
             status=PipelineStatus.SUCCESS,
@@ -130,24 +127,28 @@ class RenderStep(RegisteredStep):
             f"</body></html>"
         )
 
-    def _render_pdf(
-        self,
-        *,
-        html_content: str,
-        report_name: str,
-        context: StepContext,
-    ) -> str | None:
-        """Render PDF from HTML content using Playwright.
+    def _render_markdown(self, data: dict, template_name: str | None) -> str:
+        """Convert report data to structured Markdown tables (§9H.3).
 
-        Attempts to import render_pdf from infrastructure. If available,
-        generates a real PDF file. If not available, returns None.
+        Auto-detects columns from the first record's keys and formats
+        them as a Markdown table.
         """
-        try:
-            from zorivest_infra.rendering.pdf_renderer import render_pdf
+        lines: list[str] = []
+        lines.append(f"# {data.get('report_name', 'Report')}")
+        lines.append(f"*Generated: {data.get('date', 'N/A')}*\n")
 
-            output_path = f"reports/{report_name}.pdf"
-            return render_pdf(html_content=html_content, output_path=output_path)
-        except (ImportError, Exception):
-            # ImportError: infrastructure not available
-            # Other: Playwright sync API inside asyncio loop
-            return None
+        records = data.get("records", data.get("quotes", []))
+        if not records:
+            lines.append("*No data available.*")
+            return "\n".join(lines)
+
+        # Auto-detect columns from first record
+        if isinstance(records[0], dict):
+            headers = list(records[0].keys())
+            lines.append("| " + " | ".join(headers) + " |")
+            lines.append("| " + " | ".join(["---"] * len(headers)) + " |")
+            for row in records:
+                values = [str(row.get(h, "")) for h in headers]
+                lines.append("| " + " | ".join(values) + " |")
+
+        return "\n".join(lines)

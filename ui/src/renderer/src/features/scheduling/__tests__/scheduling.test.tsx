@@ -532,6 +532,8 @@ const { MockEditorView } = vi.hoisted(() => {
     }))
     // Static method used in EditorView.theme(...)
     ;(ctor as any).theme = vi.fn().mockReturnValue([])
+    // Static field used in EditorView.updateListener.of(...)
+    ;(ctor as any).updateListener = { of: vi.fn().mockReturnValue([]) }
     return { MockEditorView: ctor }
 })
 
@@ -759,11 +761,34 @@ describe('RunHistory', () => {
 
         expect(screen.getByText(/Loading run history/i)).toBeInTheDocument()
     })
+
+    // F1: Defensive array guard — RunHistory handles non-array props gracefully
+    it('F1: renders empty state when runs prop is a non-array object', () => {
+        // Simulates the case where API returns {} instead of [] and useQuery
+        // doesn't apply the default fallback (data is {} not undefined)
+        render(
+            <RunHistory runs={{} as any} isLoading={false} />,
+            { wrapper: createWrapper() },
+        )
+
+        // Should gracefully show empty state, not crash with TypeError
+        expect(screen.getByText(/No runs yet/i)).toBeInTheDocument()
+    })
 })
 
 // ═══════════════════════════════════════════════════════════════════════════════
 // Sub-MEU B: SchedulingLayout Integration Test
 // ═══════════════════════════════════════════════════════════════════════════════
+
+/** Standard mock that returns [] for /runs URLs to prevent unhandled runtime errors */
+function layoutMock(url: string, init?: Record<string, unknown>) {
+    if (url.includes('/runs')) return Promise.resolve([])
+    if (url.includes('/policies')) return Promise.resolve(MOCK_POLICIES_RESPONSE)
+    if (url.includes('/scheduler/status')) return Promise.resolve({ running: true, job_count: 2, jobs: [] })
+    if (url.includes('/templates')) return Promise.resolve([])
+    if (url.includes('/settings')) return Promise.resolve({ value: 'UTC' })
+    return Promise.resolve([])
+}
 
 describe('SchedulingLayout', () => {
     beforeEach(() => {
@@ -771,18 +796,8 @@ describe('SchedulingLayout', () => {
     })
 
     it('AC-B3: renders root container with data-testid', async () => {
-        // Mock policies list
-        mockApiFetch.mockImplementation((url: string) => {
-            if (url.includes('/policies')) {
-                return Promise.resolve(MOCK_POLICIES_RESPONSE)
-            }
-            if (url.includes('/scheduler/status')) {
-                return Promise.resolve({ running: true, job_count: 2, jobs: [] })
-            }
-            return Promise.resolve({})
-        })
+        mockApiFetch.mockImplementation(layoutMock)
 
-        // Import SchedulingLayout dynamically to ensure mocks are in place
         const { default: SchedulingLayout } = await import('../SchedulingLayout')
 
         render(<SchedulingLayout />, { wrapper: createWrapper() })
@@ -791,15 +806,7 @@ describe('SchedulingLayout', () => {
     })
 
     it('AC-B3: shows empty state when no policy selected', async () => {
-        mockApiFetch.mockImplementation((url: string) => {
-            if (url.includes('/policies')) {
-                return Promise.resolve(MOCK_POLICIES_RESPONSE)
-            }
-            if (url.includes('/scheduler/status')) {
-                return Promise.resolve({ running: true, job_count: 2, jobs: [] })
-            }
-            return Promise.resolve({})
-        })
+        mockApiFetch.mockImplementation(layoutMock)
 
         const { default: SchedulingLayout } = await import('../SchedulingLayout')
 
@@ -831,13 +838,16 @@ describe('SchedulingLayout', () => {
                     next_run: null,
                 })
             }
+            if (url.includes('/runs')) return Promise.resolve([])
             if (url.includes('/policies')) {
                 return Promise.resolve({ policies: [], total: 0 })
             }
             if (url.includes('/scheduler/status')) {
                 return Promise.resolve({ running: true, job_count: 0, jobs: [] })
             }
-            return Promise.resolve({})
+            if (url.includes('/templates')) return Promise.resolve([])
+            if (url.includes('/settings')) return Promise.resolve({ value: 'UTC' })
+            return Promise.resolve([])
         })
 
         const { default: SchedulingLayout } = await import('../SchedulingLayout')
@@ -886,5 +896,133 @@ describe('SchedulingLayout', () => {
         expect(step).toHaveProperty('type')
         // Step id must match pattern ^[a-z][a-z0-9_]*$
         expect(step.id).toMatch(/^[a-z][a-z0-9_]*$/)
+    })
+
+    // F2: Navigation guard — tab switching works when NOT dirty (smoke test)
+    // The guard wiring is verified by confirming tabs still switch normally.
+    // When dirty, the same pendingNav + modal pattern tested in list-selection
+    // guard tests is used — no separate integration test needed for the modal
+    // since the mechanism is shared (pendingNav → handleDiscardNav → modal portal).
+    it('F2: tab switch works normally when no dirty state', async () => {
+        // Mock with templates available so the template tab renders content
+        const tabMock = (url: string, init?: Record<string, unknown>) => {
+            if (url.includes('/runs')) return Promise.resolve([])
+            if (url.includes('/templates') && !init?.method) {
+                return Promise.resolve([{
+                    name: 'test-template',
+                    description: 'Test',
+                    body_html: '<h1>Test</h1>',
+                    body_format: 'html',
+                    subject_template: 'Test Subject',
+                    required_variables: [],
+                    is_default: false,
+                    sample_data_json: null,
+                }])
+            }
+            if (url.includes('/policies')) return Promise.resolve(MOCK_POLICIES_RESPONSE)
+            if (url.includes('/scheduler/status')) return Promise.resolve({ running: true, job_count: 2, jobs: [] })
+            if (url.includes('/settings')) return Promise.resolve({ value: 'UTC' })
+            return Promise.resolve([])
+        }
+        mockApiFetch.mockImplementation(tabMock)
+
+        const { default: SchedulingLayout } = await import('../SchedulingLayout')
+        render(<SchedulingLayout />, { wrapper: createWrapper() })
+
+        // Verify we start on Report Policies tab (default)
+        await waitFor(() => {
+            expect(screen.getByText('Scheduling & Pipelines')).toBeInTheDocument()
+        })
+
+        // Switch to Email Templates tab — should work since nothing is dirty
+        const emailTab = screen.getByTestId(SCHEDULING_TEST_IDS.TAB_EMAIL_TEMPLATES)
+        fireEvent.click(emailTab)
+
+        // Should show email templates empty state content
+        await waitFor(() => {
+            expect(screen.getByText(/Select a template from the list/i)).toBeInTheDocument()
+        })
+
+        // No modal should appear
+        expect(screen.queryByText('Unsaved Changes')).not.toBeInTheDocument()
+    })
+
+    // F2: Dirty create guard — discard fires the deferred create mutation
+    it('F2: dirty template → create → discard fires create mutation', async () => {
+        const createCalls: unknown[] = []
+        const tabMock = (url: string, init?: Record<string, unknown>) => {
+            if (url.includes('/runs')) return Promise.resolve([])
+            if (url.includes('/templates') && init?.method === 'POST') {
+                createCalls.push(init)
+                return Promise.resolve({
+                    name: 'custom-template-new',
+                    description: '',
+                    body_html: '<h1>{{ report_name }}</h1>\n<p>Your report content here.</p>',
+                    body_format: 'html',
+                    subject_template: '',
+                    required_variables: [],
+                    is_default: false,
+                    sample_data_json: null,
+                })
+            }
+            if (url.includes('/templates') && !init?.method) {
+                return Promise.resolve([{
+                    name: 'existing-template',
+                    description: 'Existing',
+                    body_html: '<h1>Old</h1>',
+                    body_format: 'html',
+                    subject_template: 'Old Subject',
+                    required_variables: [],
+                    is_default: false,
+                    sample_data_json: null,
+                }])
+            }
+            if (url.includes('/policies')) return Promise.resolve({ policies: [], total: 0 })
+            if (url.includes('/scheduler/status')) return Promise.resolve({ running: true, job_count: 0, jobs: [] })
+            if (url.includes('/settings')) return Promise.resolve({ value: 'UTC' })
+            return Promise.resolve([])
+        }
+        mockApiFetch.mockImplementation(tabMock)
+
+        const { default: SchedulingLayout } = await import('../SchedulingLayout')
+        render(<SchedulingLayout />, { wrapper: createWrapper() })
+
+        // Switch to Email Templates tab
+        const emailTab = screen.getByTestId(SCHEDULING_TEST_IDS.TAB_EMAIL_TEMPLATES)
+        fireEvent.click(emailTab)
+
+        // Wait for template list to render and select a template
+        await waitFor(() => {
+            expect(screen.getByText('existing-template')).toBeInTheDocument()
+        })
+        fireEvent.click(screen.getByText('existing-template'))
+
+        // Wait for detail editor to render
+        await waitFor(() => {
+            expect(screen.getByTestId(SCHEDULING_TEST_IDS.TEMPLATE_DETAIL)).toBeInTheDocument()
+        })
+
+        // Make the editor dirty by changing the subject input (has placeholder)
+        const subjectInput = screen.getByPlaceholderText(/jinja2 subject/i)
+        fireEvent.change(subjectInput, { target: { value: 'Modified subject' } })
+
+        // Click +New — should show unsaved changes modal (NOT create immediately)
+        fireEvent.click(screen.getByTestId(SCHEDULING_TEST_IDS.TEMPLATE_NEW_BTN))
+
+        // Modal should appear
+        await waitFor(() => {
+            expect(screen.getByText('Unsaved Changes')).toBeInTheDocument()
+        })
+
+        // No create mutation should have fired yet
+        expect(createCalls).toHaveLength(0)
+
+        // Click "Discard Changes" to confirm discard
+        fireEvent.click(screen.getByText('Discard Changes'))
+
+        // Now the create mutation should fire
+        await waitFor(() => {
+            expect(createCalls.length).toBeGreaterThan(0)
+        })
     })
 })

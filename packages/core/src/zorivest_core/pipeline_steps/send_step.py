@@ -7,7 +7,7 @@ MEU: 88
 
 from __future__ import annotations
 
-import shutil
+from pathlib import Path
 from typing import Any, Optional
 
 from pydantic import BaseModel, Field
@@ -50,11 +50,12 @@ class SendStep(RegisteredStep):
         snapshot_hash: Optional[str] = Field(
             default=None, description="Snapshot hash from store_report step"
         )
-        pdf_path: Optional[str] = Field(
-            default=None, description="PDF path from render step"
-        )
         html_body: Optional[str] = Field(
             default=None, description="HTML body from render step"
+        )
+        attachment_path: Optional[str] = Field(
+            default=None,
+            description="Optional .md attachment path from render step (§9H.2)",
         )
         requires_confirmation: bool = Field(
             default=False,
@@ -76,7 +77,7 @@ class SendStep(RegisteredStep):
         if p.channel == "email":
             delivery_result = await self._send_emails(p, context)
         elif p.channel == "local_file":
-            delivery_result = await self._save_local(p, context)
+            delivery_result = await self._save_local_markdown(p, context)
         else:
             return StepResult(
                 status=PipelineStatus.FAILED,
@@ -208,10 +209,10 @@ class SendStep(RegisteredStep):
                 recipient=recipient,
                 subject=params.subject,
                 html_body=html_body,
-                pdf_path=params.pdf_path,
                 use_tls=security != "SSL",
                 smtp_username=smtp_username,
                 smtp_password=smtp_password,
+                attachment_path=params.attachment_path,
             )
 
             if success:
@@ -344,23 +345,32 @@ class SendStep(RegisteredStep):
 
         return tmpl.render(**render_ctx)
 
-    async def _save_local(self, params: Params, context: StepContext) -> dict[str, Any]:
-        """Copy rendered output to local file paths."""
+    async def _save_local_markdown(
+        self, params: Params, context: StepContext
+    ) -> dict[str, Any]:
+        """Write rendered content as Markdown (.md) files (§9H.2).
+
+        Replaces the old _save_local() which copied PDF files.
+        Each recipient path gets the html_body written as a .md file.
+        """
         sent = 0
         failed = 0
         deliveries: list[dict[str, Any]] = []
 
-        source_path = params.pdf_path
-        if source_path is None:
+        # Resolve content: html_body > rendered template > fallback
+        content = self._resolve_body(params, context)
+        if not content:
             return {
                 "sent": 0,
                 "failed": len(params.recipients),
-                "deliveries": [{"error": "No pdf_path provided"}],
+                "deliveries": [{"error": "No content available to save"}],
             }
 
         for dest_path in params.recipients:
             try:
-                shutil.copy2(source_path, dest_path)
+                p = Path(dest_path)
+                p.parent.mkdir(parents=True, exist_ok=True)
+                p.write_text(content, encoding="utf-8")
                 sent += 1
                 deliveries.append({"recipient": dest_path, "status": "sent"})
             except Exception as exc:

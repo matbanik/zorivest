@@ -48,59 +48,7 @@
 - **Proposed fix:** VALIDATE phase should: run `EXPLAIN` on SQL to check schema, verify SMTP config for email channels, validate step output wiring (render→send dependency chain).
 
 
-### [GUI-EMAILTMPL] — Scheduling page needs Email Templates tab for template CRUD
-- **Severity:** High (feature gap)
-- **Component:** ui (`features/scheduling/`), api (`routes/scheduling.py`)
-- **Discovered:** 2026-04-26
-- **Status:** Open — needs MEU scoping
-- **Details:** Email templates can only be created/edited via MCP tools or direct REST calls. No GUI exists for template management. The Scheduling page should follow the same tab pattern as `PlanningLayout` (which has `Trade Plans` / `Watchlists` tabs) by adding a two-tab structure: **Report Policies** (current `SchedulingLayout` content) and **Email Templates** (new CRUD view).
-- **Backend readiness:** Full CRUD API is implemented at `/api/v1/scheduling/templates`:
-  - `POST /templates` — create
-  - `GET /templates` — list all
-  - `GET /templates/{name}` — get by name
-  - `PATCH /templates/{name}` — update
-  - `DELETE /templates/{name}` — delete (403 for defaults)
-  - `POST /templates/{name}/preview` — render preview with sample data
-- **GUI implementation spec:**
-  1. **Tab bar:** Follow [`PlanningLayout.tsx`](file:///p:/zorivest/ui/src/renderer/src/features/planning/PlanningLayout.tsx) pattern — `const TABS = ['Report Policies', 'Email Templates'] as const` with the same `border-b-2 + text-accent` active styling
-  2. **Email Templates tab:** List+detail split layout (same as current policy layout). Left pane: template list with name + `is_default` badge. Right pane: editor with `body_html` code/textarea, `subject_template`, `description`, `required_variables` chips, `body_format` toggle (html/markdown)
-  3. **Live preview:** "Preview" button calls `POST /templates/{name}/preview` and renders the HTML output in a sandboxed `<iframe srcDoc={...}>` below the editor
-  4. **Default protection:** Default templates (`is_default: true`) show editor as read-only with a banner: "Default templates cannot be modified. Duplicate to create a custom version."
-  5. **Duplicate action:** "Duplicate" button on default templates → creates a copy with `{name}-custom` name, opens it for editing
-- **Applicable emerging standards:**
-  - **G1** — template action buttons must have visible borders
-  - **G2** — Delete button disabled for default templates
-  - **G5** — `refetchInterval: 5_000` on template list (MCP can create templates externally)
-  - **G6** — field names from API response: `name`, `body_html`, `body_format`, `subject_template`, `description`, `required_variables`, `sample_data_json`, `is_default`
-  - **G15** — delete/save mutations must surface 403/422 errors to user
-  - **G20** — delete confirmation uses themed portaled modal (not `window.confirm`)
-  - **G22** — "New Template" button must provide a valid default body (not empty)
-  - **UX2** — preview panel always visible (disabled with tooltip if body_html is empty)
-- **Test IDs:** Follow existing pattern — `scheduling-tab-report-policies`, `scheduling-tab-email-templates`, `template-list`, `template-detail`, `template-preview-btn`, `template-preview-iframe`
 
-
-
-
-
-### [PIPE-DROPPDF] — Drop PDF output, replace with Markdown rendering for AI-friendly reports
-- **Severity:** Medium (architectural decision)
-- **Component:** core (`render_step.py`, `send_step.py`), infrastructure (`pdf_renderer.py`, `email_sender.py`, `models.py`)
-- **Discovered:** 2026-04-21
-- **Status:** Open — needs MEU scoping
-- **Decision:** PDF output is dropped from the pipeline. Markdown is the replacement format — it's AI-agent consumable, MCP-friendly, lightweight, and doesn't require Playwright/Chromium.
-- **Dependencies to remove:**
-  1. `pdf_renderer.py` — entire file (`zorivest_infra.rendering.pdf_renderer`). Playwright dependency can be removed.
-  2. `render_step.py` — `_render_pdf()` method, `output_format` enum values `"pdf"` and `"both"`, PDF failure handling
-  3. `send_step.py` — `pdf_path` param, `pdf_path` in `_send_emails()` call, entire `_save_local()` method (copies PDF to disk)
-  4. `email_sender.py` — `pdf_path` param, MIME PDF attachment logic (`MIMEApplication` block)
-  5. `models.py` — `ReportModel.format` column default `"pdf"` → `"md"` or `"html"`
-  6. `scheduling_repositories.py` — `format: str = "pdf"` default
-- **Replacement approach:**
-  - `RenderStep.output_format`: `"html"` (default, for email body) or `"markdown"` (for MCP/file/AI consumption)
-  - Add `_render_markdown()` to RenderStep — converts report data to structured Markdown tables
-  - `SendStep.local_file` channel: writes `.md` file instead of PDF
-  - Email attachment: optional `.md` attachment instead of PDF
-- **MEU scope:** Cleanup MEU under Phase 9. No new dependencies required — Markdown rendering is stdlib string formatting.
 
 
 ### [STUB-RETIRE] — stubs.py contains legacy stubs that should be retired progressively
@@ -221,6 +169,8 @@
 | PIPE-URLBUILD | 2026-04-19 | Per-provider URL builder registry + headers_template forwarding (MEU-PW6) |
 | PIPE-NOCANCEL | 2026-04-19 | CANCELLING status + cancel endpoint + cooperative step check (MEU-PW7) |
 | PIPE-NOLOCALQUERY | 2026-04-25 | QueryStep (MEU-PH4) provides local DB query capability |
+| GUI-EMAILTMPL | 2026-04-28 | Email Templates GUI tab in SchedulingLayout (MEU-72b) |
+| PIPE-DROPPDF | 2026-04-28 | PDF→Markdown migration, Playwright dep removed (MEU-PW14) |
 
 ## Template
 

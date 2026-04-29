@@ -187,16 +187,16 @@ def test_AC_SR9_store_report_params():
 
 
 # ---------------------------------------------------------------------------
-# AC-SR10: RenderStep Params defaults output_format="both"
+# AC-SR10: RenderStep Params defaults output_format="html" (updated per §9H)
 # ---------------------------------------------------------------------------
 
 
 def test_AC_SR10_render_step_params_defaults():
-    """RenderStep.Params defaults output_format to 'both'."""
+    """RenderStep.Params defaults output_format to 'html' (§9H.4)."""
     from zorivest_core.pipeline_steps.render_step import RenderStep
 
     p = RenderStep.Params(template="default")
-    assert p.output_format == "both"
+    assert p.output_format == "html"
 
 
 # ---------------------------------------------------------------------------
@@ -232,33 +232,10 @@ def test_AC_SR11_render_candlestick_keys():
 
 
 # ---------------------------------------------------------------------------
-# AC-SR12: render_pdf creates output directory
+# AC-SR12: REMOVED — pdf_renderer.py deleted per §9H (MEU-PW14)
 # ---------------------------------------------------------------------------
-
-
-def test_AC_SR12_render_pdf_creates_directory(tmp_path):
-    """render_pdf creates output directory if missing and produces a valid PDF."""
-    pytest.importorskip(
-        "playwright",
-        reason="Playwright not installed — requires: pip install playwright && playwright install chromium",
-    )
-    from zorivest_infra.rendering.pdf_renderer import render_pdf
-
-    output_dir = tmp_path / "reports" / "nested"
-    output_file = output_dir / "test.pdf"
-
-    result = render_pdf(
-        html_content="<html><body><h1>Test Report</h1></body></html>",
-        output_path=str(output_file),
-    )
-
-    # Directory was created
-    assert output_dir.exists()
-    # PDF file was actually produced
-    assert output_file.exists()
-    assert output_file.stat().st_size > 0
-    # Return value matches output path
-    assert result == str(output_file)
+# test_AC_SR12_render_pdf_creates_directory removed: pdf_renderer.py was
+# deleted as part of the Pipeline Markdown Migration.
 
 
 # ---------------------------------------------------------------------------
@@ -498,8 +475,8 @@ async def test_AC_SR16c_store_report_persists_via_repository():
 
 @pytest.mark.asyncio
 async def test_AC_SR17_render_step_execute_produces_html():
-    """RenderStep.execute(output_format='both') returns FAILED status
-    when Playwright is unavailable and PDF cannot be produced."""
+    """RenderStep.execute(output_format='html') returns SUCCESS with
+    HTML content (updated per §9H — 'both' format removed)."""
     from zorivest_core.domain.pipeline import StepContext
     from zorivest_core.pipeline_steps.render_step import RenderStep
 
@@ -511,20 +488,17 @@ async def test_AC_SR17_render_step_execute_produces_html():
     )
 
     result = await step.execute(
-        params={"template": "portfolio_report", "output_format": "both"},
+        params={"template": "portfolio_report", "output_format": "html"},
         context=context,
     )
 
-    # With 'both' format and no Playwright, step reports failure
-    assert result.status.value == "failed"
-    assert "PDF" in result.error  # type: ignore[reportOperatorIssue]
+    assert result.status.value == "success"
     html = result.output["html"]
     assert html is not None
     assert "<!DOCTYPE html>" in html
     assert "Daily Portfolio" in html
-    assert result.output["pdf_path"] is None
     assert result.output["template"] == "portfolio_report"
-    assert result.output["output_format"] == "both"
+    assert result.output["output_format"] == "html"
 
 
 # ---------------------------------------------------------------------------
@@ -566,7 +540,6 @@ async def test_AC_SR17b_render_step_uses_template_engine():
     assert "<!DOCTYPE html>" in html
     # Verify Jinja2 rendered the template (check for data items)
     assert "report_name" in html
-    assert result.output["pdf_path"] is None  # html-only
 
 
 @pytest.mark.asyncio
@@ -585,7 +558,6 @@ async def test_AC_SR17c_render_step_html_only_no_pdf():
 
     assert result.status.value == "success"
     assert result.output["html"] is not None
-    assert result.output["pdf_path"] is None
     # Value: verify HTML has valid structure
     assert (
         "<!DOCTYPE html>" in result.output["html"] or "<html" in result.output["html"]

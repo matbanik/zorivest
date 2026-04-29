@@ -40,4 +40,17 @@ export const SCHEDULING_TEST_IDS = {
     ERROR_STATE: 'scheduling-error-state',
     LOADING_STATE: 'scheduling-loading-state',
     POLICY_NEXT_RUN_TIME: 'scheduling-policy-next-run-time',
+
+    // Email Templates (MEU-72b, §6K.9)
+    TAB_REPORT_POLICIES: 'scheduling-tab-report-policies',
+    TAB_EMAIL_TEMPLATES: 'scheduling-tab-email-templates',
+    TEMPLATE_LIST: 'template-list',
+    TEMPLATE_DETAIL: 'template-detail',
+    TEMPLATE_PREVIEW_BTN: 'template-preview-btn',
+    TEMPLATE_PREVIEW_IFRAME: 'template-preview-iframe',
+    TEMPLATE_NEW_BTN: 'template-new-btn',
+    TEMPLATE_SAVE_BTN: 'template-save-btn',
+    TEMPLATE_DUPLICATE_BTN: 'template-duplicate-btn',
+    TEMPLATE_DELETE_BTN: 'template-delete-btn',
+    TEMPLATE_DEFAULT_BADGE: 'template-default-badge',
 } as const

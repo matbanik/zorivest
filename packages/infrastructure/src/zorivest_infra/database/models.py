@@ -565,7 +565,7 @@ class ReportModel(Base):
     spec_json = Column(Text, nullable=False)  # ReportSpec JSON
     snapshot_json = Column(Text, nullable=True)  # Frozen query results
     snapshot_hash = Column(String(64), nullable=True)  # SHA-256 of snapshot
-    format = Column(String(10), nullable=False, default="pdf")  # "html" | "pdf"
+    format = Column(String(10), nullable=False, default="html")  # "html" | "markdown"
     rendered_at = Column(DateTime, nullable=True)
     created_at = Column(DateTime, nullable=False)
     created_by = Column(String(128), default="")

@@ -334,5 +334,5 @@ P2.75 (broker adapters): MEU-96 → MEU-99
 
 | MEU | Slug | Matrix | Description | Status |
 |-----|------|:------:|-------------|:------:|
-| MEU-72b | `gui-email-templates` | 35b.2 | Email Templates tab in SchedulingLayout (CRUD, preview, default protection). Depends on MEU-72. [06k](../../docs/build-plan/06k-gui-email-templates.md) | ⬜ planned |
-| MEU-PW14 | `pipeline-markdown-migration` | 49.29 | PDF removal, Markdown rendering, Playwright dep cleanup. [09h](../../docs/build-plan/09h-pipeline-markdown-migration.md) | ⬜ planned |
+| MEU-72b | `gui-email-templates` | 35b.2 | Email Templates tab in SchedulingLayout (CRUD, preview, default protection). Depends on MEU-72. [06k](../../docs/build-plan/06k-gui-email-templates.md) | ✅ done |
+| MEU-PW14 | `pipeline-markdown-migration` | 49.29 | PDF removal, Markdown rendering, Playwright dep cleanup. [09h](../../docs/build-plan/09h-pipeline-markdown-migration.md) | ✅ done |

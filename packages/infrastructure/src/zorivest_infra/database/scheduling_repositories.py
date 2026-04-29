@@ -183,7 +183,7 @@ class ReportRepository:
         name: str,
         version: int = 1,
         spec_json: str,
-        format: str = "pdf",
+        format: str = "html",
         created_by: str = "",
         snapshot_json: str | None = None,
         snapshot_hash: str | None = None,

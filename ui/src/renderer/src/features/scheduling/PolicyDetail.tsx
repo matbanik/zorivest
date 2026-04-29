@@ -64,6 +64,7 @@ interface PolicyDetailProps {
     onTriggerRun: (dryRun: boolean) => void
     onPatchSchedule: (params: { cron_expression?: string; enabled?: boolean; timezone?: string }) => void
     onRename: (newName: string) => void
+    onDirtyChange?: (isDirty: boolean) => void
     isSaving: boolean
 }
 
@@ -75,6 +76,7 @@ export default function PolicyDetail({
     onTriggerRun,
     onPatchSchedule,
     onRename,
+    onDirtyChange,
     isSaving,
 }: PolicyDetailProps) {
     const editorRef = useRef<HTMLDivElement>(null)
@@ -82,6 +84,7 @@ export default function PolicyDetail({
     const [jsonError, setJsonError] = useState<string | null>(null)
     const [confirmRun, setConfirmRun] = useState(false)
     const [showDeleteConfirm, setShowDeleteConfirm] = useState(false)
+    const [isDirty, setIsDirty] = useState(false)
     const confirmRunTimerRef = useRef<ReturnType<typeof setTimeout> | null>(null)
 
     // ── Inline editable name ───────────────────────────────────────────
@@ -166,6 +169,12 @@ export default function PolicyDetail({
                     '.cm-content': { fontFamily: 'var(--font-mono)' },
                 }),
                 keymap.of([]),
+                EditorView.updateListener.of((update) => {
+                    if (update.docChanged) {
+                        const current = update.state.doc.toString()
+                        setIsDirty(current !== policyJsonStr)
+                    }
+                }),
             ],
         })
 
@@ -175,6 +184,7 @@ export default function PolicyDetail({
         })
 
         viewRef.current = view
+        setIsDirty(false)
 
         return () => {
             view.destroy()
@@ -182,12 +192,18 @@ export default function PolicyDetail({
         }
     }, [policy.id, policyJsonStr])
 
+    // Report dirty state to parent
+    useEffect(() => {
+        onDirtyChange?.(isDirty)
+    }, [isDirty, onDirtyChange])
+
     const handleSave = useCallback(() => {
         if (!viewRef.current) return
         const text = viewRef.current.state.doc.toString()
         try {
             const parsed = JSON.parse(text)
             setJsonError(null)
+            setIsDirty(false)
             onSave(parsed)
         } catch (e) {
             setJsonError(e instanceof Error ? e.message : 'Invalid JSON')
@@ -464,6 +480,24 @@ export default function PolicyDetail({
                                 </button>
                             )
                         })}
+                    </div>
+
+                    {/* MCP execution status indicator */}
+                    <div
+                        data-testid="mcp-execution-status"
+                        className={`flex items-center gap-1.5 text-xs font-medium px-2.5 py-1 rounded-full transition-colors ${
+                            policyState === 'draft'
+                                ? 'bg-accent-red/10 text-accent-orange'
+                                : 'bg-accent-green/10 text-accent-green'
+                        }`}
+                        title={
+                            policyState === 'draft'
+                                ? 'Policy must be approved before MCP tools can trigger execution'
+                                : 'MCP tools can trigger pipeline execution for this policy'
+                        }
+                    >
+                        <span className="text-sm">{policyState === 'draft' ? '🔒' : '🔓'}</span>
+                        <span>{policyState === 'draft' ? 'MCP cannot execute' : 'MCP can execute'}</span>
                     </div>
 
                     <div className="ml-auto">
