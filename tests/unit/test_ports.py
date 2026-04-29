@@ -87,6 +87,7 @@ class TestImageRepository:
         # Value: verify exact public method contract
         expected_methods = {
             "delete",
+            "delete_for_owner",
             "get",
             "get_for_owner",
             "get_full_data",
@@ -109,6 +110,7 @@ class TestImageRepository:
 
         expected_methods = {
             "delete",
+            "delete_for_owner",
             "get",
             "get_for_owner",
             "get_full_data",

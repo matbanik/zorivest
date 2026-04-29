@@ -2,7 +2,7 @@
  * Trade planning MCP tools.
  *
  * Source: 05d-mcp-trade-planning.md
- * Registers: create_trade_plan
+ * Registers: create_trade_plan, list_trade_plans, delete_trade_plan
  *
  * Uses registerTool() for annotation metadata support.
  */
@@ -12,6 +12,7 @@ import { z } from "zod";
 import { fetchApi } from "../utils/api-client.js";
 import { withMetrics } from "../middleware/metrics.js";
 import { withGuard } from "../middleware/mcp-guard.js";
+import { withConfirmation } from "../middleware/confirmation.js";
 import type { RegisteredToolHandle } from "../toolsets/registry.js";
 
 /**
@@ -391,6 +392,112 @@ export function registerPlanningTools(server: McpServer): RegisteredToolHandle[]
                     ],
                 };
             }),
+        ),
+    ));
+
+    // ── list_trade_plans ──────────────────────────────────────────────
+    // TA4 AC-8/AC-9: List trade plans with pagination
+    handles.push(server.registerTool(
+        "list_trade_plans",
+        {
+            description:
+                "List all trade plans with optional pagination. Returns plan details including ticker, direction, status, and entry/stop/target levels.",
+            inputSchema: {
+                limit: z
+                    .number()
+                    .int()
+                    .min(1)
+                    .max(1000)
+                    .default(100)
+                    .describe("Max results (1-1000, default 100)"),
+                offset: z
+                    .number()
+                    .int()
+                    .min(0)
+                    .default(0)
+                    .describe("Pagination offset"),
+            },
+            annotations: {
+                readOnlyHint: true,
+                destructiveHint: false,
+                idempotentHint: true,
+                openWorldHint: false,
+            },
+            _meta: {
+                toolset: "trade-planning",
+                alwaysLoaded: false,
+            },
+        },
+        withMetrics(
+            "list_trade_plans",
+            withGuard(async (params: {
+                limit: number;
+                offset: number;
+            }, _extra: unknown) => {
+                const result = await fetchApi(
+                    `/trade-plans?limit=${params.limit}&offset=${params.offset}`,
+                );
+
+                return {
+                    content: [
+                        {
+                            type: "text" as const,
+                            text: JSON.stringify(result),
+                        },
+                    ],
+                };
+            }),
+        ),
+    ));
+
+    // ── delete_trade_plan ─────────────────────────────────────────────
+    // TA4 AC-10/AC-11: Delete trade plan with M3 confirmation gate
+    handles.push(server.registerTool(
+        "delete_trade_plan",
+        {
+            description:
+                "Delete a trade plan by ID. Destructive operation requiring confirmation on static clients. Enables re-creation of plans for the same ticker.",
+            inputSchema: {
+                plan_id: z
+                    .number()
+                    .int()
+                    .describe("Trade plan ID to delete"),
+                confirmation_token: z
+                    .string()
+                    .optional()
+                    .describe(
+                        "Confirmation token from get_confirmation_token (required on static/annotation-unaware clients)",
+                    ),
+            },
+            annotations: {
+                readOnlyHint: false,
+                destructiveHint: true,
+                idempotentHint: true,
+                openWorldHint: false,
+            },
+            _meta: {
+                toolset: "trade-planning",
+                alwaysLoaded: false,
+            },
+        },
+        withMetrics(
+            "delete_trade_plan",
+            withGuard(withConfirmation(
+                "delete_trade_plan",
+                async (params: {
+                    plan_id: number;
+                }, _extra: unknown) => {
+                    const result = await fetchApi(`/trade-plans/${params.plan_id}`, {
+                        method: "DELETE",
+                    });
+
+                    return {
+                        content: [
+                            { type: "text" as const, text: JSON.stringify(result) },
+                        ],
+                    };
+                },
+            )),
         ),
     ));
 

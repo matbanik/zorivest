@@ -204,6 +204,37 @@ class TestDeleteTrade:
         assert resp.content == b""
         trade_svc.delete_trade.assert_called_once_with("E001")
 
+    def test_delete_trade_404_on_missing(self, client) -> None:
+        """TA1-AC-2: DELETE /trades/{exec_id} returns 404 for nonexistent trade."""
+        http, trade_svc, _ = client
+        trade_svc.delete_trade.side_effect = NotFoundError(
+            "Trade not found: NONEXISTENT"
+        )
+
+        resp = http.delete("/api/v1/trades/NONEXISTENT")
+        assert resp.status_code == 404
+        data = resp.json()
+        assert "detail" in data
+
+    def test_delete_trade_with_linked_records(self, client) -> None:
+        """Route-layer test: DELETE returns 204 when service succeeds.
+
+        Verifies that the route layer correctly returns 204 No Content
+        when TradeService.delete_trade() completes without error.
+        Real cascade-delete behavior (FK constraints, image cleanup) is
+        tested in integration/test_api_roundtrip.py::test_delete_trade_with_linked_*
+        and unit/test_service_extensions.py::TestDeleteTrade.
+        """
+        http, trade_svc, _ = client
+        # Service succeeds — cascading delete of linked records is handled
+        # internally by the service/UoW layer (no side_effect = success).
+        trade_svc.delete_trade.return_value = None
+
+        resp = http.delete("/api/v1/trades/E001")
+        assert resp.status_code == 204
+        assert resp.content == b""
+        trade_svc.delete_trade.assert_called_once_with("E001")
+
 
 # ── Trade images ────────────────────────────────────────────────────────
 

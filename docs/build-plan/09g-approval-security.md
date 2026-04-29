@@ -4,7 +4,7 @@
 > Prerequisites: Phase 4 ✅, Phase 5 ✅, Phase 6 ✅, Phase 9c ✅
 > Unblocks: Secure agent-first policy lifecycle, MCP-only policy management
 > Resolves: [MCP-APPROVBYPASS], [MCP-POLICYGAP]
-> Status: ⬜ planned
+> Status: ✅ complete (2026-04-29)
 
 ---
 

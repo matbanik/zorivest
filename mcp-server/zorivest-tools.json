@@ -1,5 +1,5 @@
 {
-  "total_tools": 74,
+  "total_tools": 76,
   "toolset_count": 10,
   "toolsets": [
     {
@@ -44,7 +44,7 @@
     {
       "name": "trade-planning",
       "description": "Position calculator, trade plans, watchlist management (includes create_trade cross-tagged from 05c)",
-      "tool_count": 8,
+      "tool_count": 10,
       "always_loaded": false,
       "tools": [
         "calculate_position_size",
@@ -54,7 +54,9 @@
         "list_watchlists",
         "get_watchlist",
         "add_to_watchlist",
-        "remove_from_watchlist"
+        "remove_from_watchlist",
+        "list_trade_plans",
+        "delete_trade_plan"
       ]
     },
     {
@@ -157,5 +159,5 @@
       ]
     }
   ],
-  "generated_at": "2026-04-27T17:56:29.842Z"
+  "generated_at": "2026-04-29T01:48:52.413Z"
 }

@@ -143,4 +143,30 @@ describe("update_settings", () => {
         expect(parsed.success).toBe(false);
         expect(parsed.error).toContain("400");
     });
+
+    it("returns readable error when API returns structured error detail (AC-6)", async () => {
+        // Simulate settings validation error with structured detail
+        mockFetch(
+            { detail: { errors: { theme: ["Invalid theme value"] } } },
+            422,
+        );
+
+        const client = await createTestClient();
+        const result = await client.callTool({
+            name: "update_settings",
+            arguments: {
+                settings: { theme: "invalid_theme_value" },
+            },
+        });
+
+        const content = result.content as Array<{ type: string; text: string }>;
+        const parsed = JSON.parse(content[0].text);
+        expect(parsed.success).toBe(false);
+        // Must NOT contain [object Object] — the original bug
+        expect(parsed.error).not.toContain("[object Object]");
+        // Must contain the status code
+        expect(parsed.error).toContain("422");
+        // Must contain the actual error content
+        expect(parsed.error).toContain("Invalid theme value");
+    });
 });

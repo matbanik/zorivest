@@ -190,7 +190,32 @@ class TradeService:
             return updated
 
     def delete_trade(self, exec_id: str) -> None:
-        """Delete a trade by exec_id."""
+        """Delete a trade and all linked records (report, images).
+
+        Cleanup order:
+        1. Delete report-owned images (polymorphic, no FK cascade)
+        2. Delete the linked TradeReport (also cascaded by ORM, but
+           explicit delete ensures image cleanup happens first)
+        3. Delete trade-owned images (polymorphic, no FK cascade)
+        4. Delete the trade itself
+
+        Raises:
+            NotFoundError: If trade does not exist.
+        """
         with self.uow:
+            trade = self.uow.trades.get(exec_id)
+            if trade is None:
+                raise NotFoundError(f"Trade not found: {exec_id}")
+
+            # Clean up linked report and its images
+            report = self.uow.trade_reports.get_for_trade(exec_id)
+            if report is not None:
+                self.uow.images.delete_for_owner("report", str(report.id))
+                self.uow.trade_reports.delete(report.id)
+
+            # Clean up trade-owned images (polymorphic — no FK cascade)
+            self.uow.images.delete_for_owner("trade", exec_id)
+
+            # Delete the trade
             self.uow.trades.delete(exec_id)
             self.uow.commit()

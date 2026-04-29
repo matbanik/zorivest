@@ -28,6 +28,7 @@ import { registerDiscoveryTools } from "../tools/discovery-tools.js";
 import { registerMarketDataTools } from "../tools/market-data-tools.js";
 import { registerSchedulingTools, registerSchedulingResources } from "../tools/scheduling-tools.js";
 import { registerPipelineSecurityTools, registerPipelineSecurityResources } from "../tools/pipeline-security-tools.js";
+import { registerTaxTools } from "../tools/tax-tools.js";
 
 // ── Toolset definitions (canonical: 05-mcp-server.md §5.11 L735-745) ──
 
@@ -165,6 +166,14 @@ export const TOOLSET_DEFINITIONS: ToolsetDefinition[] = [
             {
                 name: "remove_from_watchlist",
                 description: "Remove a ticker from a watchlist",
+            },
+            {
+                name: "list_trade_plans",
+                description: "List trade plans with pagination",
+            },
+            {
+                name: "delete_trade_plan",
+                description: "Delete a trade plan (destructive, requires confirmation)",
             },
         ],
         register: (server: McpServer): RegisteredToolHandle[] => [
@@ -395,7 +404,8 @@ export const TOOLSET_DEFINITIONS: ToolsetDefinition[] = [
                 description: "Identify tax-loss harvesting opportunities",
             },
         ],
-        register: () => [],
+        register: (server: McpServer): RegisteredToolHandle[] =>
+            registerTaxTools(server),
         loaded: false,
         alwaysLoaded: false,
         isDefault: false,

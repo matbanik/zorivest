@@ -149,6 +149,7 @@ class TestDeleteTrade:
     def test_delete_trade_success(self) -> None:
         """Deletes trade and commits."""
         uow = _make_uow()
+        uow.trades.get.return_value = _sample_trade("E001")
 
         svc = TradeService(uow)
         svc.delete_trade("E001")
@@ -156,6 +157,52 @@ class TestDeleteTrade:
         uow.trades.delete.assert_called_once_with("E001")
         uow.commit.assert_called_once()
         uow.__enter__.assert_called_once()
+
+    def test_delete_trade_not_found(self) -> None:
+        """TA1-AC-3: Raises NotFoundError for nonexistent trade."""
+        uow = _make_uow()
+        uow.trades.get.return_value = None
+
+        svc = TradeService(uow)
+        with pytest.raises(NotFoundError, match="NONEXISTENT"):
+            svc.delete_trade("NONEXISTENT")
+
+        # Must not call delete or commit on miss
+        uow.trades.delete.assert_not_called()
+        uow.commit.assert_not_called()
+
+    def test_delete_trade_cleans_up_trade_images(self) -> None:
+        """TRADE-CASCADE: delete_trade must delete trade-owned images."""
+        uow = _make_uow()
+        uow.trades.get.return_value = _sample_trade("E001")
+        uow.trade_reports.get_for_trade.return_value = None
+
+        svc = TradeService(uow)
+        svc.delete_trade("E001")
+
+        # Must delete trade-owned images
+        uow.images.delete_for_owner.assert_any_call("trade", "E001")
+        uow.trades.delete.assert_called_once_with("E001")
+        uow.commit.assert_called_once()
+
+    def test_delete_trade_cleans_up_report_and_report_images(self) -> None:
+        """TRADE-CASCADE: delete_trade must cascade-delete report and its images."""
+        uow = _make_uow()
+        uow.trades.get.return_value = _sample_trade("E001")
+        # Simulate a linked report with id=42
+        mock_report = MagicMock()
+        mock_report.id = 42
+        uow.trade_reports.get_for_trade.return_value = mock_report
+
+        svc = TradeService(uow)
+        svc.delete_trade("E001")
+
+        # Must delete report-owned images, the report itself, then trade images
+        uow.images.delete_for_owner.assert_any_call("report", "42")
+        uow.images.delete_for_owner.assert_any_call("trade", "E001")
+        uow.trade_reports.delete.assert_called_once_with(42)
+        uow.trades.delete.assert_called_once_with("E001")
+        uow.commit.assert_called_once()
 
 
 # ── AccountService extensions ───────────────────────────────────────────

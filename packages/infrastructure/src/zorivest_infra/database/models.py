@@ -56,7 +56,12 @@ class TradeModel(Base):
         "foreign(ImageModel.owner_id)==TradeModel.exec_id)",
         viewonly=True,
     )
-    report = relationship("TradeReportModel", back_populates="trade", uselist=False)
+    report = relationship(
+        "TradeReportModel",
+        back_populates="trade",
+        uselist=False,
+        cascade="all, delete-orphan",
+    )
     account_rel = relationship("AccountModel", back_populates="trades")
 
 
@@ -109,7 +114,12 @@ class TradeReportModel(Base):
     __tablename__ = "trade_reports"
 
     id = Column(Integer, primary_key=True, autoincrement=True)
-    trade_id = Column(String, ForeignKey("trades.exec_id"), unique=True, nullable=False)
+    trade_id = Column(
+        String,
+        ForeignKey("trades.exec_id", ondelete="CASCADE"),
+        unique=True,
+        nullable=False,
+    )
     setup_quality = Column(Integer, nullable=True)  # 1-5
     execution_quality = Column(Integer, nullable=True)  # 1-5
     followed_plan = Column(Boolean, nullable=True)

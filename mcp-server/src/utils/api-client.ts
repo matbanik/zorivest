@@ -102,10 +102,15 @@ export async function fetchApi(
 
         if (!res.ok) {
             const body = await res.text();
-            let detail = body;
+            let detail: string = body;
             try {
-                const parsed = JSON.parse(body) as { detail?: string };
-                detail = parsed.detail ?? body;
+                const parsed = JSON.parse(body) as { detail?: unknown };
+                if (parsed.detail !== undefined) {
+                    detail =
+                        typeof parsed.detail === "string"
+                            ? parsed.detail
+                            : JSON.stringify(parsed.detail);
+                }
             } catch {
                 // use raw text
             }

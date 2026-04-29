@@ -174,7 +174,10 @@ async def update_trade(
 )
 async def delete_trade(exec_id: str, service=Depends(get_trade_service)):
     """Delete a trade."""
-    service.delete_trade(exec_id)
+    try:
+        service.delete_trade(exec_id)
+    except NotFoundError:
+        raise HTTPException(404, f"Trade not found: {exec_id}")
 
 
 # ── Trade image routes (nested) ─────────────────────────────────────────

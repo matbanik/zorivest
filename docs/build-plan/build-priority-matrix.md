@@ -1,6 +1,6 @@
 # Build Priority Matrix
 
-> Part of [Zorivest Build Plan](../BUILD_PLAN.md) — The build order across all priority levels (217 items).
+> Part of [Zorivest Build Plan](../BUILD_PLAN.md) — The build order across all priority levels (221 items).
 
 ---
 
@@ -162,6 +162,19 @@
 | **49.27** | MCP scheduling gap fill: `delete_policy`, `update_policy`, `get_email_config` (MEU-PH12) | ✅ Yes | `delete_policy` requires confirmation token. [09g §2](09g-approval-security.md) |
 | **49.28** | Emulator VALIDATE phase hardening (MEU-PH13) | ✅ Yes | EXPLAIN SQL errors, SMTP config check, step wiring validation. [09f ext](09f-policy-emulator.md) |
 | **49.29** | Pipeline Markdown migration (MEU-PW14) | ✅ Yes | PDF removal, `_render_markdown()`, Playwright dep cleanup. [09h](09h-pipeline-markdown-migration.md) |
+
+---
+
+## P2.5e — MCP Tool Remediation
+
+> **Source**: [MCP Tool Audit Report](../../.agent/context/MCP/mcp-tool-audit-report.md). Resolves [MCP-TOOLAUDIT] findings from comprehensive 74-tool CRUD audit.
+
+| Order | What | Tests First? | Notes |
+|-------|------|-------------|-------|
+| **5.J** | Fix `delete_trade` 500 error (MEU-TA1) | ✅ Yes | Debug API trade deletion endpoint, fix error handling. [MCP-TOOLAUDIT] High finding. |
+| **5.K** | Fix `update_settings` serialization bug (MEU-TA2) | ✅ Yes | TypeScript `[object Object]` → string serialization. [MCP-TOOLAUDIT] Medium. |
+| **5.L** | Guard unimplemented MCP tools (MEU-TA3) | ✅ Yes | 6 tools (`list_bank_accounts`, `list_brokers`, `resolve_identifiers`, tax toolset) return 501 instead of 404/500. [MCP-TOOLAUDIT] Medium. |
+| **5.M** | Trade plan lifecycle MCP tools (MEU-TA4) | ✅ Yes | Add `list_trade_plans`, `delete_trade_plan`. Fix `create_trade_plan` 409. [MCP-TOOLAUDIT] Medium. |
 
 ---
 

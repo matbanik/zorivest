@@ -326,9 +326,22 @@ P2.75 (broker adapters): MEU-96 → MEU-99
 
 | MEU | Slug | Matrix | Description | Status |
 |-----|------|:------:|-------------|:------:|
-| MEU-PH11 | `approval-csrf-token` | 49.26 | CSRF challenge token: Electron IPC → API middleware on `POST /approve`; single-use, 5-min TTL, policy-scoped | ⬜ planned |
-| MEU-PH12 | `mcp-scheduling-gap-fill` | 49.27 | 3 MCP tools: `delete_policy` (destructive + confirm), `update_policy`, `get_email_config` | ⬜ planned |
-| MEU-PH13 | `emulator-validate-hardening` | 49.28 | VALIDATE improvements: EXPLAIN SQL, SMTP check, step output wiring validation | ⬜ planned |
+| MEU-PH11 | `approval-csrf-token` | 49.26 | CSRF challenge token: Electron IPC → API middleware on `POST /approve`; single-use, 5-min TTL, policy-scoped | ✅ 2026-04-29 |
+| MEU-PH12 | `mcp-scheduling-gap-fill` | 49.27 | 3 MCP tools: `delete_policy` (destructive + confirm), `update_policy`, `get_email_config` | ✅ 2026-04-29 |
+| MEU-PH13 | `emulator-validate-hardening` | 49.28 | VALIDATE improvements: EXPLAIN SQL, SMTP check, step output wiring validation | ✅ 2026-04-29 |
+
+## P2.5e: MCP Tool Remediation
+
+> Source: [MCP Tool Audit Report](../../.agent/context/MCP/mcp-tool-audit-report.md)
+> Prerequisite: P2.5c complete (MEU-PH1→PH10 ✅); parallel with P2.5d
+> Resolves: [MCP-TOOLAUDIT]
+
+| MEU | Slug | Matrix | Description | Status |
+|-----|------|:------:|-------------|:------:|
+| MEU-TA1 | `mcp-delete-trade-fix` | 5.J | Fix `delete_trade` returning 500 on valid exec_id — debug API trade deletion endpoint, fix error handling, add regression test · [MCP-TOOLAUDIT] High | ✅ done |
+| MEU-TA2 | `mcp-settings-serialization-fix` | 5.K | Fix `update_settings` returning 422 with `[object Object]` — TypeScript serialization bug · [MCP-TOOLAUDIT] Medium | ✅ done |
+| MEU-TA3 | `mcp-unimplemented-tool-guard` | 5.L | Guard 6 unimplemented MCP tools to return "501 Not Implemented" instead of 404/500 · [MCP-TOOLAUDIT] Medium | ✅ done |
+| MEU-TA4 | `mcp-trade-plan-lifecycle` | 5.M | Add `list_trade_plans` + `delete_trade_plan` MCP tools; fix `create_trade_plan` 409 · [MCP-TOOLAUDIT] Medium | ✅ done |
 
 ## Other New MEUs (cross-phase)
 

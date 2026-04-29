@@ -90,6 +90,13 @@ class ImageRepository(Protocol):
 
     def delete(self, image_id: int) -> None: ...
 
+    def delete_for_owner(self, owner_type: str, owner_id: str) -> int:
+        """Delete all images owned by the given owner_type/owner_id.
+
+        Returns the number of images deleted.
+        """
+        ...
+
     def get_thumbnail(self, image_id: int, max_size: int = 200) -> bytes: ...
 
     def get_full_data(self, image_id: int) -> bytes:

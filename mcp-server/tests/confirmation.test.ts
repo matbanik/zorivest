@@ -146,9 +146,14 @@ describe("withConfirmation", () => {
         const destructiveTools = [
             "zorivest_emergency_stop",
             "create_trade",
+            "delete_trade",
+            "delete_account",
+            "delete_policy",
+            "reassign_trades",
             "sync_broker",
             "disconnect_market_provider",
             "zorivest_service_restart",
+            "delete_trade_plan",
         ];
 
         it.each(destructiveTools)(

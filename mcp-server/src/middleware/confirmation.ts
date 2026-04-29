@@ -26,6 +26,7 @@ const DESTRUCTIVE_TOOLS = new Set([
     "delete_trade",
     "delete_account",
     "delete_policy",
+    "delete_trade_plan",
     "reassign_trades",
     "sync_broker",
     "disconnect_market_provider",

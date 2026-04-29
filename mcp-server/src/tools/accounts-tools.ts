@@ -102,11 +102,11 @@ export function registerAccountTools(server: McpServer): RegisteredToolHandle[] 
         ),
     ));
 
-    // AC-2: GETs /brokers with no params
+    // AC-2: list_brokers — 501 Not Implemented (backend endpoint not yet built)
     handles.push(server.registerTool(
         "list_brokers",
         {
-            description: "List configured broker adapters with sync status",
+            description: "List configured broker adapters with sync status. (Not yet implemented)",
             inputSchema: {},
             annotations: {
                 readOnlyHint: true,
@@ -119,23 +119,26 @@ export function registerAccountTools(server: McpServer): RegisteredToolHandle[] 
                 alwaysLoaded: false,
             },
         },
-        async () => {
-            const result = await fetchApi("/brokers");
-            return {
-                content: [
-                    { type: "text" as const, text: JSON.stringify(result) },
-                ],
-            };
-        },
+        async () => ({
+            content: [
+                {
+                    type: "text" as const,
+                    text: JSON.stringify({
+                        success: false,
+                        error: "501: Not Implemented \u2014 This tool is planned but not yet implemented.",
+                    }),
+                },
+            ],
+        }),
     ));
 
     // ── resolve_identifiers ───────────────────────────────────────────
-    // AC-3: POSTs to /identifiers/resolve with JSON-wrapped body
+    // AC-3: 501 Not Implemented (backend endpoint not yet built)
     handles.push(server.registerTool(
         "resolve_identifiers",
         {
             description:
-                "Batch resolve CUSIP/ISIN/SEDOL to ticker symbols",
+                "Batch resolve CUSIP/ISIN/SEDOL to ticker symbols. (Not yet implemented)",
             inputSchema: {
                 identifiers: z.array(
                     z.object({
@@ -155,22 +158,17 @@ export function registerAccountTools(server: McpServer): RegisteredToolHandle[] 
                 alwaysLoaded: false,
             },
         },
-        async (params: {
-            identifiers: Array<{ id_type: string; id_value: string }>;
-        }) => {
-            // Bridge 05f structured input to 04b REST contract:
-            // handler wraps as {"identifiers": identifiers}
-            const result = await fetchApi("/identifiers/resolve", {
-                method: "POST",
-                headers: { "Content-Type": "application/json" },
-                body: JSON.stringify({ identifiers: params.identifiers }),
-            });
-            return {
-                content: [
-                    { type: "text" as const, text: JSON.stringify(result) },
-                ],
-            };
-        },
+        async () => ({
+            content: [
+                {
+                    type: "text" as const,
+                    text: JSON.stringify({
+                        success: false,
+                        error: "501: Not Implemented \u2014 This tool is planned but not yet implemented.",
+                    }),
+                },
+            ],
+        }),
     ));
 
     // ── import_bank_statement ─────────────────────────────────────────
@@ -330,12 +328,12 @@ export function registerAccountTools(server: McpServer): RegisteredToolHandle[] 
     ));
 
     // ── list_bank_accounts ────────────────────────────────────────────
-    // AC-7: GETs /banking/accounts with no params
+    // AC-7: 501 Not Implemented (backend endpoint not yet built)
     handles.push(server.registerTool(
         "list_bank_accounts",
         {
             description:
-                "List bank accounts with current balance and last updated timestamp",
+                "List bank accounts with current balance and last updated timestamp. (Not yet implemented)",
             inputSchema: {},
             annotations: {
                 readOnlyHint: true,
@@ -348,14 +346,17 @@ export function registerAccountTools(server: McpServer): RegisteredToolHandle[] 
                 alwaysLoaded: false,
             },
         },
-        async () => {
-            const result = await fetchApi("/banking/accounts");
-            return {
-                content: [
-                    { type: "text" as const, text: JSON.stringify(result) },
-                ],
-            };
-        },
+        async () => ({
+            content: [
+                {
+                    type: "text" as const,
+                    text: JSON.stringify({
+                        success: false,
+                        error: "501: Not Implemented \u2014 This tool is planned but not yet implemented.",
+                    }),
+                },
+            ],
+        }),
     ));
 
     // ── get_account_review_checklist ──────────────────────────────────

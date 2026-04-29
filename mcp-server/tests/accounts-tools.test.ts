@@ -116,80 +116,61 @@ describe("sync_broker", () => {
     });
 });
 
-// AC-2: list_brokers GETs /brokers with no params
+// AC-2: list_brokers returns 501 Not Implemented (backend not yet built)
 describe("list_brokers", () => {
     beforeEach(() => {
         vi.restoreAllMocks();
     });
 
-    it("GETs /brokers with no params", async () => {
-        mockFetch([
-            { broker_id: "ibkr_pro", name: "IBKR", last_sync: "2026-03-01" },
-        ]);
-
+    it("returns 501 Not Implemented", async () => {
         const client = await createTestClient();
         const result = await client.callTool({
             name: "list_brokers",
             arguments: {},
         });
 
-        expect(fetch).toHaveBeenCalledOnce();
-        const [url] = vi.mocked(fetch).mock.calls[0];
-        expect(url).toContain("/brokers");
-        // No method specified = GET (default)
+        // No fetch should be called — handler returns 501 directly
+        expect(fetch).not.toHaveBeenCalled();
 
         const content = result.content as Array<{
             type: string;
             text: string;
         }>;
         const parsed = JSON.parse(content[0].text);
-        expect(parsed.success).toBe(true);
+        expect(parsed.success).toBe(false);
+        expect(parsed.error).toContain("501");
+        expect(parsed.error).toContain("Not Implemented");
     });
 });
 
-// AC-3: resolve_identifiers POSTs to /identifiers/resolve with JSON-wrapped body
+// AC-3: resolve_identifiers returns 501 Not Implemented (backend not yet built)
 describe("resolve_identifiers", () => {
     beforeEach(() => {
         vi.restoreAllMocks();
     });
 
-    it("POSTs structured identifiers wrapped as JSON to /identifiers/resolve", async () => {
-        mockFetch([
-            { id_type: "cusip", id_value: "037833100", ticker: "AAPL" },
-        ]);
-
+    it("returns 501 Not Implemented", async () => {
         const client = await createTestClient();
         const result = await client.callTool({
             name: "resolve_identifiers",
             arguments: {
                 identifiers: [
                     { id_type: "cusip", id_value: "037833100" },
-                    { id_type: "isin", id_value: "US0378331005" },
                 ],
             },
         });
 
-        expect(fetch).toHaveBeenCalledOnce();
-        const [url, opts] = vi.mocked(fetch).mock.calls[0];
-        expect(url).toContain("/identifiers/resolve");
-        expect(opts?.method).toBe("POST");
-
-        // Verify Content-Type header
-        const headers = opts?.headers as Record<string, string>;
-        expect(headers["Content-Type"]).toBe("application/json");
-
-        // Verify body wraps identifiers per plan: JSON.stringify({ identifiers })
-        const body = JSON.parse(opts?.body as string);
-        expect(body.identifiers).toHaveLength(2);
-        expect(body.identifiers[0].id_type).toBe("cusip");
-        expect(body.identifiers[1].id_value).toBe("US0378331005");
+        // No fetch should be called — handler returns 501 directly
+        expect(fetch).not.toHaveBeenCalled();
 
         const content = result.content as Array<{
             type: string;
             text: string;
         }>;
         const parsed = JSON.parse(content[0].text);
-        expect(parsed.success).toBe(true);
+        expect(parsed.success).toBe(false);
+        expect(parsed.error).toContain("501");
+        expect(parsed.error).toContain("Not Implemented");
     });
 });
 
@@ -295,37 +276,30 @@ describe("import_broker_pdf", () => {
     });
 });
 
-// AC-7: list_bank_accounts GETs /banking/accounts with no params
+// AC-7: list_bank_accounts returns 501 Not Implemented (backend not yet built)
 describe("list_bank_accounts", () => {
     beforeEach(() => {
         vi.restoreAllMocks();
     });
 
-    it("GETs /banking/accounts with no params", async () => {
-        mockFetch([
-            {
-                account_id: "checking_001",
-                name: "Main Checking",
-                last_updated: "2026-03-01",
-            },
-        ]);
-
+    it("returns 501 Not Implemented", async () => {
         const client = await createTestClient();
         const result = await client.callTool({
             name: "list_bank_accounts",
             arguments: {},
         });
 
-        expect(fetch).toHaveBeenCalledOnce();
-        const [url] = vi.mocked(fetch).mock.calls[0];
-        expect(url).toContain("/banking/accounts");
+        // No fetch should be called — handler returns 501 directly
+        expect(fetch).not.toHaveBeenCalled();
 
         const content = result.content as Array<{
             type: string;
             text: string;
         }>;
         const parsed = JSON.parse(content[0].text);
-        expect(parsed.success).toBe(true);
+        expect(parsed.success).toBe(false);
+        expect(parsed.error).toContain("501");
+        expect(parsed.error).toContain("Not Implemented");
     });
 });
 

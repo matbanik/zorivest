@@ -172,6 +172,79 @@ class TestTradeCrudRoundTrip:
         r2 = client.get("/api/v1/trades/RT-001")
         assert r2.status_code == 404
 
+    def test_delete_trade_with_linked_report(self, client: TestClient) -> None:
+        """TRADE-CASCADE: Deleting a trade with a linked TradeReport must return 204.
+
+        Regression test: Prior to the cascade fix, this returned 500 because
+        TradeReportModel.trade_id FK had no ondelete='CASCADE' and
+        TradeModel.report had no cascade='all, delete-orphan'.
+        """
+        # Create trade
+        trade = {**self.SAMPLE_TRADE, "exec_id": "RT-CASCADE-RPT"}
+        r = client.post("/api/v1/trades", json=trade)
+        assert r.status_code == 201
+
+        # Create linked report
+        report_body = {
+            "setup_quality": "A",
+            "execution_quality": "B",
+            "followed_plan": True,
+            "emotional_state": "calm",
+            "lessons_learned": "Cascade test",
+            "tags": ["test"],
+        }
+        r2 = client.post("/api/v1/trades/RT-CASCADE-RPT/report", json=report_body)
+        assert r2.status_code == 201, f"Report create failed: {r2.text}"
+
+        # Delete trade — must succeed (not 500)
+        r3 = client.delete("/api/v1/trades/RT-CASCADE-RPT")
+        assert r3.status_code == 204, (
+            f"Expected 204 on delete-with-report, got {r3.status_code}: {r3.text}"
+        )
+
+        # Verify trade AND report are gone
+        r4 = client.get("/api/v1/trades/RT-CASCADE-RPT")
+        assert r4.status_code == 404
+        r5 = client.get("/api/v1/trades/RT-CASCADE-RPT/report")
+        assert r5.status_code == 404
+
+    def test_delete_trade_with_linked_images(self, client: TestClient) -> None:
+        """TRADE-CASCADE: Deleting a trade with attached images must return 204.
+
+        Images use polymorphic owner_type/owner_id so cannot use FK cascades.
+        The service layer must explicitly delete trade-owned images.
+        """
+        import io
+
+        from PIL import Image
+
+        # Create trade
+        trade = {**self.SAMPLE_TRADE, "exec_id": "RT-CASCADE-IMG"}
+        r = client.post("/api/v1/trades", json=trade)
+        assert r.status_code == 201
+
+        # Generate a valid 1x1 white PNG
+        buf = io.BytesIO()
+        Image.new("RGB", (1, 1), color=(255, 255, 255)).save(buf, format="PNG")
+        buf.seek(0)
+
+        r2 = client.post(
+            "/api/v1/trades/RT-CASCADE-IMG/images",
+            files={"file": ("test.png", buf, "image/png")},
+            data={"caption": "Cascade test"},
+        )
+        assert r2.status_code == 201, f"Image attach failed: {r2.text}"
+
+        # Delete trade — must succeed (not 500)
+        r3 = client.delete("/api/v1/trades/RT-CASCADE-IMG")
+        assert r3.status_code == 204, (
+            f"Expected 204 on delete-with-images, got {r3.status_code}: {r3.text}"
+        )
+
+        # Verify trade is gone
+        r4 = client.get("/api/v1/trades/RT-CASCADE-IMG")
+        assert r4.status_code == 404
+
 
 # ── Guard endpoint ──────────────────────────────────────────────────────
 

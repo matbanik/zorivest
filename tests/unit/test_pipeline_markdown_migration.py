@@ -223,8 +223,15 @@ async def test_AC_PW14_3e_markdown_format_works():
 
 def test_AC_PW14_4_pdf_renderer_deleted():
     """pdf_renderer.py must not exist after migration."""
-    pdf_path = Path(
-        "p:/zorivest/packages/infrastructure/src/zorivest_infra/rendering/pdf_renderer.py"
+    repo_root = Path(__file__).resolve().parents[2]
+    pdf_path = (
+        repo_root
+        / "packages"
+        / "infrastructure"
+        / "src"
+        / "zorivest_infra"
+        / "rendering"
+        / "pdf_renderer.py"
     )
     assert not pdf_path.exists(), f"pdf_renderer.py should be deleted: {pdf_path}"
 
@@ -352,7 +359,8 @@ def test_AC_PW14_9_report_repo_create_default_html():
 
 def test_AC_PW14_10_playwright_removed_from_pyproject():
     """Playwright must not appear in infrastructure pyproject.toml."""
-    pyproject_path = Path("p:/zorivest/packages/infrastructure/pyproject.toml")
+    repo_root = Path(__file__).resolve().parents[2]
+    pyproject_path = repo_root / "packages" / "infrastructure" / "pyproject.toml"
     content = pyproject_path.read_text(encoding="utf-8")
     assert "playwright" not in content.lower(), (
         "Playwright should be removed from pyproject.toml"

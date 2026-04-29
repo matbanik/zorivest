@@ -87,7 +87,7 @@ Domain → Infrastructure → Services → REST API → MCP Server → GUI → D
 | 6 — GUI | 🟡 In Progress (P0 complete, P2 items remain) | 2026-03-25 |
 | 7 — Distribution | ⚪ Not Started | — |
 | 8 — Market Data | ✅ Completed | 2026-03-23 |
-| 9 — Scheduling | ✅ Core complete; P2.5c ✅ (10/10); P2.5d approval security & emulator hardening scoped (3 MEUs) | 2026-04-27 |
+| 9 — Scheduling | ✅ Core complete; P2.5c ✅ (10/10); P2.5b PW14 ✅ + 72b ✅; P2.5d ✅ (3/3); P2.5e scoped (4 MEUs) | 2026-04-29 |
 | 10 — Service Daemon | ⚪ Not Started | — |
 | 11 — Monetization | ⚪ Not Started | — |
 
@@ -288,7 +288,7 @@ Domain → Infrastructure → Services → REST API → MCP Server → GUI → D
 | MEU-71a | `account-gui` | 35a.1 | [06d](build-plan/06d-gui-accounts.md) | Account Management GUI (list, add, edit, balance display); accounts dropdown in Trade Planner form · Depends on MEU-71 | ✅ |
 | MEU-71b | `calculator-account-integration` | 35a.2 | [06h](build-plan/06h-gui-calculator.md) | Position Calculator pulls account balance from selected account for risk % calculation · Depends on MEU-71 ✅ | ✅ |
 | MEU-72 | `gui-scheduling` | 35b | [06e](build-plan/06e-gui-scheduling.md) | Scheduling GUI · **E2E [Wave 8](build-plan/06-gui.md#wave-activation-schedule)**: `scheduling`/`scheduling-tz` tests (+5 = 34) · ✅ ~~`[BOUNDARY-GAP]` F4 prerequisite~~ resolved by MEU-BV6 (2026-04-11) | ✅ |
-| MEU-72b | `gui-email-templates` | 35b.2 | [06k](build-plan/06k-gui-email-templates.md) | Email Templates tab in SchedulingLayout (CRUD, preview, default protection) · **E2E [Wave 8](build-plan/06-gui.md#wave-activation-schedule)**: extend scheduling tests (+3) · Depends on MEU-72 ✅ | ⬜ |
+| MEU-72b | `gui-email-templates` | 35b.2 | [06k](build-plan/06k-gui-email-templates.md) | Email Templates tab in SchedulingLayout (CRUD, preview, default protection) · **E2E [Wave 8](build-plan/06-gui.md#wave-activation-schedule)**: extend scheduling tests (+3) · Depends on MEU-72 ✅ | ✅ |
 | MEU-73 | `gui-email-settings` | 35c | [06f §email](build-plan/06f-gui-settings.md) | Email Provider Settings GUI · ✅ `[BOUNDARY-GAP]` F6 resolved by MEU-BV5 (handoff 102) | ✅ |
 | MEU-74 | `gui-backup-restore` | 35d | [06f §backup](build-plan/06f-gui-settings.md) | Backup & Restore Settings GUI · **E2E [Wave 3](build-plan/06-gui.md#wave-activation-schedule)**: `backup-restore` tests (+2 = 19) | ⬜ |
 | MEU-75 | `gui-config-export` | 35e | [06f §export](build-plan/06f-gui-settings.md) | Config Export/Import GUI · **E2E wave TBD** — define wave before implementation | ⬜ |
@@ -357,7 +357,7 @@ Domain → Infrastructure → Services → REST API → MCP Server → GUI → D
 | MEU-PW13 | `pipeline-e2e-chain-tests` | 49.15 | [09b §9B.6](build-plan/09b-pipeline-hardening.md), [data flow gap analysis](../.agent/context/scheduling/data_flow_gap_analysis.md) | Integration tests exercising real FetchStep → TransformStep → SendStep data handoff with mocked HTTP (real `MarketDataProviderAdapter`), real field mappings, Pandera validation, in-memory SQLite; includes [PIPE-CACHEUPSERT] write-back assertion; extends MEU-PW8 test harness · Depends on: MEU-PW12 | ✅ |
 | MEU-72a | `scheduling-gui-tz-polish` | 35f.1 | [06e](build-plan/06e-gui-scheduling.md) | `PolicyList` timezone display: replace `toLocaleString` with `formatTimestamp` IANA-aware utility · Independent | ✅ |
 | MEU-TD1 | `mcp-tool-discovery-audit` | 5.I | [05](build-plan/05-mcp-server.md) | Audit all 9 MCP toolset descriptions; enrich server instructions with workflow summaries; add `policy_json` examples to `create_policy`; reference MCP resources from tool descriptions; add prerequisite state, return shape, and error conditions · Parallel with any MEU | ⬜ |
-| MEU-PW14 | `pipeline-markdown-migration` | 49.29 | [09h](build-plan/09h-pipeline-markdown-migration.md) | Remove PDF output pipeline, add Markdown rendering, cleanup Playwright dependency · Resolves [PIPE-DROPPDF] · Depends on MEU-PW9 ✅, MEU-87 ✅ | ⬜ |
+| MEU-PW14 | `pipeline-markdown-migration` | 49.29 | [09h](build-plan/09h-pipeline-markdown-migration.md) | Remove PDF output pipeline, add Markdown rendering, cleanup Playwright dependency · Resolves [PIPE-DROPPDF] · Depends on MEU-PW9 ✅, MEU-87 ✅ | ✅ |
 
 ---
 
@@ -396,9 +396,26 @@ Domain → Infrastructure → Services → REST API → MCP Server → GUI → D
 
 | MEU | Slug | Matrix Item | Build Plan Ref | Description | Status |
 |-----|------|:-----------:|----------------|-------------|:------:|
-| MEU-PH11 | `approval-csrf-token` | 49.26 | [09g §1](build-plan/09g-approval-security.md) | CSRF challenge token: Electron IPC generation + API validation middleware on `POST /policies/{id}/approve`; single-use, 5-min TTL, policy-scoped | ⬜ |
-| MEU-PH12 | `mcp-scheduling-gap-fill` | 49.27 | [09g §2](build-plan/09g-approval-security.md) | Add 3 MCP tools: `delete_policy` (destructive + confirmation), `update_policy` (in-place PATCH), `get_email_config` (SMTP readiness) | ⬜ |
-| MEU-PH13 | `emulator-validate-hardening` | 49.28 | [09f §ext](build-plan/09f-policy-emulator.md) | VALIDATE phase improvements: EXPLAIN SQL for schema errors, SMTP config check for email channels, step output wiring validation (render→send chain) | ⬜ |
+| MEU-PH11 | `approval-csrf-token` | 49.26 | [09g §1](build-plan/09g-approval-security.md) | CSRF challenge token: Electron IPC generation + API validation middleware on `POST /policies/{id}/approve`; single-use, 5-min TTL, policy-scoped | ✅ |
+| MEU-PH12 | `mcp-scheduling-gap-fill` | 49.27 | [09g §2](build-plan/09g-approval-security.md) | Add 3 MCP tools: `delete_policy` (destructive + confirmation), `update_policy` (in-place PATCH), `get_email_config` (SMTP readiness) | ✅ |
+| MEU-PH13 | `emulator-validate-hardening` | 49.28 | [09f §ext](build-plan/09f-policy-emulator.md) | VALIDATE phase improvements: EXPLAIN SQL for schema errors, SMTP config check for email channels, step output wiring validation (render→send chain) | ✅ |
+
+---
+
+### P2.5e — MCP Tool Remediation
+
+> Source: [MCP Tool Audit Report](../.agent/context/MCP/mcp-tool-audit-report.md)
+>
+> Prerequisite: P2.5c ✅ complete; parallel with P2.5d
+> Unblocks: Reliable MCP tool surface for AI agents
+> Resolves: [MCP-TOOLAUDIT]
+
+| MEU | Slug | Matrix Item | Build Plan Ref | Description | Status |
+|-----|------|:-----------:|----------------|-------------|:------:|
+| MEU-TA1 | `mcp-delete-trade-fix` | 5.J | [05c](build-plan/05c-mcp-trade-analytics.md) | Fix `delete_trade` returning 500 on valid exec_id — debug API trade deletion, fix error handling, add regression test · [MCP-TOOLAUDIT] High | ✅ |
+| MEU-TA2 | `mcp-settings-serialization-fix` | 5.K | [05a](build-plan/05a-mcp-zorivest-settings.md) | Fix `update_settings` returning 422 with `[object Object]` — TypeScript serialization bug, values must be strings at MCP boundary · [MCP-TOOLAUDIT] Medium | ✅ |
+| MEU-TA3 | `mcp-unimplemented-tool-guard` | 5.L | [05](build-plan/05-mcp-server.md) | Guard 6 unimplemented MCP tools (`list_bank_accounts`, `list_brokers`, `resolve_identifiers`, tax toolset 4 tools) to return "501 Not Implemented" instead of 404/500 · [MCP-TOOLAUDIT] Medium | ✅ |
+| MEU-TA4 | `mcp-trade-plan-lifecycle` | 5.M | [05d](build-plan/05d-mcp-trade-planning.md) | Add `list_trade_plans` and `delete_trade_plan` MCP tools for plan lifecycle management · Fix `create_trade_plan` 409 by enabling stale plan cleanup · [MCP-TOOLAUDIT] Medium | ✅ |
 
 ---
 
@@ -640,19 +657,20 @@ Domain → Infrastructure → Services → REST API → MCP Server → GUI → D
 | P0 — Phase 6 | MEU-43 → MEU-51 | 10 | 10 |
 | P1 | MEU-52 → MEU-55 | 4 | 4 |
 | P1.5 — Phase 8 | MEU-56 → MEU-65a | 11 | 11 |
-| P2 | MEU-66 → MEU-76, MEU-171 → MEU-172, MEU-72b | 18 | 8 |
+| P2 | MEU-66 → MEU-76, MEU-171 → MEU-172, MEU-72b | 18 | 9 |
 | P2.5 — Phase 9 + WebSocket | MEU-77 → MEU-90, MEU-174 | 15 | 14 |
 | P2.5a — Integration | MEU-90a → MEU-90d | 4 | 3 + 1 🚫 |
-| P2.5b — Wiring & Quality + Hardening | MEU-PW1 → MEU-PW14, MEU-72a, MEU-TD1 | 15 | 10 + 1 🟡 |
+| P2.5b — Wiring & Quality + Hardening | MEU-PW1 → MEU-PW14, MEU-72a, MEU-TD1 | 15 | 11 + 1 🟡 |
 | P2.5c — Security Hardening | MEU-PH1 → MEU-PH10 | 10 | 10 |
-| P2.5d — Approval Security | MEU-PH11 → MEU-PH13 | 3 | 0 |
+| P2.5d — Approval Security | MEU-PH11 → MEU-PH13 | 3 | 3 |
+| P2.5e — Tool Remediation | MEU-TA1 → MEU-TA4 | 4 | 0 |
 | P2.6 — Phase 10 | MEU-91 → MEU-95b | 7 | 0 |
 | P2.75 — Expansion | MEU-96 → MEU-122 | 27 | 2 |
 | P3 — Tax | MEU-123 → MEU-156 | 34 | 0 |
 | Phase 7 | MEU-157 | 1 | 0 |
 | P4 — Phase 11 | MEU-175 → MEU-181 | 7 | 0 |
 | Research | MEU-158 → MEU-170, MEU-173, MEU-TS1 → MEU-TS3 | 17 | 1 |
-| **Total** | | **224** | **112 + 1 🟡 + 1 🚫** |
+| **Total** | | **228** | **117 + 1 🟡 + 1 🚫** |
 
 ---
 

@@ -434,3 +434,122 @@ describe("remove_from_watchlist", () => {
         expect(parsed.success).toBe(false);
     });
 });
+
+// ── TA4: list_trade_plans and delete_trade_plan tests ──────────────────
+
+describe("list_trade_plans", () => {
+    beforeEach(() => {
+        vi.restoreAllMocks();
+    });
+
+    it("GETs /trade-plans with pagination and returns structured list", async () => {
+        const plansResponse = [
+            { id: 1, ticker: "AAPL", direction: "long", status: "draft" },
+            { id: 2, ticker: "MSFT", direction: "short", status: "active" },
+        ];
+        mockGuardAndApi(plansResponse, 200);
+
+        const client = await createTestClient();
+        const result = await client.callTool({
+            name: "list_trade_plans",
+            arguments: { limit: 10, offset: 0 },
+        });
+
+        // Verify correct endpoint and pagination params
+        const [url] = vi.mocked(fetch).mock.calls[1];
+        expect(url).toContain("/trade-plans");
+        expect(url).toContain("limit=10");
+        expect(url).toContain("offset=0");
+
+        const content = result.content as Array<{ type: string; text: string }>;
+        expect(content).toHaveLength(1);
+        const parsed = JSON.parse(content[0].text);
+        expect(parsed.success).toBe(true);
+        expect(parsed.data).toHaveLength(2);
+        expect(parsed.data[0].ticker).toBe("AAPL");
+    });
+
+    it("returns empty array when no plans exist", async () => {
+        mockGuardAndApi([], 200);
+
+        const client = await createTestClient();
+        const result = await client.callTool({
+            name: "list_trade_plans",
+            arguments: { limit: 50, offset: 0 },
+        });
+
+        const content = result.content as Array<{ type: string; text: string }>;
+        const parsed = JSON.parse(content[0].text);
+        expect(parsed.success).toBe(true);
+        expect(parsed.data).toHaveLength(0);
+    });
+
+    it("returns error envelope on API failure (500)", async () => {
+        mockGuardAndApi({ detail: "Internal error" }, 500);
+
+        const client = await createTestClient();
+        const result = await client.callTool({
+            name: "list_trade_plans",
+            arguments: { limit: 10, offset: 0 },
+        });
+
+        const content = result.content as Array<{ type: string; text: string }>;
+        const parsed = JSON.parse(content[0].text);
+        expect(parsed.success).toBe(false);
+        expect(parsed.error).toBeDefined();
+    });
+
+});
+
+describe("delete_trade_plan", () => {
+    beforeEach(() => {
+        vi.restoreAllMocks();
+    });
+
+    it("DELETEs /trade-plans/{id} and returns success", async () => {
+        mockGuardAndApi(null, 204);
+
+        const client = await createTestClient();
+        const result = await client.callTool({
+            name: "delete_trade_plan",
+            arguments: { plan_id: 42 },
+        });
+
+        // Verify correct endpoint and method
+        const [url, opts] = vi.mocked(fetch).mock.calls[1];
+        expect(url).toContain("/trade-plans/42");
+        expect(opts?.method).toBe("DELETE");
+
+        const content = result.content as Array<{ type: string; text: string }>;
+        expect(content).toHaveLength(1);
+    });
+
+    it("returns error when plan not found (404)", async () => {
+        mockGuardAndApi({ detail: "Trade plan not found" }, 404);
+
+        const client = await createTestClient();
+        const result = await client.callTool({
+            name: "delete_trade_plan",
+            arguments: { plan_id: 999 },
+        });
+
+        const content = result.content as Array<{ type: string; text: string }>;
+        const parsed = JSON.parse(content[0].text);
+        expect(parsed.success).toBe(false);
+    });
+
+    it("calls guard check before API (withGuard middleware)", async () => {
+        mockGuardAndApi(null, 204);
+
+        const client = await createTestClient();
+        await client.callTool({
+            name: "delete_trade_plan",
+            arguments: { plan_id: 1 },
+        });
+
+        // First call should be the guard check
+        expect(fetch).toHaveBeenCalledTimes(2);
+        const [guardUrl] = vi.mocked(fetch).mock.calls[0];
+        expect(guardUrl).toContain("/mcp-guard/");
+    });
+});
