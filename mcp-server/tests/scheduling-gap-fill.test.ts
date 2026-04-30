@@ -74,8 +74,8 @@ describe("PH12: Scheduling Gap Fill Tools", () => {
         expect(schema.shape["policy_json"]).toBeDefined();
     });
 
-    // AC-19: get_email_config tool is registered
-    it("AC-19: get_email_config is registered", async () => {
+    // AC-19: get_email_config — now absorbed into zorivest_system (MC1)
+    it("AC-19: get_email_config is NOT registered in scheduling (absorbed into zorivest_system)", async () => {
         const { registerSchedulingTools } = await import(
             "../src/tools/scheduling-tools.js"
         );
@@ -92,7 +92,8 @@ describe("PH12: Scheduling Gap Fill Tools", () => {
 
         registerSchedulingTools(mockServer as never);
 
-        expect(registeredNames).toContain("get_email_config");
+        // MC1: get_email_config moved to zorivest_system(action:"email_config")
+        expect(registeredNames).not.toContain("get_email_config");
     });
 
     // AC-22: All 3 tools have _meta.toolset: "scheduling"
@@ -115,7 +116,8 @@ describe("PH12: Scheduling Gap Fill Tools", () => {
 
         registerSchedulingTools(mockServer as never);
 
-        for (const toolName of ["delete_policy", "update_policy", "get_email_config"]) {
+        // MC1: get_email_config removed — only check delete_policy and update_policy
+        for (const toolName of ["delete_policy", "update_policy"]) {
             expect(toolMeta[toolName]).toBeDefined();
             expect(toolMeta[toolName]["toolset"]).toBe("scheduling");
         }
@@ -153,11 +155,7 @@ describe("PH12: Scheduling Gap Fill Tools", () => {
             destructiveHint: false,
         });
 
-        // get_email_config: read-only
-        expect(toolAnnotations["get_email_config"]).toMatchObject({
-            readOnlyHint: true,
-            destructiveHint: false,
-        });
+        // MC1: get_email_config removed — annotation check skipped
     });
 
     // AC-25: delete_policy and update_policy schemas use strict mode
@@ -229,8 +227,7 @@ describe("PH12: Scheduling Gap Fill Tools", () => {
         // update_policy description should mention policy update
         expect(toolDescriptions["update_policy"]).toMatch(/updat/i);
 
-        // get_email_config description should mention email or SMTP
-        expect(toolDescriptions["get_email_config"]).toMatch(/email|smtp/i);
+        // MC1: get_email_config removed — description check skipped
     });
 
     // Tool count: original 6 + 3 new = 9 total
@@ -245,7 +242,8 @@ describe("PH12: Scheduling Gap Fill Tools", () => {
             resource: vi.fn(),
         };
 
+        // MC1: get_email_config removed — 8 total now (6 existing + 2 gap-fill)
         const handles = registerSchedulingTools(mockServer as never);
-        expect(handles).toHaveLength(9);
+        expect(handles).toHaveLength(8);
     });
 });

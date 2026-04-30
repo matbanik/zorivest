@@ -539,49 +539,7 @@ export function registerSchedulingTools(
         ),
     );
 
-    // ── get_email_config ──────────────────────────────────────────────
-    // PH12: Spec 09g §9G.2c L255 — SMTP readiness without credentials
-    handles.push(
-        server.registerTool(
-            "get_email_config",
-            {
-                description:
-                    "Check email/SMTP configuration readiness. Returns {configured: bool, provider: string|null, host: string|null}. " +
-                    "No credentials are exposed. Use this to verify SMTP is configured before " +
-                    "creating policies with email send steps.",
-                inputSchema: {},
-                annotations: {
-                    readOnlyHint: true,
-                    destructiveHint: false,
-                    idempotentHint: true,
-                    openWorldHint: false,
-                },
-                _meta: {
-                    toolset: "scheduling",
-                    alwaysLoaded: false,
-                },
-            },
-            withMetrics(
-                "get_email_config",
-                withGuard(
-                    async (_params: unknown, _extra: unknown) => {
-                        const result = await fetchApi(
-                            "/settings/email/status",
-                        );
-
-                        return {
-                            content: [
-                                {
-                                    type: "text" as const,
-                                    text: JSON.stringify(result),
-                                },
-                            ],
-                        };
-                    },
-                ),
-            ),
-        ),
-    );
+    // NOTE: get_email_config removed — absorbed into zorivest_system(action:"email_config") [MC1]
 
     return handles;
 }

@@ -87,7 +87,7 @@ Domain → Infrastructure → Services → REST API → MCP Server → GUI → D
 | 6 — GUI | 🟡 In Progress (P0 complete, P2 items remain) | 2026-03-25 |
 | 7 — Distribution | ⚪ Not Started | — |
 | 8 — Market Data | ✅ Completed | 2026-03-23 |
-| 9 — Scheduling | ✅ Core complete; P2.5c ✅ (10/10); P2.5b PW14 ✅ + 72b ✅; P2.5d ✅ (3/3); P2.5e scoped (4 MEUs) | 2026-04-29 |
+| 9 — Scheduling | ✅ Core complete; P2.5c ✅ (10/10); P2.5b PW14 ✅ + 72b ✅; P2.5d ✅ (3/3); P2.5e ✅ (4/4); P2.5f ✅ (6/6 — 85→13 tools) | 2026-04-29 |
 | 10 — Service Daemon | ⚪ Not Started | — |
 | 11 — Monetization | ⚪ Not Started | — |
 

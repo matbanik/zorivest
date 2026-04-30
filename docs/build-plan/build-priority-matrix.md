@@ -178,6 +178,21 @@
 
 ---
 
+## P2.5f — MCP Tool Consolidation
+
+> **Source**: [mcp-consolidation-proposal-v3.md](../../.agent/context/MCP/mcp-consolidation-proposal-v3.md). Resolves [MCP-TOOLPROLIFERATION] — 85 registerTool() calls → 13 compound tools.
+
+| Order | What | Tests First? | Notes |
+|-------|------|-------------|-------|
+| **5.N** | Documentation sync: BUILD_PLAN.md, meu-registry.md, known-issues, 05-mcp-server.md §5.11, mcp-tool-index.md, build-priority-matrix.md (MC0) | N/A | Docs-only. Pre-condition for all code MEUs. |
+| **5.O** | CompoundToolRouter + `zorivest_system` compound tool, 9 actions (MC1) | ✅ Yes | Router infrastructure + first compound tool. Tools/list: 86→77. |
+| **5.P** | `zorivest_trade` (6), `zorivest_report` (2), `zorivest_analytics` (13) compound tools (MC2) | ✅ Yes | Trade vertical. Tools/list: 77→59. |
+| **5.Q** | `zorivest_account` (9), `zorivest_market` (7), `zorivest_watchlist` (5), `zorivest_import` (7), `zorivest_tax` (4 stubs) compound tools (MC3) | ✅ Yes | Data vertical. Tools/list: 59→32. |
+| **5.R** | `zorivest_plan` (3), `zorivest_policy` (9), `zorivest_template` (6), `zorivest_db` (5) compound tools; seed.ts 10→4 toolsets; CI gate `tool_count ≤ 13` (MC4) | ✅ Yes | Ops vertical + final restructure. Tools/list: 32→13. |
+| **5.S** | Baseline snapshot (85→13), server instructions, anti-placeholder scan, MCP audit, archive [MCP-TOOLPROLIFERATION] (MC5) | ✅ Yes | Finalization + evidence. |
+
+---
+
 ## P2.6 — Service Daemon (Phase 10)
 
 > See [Phase 10](10-service-daemon.md) for full spec.

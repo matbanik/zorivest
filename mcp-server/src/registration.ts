@@ -31,6 +31,44 @@ export function registerAllToolsets(
         const handles = ts.register(server);
         registry.storeHandles(ts.name, handles);
     }
+
+    // MC4 AC-4.16: Startup assertion — every registered tool must have
+    // a non-empty inputSchema (Zod shape). Catches missing schemas at
+    // startup rather than at call time. Accesses SDK internal _registeredTools
+    // map to inspect tool metadata post-registration.
+    assertNonEmptySchemas(server);
+}
+
+/**
+ * Assert that every tool registered on the server has at least one
+ * property in its inputSchema. This prevents skeleton tools with
+ * `z.object({})` from being deployed.
+ *
+ * Note: Every compound tool must have at least an `action` property.
+ */
+function assertNonEmptySchemas(server: McpServer): void {
+    // SDK internal: McpServer stores tools in _registeredTools as a plain object
+    const registeredTools = (server as unknown as {
+        _registeredTools: Record<string, { inputSchema?: unknown }>;
+    })._registeredTools;
+
+    if (!registeredTools || typeof registeredTools !== "object") return;
+
+    for (const [name, toolDef] of Object.entries(registeredTools)) {
+        const schema = toolDef.inputSchema;
+        if (!schema || typeof schema !== "object") {
+            throw new Error(
+                `[MC4] Tool '${name}' has no inputSchema — every tool must define a non-empty Zod schema`,
+            );
+        }
+        // Zod schemas expose .shape for z.object() — verify non-empty
+        const shape = (schema as { shape?: Record<string, unknown> }).shape;
+        if (shape && Object.keys(shape).length === 0) {
+            throw new Error(
+                `[MC4] Tool '${name}' has empty inputSchema.shape — every compound tool must have at least an 'action' property`,
+            );
+        }
+    }
 }
 
 // ── Post-connect phase ─────────────────────────────────────────────────

@@ -225,9 +225,14 @@ async def approve_policy(
 async def trigger_pipeline(
     policy_id: str,
     req: RunTriggerRequest,
+    _token: None = Depends(validate_approval_token),
     service: Any = Depends(get_scheduling_service),
 ) -> Any:
-    """Manually trigger a pipeline run."""
+    """Manually trigger a pipeline run.
+
+    Requires a CSRF approval token from the Electron GUI to prevent
+    AI agents from bypassing the MCP confirmation gate via direct API calls.
+    """
     result = await service.trigger_run(
         policy_id, dry_run=req.dry_run, trigger_type="manual"
     )

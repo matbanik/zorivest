@@ -349,3 +349,18 @@ P2.75 (broker adapters): MEU-96 → MEU-99
 |-----|------|:------:|-------------|:------:|
 | MEU-72b | `gui-email-templates` | 35b.2 | Email Templates tab in SchedulingLayout (CRUD, preview, default protection). Depends on MEU-72. [06k](../../docs/build-plan/06k-gui-email-templates.md) | ✅ done |
 | MEU-PW14 | `pipeline-markdown-migration` | 49.29 | PDF removal, Markdown rendering, Playwright dep cleanup. [09h](../../docs/build-plan/09h-pipeline-markdown-migration.md) | ✅ done |
+
+## P2.5f: MCP Tool Consolidation
+
+> Source: [mcp-consolidation-proposal-v3.md](../../.agent/context/MCP/mcp-consolidation-proposal-v3.md)
+> Prerequisite: P2.5e complete (MEU-TA1→TA4 ✅)
+> Resolves: [MCP-TOOLPROLIFERATION]
+
+| MEU | Slug | Matrix | Description | Status |
+|-----|------|:------:|-------------|:------:|
+| MC0 | `mcp-consolidation-docs` | 5.N | Documentation sync: BUILD_PLAN.md, meu-registry.md, known-issues.md, 05-mcp-server.md §5.11, mcp-tool-index.md, build-priority-matrix.md | ⬜ |
+| MC1 | `compound-router-system` | 5.O | CompoundToolRouter + `zorivest_system` (9 actions), remove 9 old registrations. Tools/list: 86→77 | ⬜ |
+| MC2 | `compound-trade-analytics` | 5.P | `zorivest_trade` (6), `zorivest_report` (2), `zorivest_analytics` (13 incl. position_size). Tools/list: 77→59 | ⬜ |
+| MC3 | `compound-data-vertical` | 5.Q | `zorivest_account` (9), `zorivest_market` (7), `zorivest_watchlist` (5), `zorivest_import` (7 incl. 3×501), `zorivest_tax` (4 stubs). Tools/list: 59→32 | ⬜ |
+| MC4 | `compound-ops-restructure` | 5.R | `zorivest_plan` (3), `zorivest_policy` (9), `zorivest_template` (6), `zorivest_db` (5); seed.ts 10→4 toolsets; CI gate tool_count ≤ 13. Tools/list: 32→13 | ⬜ |
+| MC5 | `consolidation-finalize` | 5.S | Baseline snapshot (85→13), server instructions, anti-placeholder, MCP audit, archive [MCP-TOOLPROLIFERATION] | ⬜ |

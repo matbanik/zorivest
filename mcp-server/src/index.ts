@@ -31,7 +31,7 @@ import { toolsetRegistry } from "./toolsets/registry.js";
 import { seedRegistry } from "./toolsets/seed.js";
 
 async function main(): Promise<void> {
-    // 1. Seed registry with all 9 toolset definitions (8 + discovery)
+    // 1. Seed registry with all 4 toolset definitions (core, trade, data, ops)
     seedRegistry(toolsetRegistry);
 
     // 2. Parse CLI for toolset selection

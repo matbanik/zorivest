@@ -747,6 +747,18 @@ Toolsets group related MCP tools into named categories for selective loading. Th
 
 **Default active tools:** `core` + `discovery` + `trade-analytics` + `trade-planning` = **38 tools**.
 
+> [!IMPORTANT]
+> **P2.5f Consolidation Target (2026-04-29):** The 10-toolset / 85-tool architecture above is being consolidated into **4 toolsets / 13 compound tools** via [mcp-consolidation-proposal-v3.md](../../.agent/context/MCP/mcp-consolidation-proposal-v3.md). After consolidation:
+>
+> | Toolset | Compound Tools | Load | Visible |
+> |---------|---------------|------|---------|
+> | `core` | `zorivest_system` | ✅ Always | 1 |
+> | `trade` | `zorivest_trade`, `zorivest_report`, `zorivest_analytics` | ✅ Default | 3 |
+> | `data` | `zorivest_market`, `zorivest_account`, `zorivest_watchlist`, `zorivest_import`, `zorivest_tax` | ⬜ Deferred | 5 |
+> | `ops` | `zorivest_plan`, `zorivest_policy`, `zorivest_template`, `zorivest_db` | ⬜ Deferred | 4 |
+>
+> Default visible: **4 tools** (core + trade). All 85 actions preserved as compound actions within 13 tools. See [MCP Tool Index](../../.agent/context/MCP/mcp-tool-index.md) for complete action mapping.
+
 > [!NOTE]
 > **Capability-first sizing (2026-03-06):** The 38-tool default is NOT optimized for Cursor's 40-tool limit. Cursor is the lowest-priority client (see [MCP Rollout Stages](00-overview.md#mcp-rollout-stages)). Dynamic clients (Antigravity, Cline) load all defaults without cap. The 38-tool count is a natural grouping. Static clients with hard limits use `--toolsets` to reduce below their cap.
 >

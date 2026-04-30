@@ -2,10 +2,9 @@
 
 ## Current Priority
 
-P2.5e MCP Tool Remediation — COMPLETE. Live MCP audit verified: 404 fix ✅, 501 stubs ✅, trade plan CRUD ✅. Discovered pre-existing [TRADE-CASCADE] bug (delete_trade 500 on linked records). All docs finalized (reflection, metrics, handoff, known-issues).
+P2.5f MCP Consolidation + SEC-1 Pipeline-Run CSRF Hardening — ALL FINDINGS RESOLVED (F1–F8). Review verdict: `approved`. Audit PASS: 46 tested, 44 pass, 0 fail. Security: `/run` endpoint now CSRF-gated.
 
 ## Next Steps
 
-1. Git commit P2.5e changes
-2. Address [TRADE-CASCADE] — add cascade to `TradeModel.report` relationship in `models.py`
-3. Next project selection per build plan priority
+1. Git commit P2.5f + SEC-1 changes
+2. Next project selection per build plan priority

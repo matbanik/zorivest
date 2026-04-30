@@ -1,0 +1,15 @@
+[
+  { "name": "zorivest_system", "toolset": "core", "actions": "diagnose, settings_get, settings_update, confirm_token, toolsets_list, toolset_describe, toolset_enable, launch_gui, email_config" },
+  { "name": "zorivest_trade", "toolset": "trade", "actions": "create, list, delete, screenshot_attach, screenshot_list, screenshot_get" },
+  { "name": "zorivest_analytics", "toolset": "trade", "actions": "position_size, round_trips, excursion, fee_breakdown, execution_quality, pfof_impact, expectancy, drawdown, strategy_breakdown, sqn, cost_of_free, ai_review, options_strategy" },
+  { "name": "zorivest_report", "toolset": "trade", "actions": "create, get" },
+  { "name": "zorivest_account", "toolset": "data", "actions": "list, get, create, update, delete, archive, reassign, balance, checklist" },
+  { "name": "zorivest_market", "toolset": "data", "actions": "quote, news, search, filings, providers, disconnect, test_provider" },
+  { "name": "zorivest_watchlist", "toolset": "data", "actions": "create, list, get, add_ticker, remove_ticker" },
+  { "name": "zorivest_import", "toolset": "data", "actions": "broker_csv, broker_pdf, bank_statement, sync_broker, list_brokers, resolve_identifiers, list_bank_accounts" },
+  { "name": "zorivest_tax", "toolset": "data", "actions": "estimate, wash_sales, manage_lots, harvest" },
+  { "name": "zorivest_policy", "toolset": "ops", "actions": "create, list, run, preview, update_schedule, get_history, delete, update, emulate" },
+  { "name": "zorivest_template", "toolset": "ops", "actions": "create, get, list, update, delete, preview" },
+  { "name": "zorivest_db", "toolset": "ops", "actions": "validate_sql, list_tables, row_samples, step_types, provider_capabilities" },
+  { "name": "zorivest_plan", "toolset": "ops", "actions": "create, list, delete" }
+]

@@ -448,6 +448,7 @@ class TestLiveWiring:
         """
         from zorivest_api.main import create_app
         from zorivest_api.dependencies import require_unlocked_db
+        from zorivest_api.middleware.approval_token import validate_approval_token
         import zorivest_core.pipeline_steps  # noqa: F401 — step registration
 
         db_file = tmp_path / "test_live.db"
@@ -457,8 +458,10 @@ class TestLiveWiring:
         app.state.db_unlocked = True
         app.state.start_time = __import__("time").time()
 
-        # Only override the DB lock check — NOT the scheduling services
+        # Only override the DB lock check and CSRF token — NOT the scheduling services.
+        # CSRF is tested separately; this test exercises live service wiring.
         app.dependency_overrides[require_unlocked_db] = lambda: None
+        app.dependency_overrides[validate_approval_token] = lambda: None
 
         with TestClient(app) as tc:
             svc = app.state.scheduling_service
@@ -503,6 +506,62 @@ class TestLiveWiring:
             assert "run_id" in run, f"Missing run_id: {run}"
             assert "status" in run, f"Missing status: {run}"
             assert run["policy_id"] == policy_id
+
+    @pytest.mark.asyncio()
+    async def test_run_rejects_without_csrf_token(self, monkeypatch, tmp_path) -> None:
+        """Security: POST /policies/{id}/run rejects requests without CSRF token.
+
+        Regression test for the MCP confirmation-gate bypass vulnerability:
+        AI agents could bypass ctk_ tokens by calling the REST API directly.
+        The /run endpoint now requires the same X-Approval-Token as /approve.
+        """
+        from zorivest_api.main import create_app
+        from zorivest_api.dependencies import require_unlocked_db
+        import zorivest_core.pipeline_steps  # noqa: F401
+
+        db_file = tmp_path / "test_csrf.db"
+        monkeypatch.setenv("ZORIVEST_DB_URL", f"sqlite:///{db_file}")
+
+        app = create_app()
+        app.state.db_unlocked = True
+        app.state.start_time = __import__("time").time()
+
+        # Override ONLY the DB lock — NOT the CSRF validator
+        app.dependency_overrides[require_unlocked_db] = lambda: None
+
+        with TestClient(app) as tc:
+            svc = app.state.scheduling_service
+
+            # Create and approve a policy
+            policy_json = {
+                "name": "CSRF Gate Test",
+                "trigger": {
+                    "type": "manual",
+                    "cron_expression": "0 9 * * *",
+                    "enabled": True,
+                },
+                "steps": [
+                    {
+                        "id": "noop",
+                        "type": "fetch",
+                        "params": {"provider": "stub", "data_type": "ohlcv"},
+                    },
+                ],
+            }
+            result = await svc.create_policy(policy_json)
+            assert result.policy is not None
+            policy_id = result.policy["id"]
+            await svc.approve_policy(policy_id)
+
+            # Direct API call WITHOUT CSRF token → must be rejected
+            resp = tc.post(
+                f"/api/v1/scheduling/policies/{policy_id}/run",
+                json={"dry_run": True},
+            )
+            assert resp.status_code == 403, (
+                f"Expected 403 (CSRF required), got {resp.status_code}: {resp.text}"
+            )
+            assert "CSRF token" in resp.json()["detail"]
 
 
 # ── Live Execution Path (P1) ───────────────────────────────────────────

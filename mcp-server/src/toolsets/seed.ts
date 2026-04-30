@@ -1,12 +1,11 @@
 /**
  * Toolset seed data — populates the ToolsetRegistry with known toolsets.
  *
- * Canonical inventory: 05-mcp-server.md §5.11 L735-745 (9 toolsets including discovery).
- * All toolsets start loaded: false (runtime state, not metadata).
- * All register callbacks return RegisteredToolHandle[] for handle capture.
+ * MC4 restructure: 4 toolsets (core, trade, data, ops).
+ * All 85 original tools are preserved as compound tool actions across 13 tools.
  *
- * Source: 05j-mcp-discovery.md, 05-mcp-server.md §5.11
- * MEU: 41 (mcp-discovery) + 42 (toolset-registry)
+ * Source: implementation-plan.md MC4 (AC-4.15)
+ * Phase: P2.5f (MCP Tool Consolidation)
  */
 
 import type { McpServer } from "@modelcontextprotocol/sdk/server/mcp.js";
@@ -16,418 +15,115 @@ import type {
     RegisteredToolHandle,
 } from "./registry.js";
 
-import { registerTradeTools } from "../tools/trade-tools.js";
-import { registerCalculatorTools } from "../tools/calculator-tools.js";
-import { registerSettingsTools } from "../tools/settings-tools.js";
-import { registerDiagnosticsTools } from "../tools/diagnostics-tools.js";
-import { registerAnalyticsTools } from "../tools/analytics-tools.js";
-import { registerPlanningTools } from "../tools/planning-tools.js";
-import { registerGuiTools } from "../tools/gui-tools.js";
-import { registerAccountTools } from "../tools/accounts-tools.js";
-import { registerDiscoveryTools } from "../tools/discovery-tools.js";
-import { registerMarketDataTools } from "../tools/market-data-tools.js";
-import { registerSchedulingTools, registerSchedulingResources } from "../tools/scheduling-tools.js";
-import { registerPipelineSecurityTools, registerPipelineSecurityResources } from "../tools/pipeline-security-tools.js";
-import { registerTaxTools } from "../tools/tax-tools.js";
+// MC1 compound tool
+import { registerSystemTool } from "../compound/system-tool.js";
+// MC2 compound tools
+import { registerTradeTool } from "../compound/trade-tool.js";
+import { registerAnalyticsTool } from "../compound/analytics-tool.js";
+import { registerReportTool } from "../compound/report-tool.js";
+// MC3 compound tools
+import { registerAccountTool } from "../compound/account-tool.js";
+import { registerMarketTool } from "../compound/market-tool.js";
+import { registerWatchlistTool } from "../compound/watchlist-tool.js";
+import { registerImportTool } from "../compound/import-tool.js";
+import { registerTaxTool } from "../compound/tax-tool.js";
+// MC4 compound tools
+import { registerPlanTool } from "../compound/plan-tool.js";
+import { registerPolicyTool } from "../compound/policy-tool.js";
+import { registerTemplateTool } from "../compound/template-tool.js";
+import { registerDbTool } from "../compound/db-tool.js";
+// MC4: Resources only — tool registrations removed
+import { registerSchedulingResources } from "../tools/scheduling-tools.js";
+import { registerPipelineSecurityResources } from "../tools/pipeline-security-tools.js";
 
-// ── Toolset definitions (canonical: 05-mcp-server.md §5.11 L735-745) ──
+// ── Toolset definitions (MC4: 4 toolsets, 13 compound tools) ───────────
 
 export const TOOLSET_DEFINITIONS: ToolsetDefinition[] = [
-    // ── Always-loaded ──────────────────────────────────────────────────
+    // ── core (always loaded) ──────────────────────────────────────────
     {
         name: "core",
         description:
-            "Settings, emergency stop/unlock, diagnostics, GUI launch, service tools",
+            "System operations — diagnostics, settings, discovery, GUI launch, " +
+            "confirmation tokens, and email configuration (zorivest_system compound tool)",
         tools: [
-            { name: "get_settings", description: "Read all user settings" },
-            {
-                name: "update_settings",
-                description: "Update a single setting",
-            },
-            {
-                name: "zorivest_diagnose",
-                description: "System diagnostics and health check",
-            },
-            {
-                name: "zorivest_launch_gui",
-                description: "Launch desktop GUI or guide installation",
-            },
-        ],
-        register: (server: McpServer): RegisteredToolHandle[] => [
-            ...registerSettingsTools(server),
-            ...registerDiagnosticsTools(server),
-            ...registerGuiTools(server),
-        ],
-        loaded: false,
-        alwaysLoaded: true,
-        isDefault: false,
-    },
-    {
-        name: "discovery",
-        description:
-            "Meta-tools for listing, describing, and enabling additional toolsets",
-        tools: [
-            {
-                name: "list_available_toolsets",
-                description: "List all toolsets and their status",
-            },
-            {
-                name: "describe_toolset",
-                description: "Get detailed description of a toolset",
-            },
-            {
-                name: "enable_toolset",
-                description: "Dynamically enable a toolset",
-            },
-            {
-                name: "get_confirmation_token",
-                description: "Get a confirmation token for destructive operations",
-            },
+            { name: "zorivest_system", description: "System operations compound tool (9 actions)" },
         ],
         register: (server: McpServer): RegisteredToolHandle[] =>
-            registerDiscoveryTools(server),
+            registerSystemTool(server),
         loaded: false,
         alwaysLoaded: true,
         isDefault: false,
     },
 
-    // ── Default-loaded ─────────────────────────────────────────────────
+    // ── trade (default loaded) ────────────────────────────────────────
     {
-        name: "trade-analytics",
-        description: "Trade CRUD, screenshots, analytics, reports",
-        tools: [
-            { name: "create_trade", description: "Create a new trade" },
-            {
-                name: "list_trades",
-                description: "List trades with filtering",
-            },
-            {
-                name: "attach_screenshot",
-                description: "Attach screenshot to trade",
-            },
-            {
-                name: "get_trade_screenshots",
-                description: "List trade screenshots",
-            },
-            {
-                name: "get_screenshot",
-                description: "Get screenshot with image data",
-            },
-            {
-                name: "get_analytics_summary",
-                description: "Trading performance analytics",
-            },
-            {
-                name: "get_trade_streaks",
-                description: "Win/loss streak analysis",
-            },
-        ],
-        register: (server: McpServer): RegisteredToolHandle[] => [
-            ...registerTradeTools(server),
-            ...registerAnalyticsTools(server),
-        ],
-        loaded: false,
-        alwaysLoaded: false,
-        isDefault: true,
-    },
-    {
-        name: "trade-planning",
+        name: "trade",
         description:
-            "Position calculator, trade plans, watchlist management (includes create_trade cross-tagged from 05c)",
+            "Trade CRUD, screenshots, analytics, reports, position sizing " +
+            "(zorivest_trade, zorivest_analytics, zorivest_report compound tools)",
         tools: [
-            {
-                name: "calculate_position_size",
-                description: "Calculate position sizing",
-            },
-            {
-                name: "create_trade_plan",
-                description: "Create a structured trade plan",
-            },
-            {
-                name: "create_trade",
-                description: "Create a new trade (cross-tagged from 05c)",
-            },
-            {
-                name: "create_watchlist",
-                description: "Create a named watchlist",
-            },
-            {
-                name: "list_watchlists",
-                description: "List all watchlists with pagination",
-            },
-            {
-                name: "get_watchlist",
-                description: "Get a watchlist by ID with items",
-            },
-            {
-                name: "add_to_watchlist",
-                description: "Add a ticker to a watchlist",
-            },
-            {
-                name: "remove_from_watchlist",
-                description: "Remove a ticker from a watchlist",
-            },
-            {
-                name: "list_trade_plans",
-                description: "List trade plans with pagination",
-            },
-            {
-                name: "delete_trade_plan",
-                description: "Delete a trade plan (destructive, requires confirmation)",
-            },
+            { name: "zorivest_trade", description: "Trade management compound tool (6 actions)" },
+            { name: "zorivest_analytics", description: "Trade analytics compound tool (13 actions)" },
+            { name: "zorivest_report", description: "Post-trade report compound tool (2 actions)" },
         ],
         register: (server: McpServer): RegisteredToolHandle[] => [
-            ...registerPlanningTools(server),
-            ...registerCalculatorTools(server),
+            ...registerTradeTool(server),
+            ...registerAnalyticsTool(server),
+            ...registerReportTool(server),
         ],
         loaded: false,
         alwaysLoaded: false,
         isDefault: true,
     },
 
-    // ── Deferred toolsets ──────────────────────────────────────────────
+    // ── data (deferred) ───────────────────────────────────────────────
     {
-        name: "market-data",
-        description: "Stock quotes, news, SEC filings, ticker search, provider management",
-        tools: [
-            {
-                name: "get_stock_quote",
-                description: "Get real-time stock quote",
-            },
-            {
-                name: "get_market_news",
-                description: "Get market news articles",
-            },
-            {
-                name: "search_ticker",
-                description: "Search for stock tickers",
-            },
-            {
-                name: "get_sec_filings",
-                description: "Get SEC filings for a company",
-            },
-            {
-                name: "list_market_providers",
-                description: "List all market data providers",
-            },
-            {
-                name: "disconnect_market_provider",
-                description: "Remove provider API key and disable",
-            },
-            {
-                name: "test_market_provider",
-                description: "Test provider connectivity",
-            },
-        ],
-        register: (server: McpServer): RegisteredToolHandle[] =>
-            registerMarketDataTools(server),
-        loaded: false,
-        alwaysLoaded: false,
-        isDefault: false,
-    },
-    {
-        name: "accounts",
+        name: "data",
         description:
-            "Account CRUD, lifecycle (archive/reassign), balance recording, broker sync, import tools",
+            "Account CRUD, market data, watchlists, import, tax stubs " +
+            "(zorivest_account, zorivest_market, zorivest_watchlist, zorivest_import, zorivest_tax compound tools)",
         tools: [
-            // MEU-37: Account CRUD + integrity tools
-            { name: "list_accounts", description: "List accounts with filtering" },
-            { name: "get_account", description: "Get account with metrics" },
-            { name: "create_account", description: "Create a new account" },
-            { name: "update_account", description: "Update account fields" },
-            { name: "delete_account", description: "Delete account (block-only)" },
-            { name: "archive_account", description: "Soft-delete account" },
-            { name: "reassign_trades", description: "Reassign trades and delete" },
-            { name: "record_balance", description: "Record balance snapshot" },
-            // Pre-existing stub tools
-            { name: "sync_broker", description: "Sync with broker API" },
-            { name: "list_brokers", description: "List configured brokers" },
-            {
-                name: "resolve_identifiers",
-                description: "Batch resolve CUSIP/ISIN/SEDOL",
-            },
-            {
-                name: "import_bank_statement",
-                description: "Import bank statement file",
-            },
-            {
-                name: "import_broker_csv",
-                description: "Import broker trade CSV",
-            },
-            {
-                name: "import_broker_pdf",
-                description: "Import broker PDF statement",
-            },
-            {
-                name: "list_bank_accounts",
-                description: "List bank accounts with balances",
-            },
-            {
-                name: "get_account_review_checklist",
-                description: "Account staleness review checklist",
-            },
+            { name: "zorivest_account", description: "Account management compound tool (9 actions)" },
+            { name: "zorivest_market", description: "Market data compound tool (7 actions)" },
+            { name: "zorivest_watchlist", description: "Watchlist management compound tool (5 actions)" },
+            { name: "zorivest_import", description: "Data import compound tool (7 actions)" },
+            { name: "zorivest_tax", description: "Tax operations compound tool (4 stub actions)" },
         ],
-        register: (server: McpServer): RegisteredToolHandle[] =>
-            registerAccountTools(server),
+        register: (server: McpServer): RegisteredToolHandle[] => [
+            ...registerAccountTool(server),
+            ...registerMarketTool(server),
+            ...registerWatchlistTool(server),
+            ...registerImportTool(server),
+            ...registerTaxTool(server),
+        ],
         loaded: false,
         alwaysLoaded: false,
         isDefault: false,
     },
+
+    // ── ops (deferred) ────────────────────────────────────────────────
     {
-        name: "scheduling",
-        description: "Policy CRUD, pipeline execution, scheduler status, run history",
+        name: "ops",
+        description:
+            "Pipeline policies, email templates, DB schema discovery, SQL validation, trade plans " +
+            "(zorivest_policy, zorivest_template, zorivest_db, zorivest_plan compound tools)",
         tools: [
-            {
-                name: "create_policy",
-                description: "Create a new pipeline policy",
-            },
-            {
-                name: "list_policies",
-                description: "List all pipeline policies",
-            },
-            {
-                name: "run_pipeline",
-                description: "Trigger a manual pipeline run",
-            },
-            {
-                name: "preview_report",
-                description: "Dry-run a pipeline for preview",
-            },
-            {
-                name: "update_policy_schedule",
-                description: "Update a policy's schedule",
-            },
-            {
-                name: "get_pipeline_history",
-                description: "Get pipeline execution history",
-            },
-            {
-                name: "delete_policy",
-                description: "Delete a policy (destructive, requires confirmation)",
-            },
-            {
-                name: "update_policy",
-                description: "Update policy content (resets approval)",
-            },
-            {
-                name: "get_email_config",
-                description: "Check SMTP readiness (no credentials)",
-            },
+            { name: "zorivest_policy", description: "Pipeline policy management compound tool (9 actions)" },
+            { name: "zorivest_template", description: "Email template management compound tool (6 actions)" },
+            { name: "zorivest_db", description: "DB discovery and validation compound tool (5 actions)" },
+            { name: "zorivest_plan", description: "Trade plan management compound tool (3 actions)" },
         ],
         register: (server: McpServer): RegisteredToolHandle[] => {
+            // Resources remain registered alongside compound tools
             registerSchedulingResources(server);
-            return registerSchedulingTools(server);
-        },
-        loaded: false,
-        alwaysLoaded: false,
-        isDefault: false,
-    },
-    {
-        name: "pipeline-security",
-        description: "Policy emulator, SQL validation, DB schema discovery, email template CRUD and preview",
-        tools: [
-            {
-                name: "emulate_policy",
-                description: "Dry-run policy through 4-phase emulator",
-            },
-            {
-                name: "validate_sql",
-                description: "Validate SQL query against sandbox",
-            },
-            {
-                name: "list_db_tables",
-                description: "List queryable database tables",
-            },
-            {
-                name: "get_db_row_samples",
-                description: "Get sample rows from a table",
-            },
-            {
-                name: "create_email_template",
-                description: "Create a new email template",
-            },
-            {
-                name: "get_email_template",
-                description: "Get email template by name",
-            },
-            {
-                name: "list_email_templates",
-                description: "List all email templates",
-            },
-            {
-                name: "update_email_template",
-                description: "Update an email template",
-            },
-            {
-                name: "delete_email_template",
-                description: "Delete a user-created template",
-            },
-            {
-                name: "preview_email_template",
-                description: "Preview rendered template",
-            },
-            {
-                name: "list_step_types",
-                description: "List pipeline step types and parameter schemas",
-            },
-            {
-                name: "list_provider_capabilities",
-                description: "List market data providers and capabilities",
-            },
-        ],
-        register: (server: McpServer): RegisteredToolHandle[] => {
             registerPipelineSecurityResources(server);
-            return registerPipelineSecurityTools(server);
+            return [
+                ...registerPolicyTool(server),
+                ...registerTemplateTool(server),
+                ...registerDbTool(server),
+                ...registerPlanTool(server),
+            ];
         },
-        loaded: false,
-        alwaysLoaded: false,
-        isDefault: false,
-    },
-    {
-        name: "tax",
-        description: "Tax estimation, wash sales, lot management, harvesting",
-        tools: [
-            {
-                name: "estimate_tax",
-                description: "Estimate tax liability",
-            },
-            {
-                name: "find_wash_sales",
-                description: "Find wash sale violations",
-            },
-            {
-                name: "manage_lots",
-                description: "Manage tax lot assignments",
-            },
-            {
-                name: "harvest_losses",
-                description: "Identify tax-loss harvesting opportunities",
-            },
-        ],
-        register: (server: McpServer): RegisteredToolHandle[] =>
-            registerTaxTools(server),
-        loaded: false,
-        alwaysLoaded: false,
-        isDefault: false,
-    },
-    {
-        name: "behavioral",
-        description: "Mistake tracking, expectancy, Monte Carlo",
-        tools: [
-            {
-                name: "track_mistakes",
-                description: "Track and categorize trading mistakes",
-            },
-            {
-                name: "calculate_expectancy",
-                description: "Calculate trading expectancy",
-            },
-            {
-                name: "monte_carlo_sim",
-                description: "Run Monte Carlo simulation on trade history",
-            },
-        ],
-        register: () => [],
         loaded: false,
         alwaysLoaded: false,
         isDefault: false,
@@ -437,8 +133,11 @@ export const TOOLSET_DEFINITIONS: ToolsetDefinition[] = [
 // ── Seed function ──────────────────────────────────────────────────────
 
 /**
- * Populate the registry with all 9 toolset definitions.
+ * Populate the registry with all toolset definitions.
  * Call once at startup before tool registration.
+ *
+ * MC4: Restructured from 10 → 4 toolsets (core, trade, data, ops).
+ * All 85 original tools preserved as compound actions across 13 compound tools.
  */
 export function seedRegistry(registry: ToolsetRegistry): void {
     for (const def of TOOLSET_DEFINITIONS) {

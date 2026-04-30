@@ -99,20 +99,30 @@ This server provides toolset-based tool organization for portfolio analytics, tr
 
 ## Available Toolsets
 - **core**: Settings, diagnostics, emergency controls (always loaded)
-- **discovery**: Meta-tools for listing, describing, and enabling additional toolsets (always loaded)
-- **trade-analytics**: Trade CRUD, screenshot management, analytics reports
-- **trade-planning**: Scenario analysis, strategy backtesting
-- **market-data**: Real-time market feeds, historical data
-- **accounts**: Broker account management, portfolio sync
-- **scheduling**: Automated task scheduling
-- **tax**: Tax estimation, wash sale detection, lot management
-- **behavioral**: Trading psychology analysis, pattern detection
+- **trade**: Trade CRUD, screenshot management, analytics reports, trade plans (default)
+- **data**: Account management, market data, watchlists, import, tax (deferred)
+- **ops**: Pipeline policies, email templates, DB schema discovery, SQL validation (deferred)
+
+## Compound Tools (13 total)
+- **zorivest_system** — System operations — diagnostics, settings, discovery, GUI launch, confirmation tokens, and email configuration. Actions: diagnose, settings_get, settings_update, confirm_token, toolsets_list, toolset_describe, toolset_enable, launch_gui, email_config
+- **zorivest_trade** — Trade management — create, list, delete trades; attach/list/get screenshots. Actions: create, list, delete, screenshot_attach, screenshot_list, screenshot_get
+- **zorivest_analytics** — Trade analytics — position sizing, round trips, excursion analysis, fee breakdown, execution quality, PFOF impact, expectancy, drawdown simulation, strategy breakdown, SQN, cost of free, AI trade review, options strategy detection. Actions: position_size, round_trips, excursion, fees, execution_quality, pfof, expectancy, drawdown, strategy, sqn, cost_of_free, ai_review, options_strategy
+- **zorivest_report** — Post-trade review reports — create and retrieve trade reports with setup/execution grades, emotional state tracking, and lessons learned. Actions: create, get_for_trade
+- **zorivest_plan** — Trade plan management — create structured plans, list with pagination, delete plans. Actions: create, list, delete
+- **zorivest_account** — Account management — list, get, create, update, delete, archive, reassign trades, record balance, review checklist. Actions: list, get, create, update, delete, archive, reassign, balance, checklist
+- **zorivest_market** — Market data — stock quotes, news, ticker search, SEC filings, provider management. Actions: quote, news, search, sec_filings, providers, disconnect_provider, test_provider
+- **zorivest_watchlist** — Watchlist management — create, list, get, add/remove tickers. Actions: create, list, get, add_ticker, remove_ticker
+- **zorivest_import** — Data import — CSV/PDF broker imports, bank statements, broker sync, broker listing, identifier resolution, bank account listing. Actions: broker_csv, broker_pdf, bank_statement, sync_broker, list_brokers, resolve_identifiers, list_bank_accounts
+- **zorivest_tax** — Tax operations — estimate liability, find wash sales, manage lots, identify harvesting opportunities. (All actions: 501 Not Implemented) Actions: estimate, wash_sales, manage_lots, harvest
+- **zorivest_policy** — Pipeline policy management — create, list, run, preview report, update schedule, view run history, delete, update content, emulate. Actions: create, list, run, preview, update_schedule, get_history, delete, update, emulate
+- **zorivest_template** — Email template management — create, get, list, update, delete, preview rendered output. Actions: create, get, list, update, delete, preview
+- **zorivest_db** — Database discovery and validation — validate SQL queries, list queryable tables, get sample rows, list pipeline step types, list market data provider capabilities. Actions: validate_sql, list_tables, row_samples, step_types, provider_capabilities
 
 ## Dynamic Toolset Loading
-Use \`list_available_toolsets\` to see all toolsets and their status.
-Use \`describe_toolset\` to see tools within a specific toolset.
-Use \`enable_toolset\` to dynamically load additional toolsets during your session.
+Use \`zorivest_system(action:"toolsets_list")\` to see all toolsets and their status.
+Use \`zorivest_system(action:"toolset_describe")\` to see tools within a specific toolset.
+Use \`zorivest_system(action:"toolset_enable")\` to dynamically load additional toolsets during your session.
 
 ## Confirmation Workflow
-Destructive operations (emergency stop, trade creation, broker sync) require confirmation on annotation-unaware clients. Use \`get_confirmation_token\` to obtain a token, then pass it as \`confirmation_token\` parameter.`;
+Destructive operations (trade deletion, account deletion, policy deletion, template deletion) require confirmation on annotation-unaware clients. Use \`zorivest_system(action:"confirm_token")\` to obtain a token, then pass it as \`confirmation_token\` parameter.`;
 }

@@ -24,8 +24,9 @@ describe("registerSchedulingTools", () => {
         };
 
         const handles = registerSchedulingTools(mockServer as never);
-        expect(handles).toHaveLength(9);
-        expect(mockServer.registerTool).toHaveBeenCalledTimes(9);
+        // MC1: get_email_config removed (absorbed into zorivest_system)
+        expect(handles).toHaveLength(8);
+        expect(mockServer.registerTool).toHaveBeenCalledTimes(8);
     });
 
     it("registers tools with correct names", async () => {
@@ -54,7 +55,8 @@ describe("registerSchedulingTools", () => {
         // PH12 gap-fill tools
         expect(registeredNames).toContain("delete_policy");
         expect(registeredNames).toContain("update_policy");
-        expect(registeredNames).toContain("get_email_config");
+        // MC1: get_email_config absorbed into zorivest_system(action:"email_config")
+        expect(registeredNames).not.toContain("get_email_config");
     });
 
     it("registers tools with scheduling toolset metadata", async () => {
@@ -124,8 +126,8 @@ describe("registerSchedulingResources", () => {
 
 // ── Seed registry integration ─────────────────────────────────────────
 
-describe("seedRegistry scheduling toolset", () => {
-    it("scheduling toolset has 9 tools in seed definition", async () => {
+describe("seedRegistry ops toolset (MC4: scheduling absorbed)", () => {
+    it("ops toolset has 4 compound tools in seed definition", async () => {
         const { toolsetRegistry } = await import(
             "../src/toolsets/registry.js"
         );
@@ -133,14 +135,15 @@ describe("seedRegistry scheduling toolset", () => {
 
         seedRegistry(toolsetRegistry);
 
-        const scheduling = toolsetRegistry.get("scheduling");
-        expect(scheduling).toBeDefined();
-        expect(scheduling!.tools).toHaveLength(9);
-        expect(scheduling!.alwaysLoaded).toBe(false);
-        expect(scheduling!.isDefault).toBe(false);
+        const ops = toolsetRegistry.get("ops");
+        expect(ops).toBeDefined();
+        // MC4: 4 compound tools (zorivest_policy, zorivest_template, zorivest_db, zorivest_plan)
+        expect(ops!.tools).toHaveLength(4);
+        expect(ops!.alwaysLoaded).toBe(false);
+        expect(ops!.isDefault).toBe(false);
     });
 
-    it("scheduling register callback invokes resource registration", async () => {
+    it("ops register callback invokes resource registration", async () => {
         const { toolsetRegistry } = await import(
             "../src/toolsets/registry.js"
         );
@@ -148,8 +151,8 @@ describe("seedRegistry scheduling toolset", () => {
 
         seedRegistry(toolsetRegistry);
 
-        const scheduling = toolsetRegistry.get("scheduling");
-        expect(scheduling).toBeDefined();
+        const ops = toolsetRegistry.get("ops");
+        expect(ops).toBeDefined();
 
         // Create a mock server to capture resource registration
         const mockHandle = { enable: vi.fn(), disable: vi.fn() };
@@ -159,9 +162,9 @@ describe("seedRegistry scheduling toolset", () => {
         };
 
         // Call the register function from seed
-        scheduling!.register(mockServer as never);
+        ops!.register(mockServer as never);
 
-        // Verify that resources were registered (via server.resource calls)
-        expect(mockServer.resource).toHaveBeenCalledTimes(2);
+        // Verify that resources were registered (scheduling: 2 + pipeline-security: 6 = 8)
+        expect(mockServer.resource).toHaveBeenCalledTimes(8);
     });
 });

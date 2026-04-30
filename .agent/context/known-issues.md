@@ -6,23 +6,21 @@
 ## Active Issues
 
 
-### [MCP-TOOLAUDIT] — 12 findings from comprehensive MCP tool CRUD audit
-- **Severity:** High (1 High, 7 Medium, 4 Low) → **Partially remediated** (TA1–TA4)
+### [MCP-TOOLAUDIT] — MCP tool CRUD audit (post-consolidation)
+- **Severity:** Low (all findings informational after P2.5f consolidation)
 - **Component:** mcp-server, api
-- **Discovered:** 2026-04-27
-- **Status:** Partially resolved — 4 MEUs (TA1–TA4) completed 2026-04-29
-- **Remediated (P2.5e):**
-  - ✅ **TA1:** `delete_trade` 404 fix — `NotFoundError` propagation (was 500 on not-found).
-  - ✅ **TA2:** `update_settings` `[object Object]` serialization fix — `JSON.stringify` for non-string details.
-  - ✅ **TA3:** 7 stub handlers → 501 responses: `list_bank_accounts`, `list_brokers`, `resolve_identifiers` (accounts), `estimate_tax`, `find_wash_sales`, `harvest_losses`, `manage_lots` (tax).
-  - ✅ **TA4:** `list_trade_plans` + `delete_trade_plan` tools added with M3 confirmation gate.
-- **Remaining:**
-  - `get_market_news` (503 Finnhub 422) — needs API key configuration
-  - `emulate_policy` schema undocumented — TD1 discoverability task
-  - No `delete_watchlist` tool — Low priority
-  - `list_provider_capabilities` redundant with `list_market_providers` — consolidation candidate
-  - `get_sec_filings` 503 (expected — no API key)
-- **Consolidation:** See **[MCP-TOOLPROLIFERATION]** below — 76→12 compound-tool architecture proposed but never tracked as actionable work.
+- **Discovered:** 2026-04-27 (original), **2026-04-29** (post-consolidation re-audit)
+- **Status:** ✅ Audit PASS — 46 tested, 44 pass, 0 fail, 2 skip (provider-config-dependent)
+- **Consolidation Score:** 1.08 (13/12 ideal) — Excellent
+- **Remediated (P2.5f):** All 4 critical review findings resolved:
+  - ✅ **F1:** `zorivest_plan` relocated trade→ops
+  - ✅ **F2:** 6 action names aligned to v3.1 contract
+  - ✅ **F3:** 116 behavior tests covering all 13 compound tools
+  - ✅ **F4:** `/mcp-audit` validation gate executed
+- **Remaining (informational):**
+  - `get_market_news` 503 (Finnhub 422) — needs provider API key
+  - `get_sec_filings` 503 — SEC API not configured
+  - No `delete_watchlist` action — low priority
 - **Audit ref:** [MCP Tool Audit Report](MCP/mcp-tool-audit-report.md)
 
 
@@ -35,22 +33,6 @@
 - **Tests:** 2 integration tests (delete-with-report, delete-with-images) + 2 unit tests (service cleanup behavior). All GREEN (2396 passed).
 
 
-### [MCP-TOOLPROLIFERATION] — 76+ MCP tools, growing in wrong direction (target: 12)
-- **Severity:** High (architectural debt)
-- **Component:** mcp-server
-- **Discovered:** 2026-04-27 (audit report §Tool Consolidation Reflection)
-- **Status:** Open — consolidation never tracked as actionable work; tool count increased from 74→76 during TA remediation
-- **Details:** The MCP server registers 76 tools across 10 toolsets. IDE tool listings show ~85 (cross-tagged duplicates inflate the count). Most MCP clients warn or hard-cap at 60–80 tools. Tool definitions consume ~20–30K tokens of context window. The 2026-04-27 audit proposed a **76→12 compound-tool architecture** using discriminated unions (Zod) per resource domain, but this was documented only in [mcp-audit-workflow-proposal.md](MCP/mcp-audit-workflow-proposal.md) §5–6 and [mcp-tool-audit-report.md](MCP/mcp-tool-audit-report.md) §Tool Consolidation Reflection — never added to BUILD_PLAN.md, meu-registry.md, or this file.
-- **Growth trajectory:** 68 (initial) → 74 (PH9/PH12 additions) → 76 (TA3/TA4 additions). Each remediation session adds tools instead of consolidating.
-- **Proposed architecture:** 12 compound tools (`zorivest_account`, `zorivest_trade`, `zorivest_report`, `zorivest_watchlist`, `zorivest_market`, `zorivest_policy`, `zorivest_template`, `zorivest_analytics`, `zorivest_plan`, `zorivest_import`, `zorivest_db`, `zorivest_system`) — each with an `action` discriminated union parameter routing to isolated handlers. See audit report for full mapping.
-- **Phase plan:**
-  1. Phase 1: Merge identical tools (−5, zero risk: `list_provider_capabilities` = `list_market_providers`, etc.)
-  2. Phase 2: Consolidate CRUD families — accounts, templates, watchlists (−25 tools)
-  3. Phase 3: Consolidate analytics + market + scheduling (−20 tools)
-  4. Phase 4: Enforce lazy loading for non-core toolsets
-- **Consolidation score:** 76/12 = **6.3** (target: <3.0)
-- **Anti-pattern note:** Compound tools are NOT "God Tools" — each action gets its own Zod schema and isolated handler. The compound tool is a routing layer. See [mcp-audit-workflow-proposal.md](MCP/mcp-audit-workflow-proposal.md) §Reconciling consolidation with anti-patterns.
-- **Needs:** MEU registration in `meu-registry.md` + section in `BUILD_PLAN.md` before work begins.
 
 ### [STUB-RETIRE] — stubs.py contains legacy stubs that should be retired progressively
 - **Severity:** Low (technical debt)
@@ -176,6 +158,8 @@
 | MCP-POLICYGAP | 2026-04-29 | 3 MCP tools added: `delete_policy`, `update_policy`, `get_email_config` (MEU-PH12) |
 | EMULATOR-VALIDATE | 2026-04-29 | VALIDATE phase: EXPLAIN SQL, SMTP check, step wiring validation (MEU-PH13) |
 | TRADE-CASCADE | 2026-04-29 | Cascade delete for trade with linked report/images — ORM cascade + service cleanup |
+| MCP-TOOLPROLIFERATION | 2026-04-29 | 85→13 compound-tool consolidation complete (P2.5f MC0–MC5). 4 toolsets: core, trade, data, ops |
+| PIPE-RUNBYPASS | 2026-04-29 | POST /policies/{id}/run CSRF-gated — `validate_approval_token` added to prevent MCP confirmation bypass via direct API (SEC-1) |
 
 ## Template
 

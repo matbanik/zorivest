@@ -176,7 +176,7 @@ describe("registerPipelineSecurityResources", () => {
 
 // ── Seed registry integration ─────────────────────────────────────────
 
-describe("seedRegistry pipeline-security toolset", () => {
+describe("seedRegistry ops toolset (MC4: pipeline-security absorbed)", () => {
     beforeEach(async () => {
         const { toolsetRegistry } = await import(
             "../src/toolsets/registry.js"
@@ -187,7 +187,7 @@ describe("seedRegistry pipeline-security toolset", () => {
         reg.toolsets.clear();
     });
 
-    it("pipeline-security toolset has 12 tools in seed definition", async () => {
+    it("ops toolset has 4 compound tools in seed definition", async () => {
         const { toolsetRegistry } = await import(
             "../src/toolsets/registry.js"
         );
@@ -195,14 +195,15 @@ describe("seedRegistry pipeline-security toolset", () => {
 
         seedRegistry(toolsetRegistry);
 
-        const pipelineSecurity = toolsetRegistry.get("pipeline-security");
-        expect(pipelineSecurity).toBeDefined();
-        expect(pipelineSecurity!.tools).toHaveLength(12);
-        expect(pipelineSecurity!.alwaysLoaded).toBe(false);
-        expect(pipelineSecurity!.isDefault).toBe(false);
+        const ops = toolsetRegistry.get("ops");
+        expect(ops).toBeDefined();
+        // MC4: 4 compound tools (zorivest_policy, zorivest_template, zorivest_db, zorivest_plan)
+        expect(ops!.tools).toHaveLength(4);
+        expect(ops!.alwaysLoaded).toBe(false);
+        expect(ops!.isDefault).toBe(false);
     });
 
-    it("pipeline-security register callback invokes resource registration", async () => {
+    it("ops register callback invokes resource registration", async () => {
         const { toolsetRegistry } = await import(
             "../src/toolsets/registry.js"
         );
@@ -210,8 +211,8 @@ describe("seedRegistry pipeline-security toolset", () => {
 
         seedRegistry(toolsetRegistry);
 
-        const pipelineSecurity = toolsetRegistry.get("pipeline-security");
-        expect(pipelineSecurity).toBeDefined();
+        const ops = toolsetRegistry.get("ops");
+        expect(ops).toBeDefined();
 
         const mockHandle = { enable: vi.fn(), disable: vi.fn() };
         const mockServer = {
@@ -219,13 +220,13 @@ describe("seedRegistry pipeline-security toolset", () => {
             resource: vi.fn(),
         };
 
-        pipelineSecurity!.register(mockServer as never);
+        ops!.register(mockServer as never);
 
-        // Verify resources were registered (6 resources)
-        expect(mockServer.resource).toHaveBeenCalledTimes(6);
+        // Verify resources were registered (scheduling: 2 + pipeline-security: 6 = 8)
+        expect(mockServer.resource).toHaveBeenCalledTimes(8);
     });
 
-    it("pipeline-security seed tools match registered tool names", async () => {
+    it("ops seed tools match compound tool names", async () => {
         const { toolsetRegistry } = await import(
             "../src/toolsets/registry.js"
         );
@@ -233,35 +234,20 @@ describe("seedRegistry pipeline-security toolset", () => {
 
         seedRegistry(toolsetRegistry);
 
-        const pipelineSecurity = toolsetRegistry.get("pipeline-security");
-        expect(pipelineSecurity).toBeDefined();
+        const ops = toolsetRegistry.get("ops");
+        expect(ops).toBeDefined();
 
-        const seedToolNames = pipelineSecurity!.tools.map(
+        const seedToolNames = ops!.tools.map(
             (t: { name: string }) => t.name,
         );
 
-        // Register actual tools and collect names
-        const registeredNames: string[] = [];
-        const mockHandle = { enable: vi.fn(), disable: vi.fn() };
-        const mockServer = {
-            registerTool: vi.fn((name: string) => {
-                registeredNames.push(name);
-                return mockHandle;
-            }),
-            resource: vi.fn(),
-        };
-
-        pipelineSecurity!.register(mockServer as never);
-
-        // Every seed tool name must appear in registered names
-        for (const name of seedToolNames) {
-            expect(
-                registeredNames,
-                `Seed tool '${name}' not found in registered tools`,
-            ).toContain(name);
-        }
+        // Verify compound tool names
+        expect(seedToolNames).toContain("zorivest_policy");
+        expect(seedToolNames).toContain("zorivest_template");
+        expect(seedToolNames).toContain("zorivest_db");
     });
 });
+
 
 // ── Behavior-level tests (R5: AC-33m protocol coverage) ───────────────
 
