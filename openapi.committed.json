@@ -5748,7 +5748,7 @@
     },
     "/api/v1/scheduling/policies/{policy_id}/run": {
       "post": {
-        "description": "Manually trigger a pipeline run.",
+        "description": "Manually trigger a pipeline run.\n\nRequires a CSRF approval token from the Electron GUI to prevent\nAI agents from bypassing the MCP confirmation gate via direct API calls.",
         "operationId": "trigger_pipeline_api_v1_scheduling_policies__policy_id__run_post",
         "parameters": [
           {
