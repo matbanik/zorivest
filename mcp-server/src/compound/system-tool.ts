@@ -656,6 +656,14 @@ export function registerSystemTool(server: McpServer): RegisteredToolHandle[] {
             description:
                 "Zorivest system operations — diagnostics, settings, discovery, GUI launch, " +
                 "confirmation tokens, and email configuration. " +
+                "\\n\\nDiscovery workflow: toolsets_list → toolset_describe → toolset_enable. " +
+                "Use toolsets_list first to see available toolset groups and their loaded status, " +
+                "then toolset_describe to inspect tools within a group, then toolset_enable to activate deferred toolsets. " +
+                "\\n\\nConfirmation tokens: Use confirm_token to generate a single-use 60s token before calling any destructive action " +
+                "(trade delete, account delete, policy delete, template delete). " +
+                "\\n\\nPrerequisite: diagnose, settings_get, email_config require the backend API to be running. " +
+                "Discovery actions (toolsets_list, toolset_describe, toolset_enable) work without the API. " +
+                "Returns: JSON with action-specific data. diagnose returns { backend, version, database, guard, providers, mcp_server, metrics }. " +
                 `Actions: ${SYSTEM_ACTIONS.join(", ")}`,
             inputSchema: z
                 .object({

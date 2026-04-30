@@ -95,22 +95,27 @@ export default function NavRail({ currentPath, onNavigate }: NavRailProps) {
                 {mainNavItems.map(renderNavLink)}
             </div>
 
-            {/* Bottom-pinned: Settings + Collapse */}
-            <div className="p-2 border-t border-bg-elevated flex flex-col gap-1">
+            {/* Settings — above divider, pushed to bottom */}
+            <div className="p-2 mt-auto">
                 {renderNavLink(settingsItem)}
+            </div>
+
+            {/* Collapse toggle — below divider */}
+            <div className="p-2 border-t border-bg-elevated">
                 <button
                     data-testid="nav-collapse-toggle"
                     onClick={toggleRail}
                     title={isCollapsed ? 'Expand sidebar' : 'Collapse sidebar'}
                     aria-label={isCollapsed ? 'Expand sidebar' : 'Collapse sidebar'}
-                    className="flex items-center justify-center w-full px-3 py-2 rounded-md text-sm text-fg-muted hover:bg-bg-elevated hover:text-fg transition-colors cursor-pointer"
+                    className={`flex items-center gap-3 w-full px-3 py-2 rounded-md text-sm text-fg-muted hover:bg-bg-elevated hover:text-fg transition-colors cursor-pointer
+                    ${isCollapsed ? 'justify-center' : ''}`}
                 >
                     {isCollapsed ? (
                         <PanelLeftOpen size={18} aria-hidden="true" />
                     ) : (
                         <>
                             <PanelLeftClose size={18} aria-hidden="true" />
-                            <span className="ml-3">Collapse</span>
+                            <span>Collapse</span>
                         </>
                     )}
                 </button>

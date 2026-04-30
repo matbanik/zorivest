@@ -149,6 +149,11 @@ export function registerTemplateTool(server: McpServer): RegisteredToolHandle[] 
                 description:
                     "Email template management — create, get, list, update, delete, " +
                     "preview rendered output. " +
+                    "\\n\\nWorkflow: create (define template with Jinja2 variables) → preview (render with sample data to verify) → " +
+                    "reference from pipeline policy email steps. Templates use body_format 'html' or 'markdown'. " +
+                    "\\n\\nConfirmation: 'delete' requires a confirmation_token from zorivest_system(action:\"confirm_token\"). " +
+                    "Returns: JSON with { success, data }. preview returns rendered HTML output. " +
+                    "Errors: 404 if template name not found, 422 if body_html exceeds 64KB limit. " +
                     `Actions: ${TEMPLATE_ACTIONS.join(", ")}`,
                 inputSchema: z.object({
                     action: z.enum(TEMPLATE_ACTIONS).describe("Template action to perform"),

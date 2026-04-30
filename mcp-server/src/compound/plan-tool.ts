@@ -110,6 +110,12 @@ export function registerPlanTool(server: McpServer): RegisteredToolHandle[] {
                 description:
                     "Trade plan management — create structured plans, list with pagination, " +
                     "delete plans. " +
+                    "\\n\\nWorkflow: Use zorivest_analytics(action:\"position_size\") to calculate position → create plan with entry/stop/target levels. " +
+                    "Plans capture strategy thesis (name, description), risk levels (entry, stop, target), " +
+                    "conviction (low/medium/high), conditions, and timeframe. " +
+                    "\\n\\nConfirmation: 'delete' requires a confirmation_token from zorivest_system(action:\"confirm_token\"). " +
+                    "Returns: JSON with { success, data }. " +
+                    "Errors: 404 if plan_id not found, 422 if required fields missing. " +
                     `Actions: ${PLAN_ACTIONS.join(", ")}`,
                 inputSchema: z.object({
                     action: z.enum(PLAN_ACTIONS).describe("Plan action to perform"),

@@ -285,6 +285,12 @@ export function registerAccountTool(server: McpServer): RegisteredToolHandle[] {
                 description:
                     "Account management — list, get, create, update, delete, archive, " +
                     "reassign trades, record balance, review checklist. " +
+                    "\\n\\nWorkflow: create → update → (archive | delete). Archived accounts are hidden from default list but preserved. " +
+                    "Use list with include_archived:true to see them. " +
+                    "\\n\\nConfirmation: 'delete' and 'reassign' actions require a confirmation_token from zorivest_system(action:\"confirm_token\"). " +
+                    "The checklist action identifies stale accounts needing sync or balance updates (default: stale_only with 7-day threshold). " +
+                    "\\n\\nReturns: JSON with { success, data }. Account types: BROKER, BANK, IRA, K401, ROTH_IRA, HSA, OTHER. " +
+                    "Errors: 404 if account_id not found, 422 if required fields missing. " +
                     `Actions: ${ACCOUNT_ACTIONS.join(", ")}`,
                 inputSchema: z.object({
                     action: z.enum(ACCOUNT_ACTIONS).describe("Account action to perform"),

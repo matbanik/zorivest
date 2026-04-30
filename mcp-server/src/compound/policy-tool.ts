@@ -245,6 +245,15 @@ export function registerPolicyTool(server: McpServer): RegisteredToolHandle[] {
                 description:
                     "Pipeline policy management — create, list, run, preview report, " +
                     "update schedule, view run history, delete, update content, emulate. " +
+                    "\\n\\nWorkflow: create → (optional: emulate to test) → approve via GUI → run (dry_run:true to preview) → run (dry_run:false to execute). " +
+                    "Prerequisite: Backend API must be running. Policy must be approved via GUI before any run " +
+                    "(agents cannot approve policies \u2014 approval is a human-in-the-loop security gate). " +
+                    "Content updates reset approval \u2014 re-approval required after changes. Unapproved runs return an approval error. " +
+                    "\\n\\nThe policy_json object must include: { name, trigger: { cron_expression, enabled, timezone }, steps: [{ type, config }] }. " +
+                    "Use zorivest_db(action:\"step_types\") to discover available step types before creating policies. " +
+                    "MCP resources: pipeline://policies/schema (policy JSON schema), pipeline://step-types (available step configs). " +
+                    "\\n\\nConfirmation: The 'delete' action requires a confirmation_token from zorivest_system(action:\"confirm_token\"). " +
+                    "Returns: JSON with { success, data, error }. Errors: 404 if policy_id not found, 422 if policy_json is malformed. " +
                     `Actions: ${POLICY_ACTIONS.join(", ")}`,
                 inputSchema: z.object({
                     action: z.enum(POLICY_ACTIONS).describe("Policy action to perform"),

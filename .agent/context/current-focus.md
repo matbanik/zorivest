@@ -2,9 +2,9 @@
 
 ## Current Priority
 
-P2.5f MCP Consolidation + SEC-1 Pipeline-Run CSRF Hardening — ALL FINDINGS RESOLVED (F1–F8). Review verdict: `approved`. Audit PASS: 46 tested, 44 pass, 0 fail. Security: `/run` endpoint now CSRF-gated.
+MEU-TD1 MCP Tool Discoverability Audit — COMPLETE. All 13 compound tool descriptions enriched with M7 markers. Server instructions expanded. M7 enforcement gate added.
 
 ## Next Steps
 
-1. Git commit P2.5f + SEC-1 changes
+1. Git commit MEU-TD1 changes (13 tool files + client-detection.ts + emerging-standards.md + meu-registry.md)
 2. Next project selection per build plan priority

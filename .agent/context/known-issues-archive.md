@@ -175,3 +175,32 @@
 - **Status:** ✅ **Resolved by MEU-PH13 (emulator-validate-hardening)**
 - **Details:** VALIDATE phase returned `valid: true` for policies with invalid SQL, unconfigured SMTP, and broken step wiring.
 - **Fix:** Three hardening additions in `policy_emulator.py`: (1) `EXPLAIN SQL` schema validation (L244-259), (2) SMTP readiness check for email send steps (L261-276), (3) step output wiring validation — `body_from_step` must reference existing render/compose step (L278-305). 14 unit tests in `test_emulator_validate_hardening.py`.
+
+---
+
+### [MCP-TOOLAUDIT] — MCP tool CRUD audit (post-consolidation) ✅ RESOLVED
+- **Severity:** ~~Low~~ → Resolved (2026-04-30)
+- **Component:** mcp-server, api
+- **Discovered:** 2026-04-27 (original), 2026-04-29 (post-consolidation re-audit)
+- **Status:** ✅ **Audit PASS — 46 tested, 44 pass, 0 fail, 2 skip (provider-config-dependent)**
+- **Consolidation Score:** 1.08 (13/12 ideal) — Excellent
+- **Remediated (P2.5f):** All 4 critical review findings resolved:
+  - ✅ F1: `zorivest_plan` relocated trade→ops
+  - ✅ F2: 6 action names aligned to v3.1 contract
+  - ✅ F3: 116 behavior tests covering all 13 compound tools
+  - ✅ F4: `/mcp-audit` validation gate executed
+- **Remaining (informational, not blocking):**
+  - `get_market_news` 503 (Finnhub 422) — needs provider API key configuration
+  - `get_sec_filings` 503 — SEC API not configured
+  - No `delete_watchlist` action — low priority feature gap
+- **Audit ref:** [MCP Tool Audit Report](MCP/mcp-tool-audit-report.md)
+
+---
+
+### [TRADE-CASCADE] — delete_trade 500 on trade with linked report/images ✅ RESOLVED
+- **Severity:** ~~High~~ → Resolved (2026-04-29)
+- **Component:** infrastructure (`models.py`), core (`trade_service.py`)
+- **Discovered:** 2026-04-29 (live MCP audit)
+- **Status:** ✅ **Resolved — 2026-04-29**
+- **Fix:** Added `cascade="all, delete-orphan"` to `TradeModel.report`, `ondelete="CASCADE"` to `TradeReportModel.trade_id` FK, `ImageRepository.delete_for_owner()` port+impl, and explicit image+report cleanup in `TradeService.delete_trade()`.
+- **Tests:** 2 integration tests (delete-with-report, delete-with-images) + 2 unit tests (service cleanup behavior). All GREEN (2396 passed).

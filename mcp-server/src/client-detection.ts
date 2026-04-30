@@ -97,26 +97,56 @@ export function getServerInstructions(): string {
 
 This server provides toolset-based tool organization for portfolio analytics, trade management, and market data.
 
+## Getting Started
+1. Run \`zorivest_system(action:"diagnose")\` to verify backend API connectivity.
+2. Run \`zorivest_system(action:"toolsets_list")\` to see loaded and deferred toolsets.
+3. Enable deferred toolsets with \`zorivest_system(action:"toolset_enable")\`.
+
 ## Available Toolsets
 - **core**: Settings, diagnostics, emergency controls (always loaded)
 - **trade**: Trade CRUD, screenshot management, analytics reports, trade plans (default)
 - **data**: Account management, market data, watchlists, import, tax (deferred)
 - **ops**: Pipeline policies, email templates, DB schema discovery, SQL validation (deferred)
 
+## Key Workflows
+
+### Trade Lifecycle
+1. \`zorivest_account(action:"list")\` — find or create an account
+2. \`zorivest_import(action:"broker_csv")\` — import trades from broker CSV
+3. \`zorivest_trade(action:"list")\` — view imported trades
+4. \`zorivest_analytics(action:"round_trips")\` — analyze round-trip P&L
+5. \`zorivest_report(action:"create")\` — grade trade execution
+
+### Trade Planning
+1. \`zorivest_market(action:"search")\` — find ticker
+2. \`zorivest_market(action:"quote")\` — get current price
+3. \`zorivest_analytics(action:"position_size")\` — calculate position
+4. \`zorivest_plan(action:"create")\` — create structured trade plan
+
+### Pipeline Automation
+1. \`zorivest_db(action:"step_types")\` — discover available pipeline step types
+2. \`zorivest_db(action:"list_tables")\` — discover queryable tables
+3. \`zorivest_template(action:"create")\` — create email template
+4. \`zorivest_policy(action:"create")\` — create pipeline policy
+5. \`zorivest_policy(action:"emulate")\` — test policy logic
+6. **User approves policy via GUI** (agents cannot approve policies)
+7. \`zorivest_policy(action:"run", dry_run:true)\` — preview report
+8. \`zorivest_policy(action:"run", dry_run:false)\` — execute pipeline
+
 ## Compound Tools (13 total)
-- **zorivest_system** — System operations — diagnostics, settings, discovery, GUI launch, confirmation tokens, and email configuration. Actions: diagnose, settings_get, settings_update, confirm_token, toolsets_list, toolset_describe, toolset_enable, launch_gui, email_config
-- **zorivest_trade** — Trade management — create, list, delete trades; attach/list/get screenshots. Actions: create, list, delete, screenshot_attach, screenshot_list, screenshot_get
-- **zorivest_analytics** — Trade analytics — position sizing, round trips, excursion analysis, fee breakdown, execution quality, PFOF impact, expectancy, drawdown simulation, strategy breakdown, SQN, cost of free, AI trade review, options strategy detection. Actions: position_size, round_trips, excursion, fees, execution_quality, pfof, expectancy, drawdown, strategy, sqn, cost_of_free, ai_review, options_strategy
-- **zorivest_report** — Post-trade review reports — create and retrieve trade reports with setup/execution grades, emotional state tracking, and lessons learned. Actions: create, get_for_trade
-- **zorivest_plan** — Trade plan management — create structured plans, list with pagination, delete plans. Actions: create, list, delete
-- **zorivest_account** — Account management — list, get, create, update, delete, archive, reassign trades, record balance, review checklist. Actions: list, get, create, update, delete, archive, reassign, balance, checklist
-- **zorivest_market** — Market data — stock quotes, news, ticker search, SEC filings, provider management. Actions: quote, news, search, sec_filings, providers, disconnect_provider, test_provider
-- **zorivest_watchlist** — Watchlist management — create, list, get, add/remove tickers. Actions: create, list, get, add_ticker, remove_ticker
-- **zorivest_import** — Data import — CSV/PDF broker imports, bank statements, broker sync, broker listing, identifier resolution, bank account listing. Actions: broker_csv, broker_pdf, bank_statement, sync_broker, list_brokers, resolve_identifiers, list_bank_accounts
-- **zorivest_tax** — Tax operations — estimate liability, find wash sales, manage lots, identify harvesting opportunities. (All actions: 501 Not Implemented) Actions: estimate, wash_sales, manage_lots, harvest
-- **zorivest_policy** — Pipeline policy management — create, list, run, preview report, update schedule, view run history, delete, update content, emulate. Actions: create, list, run, preview, update_schedule, get_history, delete, update, emulate
-- **zorivest_template** — Email template management — create, get, list, update, delete, preview rendered output. Actions: create, get, list, update, delete, preview
-- **zorivest_db** — Database discovery and validation — validate SQL queries, list queryable tables, get sample rows, list pipeline step types, list market data provider capabilities. Actions: validate_sql, list_tables, row_samples, step_types, provider_capabilities
+- **zorivest_system** — System operations: diagnostics, settings, discovery, GUI launch, confirmation tokens, email config
+- **zorivest_trade** — Trade CRUD and screenshot management
+- **zorivest_analytics** — 13 analytics actions: position sizing, round trips, excursion, fees, execution quality, PFOF, expectancy, drawdown, strategy, SQN, cost of free, AI review, options strategy
+- **zorivest_report** — Post-trade review reports with setup/execution grades
+- **zorivest_plan** — Trade plan management with entry/stop/target levels
+- **zorivest_account** — Account CRUD, archive, reassign, balance, checklist
+- **zorivest_market** — Market data: quotes, news, search, SEC filings, provider management
+- **zorivest_watchlist** — Watchlist CRUD with ticker management
+- **zorivest_import** — CSV/PDF import, broker sync, bank statements
+- **zorivest_tax** — Tax operations (all 501 Not Implemented — planned for future phase)
+- **zorivest_policy** — Pipeline policy lifecycle: create, emulate, approve (GUI-only), run, schedule, history
+- **zorivest_template** — Email template CRUD with Jinja2 preview
+- **zorivest_db** — DB schema discovery, SQL validation, step types, provider capabilities
 
 ## Dynamic Toolset Loading
 Use \`zorivest_system(action:"toolsets_list")\` to see all toolsets and their status.
@@ -124,5 +154,12 @@ Use \`zorivest_system(action:"toolset_describe")\` to see tools within a specifi
 Use \`zorivest_system(action:"toolset_enable")\` to dynamically load additional toolsets during your session.
 
 ## Confirmation Workflow
-Destructive operations (trade deletion, account deletion, policy deletion, template deletion) require confirmation on annotation-unaware clients. Use \`zorivest_system(action:"confirm_token")\` to obtain a token, then pass it as \`confirmation_token\` parameter.`;
+Destructive operations (trade deletion, account deletion, policy deletion, template deletion) require confirmation on annotation-unaware clients. Use \`zorivest_system(action:"confirm_token")\` to obtain a single-use 60-second token, then pass it as \`confirmation_token\` parameter.
+
+## Error Handling
+All tools return JSON with \`{ success, data?, error? }\`. Common error codes:
+- **404**: Resource not found (invalid ID, ticker, or template name)
+- **422**: Validation error (malformed input, missing required fields)
+- **501**: Not Implemented (tax tools, some import stubs)
+- **503**: External service unavailable (market data provider down)`;
 }

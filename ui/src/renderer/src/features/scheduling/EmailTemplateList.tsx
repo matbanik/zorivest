@@ -40,9 +40,9 @@ export default function EmailTemplateList({
                 <button
                     data-testid={SCHEDULING_TEST_IDS.TEMPLATE_NEW_BTN}
                     onClick={onCreate}
-                    className="text-xs px-2 py-1 rounded bg-accent/20 text-accent hover:bg-accent/30 transition-colors cursor-pointer"
+                    className="text-xs px-2 py-1 rounded-md bg-accent-purple/20 text-accent-purple hover:bg-accent-purple/30 transition-colors cursor-pointer"
                 >
-                    + New
+                    + New Template
                 </button>
             </div>
 

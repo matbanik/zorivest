@@ -220,7 +220,6 @@ P2.75 (broker adapters): MEU-96 → MEU-99
 | MEU-PW2 | `fetch-step-integration` | 49.5 | Create `MarketDataProviderAdapter` + `MarketDataAdapterPort`; implement `FetchStep._check_cache` with TTL + market-hours extension; add entity_key computation + cache upsert after fetch; add `warnings` field to `FetchResult`; wire adapter/rate-limiter/cache-repo in `main.py` (PipelineRunner 8→9 kwargs); update PW1 contract tests; 5 integration tests | ✅ 2026-04-13 |
 | MEU-PW6 | `url-builders` | 9B.4 | Registry-based URL builder dispatch: `YahooUrlBuilder`, `PolygonUrlBuilder`, `FinnhubUrlBuilder`, `GenericUrlBuilder`; `get_url_builder()` factory; `_resolve_tickers()` helper; 22 unit tests | ✅ 2026-04-19 |
 | MEU-PW7 | `pipeline-cancellation` | 9B.5 | `PipelineStatus.CANCELLING` enum; `PipelineRunner._active_tasks` + `cancel_run()`; `SchedulingService.cancel_run()` delegation; `POST /runs/{run_id}/cancel` endpoint with UUID regex validation (422/404/200); 15 unit tests; OpenAPI spec updated | ✅ 2026-04-19 |
-| MEU-TD1 | `mcp-tool-discovery-audit` | 5.I | Audit all 9 MCP toolset descriptions; enrich workflow context, examples, resource references | ⬜ planned |
 
 ## P2.6: Service Daemon & Tray Icon (Phase 10)
 
@@ -364,3 +363,9 @@ P2.75 (broker adapters): MEU-96 → MEU-99
 | MC3 | `compound-data-vertical` | 5.Q | `zorivest_account` (9), `zorivest_market` (7), `zorivest_watchlist` (5), `zorivest_import` (7 incl. 3×501), `zorivest_tax` (4 stubs). Tools/list: 59→32 | ⬜ |
 | MC4 | `compound-ops-restructure` | 5.R | `zorivest_plan` (3), `zorivest_policy` (9), `zorivest_template` (6), `zorivest_db` (5); seed.ts 10→4 toolsets; CI gate tool_count ≤ 13. Tools/list: 32→13 | ⬜ |
 | MC5 | `consolidation-finalize` | 5.S | Baseline snapshot (85→13), server instructions, anti-placeholder, MCP audit, archive [MCP-TOOLPROLIFERATION] | ⬜ |
+
+## Technical Debt Remediation
+
+| MEU | Slug | Matrix | Description | Status |
+|-----|------|:------:|-------------|:------:|
+| MEU-TD1 | `mcp-discoverability-audit` | TD.1 | M7 enforcement: audit all 13 compound tool descriptions for workflow context, prerequisites, return shapes, error conditions. Expand server instructions. Add M7 enforcement gate to emerging-standards. | ✅ 2026-04-30 |

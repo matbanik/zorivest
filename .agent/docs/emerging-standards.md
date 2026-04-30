@@ -95,6 +95,11 @@ Living reference of implementation standards discovered during development sessi
   3. [ ] Create/update tools include example JSON shape or reference an MCP resource
   4. [ ] Execution tools mention possible return statuses and error shapes
   5. [ ] MCP resources are referenced from the tools that consume them
+- **Enforcement gate (mandatory):** Every MCP MEU exit criteria must include M7 compliance verification. Before marking any MCP tool MEU as complete, run:
+  ```bash
+  rg -i "workflow:|prerequisite:|returns:|errors:" mcp-server/src/compound/ --count
+  ```
+  Each compound tool file must have at least 3 of the 4 markers (Workflow, Prerequisite, Returns, Errors) in its description string. Tax/stub tools exempt from Prerequisite if all actions return 501.
 
 ---
 

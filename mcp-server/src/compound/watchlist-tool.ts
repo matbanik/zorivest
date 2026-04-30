@@ -115,6 +115,10 @@ export function registerWatchlistTool(server: McpServer): RegisteredToolHandle[]
             {
                 description:
                     "Watchlist management — create, list, get, add/remove tickers. " +
+                    "\\n\\nWorkflow: create (name a new watchlist) → add_ticker (add symbols with optional notes) → get (view full watchlist with tickers). " +
+                    "Use zorivest_market(action:\"search\") to find valid tickers before adding. " +
+                    "\\n\\nReturns: JSON with { success, data }. get returns watchlist details including all ticker items. " +
+                    "Errors: 404 if watchlist_id not found, 409 if ticker already in watchlist. " +
                     `Actions: ${WATCHLIST_ACTIONS.join(", ")}`,
                 inputSchema: z.object({
                     action: z.enum(WATCHLIST_ACTIONS).describe("Watchlist action to perform"),

@@ -96,6 +96,12 @@ export function registerDbTool(server: McpServer): RegisteredToolHandle[] {
                 description:
                     "Database discovery and validation — validate SQL queries, list queryable tables, " +
                     "get sample rows, list pipeline step types, list market data provider capabilities. " +
+                    "\\n\\nWorkflow: list_tables (discover schema) → row_samples (preview data) → validate_sql (check query before use in pipeline). " +
+                    "Use step_types before creating pipeline policies to discover available step types and their config schemas. " +
+                    "\\n\\nAll actions are read-only and safe to call at any time. " +
+                    "validate_sql checks syntax only — it does not execute the query. SQL max length: 10,000 characters. " +
+                    "Returns: JSON with { success, data }. " +
+                    "Errors: 422 if SQL syntax is invalid, 404 if table name not found for row_samples. " +
                     `Actions: ${DB_ACTIONS.join(", ")}`,
                 inputSchema: z.object({
                     action: z.enum(DB_ACTIONS).describe("DB action to perform"),

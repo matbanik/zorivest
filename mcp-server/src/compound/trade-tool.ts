@@ -201,6 +201,11 @@ export function registerTradeTool(server: McpServer): RegisteredToolHandle[] {
             {
                 description:
                     "Trade management — create, list, delete trades; attach/list/get screenshots. " +
+                    "\\n\\nConfirmation: 'create' and 'delete' actions require a confirmation_token from zorivest_system(action:\"confirm_token\"). " +
+                    "Screenshot workflow: screenshot_attach (upload base64 image) → screenshot_list (get all for a trade) → screenshot_get (retrieve by ID with embedded image). " +
+                    "\\n\\nPrerequisite: An account must exist before creating trades. Use zorivest_account(action:\"list\") to find account_id. " +
+                    "Returns: JSON with { success, data }. screenshot_get returns both text metadata and an embedded image content block. " +
+                    "Errors: 404 if exec_id/image_id not found, 422 if required fields missing. " +
                     `Actions: ${TRADE_ACTIONS.join(", ")}`,
                 inputSchema: z.object({
                     action: z.enum(TRADE_ACTIONS).describe("Trade action to perform"),

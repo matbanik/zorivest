@@ -244,6 +244,14 @@ export function registerAnalyticsTool(server: McpServer): RegisteredToolHandle[]
                     "Trade analytics — position sizing, round trips, excursion analysis, fee breakdown, " +
                     "execution quality, PFOF impact, expectancy, drawdown simulation, strategy breakdown, " +
                     "SQN, cost of free, AI trade review, options strategy detection. " +
+                    "\\n\\nWorkflow: " +
+                    "(1) Pre-trade: position_size to calculate shares → create trade plan. " +
+                    "(2) Post-trade review: round_trips → excursion → execution_quality → ai_review. " +
+                    "(3) Portfolio health: expectancy → sqn → drawdown → strategy_breakdown → fee_breakdown → cost_of_free. " +
+                    "\\n\\nAll actions are read-only and idempotent. Most accept optional account_id and period filters. " +
+                    "Returns: JSON with { success, data }. position_size returns { shares, risk_amount, reward_risk_ratio }. " +
+                    "drawdown accepts simulations count (100-100000, default 10000). " +
+                    "Errors: 404 if trade_exec_id not found, 422 if required fields missing for position_size. " +
                     `Actions: ${ANALYTICS_ACTIONS.join(", ")}`,
                 inputSchema: z.object({
                     action: z.enum(ANALYTICS_ACTIONS).describe("Analytics action to perform"),

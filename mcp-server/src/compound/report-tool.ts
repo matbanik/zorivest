@@ -72,6 +72,10 @@ export function registerReportTool(server: McpServer): RegisteredToolHandle[] {
                 description:
                     "Post-trade review reports — create and retrieve trade reports with " +
                     "setup/execution grades, emotional state tracking, and lessons learned. " +
+                    "\\n\\nWorkflow: After closing a trade, create a report to grade setup quality (A-F), execution quality (A-F), " +
+                    "record emotional state, and capture lessons learned. Use 'get' to retrieve an existing report by trade_id. " +
+                    "\\n\\nPrerequisite: A trade must exist before creating a report. Use zorivest_trade(action:\"list\") to find trade_id. " +
+                    "Returns: JSON with { success, data }. Errors: 404 if trade_id not found, 409 if report already exists for that trade. " +
                     `Actions: ${REPORT_ACTIONS.join(", ")}`,
                 inputSchema: z.object({
                     action: z.enum(REPORT_ACTIONS).describe("Report action to perform"),

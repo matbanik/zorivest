@@ -5,35 +5,6 @@
 
 ## Active Issues
 
-
-### [MCP-TOOLAUDIT] — MCP tool CRUD audit (post-consolidation)
-- **Severity:** Low (all findings informational after P2.5f consolidation)
-- **Component:** mcp-server, api
-- **Discovered:** 2026-04-27 (original), **2026-04-29** (post-consolidation re-audit)
-- **Status:** ✅ Audit PASS — 46 tested, 44 pass, 0 fail, 2 skip (provider-config-dependent)
-- **Consolidation Score:** 1.08 (13/12 ideal) — Excellent
-- **Remediated (P2.5f):** All 4 critical review findings resolved:
-  - ✅ **F1:** `zorivest_plan` relocated trade→ops
-  - ✅ **F2:** 6 action names aligned to v3.1 contract
-  - ✅ **F3:** 116 behavior tests covering all 13 compound tools
-  - ✅ **F4:** `/mcp-audit` validation gate executed
-- **Remaining (informational):**
-  - `get_market_news` 503 (Finnhub 422) — needs provider API key
-  - `get_sec_filings` 503 — SEC API not configured
-  - No `delete_watchlist` action — low priority
-- **Audit ref:** [MCP Tool Audit Report](MCP/mcp-tool-audit-report.md)
-
-
-### [TRADE-CASCADE] — delete_trade 500 on trade with linked report/images
-- **Severity:** High
-- **Component:** infrastructure (`models.py`), core (`trade_service.py`)
-- **Discovered:** 2026-04-29 (live MCP audit)
-- **Status:** ✅ Resolved — 2026-04-29
-- **Fix:** Added `cascade="all, delete-orphan"` to `TradeModel.report`, `ondelete="CASCADE"` to `TradeReportModel.trade_id` FK, `ImageRepository.delete_for_owner()` port+impl, and explicit image+report cleanup in `TradeService.delete_trade()`.
-- **Tests:** 2 integration tests (delete-with-report, delete-with-images) + 2 unit tests (service cleanup behavior). All GREEN (2396 passed).
-
-
-
 ### [STUB-RETIRE] — stubs.py contains legacy stubs that should be retired progressively
 - **Severity:** Low (technical debt)
 - **Component:** api (`stubs.py`), tests
@@ -43,24 +14,18 @@
 - **Phase 3 blocked on:** `StubAnalyticsService` (MEU-104–116), `StubReviewService` (MEU-110), `StubTaxService` (MEU-123–126). Each retires when its real service is implemented.
 - **Roadmap:** [09a §Stub Retirement Roadmap](../docs/build-plan/09a-persistence-integration.md)
 
-
 ### [MCP-TOOLDISCOVERY] — MCP tool descriptions lack workflow context and examples for AI discoverability
 - **Severity:** Medium
 - **Component:** mcp-server
 - **Discovered:** 2026-04-12
 - **Status:** Open — audit completed 2026-04-27, remediation pending. See [MCP-TOOLAUDIT] and [MCP Tool Audit Report](MCP/mcp-tool-audit-report.md) §Tool Consolidation Reflection.
 - **Details:** Server instructions and tool descriptions are too terse for AI agents to discover and correctly use multi-step workflows. Confirmed gaps in scheduling toolset: (1) server instructions say only "Automated task scheduling" — no mention of policy CRUD or pipeline execution, (2) `run_pipeline` description doesn't explain the approval prerequisite or error return shape, (3) `create_policy` has no example of the expected `policy_json` structure, (4) `pipeline://policies/schema` and `pipeline://step-types` MCP resources aren't referenced in any tool description, (5) no workflow guidance for the `create → approve → run` lifecycle. Similar gaps likely exist across `accounts`, `trade-analytics`, `trade-planning`, `market-data`, and other toolsets.
-- **Sub-issue — Template registry not exposed to MCP layer (2026-04-20):** *(Partially resolved by MEU-PH9 ✅: template CRUD MCP tools added — `list_email_templates`, `get_email_template`, `create_email_template`, `update_email_template`, `preview_email_template`. `pipeline://templates` resource added. Remaining: broader TD1 audit of all 9 toolset descriptions.)*
+- **Sub-issue — Template registry not exposed to MCP layer (2026-04-20):** *(Partially resolved by MEU-PH9 ✅: template CRUD MCP tools added — `list_email_templates`, `get_email_template`, `create_email_template`, `update_email_template`, `preview_email_template`. `pipeline://templates` resource added. Remaining: broader TD1 audit of all 13 compound tool descriptions.)*
   - `create_policy` input is `z.record(z.unknown())` — completely opaque. AI agents cannot discover available template names (`daily_quote_summary`, `generic_report`), their required Jinja2 variables (`quotes`, `records`), variable field shapes (`q.symbol`, `q.price`, etc.), or how steps must be wired for data to flow into the template.
   - ~~No `pipeline://templates` resource exists.~~ → Added by MEU-PH9. `EMAIL_TEMPLATES` dict migrated to DB-backed `EmailTemplateModel`.
   - **Pre-implementation research:** [mcp-template-discoverability-gap.md](scheduling/mcp-template-discoverability-gap.md)
   - **Remaining work:** TD1 audit — enrich `create_policy` description with step-wiring examples and template variable contracts.
 - **Next steps:** Full audit of all toolset descriptions against their actual API contracts. Improve server instructions with toolset workflow summaries. Add `policy_json` examples to `create_policy`. Reference MCP resources from tool descriptions. Add `pipeline://templates` resource exposing template registry with variable contracts. Ensure all tool descriptions include prerequisite state, return shape hints, and error conditions.
-
-
-
-
-
 
 ## Mitigated / Workaround Applied
 
@@ -78,8 +43,20 @@
 ### [MCP-AUTHRACE] — Token refresh race condition under concurrent tool execution
 - **Severity:** Critical
 - **Component:** mcp-server
-- **Status:** Open — needs architectural mitigation
-- **Workaround:** In-memory mutex for refresh; proactive JWT expiry check.
+- **Status:** Architecture decided (2026-04-30) — MEU-ready
+- **Decision:** Option A+B hybrid — in-process singleton `TokenRefreshManager` with Option A's mutex/proactive-expiry mechanics inside it. Designed behind an interface so a future distributed implementation can replace the lock/token store if Zorivest ever supports multiple MCP server instances.
+- **Required contract:**
+  1. Centralize all access-token reads behind `TokenRefreshManager.getValidAccessToken()`
+  2. Use refresh skew: refresh when `expires_at <= now + 30s`
+  3. Deduplicate concurrent refreshes with a single in-flight promise
+  4. On refresh failure: clear in-flight state, propagate same auth error to all waiters
+  5. Individual tools must NOT call refresh directly
+- **Required tests:**
+  - N concurrent tools cause exactly 1 refresh call
+  - All waiters receive the refreshed token
+  - Refresh failure does not deadlock future refresh attempts
+  - Proactive expiry avoids near-expiry token use
+  - Sequential calls after refresh reuse the updated token
 
 ### [MCP-WINDETACH] — Node.js `detached: true` broken on Windows since 2016
 - **Severity:** Critical
@@ -160,6 +137,7 @@
 | TRADE-CASCADE | 2026-04-29 | Cascade delete for trade with linked report/images — ORM cascade + service cleanup |
 | MCP-TOOLPROLIFERATION | 2026-04-29 | 85→13 compound-tool consolidation complete (P2.5f MC0–MC5). 4 toolsets: core, trade, data, ops |
 | PIPE-RUNBYPASS | 2026-04-29 | POST /policies/{id}/run CSRF-gated — `validate_approval_token` added to prevent MCP confirmation bypass via direct API (SEC-1) |
+| MCP-TOOLAUDIT | 2026-04-30 | Audit PASS — 46/46 tools, 4/4 critical findings resolved (P2.5f) |
 
 ## Template
 

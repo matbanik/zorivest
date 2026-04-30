@@ -130,10 +130,10 @@ export default function SettingsLayout() {
                 <h2 className="text-lg font-semibold text-fg mb-6">Settings</h2>
             </div>
 
-            {/* Data Sources */}
+            {/* External Providers */}
             <div className="bg-bg-elevated rounded-lg border border-bg-subtle overflow-hidden">
                 <div className="px-4 py-3 border-b border-bg-subtle">
-                    <h3 className="text-sm font-semibold text-fg-muted uppercase tracking-wide">Data Sources</h3>
+                    <h3 className="text-sm font-semibold text-fg-muted uppercase tracking-wide">External Providers</h3>
                 </div>
                 <button
                     data-testid="settings-market-data-link"

@@ -102,4 +102,16 @@ describe("zorivest_policy compound tool", () => {
         const result = await client.callTool({ name: "zorivest_policy", arguments: { action: "nonexistent" } });
         expect(result.isError).toBe(true);
     });
+
+    it("description includes GUI-only approval gate (M7/AC-2)", async () => {
+        // The policy tool description must mention the GUI-only approval requirement
+        // per emerging-standards.md §M7 and canonical docs 05g/06e.
+        // This assertion would have caught the original discoverability gap.
+        const client = await createClient(registerPolicyTool);
+        const { tools } = await client.listTools();
+        const desc = tools[0].description ?? "";
+        expect(desc).toContain("approve");
+        expect(desc).toContain("GUI");
+        expect(desc).toContain("agents cannot");
+    });
 });

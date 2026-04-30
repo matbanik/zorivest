@@ -123,6 +123,12 @@ export function registerMarketTool(server: McpServer): RegisteredToolHandle[] {
             {
                 description:
                     "Market data — stock quotes, news, ticker search, SEC filings, provider management. " +
+                    "\\n\\nPrerequisite: At least one market data provider must be configured and enabled. " +
+                    "Use 'providers' action to check configured providers, 'test_provider' to verify connectivity. " +
+                    "\\n\\nWorkflow: search (find ticker) → quote (get price) → news (get headlines) → filings (SEC documents). " +
+                    "The 'disconnect' action requires confirm_destructive:true and removes the provider's API key. " +
+                    "\\n\\nReturns: JSON with { success, data }. quote returns { ticker, price, change, volume, ... }. " +
+                    "Errors: 404 if ticker not found, 503 if provider unreachable. " +
                     `Actions: ${MARKET_ACTIONS.join(", ")}`,
                 inputSchema: z.object({
                     action: z.enum(MARKET_ACTIONS).describe("Market data action to perform"),

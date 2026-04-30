@@ -54,8 +54,8 @@ pipeline_runner = PipelineRunner(uow, RefResolver(), ConditionEvaluator())
 
 ### 4. [MCP-TOOLDISCOVERY] — Needs new MEU (documentation pass)
 
-Confirmed gaps in scheduling toolset descriptions. Similar gaps likely across all 9 toolsets:
-- `accounts`, `trade-analytics`, `trade-planning`, `market-data`, `scheduling`, `settings`, `diagnostics`, `guard`, `discovery`
+Confirmed gaps in scheduling toolset descriptions. Similar gaps likely across all 13 compound tools:
+- `account`, `analytics`, `trade`, `plan`, `market`, `policy`, `import`, `watchlist`, `system`, `report`, `template`, `db`, `tax`
 
 ---
 
@@ -119,7 +119,7 @@ None of the existing pending MEUs (MEU-74, 75, 76, 91–95) need modification to
 
 **Scope:**
 
-1. **Audit all 9 toolset descriptions** against actual API contracts
+1. **Audit all 13 compound tool descriptions** against actual API contracts
 2. **Enrich `server.instructions`** with toolset workflow summaries
 3. **Add `policy_json` examples** to `create_policy` tool description
 4. **Reference MCP resources** (`pipeline://policies/schema`, `pipeline://step-types`) from tool descriptions

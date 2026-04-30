@@ -73,6 +73,11 @@ export function registerTaxTool(server: McpServer): RegisteredToolHandle[] {
                 description:
                     "Tax operations — estimate liability, find wash sales, manage lots, " +
                     "identify harvesting opportunities. (All actions: 501 Not Implemented) " +
+                    "\n\nWorkflow: estimate (tax liability for period) → wash_sales (detect wash sale violations) → " +
+                    "manage_lots (view/reassign cost basis lots) → harvest (identify loss harvesting opportunities). " +
+                    "\\n\\nReturns: { success: false, error: '501: Not Implemented' } for all actions. " +
+                    "Errors: 501 Not Implemented for all actions. These tools are planned for a future build phase. " +
+                    "Do not use in production workflows. " +
                     `Actions: ${TAX_ACTIONS.join(", ")}`,
                 inputSchema: z.object({
                     action: z.enum(TAX_ACTIONS).describe("Tax action to perform"),

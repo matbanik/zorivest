@@ -356,7 +356,7 @@ Domain → Infrastructure → Services → REST API → MCP Server → GUI → D
 | MEU-PW12 | `pipeline-dataflow-chain-fix` | 49.14 | [09 §9.4–9.8](build-plan/09-scheduling.md), [deficiency report](../.agent/context/scheduling/pipeline-dataflow-deficiency-report.md) | Fix 6 serial data-flow bugs: [PIPE-STEPKEY] add `source_step_id` param to TransformStep for dynamic predecessor output resolution; [PIPE-RAWBLOB] per-provider response envelope extractor (unwrap `quoteResponse.result` etc.); [PIPE-PROVNORM] provider slug normalization at field mapping lookup; [PIPE-QUOTEFIELD] extend Yahoo quote field mappings with `change`, `change_pct`, `symbol` passthrough; [PIPE-TMPLVAR] wire parsed records into `quotes` template variable via TransformStep output key; [PIPE-SILENTPASS] return WARNING/FAILED on 0 records + `min_records` param + `structlog.warning("transform_zero_records")` · Depends on: MEU-PW6 ✅, MEU-PW9 ✅ | ✅ |
 | MEU-PW13 | `pipeline-e2e-chain-tests` | 49.15 | [09b §9B.6](build-plan/09b-pipeline-hardening.md), [data flow gap analysis](../.agent/context/scheduling/data_flow_gap_analysis.md) | Integration tests exercising real FetchStep → TransformStep → SendStep data handoff with mocked HTTP (real `MarketDataProviderAdapter`), real field mappings, Pandera validation, in-memory SQLite; includes [PIPE-CACHEUPSERT] write-back assertion; extends MEU-PW8 test harness · Depends on: MEU-PW12 | ✅ |
 | MEU-72a | `scheduling-gui-tz-polish` | 35f.1 | [06e](build-plan/06e-gui-scheduling.md) | `PolicyList` timezone display: replace `toLocaleString` with `formatTimestamp` IANA-aware utility · Independent | ✅ |
-| MEU-TD1 | `mcp-tool-discovery-audit` | 5.I | [05](build-plan/05-mcp-server.md) | Audit all 9 MCP toolset descriptions; enrich server instructions with workflow summaries; add `policy_json` examples to `create_policy`; reference MCP resources from tool descriptions; add prerequisite state, return shape, and error conditions · Parallel with any MEU | ⬜ |
+| MEU-TD1 | `mcp-tool-discovery-audit` | 5.I | [05](build-plan/05-mcp-server.md) | Audit all 13 compound tool descriptions; enrich server instructions with workflow summaries; add `policy_json` examples to `create_policy`; reference MCP resources from tool descriptions; add prerequisite state, return shape, and error conditions · Parallel with any MEU | ✅ |
 | MEU-PW14 | `pipeline-markdown-migration` | 49.29 | [09h](build-plan/09h-pipeline-markdown-migration.md) | Remove PDF output pipeline, add Markdown rendering, cleanup Playwright dependency · Resolves [PIPE-DROPPDF] · Depends on MEU-PW9 ✅, MEU-87 ✅ | ✅ |
 
 ---
@@ -660,17 +660,17 @@ Domain → Infrastructure → Services → REST API → MCP Server → GUI → D
 | P2 | MEU-66 → MEU-76, MEU-171 → MEU-172, MEU-72b | 18 | 9 |
 | P2.5 — Phase 9 + WebSocket | MEU-77 → MEU-90, MEU-174 | 15 | 14 |
 | P2.5a — Integration | MEU-90a → MEU-90d | 4 | 3 + 1 🚫 |
-| P2.5b — Wiring & Quality + Hardening | MEU-PW1 → MEU-PW14, MEU-72a, MEU-TD1 | 15 | 11 + 1 🟡 |
+| P2.5b — Wiring & Quality + Hardening | MEU-PW1 → MEU-PW14, MEU-72a, MEU-TD1 | 15 | 14 + 1 🟡 |
 | P2.5c — Security Hardening | MEU-PH1 → MEU-PH10 | 10 | 10 |
 | P2.5d — Approval Security | MEU-PH11 → MEU-PH13 | 3 | 3 |
-| P2.5e — Tool Remediation | MEU-TA1 → MEU-TA4 | 4 | 0 |
+| P2.5e — Tool Remediation | MEU-TA1 → MEU-TA4 | 4 | 4 |
 | P2.6 — Phase 10 | MEU-91 → MEU-95b | 7 | 0 |
 | P2.75 — Expansion | MEU-96 → MEU-122 | 27 | 2 |
 | P3 — Tax | MEU-123 → MEU-156 | 34 | 0 |
 | Phase 7 | MEU-157 | 1 | 0 |
 | P4 — Phase 11 | MEU-175 → MEU-181 | 7 | 0 |
-| Research | MEU-158 → MEU-170, MEU-173, MEU-TS1 → MEU-TS3 | 17 | 1 |
-| **Total** | | **228** | **117 + 1 🟡 + 1 🚫** |
+| Research | MEU-158 → MEU-170, MEU-173, MEU-TS1 → MEU-TS3 | 17 | 3 |
+| **Total** | | **228** | **132 + 1 🟡 + 1 🚫** |
 
 ---
 

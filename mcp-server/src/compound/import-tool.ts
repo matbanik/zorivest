@@ -161,6 +161,13 @@ export function registerImportTool(server: McpServer): RegisteredToolHandle[] {
                 description:
                     "Data import — CSV/PDF broker imports, bank statements, broker sync, " +
                     "broker listing, identifier resolution, bank account listing. " +
+                    "\\n\\nWorkflow: list_brokers (find broker_id) → broker_csv or broker_pdf (import trades) → sync_broker (live sync). " +
+                    "CSV import auto-detects broker format via broker_hint (default: 'auto'). Supported formats: Interactive Brokers, " +
+                    "TD Ameritrade, Schwab, Fidelity, and generic CSV. " +
+                    "\\n\\nPrerequisite: An account must exist before importing. Use zorivest_account(action:\"create\") first. " +
+                    "Confirmation: 'sync_broker' requires a confirmation_token from zorivest_system(action:\"confirm_token\"). " +
+                    "\\n\\nNote: list_brokers, resolve_identifiers, and list_bank_accounts currently return 501 Not Implemented. " +
+                    "Returns: JSON with { success, data, error }. " +
                     `Actions: ${IMPORT_ACTIONS.join(", ")}`,
                 inputSchema: z.object({
                     action: z.enum(IMPORT_ACTIONS).describe("Import action to perform"),
