@@ -357,12 +357,22 @@ P2.75 (broker adapters): MEU-96 → MEU-99
 
 | MEU | Slug | Matrix | Description | Status |
 |-----|------|:------:|-------------|:------:|
-| MC0 | `mcp-consolidation-docs` | 5.N | Documentation sync: BUILD_PLAN.md, meu-registry.md, known-issues.md, 05-mcp-server.md §5.11, mcp-tool-index.md, build-priority-matrix.md | ⬜ |
-| MC1 | `compound-router-system` | 5.O | CompoundToolRouter + `zorivest_system` (9 actions), remove 9 old registrations. Tools/list: 86→77 | ⬜ |
-| MC2 | `compound-trade-analytics` | 5.P | `zorivest_trade` (6), `zorivest_report` (2), `zorivest_analytics` (13 incl. position_size). Tools/list: 77→59 | ⬜ |
-| MC3 | `compound-data-vertical` | 5.Q | `zorivest_account` (9), `zorivest_market` (7), `zorivest_watchlist` (5), `zorivest_import` (7 incl. 3×501), `zorivest_tax` (4 stubs). Tools/list: 59→32 | ⬜ |
-| MC4 | `compound-ops-restructure` | 5.R | `zorivest_plan` (3), `zorivest_policy` (9), `zorivest_template` (6), `zorivest_db` (5); seed.ts 10→4 toolsets; CI gate tool_count ≤ 13. Tools/list: 32→13 | ⬜ |
-| MC5 | `consolidation-finalize` | 5.S | Baseline snapshot (85→13), server instructions, anti-placeholder, MCP audit, archive [MCP-TOOLPROLIFERATION] | ⬜ |
+| MC0 | `mcp-consolidation-docs` | 5.N | Documentation sync: BUILD_PLAN.md, meu-registry.md, known-issues.md, 05-mcp-server.md §5.11, mcp-tool-index.md, build-priority-matrix.md | ✅ 2026-04-29 |
+| MC1 | `compound-router-system` | 5.O | CompoundToolRouter + `zorivest_system` (9 actions), remove 9 old registrations. Tools/list: 86→77 | ✅ 2026-04-29 |
+| MC2 | `compound-trade-analytics` | 5.P | `zorivest_trade` (6), `zorivest_report` (2), `zorivest_analytics` (13 incl. position_size). Tools/list: 77→59 | ✅ 2026-04-29 |
+| MC3 | `compound-data-vertical` | 5.Q | `zorivest_account` (9), `zorivest_market` (7), `zorivest_watchlist` (5), `zorivest_import` (7 incl. 3×501), `zorivest_tax` (4 stubs). Tools/list: 59→32 | ✅ 2026-04-29 |
+| MC4 | `compound-ops-restructure` | 5.R | `zorivest_plan` (3), `zorivest_policy` (9), `zorivest_template` (6), `zorivest_db` (5); seed.ts 10→4 toolsets; CI gate tool_count ≤ 13. Tools/list: 32→13 | ✅ 2026-04-29 |
+| MC5 | `consolidation-finalize` | 5.S | Baseline snapshot (85→13), server instructions, anti-placeholder, MCP audit, archive [MCP-TOOLPROLIFERATION] | ✅ 2026-04-29 |
+
+## P2.5g: MCP Auth Infrastructure
+
+> Source: [known-issues.md](known-issues.md) [MCP-AUTHRACE]
+> Prerequisite: P2.5f complete (MC0→MC5 ✅)
+> Resolves: [MCP-AUTHRACE]
+
+| MEU | Slug | Matrix | Description | Status |
+|-----|------|:------:|-------------|:------:|
+| MEU-PH14 | `token-refresh-manager` | 5.T | `TokenRefreshManager` singleton with promise coalescing, 30s proactive expiry, async `getAuthHeaders()`. Removes module-level `authState`/`bootstrapAuth()`. 10 FIC tests. | ✅ 2026-04-30 |
 
 ## Technical Debt Remediation
 

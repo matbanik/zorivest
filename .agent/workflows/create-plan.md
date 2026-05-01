@@ -184,6 +184,8 @@ invoke `/execution-session` or explicitly say "proceed" to start Step 6.
 > **HARD STOP reminder (sandwich reinforcement):** If you are reading this
 > during execution and you just finished Step 4, STOP HERE. Do not continue
 > to Step 6. End your turn now.
+>
+> The **very last line** of the agent's chat response must be a completion timestamp — run `python .agent/skills/timestamp/scripts/stamp.py` and paste the output.
 
 ### 6. Execute
 
@@ -264,3 +266,14 @@ Examples:
 - [ ] Metrics table updated
 - [ ] Session state saved to pomera_notes
 - [ ] Proposed commit messages presented to human
+
+## Completion Timestamp
+
+The **very last line** of the agent's chat response must be a completion timestamp. Generate it by invoking the timestamp skill:
+
+```powershell
+# // turbo
+python .agent/skills/timestamp/scripts/stamp.py *> C:\Temp\zorivest\stamp.txt; Get-Content C:\Temp\zorivest\stamp.txt
+```
+
+Copy the output verbatim as your final line. See `.agent/skills/timestamp/SKILL.md` for details.

@@ -17,7 +17,7 @@ List all toolset groups with their descriptions, tool counts, and loaded status.
 import { McpServer } from '@modelcontextprotocol/sdk/server/mcp.js';
 import { z } from 'zod';
 import { toolsetRegistry } from '../toolsets/registry.js';
-import { getAuthHeaders } from '../auth/bootstrap.js';
+import { getAuthHeaders } from '../utils/api-client.js';
 
 const API_BASE = process.env.ZORIVEST_API_URL ?? 'http://localhost:17787/api/v1';
 

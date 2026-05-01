@@ -15,14 +15,8 @@ Runtime diagnostics. Returns backend health, DB status, guard state, provider av
 
 import { McpServer } from '@modelcontextprotocol/sdk/server/mcp.js';
 import { z } from 'zod';
-import { authState } from '../auth/bootstrap.js';
+import { getAuthHeaders } from '../utils/api-client.js';
 import { metricsCollector } from '../middleware/metrics.js';
-
-function getAuthHeadersSafe(): Record<string, string> {
-  return authState.sessionToken
-    ? { 'Authorization': `Bearer ${authState.sessionToken}` }
-    : {};
-}
 
 const API_BASE = process.env.ZORIVEST_API_URL ?? 'http://localhost:17787/api/v1';
 
@@ -53,8 +47,8 @@ export function registerDiagnosticsTools(server: McpServer) {
       const [health, version, guard, providers] = await Promise.all([
         safeFetch(`${API_BASE}/health`),
         safeFetch(`${API_BASE}/version/`),
-        safeFetch(`${API_BASE}/mcp-guard/status`, { headers: getAuthHeadersSafe() }),
-        safeFetch(`${API_BASE}/market-data/providers`, { headers: getAuthHeadersSafe() }),
+        safeFetch(`${API_BASE}/mcp-guard/status`, { headers: await getAuthHeaders() }),
+        safeFetch(`${API_BASE}/market-data/providers`, { headers: await getAuthHeaders() }),
       ]);
 
       const report = {

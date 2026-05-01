@@ -341,9 +341,80 @@ describe("zorivest_diagnose", () => {
         expect(report.providers).toEqual([]);
     });
 
-    // AC-10: Auth headers forwarded to auth-dependent endpoints
-    it("passes auth headers to mcp-guard and market-data endpoints", async () => {
-        mockHealthyBackend();
+    // AC-10: Auth headers forwarded with sentinel token from TokenRefreshManager
+    it("passes sentinel token from TokenRefreshManager to mcp-guard and market-data endpoints", async () => {
+        // Initialize TokenRefreshManager so getAuthHeaders() returns a real token
+        const { TokenRefreshManager } = await import(
+            "../src/utils/token-refresh-manager.js"
+        );
+        TokenRefreshManager.resetForTesting();
+
+        // Track all fetch calls
+        const fetchCalls: Array<{ url: string; opts?: RequestInit }> = [];
+
+        vi.stubGlobal(
+            "fetch",
+            vi.fn().mockImplementation((url: string, opts?: RequestInit) => {
+                fetchCalls.push({ url, opts });
+
+                // TRM auth unlock endpoint
+                if (url.includes("/auth/unlock")) {
+                    return Promise.resolve({
+                        ok: true,
+                        json: () =>
+                            Promise.resolve({
+                                session_token: "SENTINEL_DIAG_AC10",
+                                role: "admin",
+                                expires_in: 3600,
+                            }),
+                    });
+                }
+                if (url.includes("/health")) {
+                    return Promise.resolve({
+                        ok: true,
+                        json: () =>
+                            Promise.resolve({
+                                status: "ok",
+                                database: { unlocked: true },
+                            }),
+                    });
+                }
+                if (url.includes("/version")) {
+                    return Promise.resolve({
+                        ok: true,
+                        json: () =>
+                            Promise.resolve({
+                                version: "1.0.0",
+                                context: "dev",
+                            }),
+                    });
+                }
+                if (url.includes("/mcp-guard")) {
+                    return Promise.resolve({
+                        ok: true,
+                        json: () =>
+                            Promise.resolve({
+                                is_enabled: true,
+                                is_locked: false,
+                                lock_reason: null,
+                                recent_calls_1min: 0,
+                                recent_calls_1hr: 0,
+                            }),
+                    });
+                }
+                if (url.includes("/market-data/providers")) {
+                    return Promise.resolve({
+                        ok: true,
+                        json: () => Promise.resolve([]),
+                    });
+                }
+                return Promise.reject(new Error("Unexpected URL: " + url));
+            }),
+        );
+
+        // Initialize TRM — this triggers the auth unlock fetch
+        const mgr = TokenRefreshManager.getInstance();
+        mgr.initialize("test-api-key");
 
         const client = await createTestClient();
         await client.callTool({
@@ -351,27 +422,36 @@ describe("zorivest_diagnose", () => {
             arguments: {},
         });
 
-        // getAuthHeaders() returns {} when unauthenticated, so headers
-        // should be present in the fetch options (even if empty object)
-        const mock = fetch as ReturnType<typeof vi.fn>;
-        const guardCall = mock.mock.calls.find(
-            (c: unknown[]) => (c[0] as string).includes("/mcp-guard/status"),
+        // Find the guard and provider fetch calls
+        const guardCall = fetchCalls.find((c) =>
+            c.url.includes("/mcp-guard/status"),
         );
-        const providerCall = mock.mock.calls.find(
-            (c: unknown[]) =>
-                (c[0] as string).includes("/market-data/providers"),
+        const providerCall = fetchCalls.find((c) =>
+            c.url.includes("/market-data/providers"),
         );
-        const healthCall = mock.mock.calls.find(
-            (c: unknown[]) => (c[0] as string).includes("/health"),
+        const healthCall = fetchCalls.find((c) =>
+            c.url.includes("/health"),
         );
 
-        // Auth-dependent endpoints should have options with headers
-        expect(guardCall?.[1]).toBeDefined();
-        expect(guardCall?.[1]).toHaveProperty("headers");
-        expect(providerCall?.[1]).toBeDefined();
-        expect(providerCall?.[1]).toHaveProperty("headers");
-        // Public endpoints should NOT have options
-        expect(healthCall?.[1]).toBeUndefined();
+        // Auth-dependent endpoints MUST have the sentinel token
+        expect(guardCall).toBeDefined();
+        const guardHeaders = guardCall!.opts?.headers as Record<string, string>;
+        expect(guardHeaders?.Authorization).toBe(
+            "Bearer SENTINEL_DIAG_AC10",
+        );
+
+        expect(providerCall).toBeDefined();
+        const providerHeaders = providerCall!.opts?.headers as Record<string, string>;
+        expect(providerHeaders?.Authorization).toBe(
+            "Bearer SENTINEL_DIAG_AC10",
+        );
+
+        // Public endpoints should NOT have auth headers
+        expect(healthCall).toBeDefined();
+        expect(healthCall!.opts).toBeUndefined();
+
+        // Clean up
+        TokenRefreshManager.resetForTesting();
     });
 
     // Metadata tests: annotations and _meta

@@ -234,3 +234,14 @@ When to switch:
 > **Do NOT autonomously chain into `/plan-critical-review`, `/execution-corrections`, or any other workflow after completing corrections.** You MUST stop here and report the canonical review handoff path to the user. The user decides what happens next.
 
 **Workflow complete.** Report the handoff path and wait for user direction.
+
+## Completion Timestamp
+
+The **very last line** of the agent's chat response must be a completion timestamp. Generate it by invoking the timestamp skill:
+
+```powershell
+# // turbo
+python .agent/skills/timestamp/scripts/stamp.py *> C:\Temp\zorivest\stamp.txt; Get-Content C:\Temp\zorivest\stamp.txt
+```
+
+Copy the output verbatim as your final line. See `.agent/skills/timestamp/SKILL.md` for details.

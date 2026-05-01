@@ -116,10 +116,10 @@ interface GuardCheckResult {
 }
 
 export async function guardCheck(): Promise<GuardCheckResult> {
-  // Session token injected via getAuthHeaders() — same auth model as all other REST calls
+  // Session token injected via getAuthHeaders() — async, delegates to TokenRefreshManager
   const res = await fetch(`${API_BASE}/api/v1/mcp-guard/check`, {
     method: 'POST',
-    headers: { 'Content-Type': 'application/json', ...getAuthHeaders() },
+    headers: { 'Content-Type': 'application/json', ...await getAuthHeaders() },
   });
   return res.json();
 }
@@ -228,39 +228,46 @@ The MCP server must unlock the encrypted database before any tools can function.
 ### Implementation
 
 ```typescript
-// mcp-server/src/auth/bootstrap.ts
+// mcp-server/src/utils/token-refresh-manager.ts (MEU-PH14)
 
-interface AuthState {
-  sessionToken: string | null;
-  role: string | null;
-  expiresAt: number | null;
+export interface ITokenProvider {
+  getValidAccessToken(): Promise<string>;
 }
 
-const authState: AuthState = { sessionToken: null, role: null, expiresAt: null };
+export class TokenRefreshManager implements ITokenProvider {
+  private static instance: TokenRefreshManager | null = null;
+  private apiKey: string | null = null;
+  private sessionToken: string | null = null;
+  private expiresAt: number = 0;
+  private refreshPromise: Promise<string> | null = null;
+  private static EXPIRY_SKEW_MS = 30_000; // proactive refresh 30s before expiry
 
-export async function bootstrapAuth(apiKey: string): Promise<void> {
-  const res = await fetch(`${API_BASE}/auth/unlock`, {
-    method: 'POST',
-    headers: { 'Content-Type': 'application/json' },
-    body: JSON.stringify({ api_key: apiKey }),
-  });
+  private constructor() {}
+  static getInstance(): TokenRefreshManager { /* singleton */ }
+  initialize(apiKey: string): void { /* set key, clear stale state */ }
 
-  if (!res.ok) {
-    const err = await res.json();
-    throw new Error(`Auth failed (${res.status}): ${err.detail ?? 'unknown'}`);
+  async getValidAccessToken(): Promise<string> {
+    // Fast path: cached token still valid (Date.now() + SKEW < expiresAt)
+    // Slow path: promise coalescing — only 1 in-flight refresh
+    if (!this.refreshPromise) {
+      this.refreshPromise = this.doRefresh().finally(() => {
+        this.refreshPromise = null; // clear on success OR failure
+      });
+    }
+    return this.refreshPromise;
   }
 
-  const data = await res.json();
-  authState.sessionToken = data.session_token;
-  authState.role = data.role;
-  authState.expiresAt = Date.now() + data.expires_in * 1000;
+  private async doRefresh(): Promise<string> {
+    // POST /auth/unlock with stored apiKey
+    // Store session_token + computed expiresAt
+  }
 }
 
-export function getAuthHeaders(): Record<string, string> {
-  if (!authState.sessionToken) {
-    throw new Error('MCP server not authenticated. Call bootstrapAuth first.');
-  }
-  return { 'Authorization': `Bearer ${authState.sessionToken}` };
+// mcp-server/src/utils/api-client.ts
+
+export async function getAuthHeaders(): Promise<Record<string, string>> {
+  // Delegates to TokenRefreshManager.getInstance().getValidAccessToken()
+  // Returns { Authorization: `Bearer ${token}` } or {} on failure
 }
 ```
 
@@ -1012,7 +1019,7 @@ Tool call → withMetrics() → withGuard() → withConfirmation() → handler
 - **Shared infrastructure** (this file):
   - MCP guard middleware: `withGuard()` wrapper, `guardCheck()` REST client
   - MCP metrics middleware: `withMetrics()` wrapper, `MetricsCollector` class
-  - Auth bootstrap: `bootstrapAuth()`, `getAuthHeaders()`
+  - Auth token lifecycle: `TokenRefreshManager` (singleton, promise coalescing, 30s proactive expiry), async `getAuthHeaders()`
   - Toolset registry: `ToolsetRegistry` class, `--toolsets` CLI flag
   - Client detection: `detectClientMode()`, `ZORIVEST_CLIENT_MODE` env var
   - Adaptive patterns: response compression, tiered descriptions, server instructions, safety confirmation

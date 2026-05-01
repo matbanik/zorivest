@@ -26,7 +26,7 @@ import {
 } from "./client-detection.js";
 import { registerAllToolsets, applyModeFilter } from "./registration.js";
 import { setConfirmationMode } from "./middleware/confirmation.js";
-import { bootstrapAuth } from "./utils/api-client.js";
+import { TokenRefreshManager } from "./utils/token-refresh-manager.js";
 import { toolsetRegistry } from "./toolsets/registry.js";
 import { seedRegistry } from "./toolsets/seed.js";
 
@@ -66,11 +66,14 @@ async function main(): Promise<void> {
     const transport = new StdioServerTransport();
     await server.connect(transport);
 
-    // 7. Bootstrap auth with pre-provisioned API key from environment
+    // 7. Initialize TokenRefreshManager with pre-provisioned API key from environment
     const apiKey = process.env.ZORIVEST_API_KEY;
     if (apiKey) {
         try {
-            await bootstrapAuth(apiKey);
+            const mgr = TokenRefreshManager.getInstance();
+            mgr.initialize(apiKey);
+            // Eagerly validate the key by fetching a token
+            await mgr.getValidAccessToken();
         } catch (error) {
             console.error(
                 "Auth bootstrap failed (tools will not work until API is unlocked):",

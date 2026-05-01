@@ -193,6 +193,16 @@
 
 ---
 
+## P2.5g — MCP Auth Infrastructure
+
+> **Source**: [known-issues.md](../../.agent/context/known-issues.md) [MCP-AUTHRACE]. Resolves authentication race condition in MCP token lifecycle.
+
+| Order | What | Tests First? | Notes |
+|-------|------|-------------|-------|
+| **5.T** | `TokenRefreshManager` singleton with promise coalescing, 30s proactive expiry, async `getAuthHeaders()` (MEU-PH14) | ✅ Yes | Removes module-level `authState`/`bootstrapAuth()`; all call sites use `await getAuthHeaders()`. 14 FIC tests. [05-mcp-server.md §5.7](05-mcp-server.md) |
+
+---
+
 ## P2.6 — Service Daemon (Phase 10)
 
 > See [Phase 10](10-service-daemon.md) for full spec.

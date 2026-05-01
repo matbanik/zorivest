@@ -463,6 +463,7 @@ Date-based naming is preferred for review artifacts because: (1) temporal contex
 | Pre-Handoff Review | `.agent/skills/pre-handoff-review/SKILL.md` | Self-review protocol addressing 10 recurring patterns from critical review analysis. Reduces average review passes from 4-11 to 3-5. |
 | Terminal Pre-Flight | `.agent/skills/terminal-preflight/SKILL.md` | Mandatory pre-flight checklist for terminal commands. Enforces the redirect-to-file pattern to prevent PowerShell buffer saturation and session hangs. |
 | Completion Pre-Flight | `.agent/skills/completion-preflight/SKILL.md` | Mandatory pre-flight checklist before stop/report events. Enforces task.md re-read gate and post-truncation recovery sequence to prevent premature stop. |
+| Completion Timestamp | `.agent/skills/timestamp/SKILL.md` | Generate the canonical completion timestamp from the system clock. Run `python .agent/skills/timestamp/scripts/stamp.py` — do NOT derive time from UTC tool response headers. |
 
 ## MCP Servers
 

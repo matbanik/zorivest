@@ -87,7 +87,7 @@ Domain → Infrastructure → Services → REST API → MCP Server → GUI → D
 | 6 — GUI | 🟡 In Progress (P0 complete, P2 items remain) | 2026-03-25 |
 | 7 — Distribution | ⚪ Not Started | — |
 | 8 — Market Data | ✅ Completed | 2026-03-23 |
-| 9 — Scheduling | ✅ Core complete; P2.5c ✅ (10/10); P2.5b PW14 ✅ + 72b ✅; P2.5d ✅ (3/3); P2.5e ✅ (4/4); P2.5f ✅ (6/6 — 85→13 tools) | 2026-04-29 |
+| 9 — Scheduling | ✅ Core complete; P2.5c ✅ (10/10); P2.5b PW14 ✅ + 72b ✅; P2.5d ✅ (3/3); P2.5e ✅ (4/4); P2.5f ✅ (6/6 — 85→13 tools); P2.5g ✅ (1/1 — TokenRefreshManager) | 2026-04-30 |
 | 10 — Service Daemon | ⚪ Not Started | — |
 | 11 — Monetization | ⚪ Not Started | — |
 
@@ -419,6 +419,37 @@ Domain → Infrastructure → Services → REST API → MCP Server → GUI → D
 
 ---
 
+### P2.5f — MCP Tool Consolidation
+
+> Source: [mcp-consolidation-proposal-v3.md](../.agent/context/MCP/mcp-consolidation-proposal-v3.md)
+>
+> Prerequisite: P2.5e complete (MEU-TA1→TA4 ✅)
+> Resolves: [MCP-TOOLPROLIFERATION], [MCP-TOOLCAP]
+
+| MEU | Slug | Matrix Item | Build Plan Ref | Description | Status |
+|-----|------|:-----------:|----------------|-------------|:------:|
+| MC0 | `mcp-consolidation-docs` | 5.N | [05 §5.11](build-plan/05-mcp-server.md) | Documentation sync: BUILD_PLAN.md, meu-registry.md, known-issues.md, 05-mcp-server.md §5.11, mcp-tool-index.md, build-priority-matrix.md | ✅ |
+| MC1 | `compound-router-system` | 5.O | [05 §compound](build-plan/05-mcp-server.md) | CompoundToolRouter + `zorivest_system` (9 actions), remove 9 old registrations. Tools/list: 86→77 | ✅ |
+| MC2 | `compound-trade-analytics` | 5.P | [05c](build-plan/05c-mcp-trade-analytics.md) | `zorivest_trade` (6), `zorivest_report` (2), `zorivest_analytics` (13 incl. position_size). Tools/list: 77→59 | ✅ |
+| MC3 | `compound-data-vertical` | 5.Q | [05f](build-plan/05f-mcp-accounts.md) | `zorivest_account` (9), `zorivest_market` (7), `zorivest_watchlist` (5), `zorivest_import` (7), `zorivest_tax` (4 stubs). Tools/list: 59→32 | ✅ |
+| MC4 | `compound-ops-restructure` | 5.R | [05g](build-plan/05g-mcp-scheduling.md) | `zorivest_plan` (3), `zorivest_policy` (9), `zorivest_template` (6), `zorivest_db` (5); seed.ts 10→4 toolsets; CI gate tool_count ≤ 13. Tools/list: 32→13 | ✅ |
+| MC5 | `consolidation-finalize` | 5.S | [05](build-plan/05-mcp-server.md) | Baseline snapshot (85→13), server instructions, anti-placeholder, MCP audit, archive [MCP-TOOLPROLIFERATION] | ✅ |
+
+---
+
+### P2.5g — MCP Auth Infrastructure
+
+> Source: [known-issues.md](../.agent/context/known-issues.md) [MCP-AUTHRACE]
+>
+> Prerequisite: P2.5f complete (MC0→MC5 ✅)
+> Resolves: [MCP-AUTHRACE]
+
+| MEU | Slug | Matrix Item | Build Plan Ref | Description | Status |
+|-----|------|:-----------:|----------------|-------------|:------:|
+| MEU-PH14 | `token-refresh-manager` | 5.T | [05 §5.7](build-plan/05-mcp-server.md) | `TokenRefreshManager` singleton with promise coalescing, 30s proactive expiry, async `getAuthHeaders()`. Removes module-level `authState`/`bootstrapAuth()`. 14 FIC tests. | ✅ |
+
+---
+
 ### P2.5 (addition) — WebSocket Infrastructure
 
 > Source: [04-rest-api.md](build-plan/04-rest-api.md) §WebSocket
@@ -664,13 +695,15 @@ Domain → Infrastructure → Services → REST API → MCP Server → GUI → D
 | P2.5c — Security Hardening | MEU-PH1 → MEU-PH10 | 10 | 10 |
 | P2.5d — Approval Security | MEU-PH11 → MEU-PH13 | 3 | 3 |
 | P2.5e — Tool Remediation | MEU-TA1 → MEU-TA4 | 4 | 4 |
+| P2.5f — Tool Consolidation | MC0 → MC5 | 6 | 6 |
+| P2.5g — Auth Infrastructure | MEU-PH14 | 1 | 1 |
 | P2.6 — Phase 10 | MEU-91 → MEU-95b | 7 | 0 |
 | P2.75 — Expansion | MEU-96 → MEU-122 | 27 | 2 |
 | P3 — Tax | MEU-123 → MEU-156 | 34 | 0 |
 | Phase 7 | MEU-157 | 1 | 0 |
 | P4 — Phase 11 | MEU-175 → MEU-181 | 7 | 0 |
 | Research | MEU-158 → MEU-170, MEU-173, MEU-TS1 → MEU-TS3 | 17 | 3 |
-| **Total** | | **228** | **132 + 1 🟡 + 1 🚫** |
+| **Total** | | **235** | **139 + 1 🟡 + 1 🚫** |
 
 ---
 

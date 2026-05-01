@@ -110,7 +110,7 @@ export function registerGuardTools(server: McpServer) {
     async ({ reason }) => {
       const res = await fetch(`${API_BASE}/api/v1/mcp-guard/lock`, {
         method: 'POST',
-        headers: { 'Content-Type': 'application/json', ...getAuthHeaders() },
+        headers: { 'Content-Type': 'application/json', ...await getAuthHeaders() },
         body: JSON.stringify({ reason }),
       });
       const data = await res.json();
@@ -151,7 +151,7 @@ Re-enable MCP tools after emergency lock.
     async () => {
       const res = await fetch(`${API_BASE}/api/v1/mcp-guard/unlock`, {
         method: 'POST',
-        headers: { 'Content-Type': 'application/json', ...getAuthHeaders() },
+        headers: { 'Content-Type': 'application/json', ...await getAuthHeaders() },
       });
       const data = await res.json();
       return {

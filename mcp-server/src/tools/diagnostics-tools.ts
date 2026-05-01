@@ -72,7 +72,7 @@ export function registerDiagnosticsTools(server: McpServer): RegisteredToolHandl
             },
         },
         async ({ verbose }) => {
-            const authHeaders = getAuthHeaders();
+            const authHeaders = await getAuthHeaders();
 
             const [health, version, guard, providers] = await Promise.all([
                 safeFetch(`${API_BASE}/health`),

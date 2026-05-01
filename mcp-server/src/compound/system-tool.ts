@@ -183,7 +183,7 @@ const systemRouter = new CompoundToolRouter({
             })
             .strict(),
         handler: async (params): Promise<ToolResult> => {
-            const authHeaders = getAuthHeaders();
+            const authHeaders = await getAuthHeaders();
 
             const [health, version, guard, providers] = await Promise.all([
                 safeFetch(`${API_BASE}/health`),

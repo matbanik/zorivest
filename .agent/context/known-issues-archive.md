@@ -204,3 +204,26 @@
 - **Status:** ✅ **Resolved — 2026-04-29**
 - **Fix:** Added `cascade="all, delete-orphan"` to `TradeModel.report`, `ondelete="CASCADE"` to `TradeReportModel.trade_id` FK, `ImageRepository.delete_for_owner()` port+impl, and explicit image+report cleanup in `TradeService.delete_trade()`.
 - **Tests:** 2 integration tests (delete-with-report, delete-with-images) + 2 unit tests (service cleanup behavior). All GREEN (2396 passed).
+
+---
+
+### [MCP-TOOLDISCOVERY] — MCP tool descriptions lack workflow context and examples for AI discoverability ✅ RESOLVED
+- **Severity:** ~~Medium~~ → Resolved (2026-04-30)
+- **Component:** mcp-server
+- **Discovered:** 2026-04-12
+- **Status:** ✅ **Resolved by MEU-TD1 (`mcp-discoverability-audit`) — 2026-04-30**
+- **Details:** Server instructions and tool descriptions were too terse for AI agents to discover and correctly use multi-step workflows. Confirmed gaps across scheduling, accounts, trade-analytics, trade-planning, market-data toolsets.
+- **Fix:** MEU-TD1 audited all 13 compound tool descriptions and enriched them with M7 metadata: WORKFLOW context, Prerequisites, Return shapes, Error conditions. Server instructions expanded. M7 enforcement gate added to emerging-standards.md.
+- **Sub-issue — Template registry:** Resolved by MEU-PH9 (template CRUD tools + `pipeline://templates` resource) + MEU-TD1 (description enrichment with step-wiring examples).
+- **Verification:** All 13 compound tool files in `mcp-server/src/compound/` contain M7-pattern descriptions.
+
+---
+
+### [MCP-TOOLCAP] — IDE tool limits render 68-tool flat registration non-viable ✅ RESOLVED
+- **Severity:** ~~Critical~~ → Resolved (2026-04-30)
+- **Component:** mcp-server
+- **Discovered:** 2026-03-19
+- **Status:** ✅ **Resolved by compound-tool consolidation (P2.5f MC0–MC5) — 2026-04-29**
+- **Details:** Original flat registration of 68+ tools exceeded IDE limits (Cursor ≤40, VS Code variable). Three-tier strategy was designed as mitigation.
+- **Fix:** 85→13 compound-tool consolidation completed (P2.5f MC0–MC5). All 13 compound tools with action-based dispatch. Tool count well within ALL IDE limits. MCP audit passes (46/46 tools tested).
+- **Supersedes:** Three-tier strategy is no longer needed — 13 tools fits all IDEs natively.

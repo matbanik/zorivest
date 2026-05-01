@@ -2,9 +2,9 @@
 
 ## Current Priority
 
-MEU-TD1 MCP Tool Discoverability Audit — COMPLETE. All 13 compound tool descriptions enriched with M7 markers. Server instructions expanded. M7 enforcement gate added.
+MEU-PH14 MCP Token Refresh Manager — COMPLETE. `TokenRefreshManager` singleton with promise coalescing + 30s proactive expiry. All `getAuthHeaders()` call sites migrated to async. 14 FIC tests, 390 regression pass. [MCP-AUTHRACE] archived.
 
 ## Next Steps
 
-1. Git commit MEU-TD1 changes (13 tool files + client-detection.ts + emerging-standards.md + meu-registry.md)
+1. Git commit MEU-PH14 changes
 2. Next project selection per build plan priority

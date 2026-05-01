@@ -41,7 +41,7 @@ export async function guardCheck(): Promise<GuardCheckResult> {
             method: "POST",
             headers: {
                 "Content-Type": "application/json",
-                ...getAuthHeaders(),
+                ...await getAuthHeaders(),
             },
         });
         return (await res.json()) as GuardCheckResult;

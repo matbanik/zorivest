@@ -14,49 +14,13 @@
 - **Phase 3 blocked on:** `StubAnalyticsService` (MEU-104–116), `StubReviewService` (MEU-110), `StubTaxService` (MEU-123–126). Each retires when its real service is implemented.
 - **Roadmap:** [09a §Stub Retirement Roadmap](../docs/build-plan/09a-persistence-integration.md)
 
-### [MCP-TOOLDISCOVERY] — MCP tool descriptions lack workflow context and examples for AI discoverability
-- **Severity:** Medium
-- **Component:** mcp-server
-- **Discovered:** 2026-04-12
-- **Status:** Open — audit completed 2026-04-27, remediation pending. See [MCP-TOOLAUDIT] and [MCP Tool Audit Report](MCP/mcp-tool-audit-report.md) §Tool Consolidation Reflection.
-- **Details:** Server instructions and tool descriptions are too terse for AI agents to discover and correctly use multi-step workflows. Confirmed gaps in scheduling toolset: (1) server instructions say only "Automated task scheduling" — no mention of policy CRUD or pipeline execution, (2) `run_pipeline` description doesn't explain the approval prerequisite or error return shape, (3) `create_policy` has no example of the expected `policy_json` structure, (4) `pipeline://policies/schema` and `pipeline://step-types` MCP resources aren't referenced in any tool description, (5) no workflow guidance for the `create → approve → run` lifecycle. Similar gaps likely exist across `accounts`, `trade-analytics`, `trade-planning`, `market-data`, and other toolsets.
-- **Sub-issue — Template registry not exposed to MCP layer (2026-04-20):** *(Partially resolved by MEU-PH9 ✅: template CRUD MCP tools added — `list_email_templates`, `get_email_template`, `create_email_template`, `update_email_template`, `preview_email_template`. `pipeline://templates` resource added. Remaining: broader TD1 audit of all 13 compound tool descriptions.)*
-  - `create_policy` input is `z.record(z.unknown())` — completely opaque. AI agents cannot discover available template names (`daily_quote_summary`, `generic_report`), their required Jinja2 variables (`quotes`, `records`), variable field shapes (`q.symbol`, `q.price`, etc.), or how steps must be wired for data to flow into the template.
-  - ~~No `pipeline://templates` resource exists.~~ → Added by MEU-PH9. `EMAIL_TEMPLATES` dict migrated to DB-backed `EmailTemplateModel`.
-  - **Pre-implementation research:** [mcp-template-discoverability-gap.md](scheduling/mcp-template-discoverability-gap.md)
-  - **Remaining work:** TD1 audit — enrich `create_policy` description with step-wiring examples and template variable contracts.
-- **Next steps:** Full audit of all toolset descriptions against their actual API contracts. Improve server instructions with toolset workflow summaries. Add `policy_json` examples to `create_policy`. Reference MCP resources from tool descriptions. Add `pipeline://templates` resource exposing template registry with variable contracts. Ensure all tool descriptions include prerequisite state, return shape hints, and error conditions.
-
 ## Mitigated / Workaround Applied
-
-### [MCP-TOOLCAP] — IDE tool limits render 68-tool flat registration non-viable
-- **Severity:** Critical
-- **Component:** mcp-server
-- **Status:** Mitigated by Design — three-tier strategy (static ≤40 for Cursor, dynamic toolsets for VS Code, full for CLI/API). 2026-04-27 audit proposes 74→12 compound-tool consolidation. See [MCP Tool Audit Report](MCP/mcp-tool-audit-report.md) §Tool Consolidation Reflection.
 
 ### [MCP-ZODSTRIP] — `server.tool()` silently strips arguments with z.object()
 - **Severity:** Critical
 - **Component:** mcp-server
 - **Status:** Open — upstream SDK bug (TS-SDK #1291, #1380, PR #1603)
 - **Workaround:** Enforce raw shape convention. Startup assertion for non-empty `inputSchema.properties`.
-
-### [MCP-AUTHRACE] — Token refresh race condition under concurrent tool execution
-- **Severity:** Critical
-- **Component:** mcp-server
-- **Status:** Architecture decided (2026-04-30) — MEU-ready
-- **Decision:** Option A+B hybrid — in-process singleton `TokenRefreshManager` with Option A's mutex/proactive-expiry mechanics inside it. Designed behind an interface so a future distributed implementation can replace the lock/token store if Zorivest ever supports multiple MCP server instances.
-- **Required contract:**
-  1. Centralize all access-token reads behind `TokenRefreshManager.getValidAccessToken()`
-  2. Use refresh skew: refresh when `expires_at <= now + 30s`
-  3. Deduplicate concurrent refreshes with a single in-flight promise
-  4. On refresh failure: clear in-flight state, propagate same auth error to all waiters
-  5. Individual tools must NOT call refresh directly
-- **Required tests:**
-  - N concurrent tools cause exactly 1 refresh call
-  - All waiters receive the refreshed token
-  - Refresh failure does not deadlock future refresh attempts
-  - Proactive expiry avoids near-expiry token use
-  - Sequential calls after refresh reuse the updated token
 
 ### [MCP-WINDETACH] — Node.js `detached: true` broken on Windows since 2016
 - **Severity:** Critical
@@ -138,6 +102,9 @@
 | MCP-TOOLPROLIFERATION | 2026-04-29 | 85→13 compound-tool consolidation complete (P2.5f MC0–MC5). 4 toolsets: core, trade, data, ops |
 | PIPE-RUNBYPASS | 2026-04-29 | POST /policies/{id}/run CSRF-gated — `validate_approval_token` added to prevent MCP confirmation bypass via direct API (SEC-1) |
 | MCP-TOOLAUDIT | 2026-04-30 | Audit PASS — 46/46 tools, 4/4 critical findings resolved (P2.5f) |
+| MCP-TOOLDISCOVERY | 2026-04-30 | MEU-TD1: All 13 compound tool descriptions enriched with M7 metadata |
+| MCP-TOOLCAP | 2026-04-30 | 85→13 compound-tool consolidation resolves IDE tool limits permanently |
+| MCP-AUTHRACE | 2026-04-30 | TokenRefreshManager singleton with promise coalescing + 30s proactive expiry (MEU-PH14, P2.5g) |
 
 ## Template
 
