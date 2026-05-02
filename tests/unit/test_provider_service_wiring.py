@@ -2,7 +2,7 @@
 
 Acceptance criteria (from implementation-plan.md Remaining Work):
   AC-W1: app.state.provider_connection_service is ProviderConnectionService, not a stub
-  AC-W2: provider list returns all 14 registered providers (incl Yahoo Finance + TradingView)
+  AC-W2: provider list returns all 13 registered providers (incl Yahoo Finance + TradingView)
   AC-W3: signup_url is present on each ProviderStatus returned by the real service
   AC-W4: free providers (AuthMethod.NONE) are returned without has_api_key requirement
 
@@ -36,7 +36,7 @@ class TestProviderConnectionServiceNotStubbed:
 
 
 class TestProviderListViaRealService:
-    """AC-W2/W3/W4: Real service returns all 14 providers with correct fields."""
+    """AC-W2/W3/W4: Real service returns all 13 providers with correct fields."""
 
     @pytest.fixture()
     def client(self) -> Generator[TestClient, None, None]:
@@ -50,13 +50,13 @@ class TestProviderListViaRealService:
             app.state.db_unlocked = True
             yield c
 
-    def test_provider_list_returns_14_providers(self, client: TestClient) -> None:
-        """AC-W2: List endpoint returns all 14 registered providers."""
+    def test_provider_list_returns_13_providers(self, client: TestClient) -> None:
+        """AC-W2: List endpoint returns all 13 registered providers."""
         resp = client.get("/api/v1/market-data/providers")
         assert resp.status_code == 200
         data = resp.json()
-        assert len(data) == 14, (
-            f"Expected 14 providers (12 registry + Yahoo Finance + TradingView), "
+        assert len(data) == 13, (
+            f"Expected 13 providers (11 registry + Yahoo Finance + TradingView), "
             f"got {len(data)}"
         )
 

@@ -147,9 +147,7 @@ class MarketDataService:
         """
         providers = self._get_enabled_providers(self._news_normalizers)
         if not providers:
-            raise MarketDataError(
-                "No news provider available — configure Finnhub or Benzinga"
-            )
+            raise MarketDataError("No news provider available — configure Finnhub")
 
         last_error = ""
         for name, setting in providers:
@@ -428,11 +426,7 @@ class MarketDataService:
             if ticker:
                 params += f"&symbol={ticker}"
             url = f"{config.base_url}/company-news{params}"
-        elif name == "Benzinga":
-            params = f"?token={api_key}&pageSize={count}"
-            if ticker:
-                params += f"&tickers={ticker}"
-            url = f"{config.base_url}/news{params}"
+
         else:
             raise MarketDataError(f"No news URL template for provider: {name}")
 

@@ -19,7 +19,6 @@ from zorivest_infra.market_data.normalizers import (
     normalize_alpha_vantage_quote,
     normalize_alpha_vantage_search,
     normalize_api_ninjas_quote,
-    normalize_benzinga_news,
     normalize_eodhd_quote,
     normalize_finnhub_news,
     normalize_finnhub_quote,
@@ -153,35 +152,6 @@ def sec_filing_data() -> list:
             "cik": "0000320193",
             "formType": "10-Q",
             "filedAt": "2024-08-02T16:30:24-04:00",
-        },
-    ]
-
-
-@pytest.fixture()
-def benzinga_news_data() -> list:  # type: ignore[reportReturnType]
-    """Benzinga /news response."""
-    return [
-        {
-            "id": 12345,
-            "title": "Apple Reports Record Revenue",
-            "author": "Jane Smith",
-            "created": "2024-03-08T14:30:00Z",
-            "updated": "2024-03-08T14:35:00Z",
-            "teaser": "Apple Inc. reported record quarterly revenue...",
-            "url": "https://www.benzinga.com/news/12345",
-            "stocks": [{"name": "AAPL"}, {"name": "MSFT"}],
-            "channels": [{"name": "News"}],
-        },
-        {
-            "id": 12346,
-            "title": "Tech Stocks Rally",
-            "author": "John Doe",
-            "created": "2024-03-08T15:00:00Z",
-            "updated": "2024-03-08T15:00:00Z",
-            "teaser": "Technology stocks rallied on Friday...",
-            "url": "https://www.benzinga.com/news/12346",
-            "stocks": [],
-            "channels": [{"name": "Markets"}],
         },
     ]
 
@@ -479,42 +449,6 @@ class TestNormalizeSecFiling:
         assert len(results) == 1
         assert results[0].filing_type is None
         assert results[0].filing_date is None
-
-
-# ── Benzinga News ───────────────────────────────────────────────────────
-
-
-class TestNormalizeBenzingaNews:
-    """Tests for normalize_benzinga_news."""
-
-    def test_multiple_articles(self, benzinga_news_data: dict) -> None:
-        results = normalize_benzinga_news(benzinga_news_data)  # type: ignore[reportArgumentType]
-
-        assert len(results) == 2
-        assert all(isinstance(r, MarketNewsItem) for r in results)
-
-        assert results[0].title == "Apple Reports Record Revenue"
-        assert results[0].source == "Benzinga"
-        assert results[0].url == "https://www.benzinga.com/news/12345"
-        assert results[0].tickers == ["AAPL", "MSFT"]
-        assert results[0].summary == "Apple Inc. reported record quarterly revenue..."
-        assert results[0].published_at is not None
-        assert results[0].provider == "Benzinga"
-
-        assert results[1].tickers == []
-
-    def test_empty_list(self) -> None:
-        results = normalize_benzinga_news([])
-        assert results == []
-
-    def test_missing_optional_fields(self) -> None:
-        data = [{"title": "Test", "id": 1}]
-        results = normalize_benzinga_news(data)
-
-        assert len(results) == 1
-        assert results[0].title == "Test"
-        assert results[0].url is None
-        assert results[0].tickers == []
 
 
 # ── Finnhub News ────────────────────────────────────────────────────────

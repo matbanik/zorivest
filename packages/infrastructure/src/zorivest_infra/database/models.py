@@ -2,7 +2,7 @@
 
 Source: 02-infrastructure.md §2.1, 09-scheduling.md §9.2
 
-Contains all 35 model classes + Base. Financial columns use Numeric(15,6)
+Contains all 39 model classes + Base. Financial columns use Numeric(15,6)
 per the precision warning in the spec. Display-only columns use Float.
 """
 
@@ -13,6 +13,7 @@ import uuid
 from sqlalchemy import (
     Boolean,
     Column,
+    Date,
     DateTime,
     Float,
     ForeignKey,
@@ -745,6 +746,110 @@ class MarketFundamentalsModel(Base):
     period = Column(String(16), nullable=False)
     provider = Column(String(32), nullable=False)
     fetched_at = Column(DateTime, nullable=True)
+
+
+# ── Market Data Expansion Tables (§8a.2, MEU-183) ────────────────────────
+
+
+class MarketEarningsModel(Base):
+    """Quarterly / annual earnings reports (§8a.2, MEU-183)."""
+
+    __tablename__ = "market_earnings"
+    __table_args__ = (
+        UniqueConstraint(
+            "ticker",
+            "fiscal_period",
+            "fiscal_year",
+            name="uq_earnings_ticker_period_year",
+        ),
+        Index("ix_earnings_ticker", "ticker"),
+    )
+
+    id = Column(Integer, primary_key=True, autoincrement=True)
+    ticker = Column(String(16), nullable=False)
+    fiscal_period = Column(String(4), nullable=False)  # Q1, Q2, Q3, Q4, FY
+    fiscal_year = Column(Integer, nullable=False)
+    report_date = Column(Date, nullable=False)
+    eps_actual = Column(Numeric(18, 8), nullable=True)
+    eps_estimate = Column(Numeric(18, 8), nullable=True)
+    eps_surprise = Column(Numeric(18, 8), nullable=True)
+    revenue_actual = Column(Numeric(18, 8), nullable=True)
+    revenue_estimate = Column(Numeric(18, 8), nullable=True)
+    provider = Column(String(32), nullable=False)
+
+
+class MarketDividendsModel(Base):
+    """Dividend payment records (§8a.2, MEU-183)."""
+
+    __tablename__ = "market_dividends"
+    __table_args__ = (
+        UniqueConstraint(
+            "ticker",
+            "ex_date",
+            name="uq_dividends_ticker_exdate",
+        ),
+        Index("ix_dividends_ticker", "ticker"),
+    )
+
+    id = Column(Integer, primary_key=True, autoincrement=True)
+    ticker = Column(String(16), nullable=False)
+    dividend_amount = Column(Numeric(18, 8), nullable=False)
+    currency = Column(String(8), nullable=False)
+    ex_date = Column(Date, nullable=False)
+    record_date = Column(Date, nullable=True)
+    pay_date = Column(Date, nullable=True)
+    declaration_date = Column(Date, nullable=True)
+    frequency = Column(String(16), nullable=True)  # quarterly, semi-annual, annual
+    provider = Column(String(32), nullable=False)
+
+
+class MarketSplitsModel(Base):
+    """Stock split events (§8a.2, MEU-183)."""
+
+    __tablename__ = "market_splits"
+    __table_args__ = (
+        UniqueConstraint(
+            "ticker",
+            "execution_date",
+            name="uq_splits_ticker_execdate",
+        ),
+        Index("ix_splits_ticker", "ticker"),
+    )
+
+    id = Column(Integer, primary_key=True, autoincrement=True)
+    ticker = Column(String(16), nullable=False)
+    execution_date = Column(Date, nullable=False)
+    ratio_from = Column(Integer, nullable=False)
+    ratio_to = Column(Integer, nullable=False)
+    provider = Column(String(32), nullable=False)
+
+
+class MarketInsiderModel(Base):
+    """Insider buy/sell transactions (§8a.2, MEU-183)."""
+
+    __tablename__ = "market_insider"
+    __table_args__ = (
+        UniqueConstraint(
+            "ticker",
+            "name",
+            "transaction_date",
+            "transaction_code",
+            name="uq_insider_ticker_name_date_code",
+        ),
+        Index("ix_insider_ticker", "ticker"),
+    )
+
+    id = Column(Integer, primary_key=True, autoincrement=True)
+    ticker = Column(String(16), nullable=False)
+    name = Column(String(128), nullable=False)
+    title = Column(String(128), nullable=True)
+    transaction_date = Column(Date, nullable=False)
+    transaction_code = Column(String(4), nullable=False)  # P, S, etc.
+    shares = Column(Integer, nullable=False)
+    price = Column(Numeric(18, 8), nullable=True)
+    value = Column(Numeric(18, 8), nullable=True)
+    shares_owned_after = Column(Integer, nullable=True)
+    provider = Column(String(32), nullable=False)
 
 
 # ── Scheduling Triggers (§9.2h, §9.2i) ───────────────────────────────────

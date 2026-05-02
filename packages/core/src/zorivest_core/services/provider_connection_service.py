@@ -146,16 +146,6 @@ def _validate_api_ninjas(data: Any) -> bool:
     return False
 
 
-@_register_validator("Benzinga")
-def _validate_benzinga(data: Any) -> bool:
-    """AC-15: Success when response is list, OR dict with 'data' array."""
-    if isinstance(data, list):
-        return True
-    if isinstance(data, dict):
-        return isinstance(data.get("data"), list)
-    return False
-
-
 @_register_validator("Yahoo Finance")
 def _validate_yahoo_finance(data: Any) -> bool:
     """Free provider: crumb endpoint returns a plain text crumb string.
@@ -220,7 +210,7 @@ class ProviderConnectionService:
         """List all providers with status information.
 
         Returns:
-            List of ProviderStatus for all 12 registered providers.
+            List of ProviderStatus for all 13 registered providers.
         """
         result: list[ProviderStatus] = []
         with self._uow as uow:

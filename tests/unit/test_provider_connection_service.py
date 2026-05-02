@@ -98,15 +98,6 @@ def _make_registry() -> dict[str, ProviderConfig]:
             test_endpoint="/test",
             default_rate_limit=60,
         ),
-        "Benzinga": ProviderConfig(
-            name="Benzinga",
-            base_url="https://api.benzinga.com",
-            auth_method=AuthMethod.QUERY_PARAM,
-            auth_param_name="token",
-            headers_template={},
-            test_endpoint="/news?token={api_key}",
-            default_rate_limit=60,
-        ),
         "OpenFIGI": ProviderConfig(
             name="OpenFIGI",
             base_url="https://api.openfigi.com",
@@ -283,13 +274,13 @@ def _configure_provider_in_uow(
 
 
 class TestListProviders:
-    """AC-1/AC-2: list_providers returns typed ProviderStatus for all 12."""
+    """AC-1/AC-2: list_providers returns typed ProviderStatus for all 11."""
 
     def test_returns_list_of_provider_status(self) -> None:
         async def _run() -> None:
             svc, _, _ = _make_service()
             result = await svc.list_providers()
-            assert len(result) == 12
+            assert len(result) == 11
             for item in result:
                 assert isinstance(item, ProviderStatus)
 
@@ -581,32 +572,6 @@ class TestAPINinjasValidation:
             )
             svc, _, _ = _make_service(uow=uow, http=http)
             success, _ = await svc.test_connection("API Ninjas")
-            assert success is True
-
-        asyncio.run(_run())
-
-
-class TestBenzingaValidation:
-    """AC-15: List or dict with 'data' array."""
-
-    def test_list_response(self) -> None:
-        async def _run() -> None:
-            uow = MockUoW()
-            _configure_provider_in_uow(uow, "Benzinga")
-            http = MockHttpClient(MockResponse(200, _json=[{"headline": "news"}]))
-            svc, _, _ = _make_service(uow=uow, http=http)
-            success, _ = await svc.test_connection("Benzinga")
-            assert success is True
-
-        asyncio.run(_run())
-
-    def test_dict_with_data(self) -> None:
-        async def _run() -> None:
-            uow = MockUoW()
-            _configure_provider_in_uow(uow, "Benzinga")
-            http = MockHttpClient(MockResponse(200, _json={"data": []}))
-            svc, _, _ = _make_service(uow=uow, http=http)
-            success, _ = await svc.test_connection("Benzinga")
             assert success is True
 
         asyncio.run(_run())

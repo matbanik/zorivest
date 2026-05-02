@@ -2,9 +2,9 @@
 
 ## Current Priority
 
-Market Data Expansion Documentation Update — COMPLETE. Benzinga purged from 9 docs, 14 new MEUs (MEU-182a→194) registered in Phase 8a, `08a-market-data-expansion.md` canonical spec created, mcp-rebuild skill created, mcp-audit hardened with Phases 3a/3b.
+Phase 8a Layer 1 complete (MEU-182a, 182, 183, 184). Pending Codex review.
 
 ## Next Steps
 
-1. Git commit documentation changes
-2. Begin Phase 8a MEU implementation (start with MEU-182 `market-expansion-dtos`)
+1. Codex validates Phase 8a Layer 1 handoff
+2. Plan Phase 8a Layer 2: MEU-185/186 (URL builders) → MEU-187/188 (extractors)

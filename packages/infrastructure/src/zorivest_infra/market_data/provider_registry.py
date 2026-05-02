@@ -1,7 +1,7 @@
 """Market data provider registry — MEU-59 + MEU-65.
 
-Static registry of 14 market data API provider configurations:
-- 12 API-key providers (MEU-59 spec, docs/build-plan/08-market-data.md §8.2c)
+Static registry of 13 market data API provider configurations:
+- 11 API-key providers (MEU-59 spec, docs/build-plan/08-market-data.md §8.2c)
 - 2 free providers added by MEU-65: Yahoo Finance, TradingView
 """
 
@@ -99,16 +99,6 @@ PROVIDER_REGISTRY: dict[str, ProviderConfig] = {
         default_rate_limit=60,
         signup_url="https://api-ninjas.com/",
         response_validator_key="price",
-    ),
-    "Benzinga": ProviderConfig(
-        name="Benzinga",
-        base_url="https://api.benzinga.com/api/v2",
-        auth_method=AuthMethod.QUERY_PARAM,
-        auth_param_name="token",
-        headers_template={"accept": "application/json"},
-        test_endpoint="/news?token={api_key}&pagesize=1",
-        default_rate_limit=60,
-        signup_url="https://www.benzinga.com/apis",
     ),
     "OpenFIGI": ProviderConfig(
         name="OpenFIGI",

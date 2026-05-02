@@ -20,7 +20,7 @@ class RedactionFilter(logging.Filter):
 
     # --- Layer 1: Regex patterns (order matters — specific before general) ---
     PATTERNS: list[tuple[re.Pattern[str], str]] = [
-        # 1. URL query params (covers Alpha Vantage, FMP, EODHD, Benzinga, etc.)
+        # 1. URL query params (covers Alpha Vantage, FMP, EODHD, etc.)
         (
             re.compile(
                 r"(apikey|api_key|api_token|token|password|secret)=([^&\s]+)", re.I

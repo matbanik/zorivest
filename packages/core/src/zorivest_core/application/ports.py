@@ -15,6 +15,16 @@ from zorivest_core.application.market_dtos import (
     TickerSearchResult,
 )
 
+from zorivest_core.application.market_expansion_dtos import (
+    DividendRecord,
+    EarningsReport,
+    EconomicCalendarEvent,
+    FundamentalsSnapshot,
+    InsiderTransaction,
+    OHLCVBar,
+    StockSplit,
+)
+
 from zorivest_core.domain.entities import (
     Account,
     BalanceSnapshot,
@@ -397,6 +407,8 @@ class CSVBrokerAdapter(BrokerFileAdapter, Protocol):
 class MarketDataPort(Protocol):
     """Abstract interface for market data queries."""
 
+    # ── Phase 8 (existing) ──────────────────────────────────────────────
+
     async def get_quote(self, ticker: str) -> MarketQuote: ...
 
     async def get_news(
@@ -406,6 +418,24 @@ class MarketDataPort(Protocol):
     async def search_ticker(self, query: str) -> list[TickerSearchResult]: ...
 
     async def get_sec_filings(self, ticker: str) -> list[SecFiling]: ...
+
+    # ── Phase 8a (new — MEU-182) ────────────────────────────────────────
+
+    async def get_ohlcv(self, ticker: str, interval: str = "1d") -> list[OHLCVBar]: ...
+
+    async def get_fundamentals(self, ticker: str) -> FundamentalsSnapshot: ...
+
+    async def get_earnings(self, ticker: str) -> list[EarningsReport]: ...
+
+    async def get_dividends(self, ticker: str) -> list[DividendRecord]: ...
+
+    async def get_splits(self, ticker: str) -> list[StockSplit]: ...
+
+    async def get_insider(self, ticker: str) -> list[InsiderTransaction]: ...
+
+    async def get_economic_calendar(self) -> list[EconomicCalendarEvent]: ...
+
+    async def get_company_profile(self, ticker: str) -> FundamentalsSnapshot: ...
 
 
 # ── Phase 9: Pipeline Market Data Adapter Port (MEU-PW2) ────────────────

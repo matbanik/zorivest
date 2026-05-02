@@ -101,10 +101,10 @@
 
 | MEU | Slug | Matrix | Description | Status |
 |-----|------|:------:|-------------|:------:|
-| MEU-182a | `benzinga-code-purge` | 30.0 | Remove Benzinga provider config, normalizer, validator, service branch + test cleanup (8 files, ~39 refs). Prerequisite for all Phase 8a work. | ⬜ planned |
-| MEU-182 | `market-expansion-dtos` | 30.1 | 7 new DTOs (OHLCV, Fundamentals, Earnings, Dividends, Splits, Insider, EconomicCalendar) + updated `MarketDataPort` | ⬜ planned |
-| MEU-183 | `market-expansion-tables` | 30.2 | 4 new SQLAlchemy models (MarketEarnings, MarketDividends, MarketSplits, MarketInsider) + Alembic migrations | ⬜ planned |
-| MEU-184 | `provider-capabilities` | 30.3 | `ProviderCapabilities` dataclass + 11 registry entries (builder_mode, auth_mode, extractor_shape, supported_data_types) | ⬜ planned |
+| MEU-182a | `benzinga-code-purge` | 30.0 | Remove Benzinga provider config, normalizer, validator, service branch + test cleanup (8 files, ~39 refs). Prerequisite for all Phase 8a work. | ✅ complete (2026-05-02) |
+| MEU-182 | `market-expansion-dtos` | 30.1 | 7 new DTOs (OHLCV, Fundamentals, Earnings, Dividends, Splits, Insider, EconomicCalendar) + updated `MarketDataPort` | ✅ complete (2026-05-02) |
+| MEU-183 | `market-expansion-tables` | 30.2 | 4 new SQLAlchemy models (MarketEarnings, MarketDividends, MarketSplits, MarketInsider) via `create_all()` | ✅ complete (2026-05-02) |
+| MEU-184 | `provider-capabilities` | 30.3 | `ProviderCapabilities` dataclass + 11 registry entries (builder_mode, auth_mode, extractor_shape, supported_data_types) | ✅ complete (2026-05-02) |
 | MEU-185 | `simple-get-builders` | 30.4 | 5 Simple GET URL builders: Alpaca, FMP, EODHD, API Ninjas, Tradier | ⬜ planned |
 | MEU-186 | `special-pattern-builders` | 30.5 | 4 special-pattern builders: Alpha Vantage (function-dispatch), Nasdaq DL (dataset/table), OpenFIGI (POST-body), SEC API (POST-body) | ⬜ planned |
 | MEU-187 | `extractors-standard` | 30.6 | Standard JSON envelope extractors for 5 simple-GET providers + ~25 field mapping tuples | ⬜ planned |

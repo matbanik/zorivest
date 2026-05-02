@@ -64,6 +64,7 @@
 | 2026-04-29 | MC0–MC5 (P2.5f) | ~80 | ~5 min | 9 (tool-count-gate.test.ts) | pending Codex review | 7/7 | 90% | ~120 min | 6-MEU MCP consolidation: 85→13 tools, 10→4 toolsets. 13 compound tools + CompoundToolRouter + CI gate + Zod shape assertion + baseline snapshot. ESLint caught 3 unused vars post-impl. 274 vitest + full Python suite pass, 8/8 MEU gate. |
 | 2026-04-30 | MEU-TD1 | ~30 | N/A (docs) | 0 (docs-only) | N/A (docs-only) | 5/7 | 95% | ~30 min | 1-MEU MCP discoverability audit: 13 compound tool descriptions enriched with Workflow/Returns/Errors markers, server instructions expanded with 3 workflows + error handling, M7 enforcement gate added. 376 vitest pass, tsc clean, npm build clean. String escape wrestling (\\n vs \\\\n) was main friction. |
 | 2026-04-30 | MEU-PH14 (P2.5g) | ~40 | ~3 min | 10 | pending Codex review | 7/7 | 95% | ~45 min | 1-MEU MCP auth infrastructure: TokenRefreshManager singleton with promise coalescing + 30s proactive expiry. Async getAuthHeaders() migration (3 call sites). 387 full regression pass, 0 failures. Build/ESLint/anti-placeholder clean. [MCP-AUTHRACE] archived. |
+| 2026-05-02 | MEU-182a/182/183/184 (P8a) | ~30 | ~3 min | 117 (43+24+50) | pending Codex review | 7/7 | 95% | ~30 min | 4-MEU Phase 8a Layer 1: Benzinga purge (MEU-182a), 7 DTOs + 8 port methods (MEU-182), 4 SQLAlchemy models (MEU-183), ProviderCapabilities registry 11 entries (MEU-184). Cascading count fixes in 3 test files (port 4→12, tables 36→40). 2530 tests, 8/8 MEU gate. |
 
 
 ## Measurement Definitions

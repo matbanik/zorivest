@@ -183,7 +183,7 @@ class TestMarketDataPort:
         from zorivest_core.application.ports import MarketDataPort
 
         assert issubclass(MarketDataPort, Protocol)
-        # Value: verify exactly 4 public methods
+        # Value: verify all 12 public methods (4 Phase 8 + 8 Phase 8a)
         public_methods = {
             name
             for name, _ in inspect.getmembers(
@@ -192,10 +192,20 @@ class TestMarketDataPort:
             if not name.startswith("_")
         }
         assert public_methods == {
+            # Phase 8 (original)
             "get_quote",
             "get_news",
             "search_ticker",
             "get_sec_filings",
+            # Phase 8a (MEU-182)
+            "get_ohlcv",
+            "get_fundamentals",
+            "get_earnings",
+            "get_dividends",
+            "get_splits",
+            "get_insider",
+            "get_economic_calendar",
+            "get_company_profile",
         }
 
     def test_market_data_port_has_get_quote(self) -> None:

@@ -87,7 +87,7 @@ uv run pyright packages/
 7 new DTOs extending the existing `MarketQuote`, `MarketNewsItem`, `TickerSearchResult`, `SecFiling` from Phase 8:
 
 ```python
-# packages/core/src/zorivest_core/entities/market_data.py
+# packages/core/src/zorivest_core/application/market_expansion_dtos.py
 
 @dataclass(frozen=True)
 class OHLCVBar:
@@ -201,7 +201,7 @@ class MarketDataPort(Protocol):
 
 ### Step 8a.2: Database Tables (MEU-183 `market-expansion-tables`)
 
-4 new SQLAlchemy models + Alembic migrations:
+4 new SQLAlchemy models (via `Base.metadata.create_all()`):
 
 | Table | Primary Key | Unique Constraint | Notes |
 |-------|------------|-------------------|-------|
@@ -502,7 +502,7 @@ MEU-182a → MEU-184 → MEU-185 → MEU-187 ─┤
 ## Exit Criteria
 
 1. All 7 new DTOs pass construction + immutability tests
-2. 4 new DB tables created via Alembic migration
+2. 4 new DB tables created via `Base.metadata.create_all()`
 3. `ProviderCapabilities` entries exist for all 11 API-key providers
 4. URL builders produce correct URLs for all provider × data_type combinations
 5. Response extractors correctly unwrap fixture data for all supported providers
@@ -517,8 +517,8 @@ MEU-182a → MEU-184 → MEU-185 → MEU-187 ─┤
 
 ## Outputs
 
-- 7 new DTO dataclasses in `zorivest_core/entities/market_data.py`
-- 4 new SQLAlchemy models + Alembic migration
+- 7 new DTO dataclasses in `zorivest_core/application/market_expansion_dtos.py`
+- 4 new SQLAlchemy models (no Alembic — `create_all()` pattern per Local Canon)
 - `ProviderCapabilities` dataclass + 11 registry entries
 - 9 dedicated URL builders (5 simple + 4 special)
 - ~55 field mapping tuples across all provider × data_type pairs

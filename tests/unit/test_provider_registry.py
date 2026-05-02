@@ -1,11 +1,11 @@
 """Tests for provider registry — MEU-59 + MEU-90b.
 
-FIC-59 acceptance criteria (updated MEU-90b to reflect 14-provider reality):
-AC-1: PROVIDER_REGISTRY has exactly 14 entries (12 API-key + 2 free)
+FIC-59 acceptance criteria (updated MEU-90b to reflect 13-provider reality):
+AC-1: PROVIDER_REGISTRY has exactly 13 entries (11 API-key + 2 free)
 AC-2: Each API-key provider entry has all required fields populated
 AC-3: Provider names match the full known set exactly (closed set)
 AC-4: get_provider_config returns config or raises KeyError
-AC-5: list_provider_names returns sorted list of 14 names
+AC-5: list_provider_names returns sorted list of 13 names
 AC-6: Auth methods match spec per API-key provider
 AC-7: Free providers (Yahoo Finance, TradingView) are registered with AuthMethod.NONE
 """
@@ -34,7 +34,6 @@ EXPECTED_NAMES = sorted(
         "Nasdaq Data Link",
         "SEC API",
         "API Ninjas",
-        "Benzinga",
         "OpenFIGI",
         "Alpaca",
         "Tradier",
@@ -61,7 +60,6 @@ EXPECTED_AUTH_METHODS: dict[str, AuthMethod] = {
     "Nasdaq Data Link": AuthMethod.QUERY_PARAM,
     "SEC API": AuthMethod.RAW_HEADER,
     "API Ninjas": AuthMethod.CUSTOM_HEADER,
-    "Benzinga": AuthMethod.QUERY_PARAM,
     "OpenFIGI": AuthMethod.CUSTOM_HEADER,
     "Alpaca": AuthMethod.CUSTOM_HEADER,
     "Tradier": AuthMethod.BEARER_HEADER,
@@ -69,7 +67,7 @@ EXPECTED_AUTH_METHODS: dict[str, AuthMethod] = {
 
 
 class TestProviderRegistryAC1:
-    """AC-1: PROVIDER_REGISTRY has exactly 14 entries (12 API-key + 2 free)."""
+    """AC-1: PROVIDER_REGISTRY has exactly 13 entries (11 API-key + 2 free)."""
 
     def test_registry_count(self) -> None:
         assert len(PROVIDER_REGISTRY) == len(EXPECTED_NAMES) + len(FREE_PROVIDER_NAMES)
@@ -148,7 +146,7 @@ class TestGetProviderConfigAC4:
 
 
 class TestListProviderNamesAC5:
-    """AC-5: list_provider_names returns sorted list of 14 names (12 API-key + 2 free)."""
+    """AC-5: list_provider_names returns sorted list of 13 names (11 API-key + 2 free)."""
 
     def test_returns_sorted_list(self) -> None:
         names = list_provider_names()

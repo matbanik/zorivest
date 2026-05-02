@@ -72,7 +72,7 @@
 
 | Order | What | Tests First? | Notes |
 |-------|------|-------------|-------|
-| **21** | `MarketDataProvider` entity + `AuthMethod` enum | ✅ Yes | 12 provider configs, 4 auth methods |
+| **21** | `MarketDataProvider` entity + `AuthMethod` enum | ✅ Yes | 11 provider configs, 4 auth methods |
 | **22** | Normalized response DTOs (`MarketQuote`, `MarketNewsItem`, etc.) | ✅ Yes | Pydantic models for cross-provider normalization |
 | **23** | `MarketProviderSettingModel` + encrypted key storage | ✅ Yes | SQLAlchemy table, Fernet encrypt/decrypt |
 | **24** | Provider registry (singleton config map) | ✅ Yes | All 11 providers with auth templates, test endpoints |
@@ -93,7 +93,7 @@
 |-------|------|-------------|-------|
 | **30.0** | Benzinga code purge: remove provider config, normalizer, validator, service branch, tests (MEU-182a) | N/A | Prerequisite: aligns codebase to 11-provider docs |
 | **30.1** | Expansion DTOs: OHLCV, Fundamentals, Earnings, Dividends, Splits, Insider, EconomicCalendar (MEU-182) | ✅ Yes | 7 new frozen dataclasses + `MarketDataPort` extended |
-| **30.2** | DB tables: `market_earnings`, `market_dividends`, `market_splits`, `market_insider` (MEU-183) | ✅ Yes | SQLAlchemy models + Alembic migration |
+| **30.2** | DB tables: `market_earnings`, `market_dividends`, `market_splits`, `market_insider` (MEU-183) | ✅ Yes | SQLAlchemy models via `create_all()` |
 | **30.3** | `ProviderCapabilities` registry (MEU-184) | ✅ Yes | builder_mode, auth_mode, extractor_shape for all 11 providers |
 | **30.4** | Simple GET URL builders: Alpaca, FMP, EODHD, API Ninjas, Tradier (MEU-185) | ✅ Yes | `base_url + path + query_params` pattern |
 | **30.5** | Special-pattern builders: Alpha Vantage, Nasdaq DL, OpenFIGI, SEC API (MEU-186) | ✅ Yes | function-dispatch, dataset/table, POST-body |

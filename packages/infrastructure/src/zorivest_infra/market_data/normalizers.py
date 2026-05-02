@@ -187,37 +187,6 @@ def normalize_sec_filing(data: list[dict[str, Any]]) -> list[SecFiling]:
 # ── News Normalizers ────────────────────────────────────────────────────
 
 
-def normalize_benzinga_news(
-    data: list[dict[str, Any]],
-) -> list[MarketNewsItem]:
-    """Convert Benzinga /news → list[MarketNewsItem]."""
-    results: list[MarketNewsItem] = []
-    for item in data:
-        created = item.get("created")
-        published_at = None
-        if created:
-            try:
-                published_at = datetime.fromisoformat(created.replace("Z", "+00:00"))
-            except (ValueError, TypeError):
-                published_at = None
-
-        stocks = item.get("stocks", [])
-        tickers = [s["name"] for s in stocks if "name" in s]
-
-        results.append(
-            MarketNewsItem(
-                title=item.get("title", ""),
-                source="Benzinga",
-                url=item.get("url"),
-                published_at=published_at,
-                tickers=tickers,
-                summary=item.get("teaser"),
-                provider="Benzinga",
-            )
-        )
-    return results
-
-
 def normalize_finnhub_news(
     data: list[dict[str, Any]],
 ) -> list[MarketNewsItem]:
@@ -259,7 +228,6 @@ QUOTE_NORMALIZERS: dict[str, Any] = {
 }
 
 NEWS_NORMALIZERS: dict[str, Any] = {
-    "Benzinga": normalize_benzinga_news,
     "Finnhub": normalize_finnhub_news,
 }
 

@@ -371,11 +371,11 @@ Canonical registry of **every input** the system accepts — human-entered, agen
 | 15b.3 | `secret` | `password` | Fernet-encrypted at rest | 🖥️🔌 | ✅ | [02](02-infrastructure.md), [04](04-rest-api.md) |
 | 15b.4 | Test connection | `action` | Verify credentials | 🖥️🤖🔌 | ✅ | [04](04-rest-api.md), [05](05-mcp-server.md) |
 
-### 15b-market. Market Data API Keys (12 Providers)
+### 15b-market. Market Data API Keys (11 Providers)
 
 | # | Input | Type | Description | Surface | Status | Plan Files |
 |---|-------|------|-------------|---------|--------|------------|
-| 15m.1 | `provider_name` | `dropdown` | Pre-populated from 12-provider registry | 🖥️🤖🔌 | ✅ | [08](08-market-data.md) |
+| 15m.1 | `provider_name` | `dropdown` | Pre-populated from 11-provider registry | 🖥️🤖🔌 | ✅ | [08](08-market-data.md) |
 | 15m.2 | `api_key` | `password` | Fernet-encrypted (`ENC:` prefix) | 🖥️🔌 | ✅ | [08](08-market-data.md), [02](02-infrastructure.md) |
 | 15m.3 | `rate_limit` | `number` | Requests per minute | 🖥️🔌 | ✅ | [08](08-market-data.md) |
 | 15m.4 | `timeout` | `number` | Seconds (default 30) | 🖥️🔌 | ✅ | [08](08-market-data.md) |

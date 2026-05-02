@@ -27,7 +27,7 @@ BUILD ORDER (left to right):
                                                                             │ Aggregation  │
                                                                             └──────┬───────┘
                                                                             depends on 2,3,4
-                                                                            12 API providers
+                                                                            11 API providers
                                                                                    │
                                                                                    ▼
                                                                             ┌──────────────┐
@@ -70,7 +70,7 @@ BUILD ORDER (left to right):
 | 5 | [MCP Server](05-mcp-server.md) | Phase 4, 8 | TypeScript MCP tools (calls REST), discovery meta-tools, toolset registry ([05j](05j-mcp-discovery.md)) |
 | 6 | [GUI](06-gui.md) ([Shell](06a-gui-shell.md), [Trades](06b-gui-trades.md), [Planning](06c-gui-planning.md), [Accounts](06d-gui-accounts.md), [Scheduling](06e-gui-scheduling.md), [Settings](06f-gui-settings.md), [Tax](06g-gui-tax.md), [Calculator](06h-gui-calculator.md)) | Phase 4, 8 | Electron + React desktop app |
 | 7 | [Distribution](07-distribution.md) | All | Versioning architecture, CI/CD pipelines (ci/release/publish/test-release), code signing, auto-update, OIDC publishing, rollback procedures |
-| 8 | [Market Data](08-market-data.md) | Phase 2, 3, 4 | 12-provider aggregation, encryption, MCP tools |
+| 8 | [Market Data](08-market-data.md) | Phase 2, 3, 4 | 11-provider aggregation, encryption, MCP tools |
 | 9 | [Scheduling & Pipelines](09-scheduling.md) | Phase 2, 3, 4, 5, 8 | Policy engine, pipeline runner, APScheduler, 5 stages, 6 MCP tools |
 | 10 | [Service Daemon](10-service-daemon.md) | Phase 4, 7, 9 | Cross-platform OS service (WinSW/launchd/systemd), ServiceManager, 3 MCP tools |
 
