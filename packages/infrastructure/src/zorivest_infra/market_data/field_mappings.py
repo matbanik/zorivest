@@ -19,6 +19,17 @@ _PROVIDER_SLUG_MAP: dict[str, str] = {
     "Polygon.io": "polygon",
     "Interactive Brokers": "ibkr",
     "Finnhub": "finnhub",
+    # MEU-187: 9 new providers
+    "Alpaca": "alpaca",
+    "Financial Modeling Prep": "fmp",
+    "EODHD": "eodhd",
+    "API Ninjas": "api_ninjas",
+    "Tradier": "tradier",
+    "Alpha Vantage": "alpha_vantage",
+    "Nasdaq Data Link": "nasdaq_dl",
+    "OpenFIGI": "openfigi",
+    "SEC API": "sec_api",
+    "TradingView": "tradingview",
 }
 
 
@@ -76,6 +87,14 @@ FIELD_MAPPINGS: dict[tuple[str, str], dict[str, str]] = {
         "regularMarketChangePercent": "change_pct",
         "symbol": "ticker",
     },
+    ("yahoo", "ohlcv"): {
+        "timestamp": "timestamp",
+        "open": "open",
+        "high": "high",
+        "low": "low",
+        "close": "close",
+        "volume": "volume",
+    },
     ("polygon", "quote"): {
         "bidPrice": "bid",
         "askPrice": "ask",
@@ -117,6 +136,226 @@ FIELD_MAPPINGS: dict[tuple[str, str], dict[str, str]] = {
         "label": "metric",
         "value": "value",
         "fiscal_period": "period",
+    },
+    # ── FMP (MEU-187) ─────────────────────────────────────────────────
+    ("fmp", "quote"): {
+        "symbol": "ticker",
+        "price": "last",
+        "change": "change",
+        "changesPercentage": "change_pct",
+        "volume": "volume",
+    },
+    ("fmp", "ohlcv"): {
+        "date": "timestamp",
+        "open": "open",
+        "high": "high",
+        "low": "low",
+        "close": "close",
+        "volume": "volume",
+        "adjClose": "adj_close",
+    },
+    # ── EODHD (MEU-187) ───────────────────────────────────────────────
+    ("eodhd", "ohlcv"): {
+        "date": "timestamp",
+        "open": "open",
+        "high": "high",
+        "low": "low",
+        "close": "close",
+        "volume": "volume",
+        "adjusted_close": "adj_close",
+    },
+    # ── Alpaca (MEU-187) ──────────────────────────────────────────────
+    ("alpaca", "quote"): {
+        "p": "last",
+        "s": "size",
+        "bp": "bid",
+        "ap": "ask",
+        "bs": "bid_size",
+        "as": "ask_size",
+    },
+    ("alpaca", "ohlcv"): {
+        "o": "open",
+        "h": "high",
+        "l": "low",
+        "c": "close",
+        "v": "volume",
+        "t": "timestamp",
+        "vw": "vwap",
+        "n": "trade_count",
+    },
+    # ── Tradier (MEU-187) ─────────────────────────────────────────────
+    ("tradier", "quote"): {
+        "symbol": "ticker",
+        "last": "last",
+        "bid": "bid",
+        "ask": "ask",
+        "volume": "volume",
+        "change": "change",
+        "change_percentage": "change_pct",
+    },
+    ("tradier", "ohlcv"): {
+        "date": "timestamp",
+        "open": "open",
+        "high": "high",
+        "low": "low",
+        "close": "close",
+        "volume": "volume",
+    },
+    # ── Alpha Vantage (MEU-188) ──────────────────────────────────────────
+    ("alpha_vantage", "ohlcv"): {
+        "date": "timestamp",
+        "open": "open",
+        "high": "high",
+        "low": "low",
+        "close": "close",
+        "volume": "volume",
+        "adjusted close": "adj_close",
+    },
+    ("alpha_vantage", "quote"): {
+        "symbol": "ticker",
+        "price": "last",
+        "open": "open",
+        "high": "high",
+        "low": "low",
+        "volume": "volume",
+        "change percent": "change_pct",
+        "change": "change",
+    },
+    # ── Finnhub (MEU-188) ────────────────────────────────────────────────
+    ("finnhub", "ohlcv"): {
+        "o": "open",
+        "h": "high",
+        "l": "low",
+        "c": "close",
+        "v": "volume",
+        "t": "timestamp",
+    },
+    # ── F2/F3 Corrections: missing mapping tuples ────────────────────────
+    # Alpaca news (identity — Alpaca uses standard field names)
+    ("alpaca", "news"): {
+        "headline": "headline",
+        "source": "source",
+        "url": "url",
+        "summary": "summary",
+        "created_at": "published_at",
+    },
+    # FMP earnings
+    ("fmp", "earnings"): {
+        "date": "date",
+        "symbol": "ticker",
+        "eps": "eps",
+        "epsEstimated": "eps_estimated",
+        "revenue": "revenue",
+        "revenueEstimated": "revenue_estimated",
+    },
+    # FMP dividends
+    ("fmp", "dividends"): {
+        "date": "date",
+        "dividend": "dividend",
+        "recordDate": "record_date",
+        "declarationDate": "declaration_date",
+        "paymentDate": "payment_date",
+    },
+    # FMP news
+    ("fmp", "news"): {
+        "title": "headline",
+        "site": "source",
+        "url": "url",
+        "publishedDate": "published_at",
+        "symbol": "ticker",
+    },
+    # FMP fundamentals (income statement array items)
+    ("fmp", "fundamentals"): {
+        "date": "date",
+        "symbol": "ticker",
+        "revenue": "revenue",
+        "netIncome": "net_income",
+        "grossProfit": "gross_profit",
+        "operatingIncome": "operating_income",
+    },
+    # FMP splits
+    ("fmp", "splits"): {
+        "date": "date",
+        "label": "label",
+        "numerator": "numerator",
+        "denominator": "denominator",
+    },
+    # EODHD fundamentals (section-prefixed keys from flattened extractor)
+    ("eodhd", "fundamentals"): {
+        "General.Code": "General.Code",
+        "General.Name": "General.Name",
+        "General.Exchange": "General.Exchange",
+        "Highlights.MarketCapitalization": "Highlights.MarketCapitalization",
+    },
+    # EODHD dividends
+    ("eodhd", "dividends"): {
+        "date": "date",
+        "value": "value",
+    },
+    # EODHD news
+    ("eodhd", "news"): {
+        "title": "headline",
+        "link": "url",
+        "date": "published_at",
+    },
+    # EODHD splits
+    ("eodhd", "splits"): {
+        "date": "date",
+        "split": "split",
+    },
+    # API Ninjas quote
+    ("api_ninjas", "quote"): {
+        "name": "name",
+        "price": "last",
+        "exchange": "exchange",
+        "ticker": "ticker",
+        "volume": "volume",
+    },
+    # API Ninjas earnings
+    ("api_ninjas", "earnings"): {
+        "date": "date",
+        "ticker": "ticker",
+        "actual_eps": "actual_eps",
+        "estimated_eps": "estimated_eps",
+    },
+    # Alpha Vantage earnings (CSV columns)
+    ("alpha_vantage", "earnings"): {
+        "fiscalDateEnding": "date",
+        "reportedEPS": "eps",
+        "estimatedEPS": "eps_estimated",
+        "symbol": "ticker",
+        "surprise": "surprise",
+        "surprisePercentage": "surprise_pct",
+    },
+    # Nasdaq Data Link fundamentals (SHARADAR/SF1 columns)
+    ("nasdaq_dl", "fundamentals"): {
+        "ticker": "ticker",
+        "calendardate": "date",
+        "pe": "pe",
+        "eps": "eps",
+        "revenue": "revenue",
+        "netinc": "net_income",
+        "marketcap": "market_cap",
+    },
+    # TradingView scanner quote (identity — scanner columns already canonical)
+    ("tradingview", "quote"): {
+        "close": "close",
+        "volume": "volume",
+        "change": "change",
+        "high": "high",
+        "low": "low",
+        "open": "open",
+        "name": "name",
+    },
+    # TradingView scanner fundamentals (scanner columns → canonical names)
+    ("tradingview", "fundamentals"): {
+        "market_cap_basic": "market_cap",
+        "earnings_per_share_basic_ttm": "eps",
+        "price_earnings_ttm": "pe_ratio",
+        "dividend_yield_indication": "dividend_yield",
+        "price_book_ratio": "pb_ratio",
+        "debt_to_equity": "debt_to_equity",
+        "name": "name",
     },
 }
 

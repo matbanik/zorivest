@@ -88,7 +88,7 @@ Domain → Infrastructure → Services → REST API → MCP Server → GUI → D
 | 6 — GUI | 🟡 In Progress (P0 complete, P2 items remain) | 2026-03-25 |
 | 7 — Distribution | ⚪ Not Started | — |
 | 8 — Market Data | ✅ Completed | 2026-03-23 |
-| 8a — Market Data Expansion | 🟡 In Progress — MEU-182a ✅, MEU-182 ✅, MEU-183 ✅, MEU-184 ✅ | 2026-05-02 |
+| 8a — Market Data Expansion | 🟡 In Progress — MEU-182a ✅, MEU-182 ✅, MEU-183 ✅, MEU-184 ✅, MEU-185 ✅, MEU-186 ✅, MEU-187 ✅, MEU-188 ✅ | 2026-05-02 |
 | 9 — Scheduling | ✅ Core complete; P2.5c ✅ (10/10); P2.5b PW14 ✅ + 72b ✅; P2.5d ✅ (3/3); P2.5e ✅ (4/4); P2.5f ✅ (6/6 — 85→13 tools); P2.5g ✅ (1/1 — TokenRefreshManager) | 2026-04-30 |
 | 10 — Service Daemon | ⚪ Not Started | — |
 | 11 — Monetization | ⚪ Not Started | — |
@@ -283,10 +283,10 @@ Domain → Infrastructure → Services → REST API → MCP Server → GUI → D
 | MEU-182 | `market-expansion-dtos` | 30.1 | [08a §8a.1](build-plan/08a-market-data-expansion.md#step-8a1-new-dtos-meu-182-market-expansion-dtos) | 7 new DTOs (OHLCV, Fundamentals, Earnings, Dividends, Splits, Insider, EconomicCalendar) + updated `MarketDataPort` | ✅ |
 | MEU-183 | `market-expansion-tables` | 30.2 | [08a §8a.2](build-plan/08a-market-data-expansion.md#step-8a2-database-tables-meu-183-market-expansion-tables) | 4 new SQLAlchemy models via `create_all()` | ✅ |
 | MEU-184 | `provider-capabilities` | 30.3 | [08a §8a.3](build-plan/08a-market-data-expansion.md#step-8a3-provider-capabilities-registry-meu-184-provider-capabilities) | `ProviderCapabilities` dataclass + 11 registry entries | ✅ |
-| MEU-185 | `simple-get-builders` | 30.4 | [08a §8a.4](build-plan/08a-market-data-expansion.md#step-8a4-simple-get-builders-meu-185-simple-get-builders) | 5 Simple GET URL builders: Alpaca, FMP, EODHD, API Ninjas, Tradier | ⬜ |
-| MEU-186 | `special-pattern-builders` | 30.5 | [08a §8a.5](build-plan/08a-market-data-expansion.md#step-8a5-special-pattern-builders-meu-186-special-pattern-builders) | 4 special-pattern builders: Alpha Vantage, Nasdaq DL, OpenFIGI, SEC API | ⬜ |
-| MEU-187 | `extractors-standard` | 30.6 | [08a §8a.6](build-plan/08a-market-data-expansion.md#step-8a6-standard-extractors-meu-187-extractors-standard) | Standard JSON extractors for 5 simple-GET providers + ~25 field mappings | ⬜ |
-| MEU-188 | `extractors-complex` | 30.7 | [08a §8a.7](build-plan/08a-market-data-expansion.md#step-8a7-complex-extractors-meu-188-extractors-complex) | Complex extractors: Alpha Vantage, Finnhub, Nasdaq DL, Polygon + ~20 field mappings | ⬜ |
+| MEU-185 | `simple-get-builders` | 30.4 | [08a §8a.4](build-plan/08a-market-data-expansion.md#step-8a4-simple-get-builders-meu-185-simple-get-builders) | 5 Simple GET URL builders: Alpaca, FMP, EODHD, API Ninjas, Tradier | ✅ |
+| MEU-186 | `special-pattern-builders` | 30.5 | [08a §8a.5](build-plan/08a-market-data-expansion.md#step-8a5-special-pattern-builders-meu-186-special-pattern-builders) | 4 special-pattern builders: Alpha Vantage, Nasdaq DL, OpenFIGI, SEC API | ✅ |
+| MEU-187 | `extractors-standard` | 30.6 | [08a §8a.6](build-plan/08a-market-data-expansion.md#step-8a6-standard-extractors-meu-187-extractors-standard) | Standard JSON extractors for 5 simple-GET providers + ~25 field mappings | ✅ |
+| MEU-188 | `extractors-complex` | 30.7 | [08a §8a.7](build-plan/08a-market-data-expansion.md#step-8a7-complex-extractors-meu-188-extractors-complex) | Complex extractors: Alpha Vantage, Finnhub, Nasdaq DL, Polygon + ~20 field mappings | ✅ |
 | MEU-189 | `extractors-post-body` | 30.8 | [08a §8a.8](build-plan/08a-market-data-expansion.md#step-8a8-post-body-extractors-meu-189-extractors-post-body) | POST-based extractors: OpenFIGI v3, SEC API + ~10 field mappings | ⬜ |
 | MEU-190 | `service-methods-core` | 30.9 | [08a §8a.9](build-plan/08a-market-data-expansion.md#step-8a9-core-service-methods-meu-190-service-methods-core) | 3 high-value methods: `get_ohlcv`, `get_fundamentals`, `get_earnings` + normalizers | ⬜ |
 | MEU-191 | `service-methods-extended` | 30.10 | [08a §8a.10](build-plan/08a-market-data-expansion.md#step-8a10-extended-service-methods-meu-191-service-methods-extended) | 5 methods: dividends, splits, insider, economic_calendar, company_profile | ⬜ |
@@ -714,7 +714,7 @@ Domain → Infrastructure → Services → REST API → MCP Server → GUI → D
 | P0 — Phase 6 | MEU-43 → MEU-51 | 10 | 10 |
 | P1 | MEU-52 → MEU-55 | 4 | 4 |
 | P1.5 — Phase 8 | MEU-56 → MEU-65a | 11 | 11 |
-| P1.5a — Phase 8a | MEU-182a → MEU-194 | 14 | 4 |
+| P1.5a — Phase 8a | MEU-182a → MEU-194 | 14 | 8 |
 | P2 | MEU-66 → MEU-76, MEU-171 → MEU-172, MEU-72b | 18 | 9 |
 | P2.5 — Phase 9 + WebSocket | MEU-77 → MEU-90, MEU-174 | 15 | 14 |
 | P2.5a — Integration | MEU-90a → MEU-90d | 4 | 3 + 1 🚫 |
@@ -730,7 +730,7 @@ Domain → Infrastructure → Services → REST API → MCP Server → GUI → D
 | Phase 7 | MEU-157 | 1 | 0 |
 | P4 — Phase 11 | MEU-175 → MEU-181 | 7 | 0 |
 | Research | MEU-158 → MEU-170, MEU-173, MEU-TS1 → MEU-TS3 | 17 | 3 |
-| **Total** | | **249** | **139 + 1 🟡 + 1 🚫** |
+| **Total** | | **249** | **143 + 1 🟡 + 1 🚫** |
 
 ---
 

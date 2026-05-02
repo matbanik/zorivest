@@ -474,14 +474,9 @@ class SchedulingService:
         pj["trigger"] = trigger
         update_data["policy_json"] = pj
 
-        # Compute content hash for approval-reset check, but exclude
-        # the `enabled` flag — it's operational metadata, not content.
-        # Toggling enabled on/off should NOT reset approval.
-        pj_for_hash = dict(pj)
-        trigger_for_hash = dict(pj_for_hash.get("trigger", {}))
-        trigger_for_hash["enabled"] = True  # normalize for hashing
-        pj_for_hash["trigger"] = trigger_for_hash
-        new_hash = _compute_hash(pj_for_hash)
+        # compute_content_hash already normalizes trigger.enabled,
+        # so we can hash the policy_json directly.
+        new_hash = _compute_hash(pj)
         update_data["content_hash"] = new_hash
 
         # Reset approval only if actual content changed (cron, timezone, etc.)

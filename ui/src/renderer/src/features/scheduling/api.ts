@@ -134,10 +134,19 @@ export async function approvePolicy(policyId: string): Promise<Policy> {
     })
 }
 
-export function triggerRun(policyId: string, payload: RunTriggerPayload): Promise<PipelineRun> {
+export async function triggerRun(policyId: string, payload: RunTriggerPayload): Promise<PipelineRun> {
+    // PH11: Get CSRF approval token from Electron main process via IPC
+    const tokenResult = await (window as any).electronAPI?.generateApprovalToken(policyId)
+    if (!tokenResult?.token) {
+        throw new Error('Failed to obtain approval token from Electron main process')
+    }
+
     return apiFetch<PipelineRun>(`${BASE}/policies/${policyId}/run`, {
         method: 'POST',
         body: JSON.stringify(payload),
+        headers: {
+            'X-Approval-Token': tokenResult.token,
+        },
     })
 }
 

@@ -162,10 +162,20 @@ def validate_policy(doc: PolicyDocument) -> list[ValidationError]:
 
 
 def compute_content_hash(doc: PolicyDocument) -> str:
-    """SHA-256 of canonical JSON representation (for change detection)."""
-    canonical = json.dumps(
-        doc.model_dump(mode="json"), sort_keys=True, separators=(",", ":")
-    )
+    """SHA-256 of canonical JSON representation (for change detection).
+
+    Normalizes ``trigger.enabled`` to ``True`` before hashing so that
+    toggling the enabled flag (operational metadata) never invalidates
+    the approval hash.  All other content changes still produce a
+    different hash, requiring re-approval.
+    """
+    data = doc.model_dump(mode="json")
+    # Normalize: enabled is operational metadata, not policy content.
+    # Without this, approve(enabled=false) → patch(enabled=true) causes
+    # approved_hash ≠ content_hash → guardrail blocks execution.
+    if "trigger" in data:
+        data["trigger"]["enabled"] = True
+    canonical = json.dumps(data, sort_keys=True, separators=(",", ":"))
     return hashlib.sha256(canonical.encode()).hexdigest()
 
 
