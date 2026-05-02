@@ -179,6 +179,7 @@ When the user invokes a workflow via slash command:
 - `/meu-handoff` → Read and follow `.agent/workflows/meu-handoff.md`
 - `/mcp-audit` → Read and follow `.agent/workflows/mcp-audit.md`
 - `/issue-triage` → Read and follow `.agent/workflows/issue-triage.md`
+- `/next-project` → Read and follow `.agent/workflows/next-project.md`
 
 ## Planning Contract
 

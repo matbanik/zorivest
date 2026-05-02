@@ -1,93 +1,78 @@
 # Known Issue Triage Report — 2026-04-30
 
 ## Summary
-- Total issues reviewed: 12
-- Archived in Step 1: 2 (`MCP-TOOLDISCOVERY`, `MCP-TOOLCAP`)
-- Remaining active: 10
-- Actionable (new/expanded MEUs): 1
-- Upstream/deferred: 2
+- Total issues reviewed: 9
+- Archived in Step 1: 0
+- Remaining active: 9
+- Actionable (new/expanded MEUs): 0
+- Upstream/deferred: 3
+- Workaround-sufficient: 3
+- Blocked on future work: 2
+- Technical debt (low priority): 1
 - Architecture decisions needed: 0
-- Workaround-ok: 5
-- Blocked: 1
-- Tech-debt: 1
 
 ## Archival Actions Performed (Step 1)
 
-Issues verified as resolved and moved to `known-issues-archive.md`:
+No issues qualified for archival. All 9 were verified against the codebase:
 
-1. **[MCP-TOOLDISCOVERY]** — Resolved by MEU-TD1 ✅ 2026-04-30
-   - Verification: `grep` confirmed all 13 compound tool files in `mcp-server/src/compound/` contain M7-pattern descriptions (WORKFLOW, Prerequisites, Return, Error conditions)
-   - Server instructions expanded, M7 enforcement gate added to emerging-standards
-
-2. **[MCP-TOOLCAP]** — Resolved by compound-tool consolidation (85→13) ✅ 2026-04-29
-   - Verification: [MCP-TOOLPROLIFERATION] already archived confirming 85→13 consolidation complete. 13 compound tools fit ALL IDE limits natively (Cursor ≤40, VS Code, CLI/API all satisfied)
-   - Three-tier strategy superseded — no longer needed
-
-### Post-Archival State
-- `known-issues.md`: 120 lines (target: <100; delta is from detailed [MCP-AUTHRACE] contract + [STUB-RETIRE] roadmap)
-- 10 active issue headers remain
+| Issue ID | Verification Method | Result |
+|----------|-------------------|--------|
+| STUB-RETIRE | `rg StubAnalyticsService/StubReviewService/StubTaxService` in packages/ | All 3 stubs still active in stubs.py + main.py |
+| MCP-ZODSTRIP | `rg z.object` in mcp-server/src/ | 18 files use z.object — raw shape workaround in place |
+| MCP-WINDETACH | `rg detached` in ui/src/ | No matches — Windows Job Objects workaround confirmed |
+| MCP-HTTPBROKEN | `rg stdio` in mcp-server/src/ | StdioServerTransport confirmed as sole transport |
+| MCP-DIST-REBUILD | Architectural review | By-design — TypeScript compilation required |
+| UI-ESMSTORE | `rg electron-store` in ui/package.json | Pinned to `^8.2.0` (CJS) |
+| E2E-AXEELECTRON | `rg axe-core` in ui/ | 5 E2E test files use file:// workaround |
+| E2E-AXESILENT | Process awareness issue | No code fix possible |
+| E2E-ELECTRONLAUNCH | Environment-specific | E2E verified locally; CI resolution known but unimplemented |
 
 ## Classification Table (Active Issues)
 
 | Issue ID | Severity | Component | Classification | Target | Priority | Notes |
 |----------|----------|-----------|---------------|--------|----------|-------|
-| STUB-RETIRE | Low | api (stubs.py) | `BLOCKED` | P2.75/P3 MEUs | P4 | Resolves when analytics/review/tax services implemented |
-| MCP-ZODSTRIP | Critical | mcp-server | `UPSTREAM` | TS-SDK #1291, #1380, PR #1603 | — | Raw shape workaround + startup assertion in place |
-| MCP-AUTHRACE | Critical | mcp-server | `MEU-NEW` | New MEU needed | P2 | Architecture decided; needs implementation |
-| MCP-WINDETACH | Critical | infrastructure | `UPSTREAM` | Node.js #5146, #36808 | — | Windows Job Objects workaround documented |
-| MCP-HTTPBROKEN | High | mcp-server | `WORKAROUND-OK` | — | — | stdio primary transport; HTTP avoided |
-| MCP-DIST-REBUILD | High | mcp-server | `WORKAROUND-OK` | — | — | By design; `npm run build` after src/ changes |
-| UI-ESMSTORE | Medium | ui | `WORKAROUND-OK` | — | — | Pinned to electron-store@8 (CJS); verified in package.json |
-| E2E-AXEELECTRON | High | ui (E2E) | `WORKAROUND-OK` | — | — | file:// URL + page.evaluate() workaround working |
-| E2E-AXESILENT | Medium | ui (E2E) | `TECH-DEBT` | Batch with E2E work | P4 | Add try/catch scanner wrapper utility |
-| E2E-ELECTRONLAUNCH | High | ui (E2E) | `WORKAROUND-OK` | — | — | Local E2E works; CI path: xvfb-run |
+| STUB-RETIRE | Low | api | `BLOCKED` | MEU-104–116, MEU-110, MEU-123–126 | P4 | Stubs retire when analytics/review/tax services are implemented (P2.75/P3) |
+| MCP-ZODSTRIP | Critical | mcp-server | `UPSTREAM` | TS-SDK #1291, #1380, PR #1603 | N/A | Raw shape convention workaround is stable |
+| MCP-WINDETACH | Critical | infrastructure | `UPSTREAM` | Node.js #5146, #36808 | N/A | Windows Job Objects workaround in place |
+| MCP-HTTPBROKEN | High | mcp-server | `WORKAROUND-OK` | — | N/A | Design decision: stdio-only transport |
+| MCP-DIST-REBUILD | High | mcp-server | `WORKAROUND-OK` | — | N/A | By-design: `npm run build` before IDE restart |
+| UI-ESMSTORE | Medium | ui | `UPSTREAM` | electron-store maintainer | N/A | Pinned to v8 (last CJS version) |
+| E2E-AXEELECTRON | High | ui (E2E) | `WORKAROUND-OK` | — | N/A | file:// URL + page.evaluate() workaround functional |
+| E2E-AXESILENT | Medium | ui (E2E) | `TECH-DEBT` | — | P4 | Wrap axe scans in error handling + "scan completed" assertion |
+| E2E-ELECTRONLAUNCH | High | ui (E2E) | `BLOCKED` | CI infrastructure | P3 | xvfb-run resolution path known but unimplemented |
 
 ## Recommended Project Batches
 
-### Batch 1: MCP Token Refresh Security — Priority P2
-
-- **Issues addressed**: [MCP-AUTHRACE]
-- **New MEUs**: MEU-PH14 `token-refresh-manager` — Implement singleton TokenRefreshManager with mutex, proactive-expiry, concurrent-refresh deduplication
-- **Build-plan section**: `docs/build-plan/05-mcp-server.md` (new subsection §5.X — Token Refresh Infrastructure)
-- **Complexity**: M (medium)
-- **Dependencies**: Compound tool consolidation ✅ (all tool handlers exist)
-- **Architecture decision**: Already made (2026-04-30) — Option A+B hybrid documented in known-issues.md
-- **Required contract** (from issue):
-  1. Centralize all access-token reads behind `TokenRefreshManager.getValidAccessToken()`
-  2. Use refresh skew: refresh when `expires_at <= now + 30s`
-  3. Deduplicate concurrent refreshes with a single in-flight promise
-  4. On refresh failure: clear in-flight state, propagate same auth error to all waiters
-  5. Individual tools must NOT call refresh directly
-- **Required tests** (5 specified):
-  1. N concurrent tools cause exactly 1 refresh call
-  2. All waiters receive the refreshed token
-  3. Refresh failure does not deadlock future refresh attempts
-  4. Proactive expiry avoids near-expiry token use
-  5. Sequential calls after refresh reuse the updated token
-- **Next step**: Invoke `/create-plan` with this batch
+**No project batches recommended.** All 9 active issues are classified as upstream, workaround-sufficient, blocked, or low-priority tech debt. None require immediate MEU creation or expansion.
 
 ## Architecture Decisions Required
 
-None — the only actionable issue ([MCP-AUTHRACE]) already has its architecture decided:
-- **Decision**: Option A+B hybrid — in-process singleton `TokenRefreshManager` with mutex/proactive-expiry mechanics, designed behind an interface for future distributed implementation
-- **Decision date**: 2026-04-30
-- **Status**: Ready for implementation (MEU-ready)
+None.
 
 ## No Action Required
 
 | Issue ID | Classification | Rationale |
 |----------|---------------|-----------|
-| STUB-RETIRE | BLOCKED | Phase 3 stubs retire when their real services are implemented (MEU-104–116, MEU-110, MEU-123–126). No action possible until those phases are reached. |
-| MCP-ZODSTRIP | UPSTREAM | SDK bug (TS-SDK #1291, #1380, PR #1603). Raw shape workaround + startup assertion prevents the issue. Monitor upstream for fix. |
-| MCP-WINDETACH | UPSTREAM | Node.js bug since 2016 (#5146, #36808). Windows Job Objects workaround documented. No local fix possible. |
-| MCP-HTTPBROKEN | WORKAROUND-OK | stdio is the primary transport. SDK version pinned. Stateless HTTP mode never used. |
-| MCP-DIST-REBUILD | WORKAROUND-OK | Inherent to TypeScript compilation model. Build-after-change is documented process. |
-| UI-ESMSTORE | WORKAROUND-OK | Pinned to electron-store@8 (last CJS version). Stable, no impact on functionality. |
-| E2E-AXEELECTRON | WORKAROUND-OK | file:// URL + page.evaluate() pattern works reliably. Used in position-size and settings-market-data E2E tests. |
-| E2E-AXESILENT | TECH-DEBT | Low-severity testing improvement. Can be batched into a future E2E infrastructure MEU when E2E test suite expands. |
-| E2E-ELECTRONLAUNCH | WORKAROUND-OK | Local E2E verified. CI path documented (xvfb-run). Environment-specific, not a code bug. |
+| STUB-RETIRE | BLOCKED | Stubs retire naturally when analytics (MEU-104–116), review (MEU-110), and tax (MEU-123–126) services are implemented in P2.75/P3 phases |
+| MCP-ZODSTRIP | UPSTREAM | TS-SDK bug (#1291, #1380). Raw shape convention workaround is stable and verified. Track upstream progress. |
+| MCP-WINDETACH | UPSTREAM | Node.js bug (#5146, #36808) open since 2016. Windows Job Objects workaround is permanent. No local fix possible. |
+| MCP-HTTPBROKEN | WORKAROUND-OK | Intentional design decision to use stdio transport exclusively. HTTP transport failure modes are irrelevant to Zorivest's architecture. |
+| MCP-DIST-REBUILD | WORKAROUND-OK | TypeScript MCP server inherently requires compilation. The documented `npm run build` workflow is the expected developer experience. Could be addressed by watch mode in P2.6. |
+| UI-ESMSTORE | UPSTREAM | electron-store v9+ is ESM-only, incompatible with electron-vite CJS main process. Pin to v8 is stable. Track when electron-vite adds full ESM support. |
+| E2E-AXEELECTRON | WORKAROUND-OK | The file:// URL + page.evaluate() workaround achieves identical accessibility scanning results. No loss of functionality. |
+| E2E-AXESILENT | TECH-DEBT | Low-severity cleanup. Could batch with other E2E test improvements in a future debt-reduction project. |
+| E2E-ELECTRONLAUNCH | BLOCKED | Resolution path (xvfb-run) is known but blocked on CI infrastructure setup. E2E tests work locally. Will be addressed when CI hardening work begins. |
 
-## Additional Observations
+## Observations
 
-### MEU Registry Inconsistency (MC0–MC5)
-The MEU registry shows MC0–MC5 (MCP Tool Consolidation) as `⬜ planned`, but [MCP-TOOLPROLIFERATION] is archived as resolved (2026-04-29) confirming the consolidation is complete. The compound tools are live and working (MCP audit passes 46/46). **Recommendation**: Update MC0–MC5 status to ✅ in `meu-registry.md` during next session.
+### known-issues.md Health
+- **Line count:** 122 (target: < 100) — slightly over but no issues can be pruned
+- **Archive health:** 41 entries properly archived with resolution dates
+- **No premature archival detected** in known-issues-archive.md
+
+### Build Plan Next Steps
+Per `current-focus.md`, the project is at a natural transition point after MEU-PH14 completion. The next logical work items from `build-priority-matrix.md` are:
+1. **P2:** MEU-171 `dashboard-service` + MEU-172 `gui-home-dashboard` (both ⬜ planned)
+2. **P2.5:** MEU-174 `websocket-infrastructure` (⬜ planned)
+3. **P2.6:** MEU-91–95b service daemon & tray icon (all ⬜ planned)
+4. **Research items:** MEU-165a/b workspace setup (🔲 planned)

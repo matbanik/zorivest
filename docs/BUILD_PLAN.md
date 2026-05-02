@@ -45,7 +45,8 @@ Domain → Infrastructure → Services → REST API → MCP Server → GUI → D
 | 5 | [MCP Server](build-plan/05-mcp-server.md) | `05-mcp-server.md` | Phase 4, 8 | TypeScript MCP tools, Vitest |
 | 6 | [GUI](build-plan/06-gui.md) | `06-gui.md` | Phase 4, 8 | Electron + React desktop app |
 | 7 | [Distribution](build-plan/07-distribution.md) | `07-distribution.md` | Phases 1–6, 8–9 (Phase 10 static artifacts only) | Electron Builder, PyPI, npm |
-| 8 | [Market Data](build-plan/08-market-data.md) | `08-market-data.md` | Phases 2–4 | 14 market data providers (12 API-key + 2 free via MEU-65), API key encryption, MCP tools |
+| 8 | [Market Data](build-plan/08-market-data.md) | `08-market-data.md` | Phases 2–4 | 13 market data providers (11 API-key + 2 free via MEU-65), API key encryption, MCP tools |
+| 8a | [Market Data Expansion](build-plan/08a-market-data-expansion.md) | `08a-market-data-expansion.md` | Phase 8 | 8 new data types, URL builders, extractors, service methods, pipeline persistence |
 | 9 | [Scheduling & Pipelines](build-plan/09-scheduling.md) | `09-scheduling.md` | Phases 2–5, 8 | Policy engine, pipeline runner, APScheduler |
 | 9a | [Persistence Integration](build-plan/09a-persistence-integration.md) | `09a-persistence-integration.md` | Phase 9 | SQLAlchemy wiring, real repos |
 | 9b | [Pipeline Runtime Hardening](build-plan/09b-pipeline-hardening.md) | `09b-pipeline-hardening.md` | Phase 9a | Charmap, zombie, URL builder, cancellation fixes |
@@ -267,6 +268,30 @@ Domain → Infrastructure → Services → REST API → MCP Server → GUI → D
 | MEU-64 | `market-data-mcp` | 29 | [05e](build-plan/05e-mcp-market-data.md) | Market data MCP tools (7 tools) | ✅ |
 | MEU-65 | `market-data-gui` | 30 | [06f §providers](build-plan/06f-gui-settings.md) | Market Data Providers GUI settings page | ✅ |
 | MEU-65a | `market-data-wiring` | 30.1 | [08 §8.9](build-plan/08-market-data.md#step-89-service-wiring) | Wire real `MarketDataService` + `ProviderConnectionService` into FastAPI lifespan (retire stubs); Yahoo Finance zero-config search fallback | ✅ |
+
+
+---
+
+### P1.5a — Market Data Expansion (Phase 8a)
+
+> Source: [build-priority-matrix.md](build-plan/build-priority-matrix.md) §P1.5a, [08a-market-data-expansion.md](build-plan/08a-market-data-expansion.md)
+
+| MEU | Slug | Matrix Item | Build Plan Ref | Description | Status |
+|-----|------|:-----------:|----------------|-------------|:------:|
+| MEU-182a | `benzinga-code-purge` | 30.0 | [08a §8a.0](build-plan/08a-market-data-expansion.md#step-8a0-remove-benzinga-provider-code-meu-182a-benzinga-code-purge) | Remove Benzinga provider config, normalizer, validator, service branch + test cleanup | ⬜ |
+| MEU-182 | `market-expansion-dtos` | 30.1 | [08a §8a.1](build-plan/08a-market-data-expansion.md#step-8a1-new-dtos-meu-182-market-expansion-dtos) | 7 new DTOs (OHLCV, Fundamentals, Earnings, Dividends, Splits, Insider, EconomicCalendar) + updated `MarketDataPort` | ⬜ |
+| MEU-183 | `market-expansion-tables` | 30.2 | [08a §8a.2](build-plan/08a-market-data-expansion.md#step-8a2-database-tables-meu-183-market-expansion-tables) | 4 new SQLAlchemy models + Alembic migrations | ⬜ |
+| MEU-184 | `provider-capabilities` | 30.3 | [08a §8a.3](build-plan/08a-market-data-expansion.md#step-8a3-provider-capabilities-registry-meu-184-provider-capabilities) | `ProviderCapabilities` dataclass + 11 registry entries | ⬜ |
+| MEU-185 | `simple-get-builders` | 30.4 | [08a §8a.4](build-plan/08a-market-data-expansion.md#step-8a4-simple-get-builders-meu-185-simple-get-builders) | 5 Simple GET URL builders: Alpaca, FMP, EODHD, API Ninjas, Tradier | ⬜ |
+| MEU-186 | `special-pattern-builders` | 30.5 | [08a §8a.5](build-plan/08a-market-data-expansion.md#step-8a5-special-pattern-builders-meu-186-special-pattern-builders) | 4 special-pattern builders: Alpha Vantage, Nasdaq DL, OpenFIGI, SEC API | ⬜ |
+| MEU-187 | `extractors-standard` | 30.6 | [08a §8a.6](build-plan/08a-market-data-expansion.md#step-8a6-standard-extractors-meu-187-extractors-standard) | Standard JSON extractors for 5 simple-GET providers + ~25 field mappings | ⬜ |
+| MEU-188 | `extractors-complex` | 30.7 | [08a §8a.7](build-plan/08a-market-data-expansion.md#step-8a7-complex-extractors-meu-188-extractors-complex) | Complex extractors: Alpha Vantage, Finnhub, Nasdaq DL, Polygon + ~20 field mappings | ⬜ |
+| MEU-189 | `extractors-post-body` | 30.8 | [08a §8a.8](build-plan/08a-market-data-expansion.md#step-8a8-post-body-extractors-meu-189-extractors-post-body) | POST-based extractors: OpenFIGI v3, SEC API + ~10 field mappings | ⬜ |
+| MEU-190 | `service-methods-core` | 30.9 | [08a §8a.9](build-plan/08a-market-data-expansion.md#step-8a9-core-service-methods-meu-190-service-methods-core) | 3 high-value methods: `get_ohlcv`, `get_fundamentals`, `get_earnings` + normalizers | ⬜ |
+| MEU-191 | `service-methods-extended` | 30.10 | [08a §8a.10](build-plan/08a-market-data-expansion.md#step-8a10-extended-service-methods-meu-191-service-methods-extended) | 5 methods: dividends, splits, insider, economic_calendar, company_profile | ⬜ |
+| MEU-192 | `market-routes-mcp` | 30.11 | [08a §8a.11](build-plan/08a-market-data-expansion.md#step-8a11-routes--mcp-meu-192-market-routes-mcp) | 8 new REST endpoints + 8 MCP action mappings | ⬜ |
+| MEU-193 | `market-store-step` | 30.12 | [08a §8a.12](build-plan/08a-market-data-expansion.md#step-8a12-market-data-store-step-meu-193-market-store-step) | `MarketDataStoreStep` pipeline step: route DTOs to DB tables | ⬜ |
+| MEU-194 | `scheduling-recipes` | 30.13 | [08a §8a.13](build-plan/08a-market-data-expansion.md#step-8a13-scheduling-recipes-meu-194-scheduling-recipes) | 10 pre-built policy templates seeded via migration | ⬜ |
 
 
 ---
@@ -688,6 +713,7 @@ Domain → Infrastructure → Services → REST API → MCP Server → GUI → D
 | P0 — Phase 6 | MEU-43 → MEU-51 | 10 | 10 |
 | P1 | MEU-52 → MEU-55 | 4 | 4 |
 | P1.5 — Phase 8 | MEU-56 → MEU-65a | 11 | 11 |
+| P1.5a — Phase 8a | MEU-182a → MEU-194 | 14 | 0 |
 | P2 | MEU-66 → MEU-76, MEU-171 → MEU-172, MEU-72b | 18 | 9 |
 | P2.5 — Phase 9 + WebSocket | MEU-77 → MEU-90, MEU-174 | 15 | 14 |
 | P2.5a — Integration | MEU-90a → MEU-90d | 4 | 3 + 1 🚫 |
@@ -703,7 +729,7 @@ Domain → Infrastructure → Services → REST API → MCP Server → GUI → D
 | Phase 7 | MEU-157 | 1 | 0 |
 | P4 — Phase 11 | MEU-175 → MEU-181 | 7 | 0 |
 | Research | MEU-158 → MEU-170, MEU-173, MEU-TS1 → MEU-TS3 | 17 | 3 |
-| **Total** | | **235** | **139 + 1 🟡 + 1 🚫** |
+| **Total** | | **249** | **139 + 1 🟡 + 1 🚫** |
 
 ---
 

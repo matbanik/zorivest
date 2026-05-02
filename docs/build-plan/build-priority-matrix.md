@@ -1,6 +1,6 @@
 # Build Priority Matrix
 
-> Part of [Zorivest Build Plan](../BUILD_PLAN.md) — The build order across all priority levels (221 items).
+> Part of [Zorivest Build Plan](../BUILD_PLAN.md) — The build order across all priority levels (235 items).
 
 ---
 
@@ -75,13 +75,36 @@
 | **21** | `MarketDataProvider` entity + `AuthMethod` enum | ✅ Yes | 12 provider configs, 4 auth methods |
 | **22** | Normalized response DTOs (`MarketQuote`, `MarketNewsItem`, etc.) | ✅ Yes | Pydantic models for cross-provider normalization |
 | **23** | `MarketProviderSettingModel` + encrypted key storage | ✅ Yes | SQLAlchemy table, Fernet encrypt/decrypt |
-| **24** | Provider registry (singleton config map) | ✅ Yes | All 12 providers with auth templates, test endpoints |
+| **24** | Provider registry (singleton config map) | ✅ Yes | All 11 providers with auth templates, test endpoints |
 | **25** | `ProviderConnectionService` (test, configure, list) | ✅ Yes | Connection testing framework with response validation |
 | **26** | `MarketDataService` (quote, news, search, SEC filings) | ✅ Yes | Provider fallback chain, response normalization |
 | **27** | Rate limiter (token-bucket per provider) + log redaction | ✅ Yes | Async token-bucket, API key masking |
 | **28** | Market data REST API endpoints (8 routes) | ✅ Yes | FastAPI under `/api/v1/market-data/` |
 | **29** | Market data MCP tools (6 tools) | ✅ Yes | TypeScript via `registerMarketDataTools` |
 | **30** | Market Data Providers GUI settings page ([06f](06f-gui-settings.md)) | Playwright E2E (Wave 6) | Provider list, connection testing, API key management |
+
+---
+
+## P1.5a — Market Data Expansion (Phase 8a)
+
+> **Source**: [08a-market-data-expansion.md](08a-market-data-expansion.md). Extends Phase 8 with full data retrieval across 11 API-key providers.
+
+| Order | What | Tests First? | Notes |
+|-------|------|-------------|-------|
+| **30.0** | Benzinga code purge: remove provider config, normalizer, validator, service branch, tests (MEU-182a) | N/A | Prerequisite: aligns codebase to 11-provider docs |
+| **30.1** | Expansion DTOs: OHLCV, Fundamentals, Earnings, Dividends, Splits, Insider, EconomicCalendar (MEU-182) | ✅ Yes | 7 new frozen dataclasses + `MarketDataPort` extended |
+| **30.2** | DB tables: `market_earnings`, `market_dividends`, `market_splits`, `market_insider` (MEU-183) | ✅ Yes | SQLAlchemy models + Alembic migration |
+| **30.3** | `ProviderCapabilities` registry (MEU-184) | ✅ Yes | builder_mode, auth_mode, extractor_shape for all 11 providers |
+| **30.4** | Simple GET URL builders: Alpaca, FMP, EODHD, API Ninjas, Tradier (MEU-185) | ✅ Yes | `base_url + path + query_params` pattern |
+| **30.5** | Special-pattern builders: Alpha Vantage, Nasdaq DL, OpenFIGI, SEC API (MEU-186) | ✅ Yes | function-dispatch, dataset/table, POST-body |
+| **30.6** | Standard extractors: Alpaca, FMP, EODHD, API Ninjas, Tradier + ~25 field mappings (MEU-187) | ✅ Yes | JSON envelope unwrap + field mapping tuples |
+| **30.7** | Complex extractors: Alpha Vantage, Finnhub, Nasdaq DL, Polygon + ~20 field mappings (MEU-188) | ✅ Yes | Parallel arrays, date-keyed dicts, CSV parsing |
+| **30.8** | POST-body extractors: OpenFIGI v3, SEC API + ~10 field mappings (MEU-189) | ✅ Yes | v3 warning key rename, Lucene response |
+| **30.9** | Core service methods: `get_ohlcv`, `get_fundamentals`, `get_earnings` + normalizers (MEU-190) | ✅ Yes | Primary/fallback chains, per-provider normalizers |
+| **30.10** | Extended service methods: dividends, splits, insider, economic_calendar, company_profile (MEU-191) | ✅ Yes | 5 additional methods + normalizers |
+| **30.11** | REST routes + MCP actions: 8 new endpoints + 8 MCP action mappings (MEU-192) | ✅ Yes | `GET /api/v1/market-data/{type}` + `zorivest_market` |
+| **30.12** | `MarketDataStoreStep` pipeline step (MEU-193) | ✅ Yes | Route normalized DTOs to DB tables, INSERT/UPSERT |
+| **30.13** | Scheduling recipes: 10 pre-built policy templates (MEU-194) | ✅ Yes | Alembic-seeded cron templates |
 
 ---
 

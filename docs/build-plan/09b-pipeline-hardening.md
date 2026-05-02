@@ -256,7 +256,7 @@ uv run pytest tests/integration/test_pipeline_wiring.py -k "single_record" -v
 
 2. **Missing provider headers:** `_do_fetch()` → `fetch_with_cache()` doesn't pass `headers_template` (User-Agent, Referer) from the provider registry → providers return 403/captcha.
 
-3. **Generic URL patterns:** Same `{base_url}/quote?symbol=` template for all 14 providers. Each provider uses a different URL scheme.
+3. **Generic URL patterns:** Same `{base_url}/quote?symbol=` template for all 13 providers. Each provider uses a different URL scheme.
 
 ### 9B.4b Fix — Provider-Specific URL Builder Registry
 
@@ -931,7 +931,7 @@ uv run pytest tests/ -k "pipeline" --cov=packages/core/src/zorivest_core/service
 |------|-----------|
 | Structlog reconfiguration breaks existing log formatting | Test log output format before/after |
 | Dual-write elimination changes `run_id` semantics | Backward-compatible: `run_id=""` preserves old behavior |
-| URL builders may not cover all 14 providers | GenericUrlBuilder fallback; extend per-provider as needed |
+| URL builders may not cover all 13 providers | GenericUrlBuilder fallback; extend per-provider as needed |
 | Cancel + asyncio.Task.cancel() may not interrupt httpx | Cooperative step-boundary check provides reliable cancellation |
 | Mock steps pollute the global step registry | Scoped registration in conftest; cleanup after test session |
 

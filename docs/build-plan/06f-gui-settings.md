@@ -14,7 +14,7 @@ Consolidate all settings and configuration pages: Market Data Providers (migrate
 
 > **Source**: Adapted from [`_market_tools_api-architecture.md`](../../_inspiration/_market_tools_api-architecture.md) GUI specification. Uses a list+detail layout (modern React pattern) instead of nested provider tabs.
 
-The Market Data Settings page lets users configure API keys and monitor connection status for all 12 market data providers. It consumes the REST endpoints defined in [Phase 8 §8.4](08-market-data.md).
+The Market Data Settings page lets users configure API keys and monitor connection status for all 11 API-key market data providers. It consumes the REST endpoints defined in [Phase 8 §8.4](08-market-data.md).
 
 ### Layout
 
@@ -32,7 +32,7 @@ The Market Data Settings page lets users configure API keys and monitor connecti
 │  │ ⚪ Nasdaq Data   │  │  │           [Get API Key ↗]                │  │ │
 │  │ ⚪ SEC API       │  │  └──────────────────────────────────────────┘  │ │
 │  │ ✅ API Ninjas    │  │                                                │ │
-│  │ ⚪ Benzinga      │  │  ┌─ Rate Limiting ──────────────────────────┐  │ │
+│  │ ⚪ OpenFIGI       │  │  ┌─ Rate Limiting ──────────────────────────┐  │ │
 │  └─────────────────┘  │  │ Requests/min: [  5  ]  Timeout: [  30  ] │  │ │
 │                       │  └──────────────────────────────────────────┘  │ │
 │  Status legend:       │                                                │ │
@@ -760,7 +760,7 @@ All templates auto-fill `url` from the detected MCP server URL and include the `
 
 ## Exit Criteria
 
-- Market Data Settings page displays all 12 providers with connection status
+- Market Data Settings page displays all 11 API-key providers with connection status
 - API key save/test/remove cycle works end-to-end via REST
 - Email provider preset auto-fills SMTP fields
 - Email test connection sends a test email and reports success/failure

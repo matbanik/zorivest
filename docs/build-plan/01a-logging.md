@@ -518,7 +518,7 @@ class RedactionFilter(logging.Filter):
 
     # --- Layer 1: Regex patterns (order matters — specific before general) ---
     PATTERNS = [
-        # 1. URL query params (covers Alpha Vantage, FMP, EODHD, Benzinga, etc.)
+        # 1. URL query params (covers Alpha Vantage, FMP, EODHD, Tradier, etc.)
         (re.compile(
             r'(apikey|api_key|api_token|token|password|secret)=([^&\s]+)', re.I),
          r'\1=[REDACTED]'),

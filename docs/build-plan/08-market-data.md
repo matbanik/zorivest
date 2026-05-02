@@ -8,7 +8,7 @@
 
 ## Goal
 
-Build a unified market data aggregation layer connecting to **14 REST API providers** (9 original + 3 expansion: OpenFIGI, Alpaca, Tradier + 2 free added by MEU-65: Yahoo Finance, TradingView), enabling agentic queries (via MCP), GUI widgets, and scheduled reporting pipelines. API-key providers use API key authentication with keys encrypted at rest via Fernet.
+Build a unified market data aggregation layer connecting to **13 REST API providers** (8 original + 3 expansion: OpenFIGI, Alpaca, Tradier + 2 free added by MEU-65: Yahoo Finance, TradingView), enabling agentic queries (via MCP), GUI widgets, and scheduled reporting pipelines. API-key providers use API key authentication with keys encrypted at rest via Fernet.
 
 ---
 
@@ -300,16 +300,7 @@ PROVIDER_REGISTRY: dict[str, ProviderConfig] = {
         signup_url="https://api-ninjas.com/",
         response_validator_key="price",
     ),
-    "Benzinga": ProviderConfig(
-        name="Benzinga",
-        base_url="https://api.benzinga.com/api/v2",
-        auth_method=AuthMethod.QUERY_PARAM,
-        auth_param_name="token",
-        headers_template={"accept": "application/json"},
-        test_endpoint="/news?token={api_key}&pagesize=1",
-        default_rate_limit=60,
-        signup_url="https://www.benzinga.com/apis",
-    ),
+
     # ── Build Plan Expansion Providers (§5, §24, §25) ──
     "OpenFIGI": ProviderConfig(
         name="OpenFIGI",
@@ -456,7 +447,7 @@ class MarketDataService:
         ...
 
     async def get_market_news(self, ticker: str | None = None, count: int = 5) -> list[MarketNewsItem]:
-        """Get market news from news-capable providers (Finnhub, Benzinga)."""
+        """Get market news from news-capable providers (Finnhub, Polygon)."""
         ...
 
     async def search_ticker(self, query: str) -> list[TickerSearchResult]:
@@ -492,7 +483,7 @@ def normalize_alpha_vantage_quote(data: dict) -> MarketQuote:
 # Similar normalizers for each provider:
 # normalize_polygon_quote, normalize_finnhub_quote, normalize_eodhd_quote,
 # normalize_api_ninjas_quote, normalize_fmp_search, normalize_sec_filing,
-# normalize_benzinga_news, normalize_finnhub_news
+# normalize_finnhub_news, normalize_polygon_news
 ```
 
 ---
@@ -680,7 +671,7 @@ Response validation rules per provider (used by `ProviderConnectionService.test_
 | Nasdaq Data Link | `"datatable"` → `"data"` | Nested `datatable.data` exists |
 | SEC API | Array of dicts | List; if non-empty, first item has `"ticker"` or `"cik"` |
 | API Ninjas | `"price"` and `"name"` | Both keys exist |
-| Benzinga | Array or dict with `"data"` | List, OR dict with `"data"` array |
+
 
 ### HTTP Status Interpretation
 
@@ -728,7 +719,7 @@ async def test_all_providers(self) -> list[tuple[str, bool, str]]:
 | Nasdaq Data Link | Query param | `api_key` | `?api_key={key}` |
 | SEC API | Header | `Authorization` | `{key}` (no Bearer!) |
 | API Ninjas | Header | `X-Api-Key` | Custom header |
-| Benzinga | Query param | `token` | `?token={key}` |
+
 
 > **⚠️ Critical**: SEC API uses `Authorization: {key}` (raw), while Polygon.io uses `Authorization: Bearer {key}`. Mixing these causes auth failures.
 
@@ -752,7 +743,7 @@ async def test_all_providers(self) -> list[tuple[str, bool, str]]:
 
 ## Exit Criteria
 
-1. All 14 providers registered in provider registry with correct config (12 API-key + 2 free: Yahoo Finance, TradingView added by MEU-65)
+1. All 13 providers registered in provider registry with correct config (11 API-key + 2 free: Yahoo Finance, TradingView added by MEU-65)
 2. Encrypt/decrypt round-trip tests pass for API keys
 3. Connection testing returns correct status for each HTTP scenario (200, 401, 429, timeout)
 4. Response normalizers convert fixture data correctly for all supported providers
@@ -771,7 +762,7 @@ async def test_all_providers(self) -> list[tuple[str, bool, str]]:
 - `ProviderConnectionService` with test/configure/list operations
 - `MarketDataService` with quote/news/search/SEC query operations
 - Rate limiter (async token-bucket)
-- Response normalizers for all 12 API-key providers
+- Response normalizers for all 11 API-key providers
 - Log redaction filter
 - 8 FastAPI REST endpoints under `/api/v1/market-data/`
 - 7 TypeScript MCP tools

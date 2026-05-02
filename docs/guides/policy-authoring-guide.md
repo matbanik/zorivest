@@ -177,7 +177,7 @@ FetchStep writes to `context.outputs[step_id]`:
 
 | Item | Status | Details |
 |------|--------|---------|
-| Provider registry | 🔒 Hardcoded | 14 providers defined in `provider_registry.py`. Adding a new provider requires code change. |
+| Provider registry | 🔒 Hardcoded | 13 providers (11 API-key + 2 free) defined in `provider_registry.py`. Adding a new provider requires code change. |
 | URL patterns | 🔒 Hardcoded | Per-provider URL builders in `url_builders.py`. Endpoint paths are not configurable. |
 | Yahoo multi-ticker | 🔒 Hardcoded | Yahoo v8/chart API only supports 1 ticker per request. Adapter iterates internally. |
 | Cache TTL | 🔒 Hardcoded | Base TTL comes from cache repo. Market-closed multiplier is 4× (weekends/holidays). |
@@ -612,7 +612,6 @@ From [`provider_registry.py`](../../packages/infrastructure/src/zorivest_infra/m
 | Nasdaq Data Link | ✅ API key | 50/min | `fundamentals` |
 | SEC API | ✅ Header | 60/min | `fundamentals` |
 | API Ninjas | ✅ Header | 60/min | `quote` |
-| Benzinga | ✅ API key | 60/min | `news` |
 | OpenFIGI | ✅ Header | 10/min | (identifier mapping) |
 | Alpaca | ✅ Key + Secret | 200/min | `ohlcv`, `quote` |
 | Tradier | ✅ Bearer | 120/min | `ohlcv`, `quote` |

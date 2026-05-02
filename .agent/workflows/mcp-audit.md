@@ -52,6 +52,26 @@ Follow skill §Phase 3. Exercise all non-CRUD tools with valid minimal params.
 - Pipeline Security tools (include SQL injection test with `DROP TABLE`)
 - Core / System tools
 
+### Step 4a: Provider API Validation (Live)
+
+Follow skill §Phase 3a. For each provider with a configured API key:
+
+1. Run `zorivest_market(action: "test_provider", provider_name: "{name}")` → record pass/fail
+2. For each supported data type, call the corresponding MCP action → validate response shape
+3. Test fallback chain if primary provider fails
+
+> **Skip condition**: If no API keys are configured, note in report and skip.
+
+### Step 4b: Pipeline Validation
+
+Follow skill §Phase 3b:
+
+1. Create test policy (fetch→transform chain for AAPL quote)
+2. Run with `dry_run: true` → verify PARSE+VALIDATE+SIMULATE phases pass
+3. Clean up test policy
+
+> **Skip condition**: If pipeline MEUs (MEU-193) are not yet complete, note in report and skip.
+
 ### Step 5: Regression Check
 
 Follow skill §Phase 4. Load baseline and compare:
@@ -70,7 +90,7 @@ Follow skill §Phase 5:
 1. Write audit report to `.agent/context/MCP/mcp-tool-audit-report.md` (overwrite)
 2. Update `known-issues.md` `[MCP-TOOLAUDIT]` entry
 3. Update `baseline-snapshot.json`
-4. Calculate consolidation score: `current_tools / 12`
+4. Calculate consolidation score: `current_tools / 13` (post-P2.5f baseline)
 
 ### Step 7: Consolidation Advisory
 

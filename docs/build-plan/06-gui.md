@@ -488,7 +488,7 @@ Before any GUI MEU can be marked complete, it must satisfy ALL of the following:
 - Trades table displays with image badges and full-field columns
 - Screenshot panel supports upload, paste, and lightbox viewing
 - Display mode toggles ($, %, % mode) work correctly
-- Market Data Settings page displays all 12 providers with connection status
+- Market Data Settings page displays all 11 API-key providers with connection status
 - Trade plans and watchlists support CRUD operations
 - Position calculator computes all outputs, supports multi-scenario comparison
 - Tax Dashboard displays YTD summary cards with live data

@@ -112,6 +112,33 @@ For each non-CRUD tool, call with **valid minimal params** and record:
 - **Core**: `get_settings`, `get_settings(key)`, `update_settings`, `get_email_config`
 - **Discovery**: `list_available_toolsets`, `describe_toolset`, `get_confirmation_token`
 
+### Phase 3a: Provider API Validation (Live)
+
+> Prerequisite: At least one market data provider must have a configured API key.
+
+For each market data provider with a configured API key:
+
+1. Call `zorivest_market(action: "test_provider", provider_name: "{name}")` → record success/fail
+2. For each data type the provider supports (per `ProviderCapabilities`):
+   - Call the corresponding MCP action (e.g., `action: "quote"`, `action: "ohlcv"`)
+   - Validate response shape matches expected DTO fields
+   - Record: provider, data_type, status, response_time, error
+3. Test fallback chain: if primary fails, verify fallback provider responds
+
+**Exit**: All configured providers tested; response shapes validated.
+
+### Phase 3b: Report Pipeline Validation
+
+1. Create a test policy with fetch→transform→send chain:
+   - FetchStep: quote data for AAPL from best available provider
+   - TransformStep: field mapping + validation
+   - StoreStep (if MEU-193 complete): persist to market_quotes table
+2. Run policy with `dry_run: true` → verify PARSE+VALIDATE+SIMULATE pass
+3. Verify pipeline_state_repo has cursor entry
+4. Clean up: delete test policy
+
+**Exit**: At least one end-to-end pipeline validates successfully.
+
 ### Phase 4: Regression Detection
 
 1. Load `resources/baseline-snapshot.json`
@@ -130,7 +157,7 @@ For each non-CRUD tool, call with **valid minimal params** and record:
    - Regression count
    - Fixed count
 3. Update `resources/baseline-snapshot.json` with current results
-4. Calculate **consolidation score**: `current_tool_count / 12` (ideal target from audit)
+4. Calculate **consolidation score**: `current_tool_count / 13` (ideal target: 13 compound tools after P2.5f consolidation)
 
 ## Cleanup Contract
 
