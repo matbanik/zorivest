@@ -269,6 +269,18 @@ describe('useApprovePolicy', () => {
 describe('useTriggerRun', () => {
     beforeEach(() => {
         mockApiFetch.mockReset()
+        // triggerRun() now calls window.electronAPI.generateApprovalToken()
+        // via IPC before making the API call (same as approvePolicy).
+        ;(window as any).electronAPI = {
+            generateApprovalToken: vi.fn().mockResolvedValue({
+                token: 'b'.repeat(64),
+                expiresAt: Date.now() + 300_000,
+            }),
+        }
+    })
+
+    afterEach(() => {
+        delete (window as any).electronAPI
     })
 
     it('AC-A5: invalidates run list on trigger', async () => {
