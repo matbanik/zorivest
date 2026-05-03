@@ -33,6 +33,8 @@ async def fetch_with_cache(
     *,
     client: Any,
     url: str,
+    method: str = "GET",
+    json_body: Any | None = None,
     cached_content: bytes | None = None,
     cached_etag: str | None = None,
     cached_last_modified: str | None = None,
@@ -41,11 +43,16 @@ async def fetch_with_cache(
 ) -> dict[str, Any]:
     """Fetch URL content with HTTP cache revalidation.
 
-    If cached data is provided with an ETag or Last-Modified header,
-    sends conditional request. On 304, returns cached data with
-    cache_status='revalidated'.
+    Supports both GET and POST methods. GET requests use conditional
+    cache headers (ETag/If-Modified-Since) for revalidation. POST
+    requests skip conditional headers per RFC 9110 §9.3.3 (POST
+    responses are not cacheable by default) but still capture response
+    ETag/Last-Modified for downstream use.
 
     Args:
+        method: HTTP method — "GET" (default) or "POST".
+        json_body: JSON-serializable body for POST requests. Passed as
+            the ``json=`` parameter to the HTTP client. Ignored for GET.
         extra_headers: Provider-specific headers (auth tokens, User-Agent)
             to include in every request. Merged with cache headers.
 
@@ -53,23 +60,35 @@ async def fetch_with_cache(
         Dict with keys: content, cache_status, etag, last_modified
 
     Raises:
+        ValueError: If method is not "GET" or "POST".
         HttpFetchError: If the server returns a non-2xx status code
-            (except 304 which is handled as cache revalidation).
+            (except 304 which is handled as cache revalidation for GET).
     """
+    if method not in ("GET", "POST"):
+        raise ValueError(
+            f"Unsupported HTTP method '{method}'. Only 'GET' and 'POST' are supported."
+        )
+
     headers: dict[str, str] = {}
     # Merge provider-specific headers first (auth tokens, User-Agent, etc.)
     if extra_headers:
         headers.update(extra_headers)
-    # Cache revalidation headers override any provider headers
-    if cached_etag:
-        headers["If-None-Match"] = cached_etag
-    if cached_last_modified:
-        headers["If-Modified-Since"] = cached_last_modified
 
-    response = await client.get(url, headers=headers, timeout=timeout)
+    if method == "POST":
+        # POST requests skip conditional cache headers (RFC 9110 §9.3.3)
+        response = await client.post(
+            url, headers=headers, timeout=timeout, json=json_body
+        )
+    else:
+        # GET: add cache revalidation headers
+        if cached_etag:
+            headers["If-None-Match"] = cached_etag
+        if cached_last_modified:
+            headers["If-Modified-Since"] = cached_last_modified
+        response = await client.get(url, headers=headers, timeout=timeout)
 
     if response.status_code == 304 and cached_content is not None:
-        # Not Modified — cached data is still valid
+        # Not Modified — cached data is still valid (GET only)
         return {
             "content": cached_content,
             "cache_status": "revalidated",

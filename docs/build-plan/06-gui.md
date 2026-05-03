@@ -417,14 +417,14 @@ export const useAccountContext = () => useContext(AccountContext);
 |:----:|----------|-----------------|:----------:|----------------------|
 | 0 | **MEU-46** `gui-mcp-status` | `launch.test.ts` (3), `mcp-tool.test.ts` (2) | **5** | Sidebar: `nav-home`, `nav-accounts`, `nav-trades`, `nav-planning`, `nav-scheduling`, `nav-settings` |
 | 1 | **MEU-47** `gui-trades` | `trade-entry.test.ts` (5), `mode-gating.test.ts` (2) | **12** | `trades-page`, `trade-list`, `trade-row`, `add-trade-btn`, `trade-*-input` |
-| 2 | **MEU-71** `gui-accounts` | `account-crud.test.ts` (3), `persistence.test.ts` (2) | **17** | `accounts-page`, `account-list`, `add-account-btn`, `account-row` |
-| 3 | **MEU-74** `gui-backup-restore` | `backup-restore.test.ts` (2) | **19** | `backup-create-btn`, `backup-restore-btn`, `backup-passphrase-input` |
-| 4 | **MEU-48** `gui-plans` | `position-size.test.ts` (2) | **21** | `calc-account-size`, `calc-risk-percent`, `calc-result-shares` |
-| 5 | **MEU-96/99** import GUI | `import.test.ts` (2) | **23** | `import-file-input`, `import-submit-btn`, `import-result-count` |
-| 6 | **MEU-65** `market-data-gui` | `settings-market-data.test.ts` (3: nav, provider list, axe-core) | **26** | `market-data-providers`, `provider-list`, `provider-item`, `provider-detail`, `provider-save-btn`, `provider-test-btn`, `provider-test-all-btn`, `provider-remove-key-btn` |
-| 7 | **MEU-170j** `gui-home` | `home-dashboard.test.ts` (3: startup load, section toggle, section reorder) | **29** | `home-page`, `dashboard-grid`, `dashboard-section-*`, `dashboard-settings-btn` |
-| 8 | **MEU-56** `gui-scheduling` | `scheduling.test.ts` (3), `scheduling-tz.test.ts` (2) | **34** | `scheduling-page`, `policy-list`, `policy-editor`, `run-history` |
-| 9 | **MEU-128** `gui-screenshot` | `screenshot-panel.test.ts` (3) | **37** | `screenshot-panel`, `screenshot-upload`, `screenshot-lightbox` |
+| 2 | **MEU-71** `gui-accounts` | `account-crud.test.ts` (3), `persistence.test.ts` (2), dirty-guard (1, P2.1) | **18** | `accounts-page`, `account-list`, `add-account-btn`, `account-row`, `form-guard-modal`, `form-guard-keep-editing-btn`, `form-guard-discard-btn`, `form-guard-save-continue-btn` |
+| 3 | **MEU-74** `gui-backup-restore` | `backup-restore.test.ts` (2) | **20** | `backup-create-btn`, `backup-restore-btn`, `backup-passphrase-input` |
+| 4 | **MEU-48** `gui-plans` | `position-size.test.ts` (2), dirty-guard (1, P2.1) | **23** | `calc-account-size`, `calc-risk-percent`, `calc-result-shares` |
+| 5 | **MEU-96/99** import GUI | `import.test.ts` (2) | **25** | `import-file-input`, `import-submit-btn`, `import-result-count` |
+| 6 | **MEU-65** `market-data-gui` | `settings-market-data.test.ts` (3: nav, provider list, axe-core), dirty-guard (1, P2.1) | **29** | `market-data-providers`, `provider-list`, `provider-item`, `provider-detail`, `provider-save-btn`, `provider-test-btn`, `provider-test-all-btn`, `provider-remove-key-btn` |
+| 7 | **MEU-170j** `gui-home` | `home-dashboard.test.ts` (3: startup load, section toggle, section reorder) | **32** | `home-page`, `dashboard-grid`, `dashboard-section-*`, `dashboard-settings-btn` |
+| 8 | **MEU-56** `gui-scheduling` | `scheduling.test.ts` (3), `scheduling-tz.test.ts` (2), dirty-guard (1, P2.1) | **38** | `scheduling-page`, `policy-list`, `policy-editor`, `run-history` |
+| 9 | **MEU-128** `gui-screenshot` | `screenshot-panel.test.ts` (3) | **41** | `screenshot-panel`, `screenshot-upload`, `screenshot-lightbox` |
 | 10 | Phase 12+ GUI MEUs | Per-MEU tests defined in sub-file exit criteria | **TBD** | Per-MEU `data-testid` constants |
 
 > [!IMPORTANT]
@@ -439,7 +439,7 @@ All test IDs are defined in `ui/tests/e2e/test-ids.ts`. Constants use `SCREAMING
 
 ### Exit Criterion
 
-**MEU-170** (`e2e-all-green`): All 37+ Playwright E2E tests pass end-to-end after Waves 0–9 are activated. Wave 10 count is TBD until Phase 12+ GUI MEUs are fully specified.
+**MEU-170** (`e2e-all-green`): All 41+ Playwright E2E tests pass end-to-end after Waves 0–9 are activated (includes 4 dirty-guard scenarios from P2.1). Wave 10 count is TBD until Phase 12+ GUI MEUs are fully specified.
 
 #### Implementation Notes (from MEU-47 cycle, 2026-03-18)
 
@@ -454,6 +454,118 @@ All test IDs are defined in `ui/tests/e2e/test-ids.ts`. Constants use `SCREAMING
 3. **Mock-contract drift**: TS unit test mocks must match Python API response shapes exactly. The `locked` vs `is_locked` mismatch passed 122 unit tests while breaking the app at runtime. See [testing-strategy.md §Mock-Contract Validation Rule](testing-strategy.md).
 
 4. **`xvfb` requirement**: Electron E2E on Linux CI needs `xvfb-run` wrapper or `uses: GabrielBB/xvfb-action@v1`. Alternative: use `windows-latest` runner (matches dev environment).
+
+---
+
+## UX Hardening — Unsaved Changes Guard
+
+> **Priority**: P2.1 | **MEUs**: MEU-196, MEU-197, MEU-198 | **Depends on**: MEU-56 (SchedulingLayout — source pattern), MEU-65 (Market Data GUI), MEU-47 (Trades), MEU-48 (Plans), MEU-71 (Accounts)
+
+### Problem
+
+Data entry forms across 5 list+detail modules (Market Data Providers, Accounts, Trades, Trade Plans, Watchlists) lose unsaved changes silently when the user clicks a different list item. The scheduling module already solved this with an inline implementation — this project extracts that pattern into shared infrastructure and rolls it out universally.
+
+> **EmailSettingsPage excluded from guard wiring** (human-approved, 2026-05-02): `EmailSettingsPage` is a standalone route page (`/settings/email`) rendered via `navigate()` in `SettingsLayout.tsx` — it has no list+detail item selection to intercept. Guarding cross-route navigation requires `beforeunload` or React Router `useBlocker`, which is out of scope for this intra-page guard project.
+>
+> **Addendum (mid-execution scope expansion, Human-approved):** `isDirty` + amber-pulse save indicators were added to `EmailSettingsPage` at user direction during the MEU-196/197/198 implementation session. This is a visual-only enhancement (save button class `btn-save-dirty`, "Save Changes •" text) — NOT the full `useFormGuard`/`UnsavedChangesModal` pattern. 3 G23 unit tests validate the dirty-state behavior. The `useFormGuard` exclusion remains correct (no list+detail item selection to intercept).
+
+### Shared Components (MEU-196)
+
+#### `UnsavedChangesModal`
+
+Extracted from `SchedulingLayout.tsx` lines 560–638. A portal-based confirmation dialog with three actions:
+
+| Button | Action | Keyboard |
+|--------|--------|----------|
+| **Keep Editing** | Dismiss modal, stay on current item | `Escape` |
+| **Discard** | Drop changes, navigate to pending target | — |
+| **Save & Continue** | Save changes, then navigate to pending target | — |
+
+**Accessibility requirements** (WCAG 2.1 AA):
+- Focus trap while open (`role="alertdialog"`, `aria-modal="true"`)
+- Auto-focus "Keep Editing" button on open
+- `Escape` key dismisses modal
+- All buttons have `aria-label` attributes
+
+**File**: `ui/src/renderer/src/components/UnsavedChangesModal.tsx`
+
+#### `useFormGuard` Hook
+
+Encapsulates the dirty-state + pending-navigation pattern:
+
+```typescript
+interface UseFormGuardOptions {
+  isDirty: boolean;                    // From React Hook Form or manual tracking
+  onSave?: () => Promise<void>;        // Optional auto-save callback
+}
+
+interface UseFormGuardReturn {
+  pendingNav: PendingNavTarget | null; // What the user tried to navigate to
+  guardedSelect: (target: PendingNavTarget) => void;  // Intercepts navigation
+  handleDiscard: () => void;           // Discard changes + navigate
+  handleSaveAndContinue: () => void;   // Save + navigate
+  handleCancel: () => void;            // Dismiss modal
+  showModal: boolean;                  // Derived from pendingNav !== null
+}
+```
+
+**File**: `ui/src/renderer/src/hooks/useFormGuard.ts`
+
+#### Amber-Pulse Save Button CSS
+
+> **Research basis**: Amber/orange (#ffb86c, `--color-accent-amber`) is distinguishable by all three common forms of color blindness (protanopia, deuteranopia, tritanopia). Color alone is prohibited per WCAG 1.4.1 — the pulse animation provides a secondary non-color cue, and the button text changes from "Save" to "Save Changes •" as a tertiary text indicator.
+
+```css
+/* ui/src/renderer/src/styles/form-guard.css */
+
+@keyframes amber-pulse {
+  0%, 100% { box-shadow: 0 0 0 0 rgba(255, 184, 108, 0.4); }
+  50%      { box-shadow: 0 0 0 6px rgba(255, 184, 108, 0); }
+}
+
+.btn-save-dirty {
+  animation: amber-pulse 2s ease-in-out infinite;
+  border-color: var(--color-accent-amber, #ffb86c);
+  color: var(--color-accent-amber, #ffb86c);
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .btn-save-dirty {
+    animation: none;
+    border-color: var(--color-accent-amber, #ffb86c);
+    /* Text + border color change still provides non-motion cue */
+  }
+}
+```
+
+#### SchedulingLayout Refactor
+
+Refactor `SchedulingLayout.tsx` to consume `UnsavedChangesModal` and `useFormGuard` instead of the inline implementation. This is a non-breaking internal refactor — behavior is identical.
+
+### Settings Pages Wiring (MEU-197)
+
+Wire `useFormGuard` to:
+1. **MarketDataProvidersPage** — guard when selecting a different provider with unsaved form changes
+
+**Status label fix**: Replace `"off"` text (line 233 of `MarketDataProvidersPage.tsx`) with `"Disabled"` — industry-standard toggle terminology that pairs unambiguously with "Enabled". The `aria-label` on line 223 already uses `', disabled'`.
+
+### CRUD Pages Wiring (MEU-198)
+
+Wire `useFormGuard` to:
+1. **AccountsPage** — guard when selecting a different account with unsaved edits
+2. **TradesPage** — guard when selecting a different trade with unsaved edits
+3. **TradePlanPage** — guard when selecting a different plan with unsaved edits
+4. **WatchlistPage** — guard when selecting a different watchlist with unsaved edits
+
+### Test Strategy
+
+| Layer | What | Tool |
+|-------|------|------|
+| Unit | `useFormGuard` hook state transitions (clean→dirty→modal→discard/save) | Vitest + React Testing Library |
+| Unit | `UnsavedChangesModal` renders, traps focus, fires callbacks | Vitest + React Testing Library |
+| Unit | Amber-pulse class applied when `isDirty=true` | Vitest |
+| Integration | Each page shows modal when navigating with dirty form | Vitest + React Testing Library |
+| E2E | Extend existing wave tests with dirty-guard scenarios | Playwright (extends Waves 2, 4, 6, 8) |
 
 ---
 

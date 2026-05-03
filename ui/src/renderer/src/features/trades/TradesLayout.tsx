@@ -2,8 +2,11 @@ import { useState, useCallback, useEffect, useRef, useMemo } from 'react'
 import { useQuery, useQueryClient } from '@tanstack/react-query'
 import { apiFetch } from '@/lib/api'
 import { useStatusBar } from '@/hooks/useStatusBar'
+import { useFormGuard } from '@/hooks/useFormGuard'
+import UnsavedChangesModal from '@/components/UnsavedChangesModal'
 import TradesTable, { type Trade } from './TradesTable'
 import TradeDetailPanel from './TradeDetailPanel'
+import type { TradeDetailPanelHandle } from './TradeDetailPanel'
 
 // Empty trade template for "New Trade" creation
 const NEW_TRADE: Trade = {
@@ -46,6 +49,7 @@ export default function TradesLayout() {
     const [accountFilter, setAccountFilter] = useState<string>('')
     const queryClient = useQueryClient()
     const { setStatus } = useStatusBar()
+    const [childDirty, setChildDirty] = useState(false)
 
     // Debounce the search input (300ms)
     const debounceRef = useRef<ReturnType<typeof setTimeout>>(undefined)
@@ -130,24 +134,6 @@ export default function TradesLayout() {
 
     const isGuardLocked = guardStatus?.is_locked ?? false
 
-    // Listen for command-palette trade selection
-    useEffect(() => {
-        const handler = (e: Event) => {
-            const { exec_id } = (e as CustomEvent<{ exec_id: string }>).detail
-            const match = trades.find((t) => t.exec_id === exec_id)
-            if (match) {
-                setSelectedTrade(match)
-            }
-        }
-        window.addEventListener('zorivest:select-trade', handler)
-        return () => window.removeEventListener('zorivest:select-trade', handler)
-    }, [trades])
-
-    const handleRefresh = useCallback(() => {
-        setStatus('Refreshing trades...')
-        refetch().then(() => setStatus('Trades refreshed'))
-    }, [refetch, setStatus])
-
     const handleSelectTrade = useCallback((trade: Trade) => {
         setSelectedTrade(trade)
     }, [])
@@ -155,6 +141,51 @@ export default function TradesLayout() {
     const handleNewTrade = useCallback(() => {
         setSelectedTrade({ ...NEW_TRADE, time: new Date().toISOString() })
     }, [])
+
+    // ── Unsaved changes guard (3-button: Save & Continue via child ref) ────
+    const panelRef = useRef<TradeDetailPanelHandle>(null)
+
+    const doNavigate = useCallback((target: Trade | null) => {
+        setChildDirty(false)
+        setSelectedTrade(target)
+    }, [])
+
+    const handleSaveViaRef = useCallback(async () => {
+        await panelRef.current?.save()
+    }, [])
+
+    const { showModal, guardedSelect, handleCancel, handleDiscard, handleSaveAndContinue } =
+        useFormGuard<Trade | null>({
+            isDirty: childDirty,
+            onNavigate: doNavigate,
+            onSave: handleSaveViaRef,
+        })
+
+    const guardedSelectTrade = useCallback((trade: Trade) => {
+        guardedSelect(trade)
+    }, [guardedSelect])
+
+    const guardedNewTrade = useCallback(() => {
+        guardedSelect({ ...NEW_TRADE, time: new Date().toISOString() })
+    }, [guardedSelect])
+
+    // Listen for command-palette trade selection
+    useEffect(() => {
+        const handler = (e: Event) => {
+            const { exec_id } = (e as CustomEvent<{ exec_id: string }>).detail
+            const match = trades.find((t) => t.exec_id === exec_id)
+            if (match) {
+                guardedSelect(match)
+            }
+        }
+        window.addEventListener('zorivest:select-trade', handler)
+        return () => window.removeEventListener('zorivest:select-trade', handler)
+    }, [trades, guardedSelect])
+
+    const handleRefresh = useCallback(() => {
+        setStatus('Refreshing trades...')
+        refetch().then(() => setStatus('Trades refreshed'))
+    }, [refetch, setStatus])
 
     const handleClose = useCallback(() => {
         setSelectedTrade(null)
@@ -212,6 +243,7 @@ export default function TradesLayout() {
     )
 
     return (
+        <>
         <div data-testid="trades-page" className="flex h-full">
             {/* Left: Table */}
             <div className={`flex-1 min-w-0 transition-all ${selectedTrade ? 'w-[60%]' : 'w-full'}`}>
@@ -230,7 +262,7 @@ export default function TradesLayout() {
                             </button>
                             <button
                                 data-testid="add-trade-btn"
-                                onClick={handleNewTrade}
+                                onClick={guardedNewTrade}
                                 disabled={isGuardLocked}
                                 aria-disabled={isGuardLocked}
                                 title={isGuardLocked ? 'Trade creation disabled — MCP Guard is locked' : 'Create a new trade'}
@@ -269,7 +301,7 @@ export default function TradesLayout() {
                 <TradesTable
                     data={enrichedTrades}
                     selectedId={selectedTrade?.exec_id}
-                    onSelectTrade={handleSelectTrade}
+                    onSelectTrade={guardedSelectTrade}
                 />
             </div>
 
@@ -277,14 +309,24 @@ export default function TradesLayout() {
             {selectedTrade && (
                 <div className="w-[40%] min-w-[320px] max-w-[500px]">
                     <TradeDetailPanel
+                        ref={panelRef}
                         key={selectedTrade.exec_id}
                         trade={selectedTrade}
                         onSave={handleSaveTrade}
                         onDelete={handleDeleteTrade}
                         onClose={handleClose}
+                        onDirtyChange={setChildDirty}
                     />
                 </div>
             )}
         </div>
+
+            <UnsavedChangesModal
+                open={showModal}
+                onCancel={handleCancel}
+                onDiscard={handleDiscard}
+                onSave={handleSaveAndContinue}
+            />
+        </>
     )
 }

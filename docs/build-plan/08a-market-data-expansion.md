@@ -311,7 +311,19 @@ Complex extractors for providers with non-standard response shapes + ~20 field m
 > [!WARNING]
 > **Finnhub OHLCV returns 403 on free tier since 2024.** The `FinnhubUrlBuilder` for OHLCV must be disabled or gated. Use Alpaca/EODHD/Polygon as primary OHLCV sources.
 
-### Step 8a.8: POST-Body Extractors (MEU-189 `extractors-post-body`)
+### Step 8a.8: POST-Body Runtime Wiring (MEU-189 `post-body-runtime`)
+
+Wire the POST-body runtime dispatch layer so that providers classified as `builder_mode="post_body"` (OpenFIGI, SEC API, TradingView) can execute HTTP POST requests through the market data adapter and pipeline fetch infrastructure.
+
+**Runtime dispatch changes:**
+
+| Component | Change | Notes |
+|-----------|--------|-------|
+| `fetch_with_cache()` | Add `method` and `json_body` params; dispatch to `client.post()` for POST; skip ETag/If-None-Match conditional headers for POST (RFC 9110 §9.3.3) | Backward-compatible — GET default preserved |
+| `MarketDataProviderAdapter._do_fetch()` | Accept `method` and `json_body`; detect POST builders via `hasattr(builder, 'build_request')` | Uses `RequestSpec` from MEU-186 builders |
+| `provider_connection_service` | Add `_test_openfigi_post()` for OpenFIGI POST connection test (`/v3/mapping`, `X-OPENFIGI-APIKEY` header) | Resolves [MKTDATA-OPENFIGI405] |
+
+**POST-body extractor notes (implemented in MEU-188):**
 
 | Provider | Notes |
 |----------|-------|

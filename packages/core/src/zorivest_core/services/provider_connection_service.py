@@ -173,6 +173,21 @@ def _validate_tradingview(data: Any) -> bool:
     return False
 
 
+@_register_validator("OpenFIGI")
+def _validate_openfigi(data: Any) -> bool:
+    """OpenFIGI /v3/mapping returns list of dicts with 'data' key on success.
+
+    Accepts: [{"data": [{"figi": "BBG...", ...}]}]
+    Rejects: [{"error": "Invalid idType"}], [], None
+    """
+    if not isinstance(data, list) or len(data) == 0:
+        return False
+    first = data[0]
+    if isinstance(first, dict):
+        return "data" in first and "error" not in first
+    return False
+
+
 def _validate_generic(data: Any) -> bool:
     """AC-27: Generic check for providers not in the validation table."""
     return data is not None
@@ -344,6 +359,11 @@ class ProviderConnectionService:
         if name == "TradingView":
             return await self._test_tradingview_scanner(url, headers, timeout)
 
+        # OpenFIGI API requires POST with JSON body to /v3/mapping.
+        # GET to /v3/mapping returns 405 Method Not Allowed.
+        if name == "OpenFIGI":
+            return await self._test_openfigi_post(headers, timeout)
+
         try:
             response = await self._http.get(url, headers, timeout)
         except TimeoutError:
@@ -446,6 +466,41 @@ class ProviderConnectionService:
         # Update DB status
         with self._uow as uow:
             model = uow.market_provider_settings.get("TradingView")
+            if model:
+                model.last_tested_at = datetime.now()
+                model.last_test_status = "success" if success else "failed"
+                model.updated_at = datetime.now()
+                uow.market_provider_settings.save(model)
+                uow.commit()
+
+        return success, message
+
+    async def _test_openfigi_post(
+        self, headers: dict[str, str], timeout: int
+    ) -> tuple[bool, str]:
+        """Test OpenFIGI via its POST-only /v3/mapping endpoint.
+
+        OpenFIGI requires POST with a JSON body: [{"idType": "TICKER", "idValue": "IBM"}].
+        GET to /v3/mapping returns 405 Method Not Allowed.
+
+        Uses the same pattern as _test_tradingview_scanner: POST → validate → update DB.
+        """
+        url = "https://api.openfigi.com/v3/mapping"
+        payload = [{"idType": "TICKER", "idValue": "IBM"}]
+
+        success: bool
+        message: str
+        try:
+            response = await self._http.post(url, headers, timeout, json=payload)
+            success, message = self._interpret_response("OpenFIGI", response, None)  # type: ignore[arg-type]
+        except TimeoutError:
+            success, message = False, "Connection timeout"
+        except ConnectionError:
+            success, message = False, "Connection failed"
+
+        # Update DB status
+        with self._uow as uow:
+            model = uow.market_provider_settings.get("OpenFIGI")
             if model:
                 model.last_tested_at = datetime.now()
                 model.last_test_status = "success" if success else "failed"

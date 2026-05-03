@@ -541,7 +541,7 @@ class OpenFIGIUrlBuilder:
         criteria: dict[str, Any],
     ) -> str:
         """Return the POST URL (adapter compatibility)."""
-        return f"{base_url}/v3/mapping"
+        return f"{base_url}/mapping"
 
     def build_request(
         self,
@@ -555,7 +555,7 @@ class OpenFIGIUrlBuilder:
         body = [{"idType": id_type, "idValue": t} for t in tickers]
         return RequestSpec(
             method="POST",
-            url=f"{base_url}/v3/mapping",
+            url=f"{base_url}/mapping",
             body=body,
         )
 

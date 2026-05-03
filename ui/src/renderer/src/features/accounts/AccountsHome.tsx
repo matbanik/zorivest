@@ -1,8 +1,11 @@
-import React, { useCallback, useMemo, useState } from 'react'
+import React, { useCallback, useMemo, useRef, useState } from 'react'
 import { useAccounts, useCreateAccount, useArchivedAccounts } from '@/hooks/useAccounts'
 import { useAccountContext } from '@/context/AccountContext'
 import type { Account } from '@/hooks/useAccounts'
+import { useFormGuard } from '@/hooks/useFormGuard'
+import UnsavedChangesModal from '@/components/UnsavedChangesModal'
 import AccountDetailPanel from './AccountDetailPanel'
+import type { AccountDetailPanelHandle } from './AccountDetailPanel'
 
 // ── Currency formatter ──────────────────────────────────────────────────────
 
@@ -102,7 +105,7 @@ interface AccountRowProps {
 function AccountRow({ account, onSelect, portfolioPercent }: AccountRowProps) {
     return (
         <tr
-            className="cursor-pointer border-b border-border transition-colors hover:bg-bg-hover"
+            className="cursor-pointer border-b border-border transition-colors hover:bg-bg-elevated"
             onClick={() => onSelect(account.account_id)}
         >
             <td className="px-3 py-2 text-sm">
@@ -159,6 +162,7 @@ export default function AccountsHome() {
     const [typeFilter, setTypeFilter] = useState<string>('ALL')
     const [sortBy, setSortBy] = useState<'last_used' | 'name' | 'balance' | 'type' | 'institution' | 'portfolio'>('last_used')
     const [sortDir, setSortDir] = useState<'asc' | 'desc'>('desc')
+    const [childDirty, setChildDirty] = useState(false)
 
     // Column sort handler — toggles direction, or resets to default when clicking a new column
     const handleColumnSort = useCallback((col: typeof sortBy) => {
@@ -191,6 +195,37 @@ export default function AccountsHome() {
         selectAccount(null)
         setShowCreateForm(true)
     }, [selectAccount])
+
+    // ── Unsaved changes guard (3-button: Save & Continue via child ref) ────
+    const panelRef = useRef<AccountDetailPanelHandle>(null)
+
+    const doNavigate = useCallback((target: string | null) => {
+        setChildDirty(false)
+        if (target === '__new__') {
+            handleAddNew()
+        } else if (target) {
+            handleSelectAccount(target)
+        }
+    }, [handleSelectAccount, handleAddNew])
+
+    const handleSaveViaRef = useCallback(async () => {
+        await panelRef.current?.save()
+    }, [])
+
+    const { showModal, guardedSelect, handleCancel, handleDiscard, handleSaveAndContinue } =
+        useFormGuard<string | null>({
+            isDirty: childDirty,
+            onNavigate: doNavigate,
+            onSave: handleSaveViaRef,
+        })
+
+    const guardedSelectAccount = useCallback((id: string) => {
+        guardedSelect(id)
+    }, [guardedSelect])
+
+    const guardedAddNew = useCallback(() => {
+        guardedSelect('__new__')
+    }, [guardedSelect])
 
     const handleStartReview = useCallback(() => {
         window.dispatchEvent(new CustomEvent('zorivest:start-review'))
@@ -238,6 +273,7 @@ export default function AccountsHome() {
     }, [accounts, archivedAccounts, typeFilter, sortBy, sortDir, isArchivedMode, portfolioTotal])
 
     return (
+        <>
         <div data-testid="accounts-page" className="flex h-full gap-4">
             {/* Left Pane — MRU cards + table */}
             <div
@@ -273,10 +309,10 @@ export default function AccountsHome() {
                         <MruCard
                             key={account.account_id}
                             account={account}
-                            onSelect={handleSelectAccount}
+                            onSelect={guardedSelectAccount}
                         />
                     ))}
-                    <AddNewCard onAdd={handleAddNew} />
+                    <AddNewCard onAdd={guardedAddNew} />
                 </div>
 
                 {/* Filter / Sort Controls */}
@@ -346,7 +382,7 @@ export default function AccountsHome() {
                                     <AccountRow
                                         key={account.account_id}
                                         account={account}
-                                        onSelect={handleSelectAccount}
+                                        onSelect={guardedSelectAccount}
                                         portfolioPercent={pct}
                                     />
                                 )
@@ -381,9 +417,10 @@ export default function AccountsHome() {
                         }}
                         isNew
                         onCreated={() => setShowCreateForm(false)}
+                        onDirtyChange={setChildDirty}
                     />
                 ) : activeAccount ? (
-                    <AccountDetailPanel key={activeAccount.account_id} account={activeAccount} />
+                    <AccountDetailPanel ref={panelRef} key={activeAccount.account_id} account={activeAccount} onDirtyChange={setChildDirty} />
                 ) : (
                     <div className="flex h-full items-center justify-center text-fg-muted text-sm">
                         Select an account to view details
@@ -391,5 +428,13 @@ export default function AccountsHome() {
                 )}
             </div>
         </div>
+
+            <UnsavedChangesModal
+                open={showModal}
+                onCancel={handleCancel}
+                onDiscard={handleDiscard}
+                onSave={handleSaveAndContinue}
+            />
+        </>
     )
 }

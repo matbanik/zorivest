@@ -273,6 +273,71 @@ describe('MEU-48: TradePlanPage', () => {
             expect(linkedField).toHaveValue('T001')
         })
     })
+
+    // ── Dirty-state guard tests (G22/G23) ─────────────────────────────────
+
+    // G22-1: Save button shows "Save Changes" (no bullet) when form is clean
+    it('G22-1: save button shows "Save Changes" when form is clean', async () => {
+        render(<TradePlanPage />, { wrapper: createWrapper() })
+        await waitFor(() => expect(screen.getByText('AAPL')).toBeInTheDocument())
+        fireEvent.click(screen.getByTestId('plan-card-1'))
+        await waitFor(() => {
+            const saveBtn = screen.getByTestId('plan-save-btn')
+            expect(saveBtn.textContent).not.toContain('•')
+        })
+    })
+
+    // G22-2: Save button shows dirty indicators after field change
+    it('G22-2: save button shows dirty indicators after editing', async () => {
+        render(<TradePlanPage />, { wrapper: createWrapper() })
+        await waitFor(() => expect(screen.getByText('AAPL')).toBeInTheDocument())
+        fireEvent.click(screen.getByTestId('plan-card-1'))
+        await waitFor(() => expect(screen.getByTestId('plan-entry-price')).toBeInTheDocument())
+
+        // Change entry price to make form dirty
+        fireEvent.change(screen.getByTestId('plan-entry-price'), { target: { value: '195' } })
+
+        await waitFor(() => {
+            const saveBtn = screen.getByTestId('plan-save-btn')
+            expect(saveBtn.className).toContain('btn-save-dirty')
+            expect(saveBtn.textContent).toContain('•')
+        })
+    })
+
+    // G22-3: Guard modal appears when switching plans with dirty form
+    it('G22-3: guard modal appears on dirty plan switch', async () => {
+        render(<TradePlanPage />, { wrapper: createWrapper() })
+        await waitFor(() => expect(screen.getByText('AAPL')).toBeInTheDocument())
+
+        // Select first plan and make dirty
+        fireEvent.click(screen.getByTestId('plan-card-1'))
+        await waitFor(() => expect(screen.getByTestId('plan-entry-price')).toBeInTheDocument())
+        fireEvent.change(screen.getByTestId('plan-entry-price'), { target: { value: '195' } })
+
+        // Try to switch to second plan
+        fireEvent.click(screen.getByTestId('plan-card-2'))
+
+        await waitFor(() => {
+            expect(screen.getByRole('alertdialog')).toBeInTheDocument()
+        })
+    })
+
+    // G22-4: Clean plan switch does not trigger modal
+    it('G22-4: clean plan switch does not show guard modal', async () => {
+        render(<TradePlanPage />, { wrapper: createWrapper() })
+        await waitFor(() => expect(screen.getByText('AAPL')).toBeInTheDocument())
+
+        // Select first plan without making changes
+        fireEvent.click(screen.getByTestId('plan-card-1'))
+        await waitFor(() => expect(screen.getByTestId('plan-save-btn')).toBeInTheDocument())
+
+        // Switch to second plan
+        fireEvent.click(screen.getByTestId('plan-card-2'))
+
+        await waitFor(() => {
+            expect(screen.queryByRole('alertdialog')).not.toBeInTheDocument()
+        })
+    })
 })
 
 // ─── WatchlistPage Tests ──────────────────────────────────────────────────
@@ -391,6 +456,36 @@ describe('MEU-48: WatchlistPage', () => {
                 '/api/v1/watchlists/',
                 expect.objectContaining({ method: 'POST' }),
             )
+        })
+    })
+
+    // ── Dirty-state guard tests (G22/G23) ─────────────────────────────────
+
+    // G22-1: Save button shows "Save" (no bullet) when form is clean
+    it('G22-1: save button shows "Save" when form is clean', async () => {
+        render(<WatchlistPage />, { wrapper: createWrapper() })
+        await waitFor(() => expect(screen.getByText('Tech Stocks')).toBeInTheDocument())
+        fireEvent.click(screen.getByTestId('watchlist-card-1'))
+        await waitFor(() => {
+            const saveBtn = screen.getByTestId('watchlist-save-btn')
+            expect(saveBtn.textContent).not.toContain('•')
+        })
+    })
+
+    // G22-2: Save button shows dirty indicators after name change
+    it('G22-2: save button shows dirty indicators after name change', async () => {
+        render(<WatchlistPage />, { wrapper: createWrapper() })
+        await waitFor(() => expect(screen.getByText('Tech Stocks')).toBeInTheDocument())
+        fireEvent.click(screen.getByTestId('watchlist-card-1'))
+        await waitFor(() => expect(screen.getByTestId('watchlist-name')).toBeInTheDocument())
+
+        // Change name to make form dirty
+        fireEvent.change(screen.getByTestId('watchlist-name'), { target: { value: 'Renamed List' } })
+
+        await waitFor(() => {
+            const saveBtn = screen.getByTestId('watchlist-save-btn')
+            expect(saveBtn.className).toContain('btn-save-dirty')
+            expect(saveBtn.textContent).toContain('•')
         })
     })
 })

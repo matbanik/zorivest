@@ -21,7 +21,11 @@ import httpx
 from zorivest_core.application.ports import FetchAdapterResult
 from zorivest_infra.market_data.http_cache import fetch_with_cache
 from zorivest_infra.market_data.provider_registry import PROVIDER_REGISTRY
-from zorivest_infra.market_data.url_builders import get_url_builder, resolve_tickers
+from zorivest_infra.market_data.url_builders import (
+    RequestSpec,
+    get_url_builder,
+    resolve_tickers,
+)
 
 logger = structlog.get_logger()
 
@@ -108,14 +112,27 @@ class MarketDataProviderAdapter:
 
         # Single ticker (or no tickers) — standard single-request path
         builder = get_url_builder(provider)
-        url = builder.build_url(config.base_url, data_type, tickers, criteria)
-
         extra_headers = dict(config.headers_template) if config.headers_template else {}
+
+        # POST dispatch: builders with build_request() return a RequestSpec
+        method = "GET"
+        json_body = None
+        if hasattr(builder, "build_request"):
+            spec: RequestSpec = builder.build_request(  # type: ignore[union-attr]  # runtime duck-type dispatch
+                config.base_url, data_type, tickers, criteria
+            )
+            url = spec.url
+            method = spec.method
+            json_body = spec.body
+        else:
+            url = builder.build_url(config.base_url, data_type, tickers, criteria)
 
         result: dict[str, Any] = await self._rate_limiter.execute_with_limits(
             provider,
             self._do_fetch,
             url,
+            method=method,
+            json_body=json_body,
             cached_content=cached_content,
             cached_etag=cached_etag,
             cached_last_modified=cached_last_modified,
@@ -152,6 +169,38 @@ class MarketDataProviderAdapter:
 
         builder = get_url_builder(provider)
         extra_headers = dict(config.headers_template) if config.headers_template else {}
+
+        # POST-batch dispatch: builders with build_request() support multi-ticker
+        # natively (e.g. OpenFIGI sends all tickers in one POST body array).
+        if hasattr(builder, "build_request"):
+            spec: RequestSpec = builder.build_request(  # type: ignore[union-attr]  # runtime duck-type dispatch
+                config.base_url, data_type, tickers, criteria
+            )
+            logger.info(
+                "fetch_multi_ticker_post_batch",
+                provider=provider,
+                tickers=len(tickers),
+                url=spec.url,
+            )
+            result: dict[str, Any] = await self._rate_limiter.execute_with_limits(
+                provider,
+                self._do_fetch,
+                spec.url,
+                method=spec.method,
+                json_body=spec.body,
+                cached_content=None,
+                cached_etag=None,
+                cached_last_modified=None,
+                extra_headers=extra_headers,
+            )
+            return FetchAdapterResult(
+                content=result["content"],
+                cache_status=result["cache_status"],
+                etag=result.get("etag"),
+                last_modified=result.get("last_modified"),
+            )
+
+        # GET per-ticker iteration for providers without build_request()
         all_records: list[dict[str, Any]] = []
         last_etag: str | None = None
         last_modified: str | None = None
@@ -229,15 +278,23 @@ class MarketDataProviderAdapter:
         self,
         url: str,
         *,
+        method: str = "GET",
+        json_body: Any | None = None,
         cached_content: bytes | None = None,
         cached_etag: str | None = None,
         cached_last_modified: str | None = None,
         extra_headers: dict[str, str] | None = None,
     ) -> dict[str, Any]:
-        """Execute the HTTP fetch with cache revalidation."""
+        """Execute the HTTP fetch with cache revalidation.
+
+        Supports both GET and POST methods. POST providers (OpenFIGI, SEC API)
+        pass method='POST' and json_body from their RequestSpec.
+        """
         return await fetch_with_cache(
             client=self._http_client,
             url=url,
+            method=method,
+            json_body=json_body,
             cached_content=cached_content,
             cached_etag=cached_etag,
             cached_last_modified=cached_last_modified,

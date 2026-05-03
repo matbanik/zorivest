@@ -8,7 +8,7 @@
 
 import { test, expect } from '@playwright/test'
 import { AppPage } from './pages/AppPage'
-import { SCHEDULING } from './test-ids'
+import { SCHEDULING, UNSAVED_CHANGES } from './test-ids'
 
 let appPage: AppPage
 
@@ -114,4 +114,53 @@ test('+New API response returns 201', async () => {
     expect(body).toHaveProperty('policy_json')
     expect(body.policy_json).toHaveProperty('trigger')
     expect(body.policy_json).toHaveProperty('steps')
+})
+
+test('dirty-guard: editing policy name and switching shows unsaved changes modal', async () => {
+    await appPage.waitForTestId(SCHEDULING.POLICY_CREATE_BTN)
+
+    // Create the first policy
+    await appPage.testId(SCHEDULING.POLICY_CREATE_BTN).click()
+    await appPage.page.waitForTimeout(2_000)
+
+    // Ensure we have at least 2 policies in the list
+    const itemsBefore = await appPage.testId(SCHEDULING.POLICY_ITEM).count()
+    if (itemsBefore < 2) {
+        await appPage.testId(SCHEDULING.POLICY_CREATE_BTN).click()
+        await appPage.page.waitForTimeout(2_000)
+    }
+
+    // Select the first policy and wait for detail panel
+    const firstPolicy = appPage.testId(SCHEDULING.POLICY_ITEM).first()
+    await firstPolicy.click()
+    await appPage.waitForTestId(SCHEDULING.POLICY_DETAIL)
+    await appPage.page.waitForTimeout(500)
+
+    // Modify the JSON editor content to make the form dirty
+    const jsonEditor = appPage.testId(SCHEDULING.POLICY_JSON_EDITOR)
+    await jsonEditor.click()
+    // Append text to the JSON editor to trigger dirty state
+    await appPage.page.keyboard.press('End')
+    await appPage.page.keyboard.type(' ')
+    await appPage.page.waitForTimeout(300)
+
+    // Click the second policy item — should trigger the guard modal
+    const secondPolicy = appPage.testId(SCHEDULING.POLICY_ITEM).nth(1)
+    await secondPolicy.click()
+
+    // The UnsavedChangesModal should appear
+    await appPage.waitForTestId(UNSAVED_CHANGES.MODAL, 5_000)
+    const modal = appPage.testId(UNSAVED_CHANGES.MODAL)
+    await expect(modal).toBeVisible()
+
+    // Verify modal buttons are present
+    await expect(appPage.testId(UNSAVED_CHANGES.KEEP_EDITING_BTN)).toBeVisible()
+    await expect(appPage.testId(UNSAVED_CHANGES.DISCARD_BTN)).toBeVisible()
+
+    // Click Keep Editing — modal should dismiss, we stay on the original policy
+    await appPage.testId(UNSAVED_CHANGES.KEEP_EDITING_BTN).click()
+    await appPage.page.waitForTimeout(300)
+
+    // Modal should be gone
+    await expect(appPage.testId(UNSAVED_CHANGES.MODAL)).not.toBeVisible()
 })

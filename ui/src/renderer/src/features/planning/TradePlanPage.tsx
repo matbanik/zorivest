@@ -2,6 +2,8 @@ import { useState, useCallback, useMemo, useEffect } from 'react'
 import { useQuery, useQueryClient } from '@tanstack/react-query'
 import { apiFetch } from '@/lib/api'
 import { useStatusBar } from '@/hooks/useStatusBar'
+import { useFormGuard } from '@/hooks/useFormGuard'
+import UnsavedChangesModal from '@/components/UnsavedChangesModal'
 import TickerAutocomplete from '@/components/TickerAutocomplete'
 
 // ── Types (G6: exact API field names) ────────────────────────────────────
@@ -201,6 +203,35 @@ export default function TradePlanPage({ onOpenCalculator }: TradePlanPageProps) 
         setTradePickerLabel(plan.linked_trade_id ?? '')
     }, [])
 
+    // ── Dirty state computation ───────────────────────────────────────────
+    const isDirty = useMemo(() => {
+        if (isCreating) {
+            // For new plans, dirty if any field has been filled
+            return !!form.ticker || !!form.strategy_name || !!form.strategy_description ||
+                !!form.entry_conditions || !!form.exit_conditions ||
+                (form.entry_price ?? 0) !== 0 || (form.stop_loss ?? 0) !== 0 || (form.target_price ?? 0) !== 0
+        }
+        if (!selectedPlan) return false
+        // Compare mutable fields against server state
+        return (
+            form.ticker !== selectedPlan.ticker ||
+            form.direction !== selectedPlan.direction ||
+            form.conviction !== selectedPlan.conviction ||
+            form.strategy_name !== selectedPlan.strategy_name ||
+            form.strategy_description !== selectedPlan.strategy_description ||
+            form.entry_price !== selectedPlan.entry_price ||
+            form.stop_loss !== selectedPlan.stop_loss ||
+            form.target_price !== selectedPlan.target_price ||
+            form.entry_conditions !== selectedPlan.entry_conditions ||
+            form.exit_conditions !== selectedPlan.exit_conditions ||
+            form.timeframe !== selectedPlan.timeframe ||
+            form.account_id !== selectedPlan.account_id ||
+            form.shares_planned !== selectedPlan.shares_planned ||
+            form.position_size !== selectedPlan.position_size
+        )
+    }, [form, selectedPlan, isCreating])
+
+    // ── Unsaved changes guard (3-button: parent-owned form) ─────────────
     const handleNewPlan = useCallback(() => {
         setSelectedPlan(null)
         setIsCreating(true)
@@ -208,6 +239,23 @@ export default function TradePlanPage({ onOpenCalculator }: TradePlanPageProps) 
         setLinkedTradeId('')
         setTradePickerLabel('')
     }, [])
+
+    const doNavigate = useCallback((target: TradePlan | '__new__' | null) => {
+        if (target === '__new__') {
+            handleNewPlan()
+        } else if (target) {
+            handleSelectPlan(target)
+        }
+    }, [handleSelectPlan, handleNewPlan])
+
+    const { showModal, guardedSelect, handleCancel, handleDiscard, handleSaveAndContinue } =
+        useFormGuard<TradePlan | '__new__' | null>({
+            isDirty,
+            onNavigate: doNavigate,
+            onSave: async () => {
+                await handleSave()
+            },
+        })
 
     const handleClose = useCallback(() => {
         setSelectedPlan(null)
@@ -372,6 +420,7 @@ export default function TradePlanPage({ onOpenCalculator }: TradePlanPageProps) 
     const isDetailOpen = isCreating || selectedPlan !== null
 
     return (
+        <>
         <div data-testid="trade-plan-page" className="flex h-full">
             {/* Left: Plan List */}
             <div className={`flex-1 min-w-0 transition-all ${isDetailOpen ? 'w-[55%]' : 'w-full'}`}>
@@ -390,7 +439,7 @@ export default function TradePlanPage({ onOpenCalculator }: TradePlanPageProps) 
                             )}
                             <button
                                 data-testid="new-plan-btn"
-                                onClick={handleNewPlan}
+                                onClick={() => guardedSelect('__new__')}
                                 className="px-4 py-1.5 text-sm font-medium rounded-md border border-bg-subtle bg-bg hover:bg-bg-elevated text-fg transition-colors cursor-pointer"
                             >
                                 + New Plan
@@ -435,7 +484,7 @@ export default function TradePlanPage({ onOpenCalculator }: TradePlanPageProps) 
                             <button
                                 key={plan.id}
                                 data-testid={`plan-card-${plan.id}`}
-                                onClick={() => handleSelectPlan(plan)}
+                                onClick={() => guardedSelect(plan)}
                                 className={`w-full text-left px-4 py-3 rounded-md border cursor-pointer transition-colors ${selectedPlan?.id === plan.id
                                     ? 'border-accent bg-accent/10'
                                     : 'border-bg-subtle bg-bg hover:bg-bg-elevated'
@@ -878,9 +927,9 @@ export default function TradePlanPage({ onOpenCalculator }: TradePlanPageProps) 
                                 <button
                                     data-testid="plan-save-btn"
                                     onClick={handleSave}
-                                    className="px-4 py-1.5 text-sm rounded-md bg-accent text-accent-fg hover:bg-accent/90 border border-accent cursor-pointer"
+                                    className={`px-4 py-1.5 text-sm rounded-md bg-accent text-accent-fg hover:bg-accent/90 border border-accent cursor-pointer${isDirty ? ' btn-save-dirty' : ''}`}
                                 >
-                                    {isCreating ? 'Create Plan' : 'Save Changes'}
+                                    {isCreating ? 'Create Plan' : (isDirty ? 'Save Changes •' : 'Save Changes')}
                                 </button>
                                 {selectedPlan && !isCreating && (
                                     <button
@@ -903,5 +952,13 @@ export default function TradePlanPage({ onOpenCalculator }: TradePlanPageProps) 
                 </div>
             )}
         </div>
+
+            <UnsavedChangesModal
+                open={showModal}
+                onCancel={handleCancel}
+                onDiscard={handleDiscard}
+                onSave={handleSaveAndContinue}
+            />
+        </>
     )
 }

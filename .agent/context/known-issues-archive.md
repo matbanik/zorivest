@@ -227,3 +227,13 @@
 - **Details:** Original flat registration of 68+ tools exceeded IDE limits (Cursor ≤40, VS Code variable). Three-tier strategy was designed as mitigation.
 - **Fix:** 85→13 compound-tool consolidation completed (P2.5f MC0–MC5). All 13 compound tools with action-based dispatch. Tool count well within ALL IDE limits. MCP audit passes (46/46 tools tested).
 - **Supersedes:** Three-tier strategy is no longer needed — 13 tools fits all IDEs natively.
+
+---
+
+### [MKTDATA-OPENFIGI405] — OpenFIGI returns HTTP 405 — confirmed POST-only endpoint ✅ RESOLVED
+- **Severity:** ~~Medium~~ → Resolved (2026-05-02)
+- **Component:** infrastructure (market_data)
+- **Discovered:** 2026-05-02
+- **Status:** ✅ **Resolved by MEU-189 (`post-body-runtime`) — 2026-05-02**
+- **Root cause:** OpenFIGI `/v3/mapping` is POST-only. Connection test sent GET → 405. Not an auth failure.
+- **Fix:** MEU-189 implemented POST dispatch in `fetch_with_cache()` + `_do_fetch()` + `_fetch_multi_ticker()`. OpenFIGI-specific POST connection test added. URL double-path bug (`/v3/v3/mapping`) fixed in corrections pass.

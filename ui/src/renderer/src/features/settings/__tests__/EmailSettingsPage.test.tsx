@@ -181,4 +181,52 @@ describe('MEU-73: EmailSettingsPage', () => {
             expect(screen.getByDisplayValue('SSL')).toBeInTheDocument()
         })
     })
+
+    // ── G23 Dirty-State Guard Tests ──────────────────────────────────────
+
+    // G23-1: Clean form — no amber-pulse, button text = "💾 Save"
+    it('G23-1: clean form shows no btn-save-dirty class and text "💾 Save"', async () => {
+        render(<EmailSettingsPage />, { wrapper: createWrapper() })
+        await waitFor(() => expect(screen.getByTestId('save-email-settings-btn')).toBeInTheDocument())
+
+        const saveBtn = screen.getByTestId('save-email-settings-btn')
+        expect(saveBtn.className).not.toContain('btn-save-dirty')
+        expect(saveBtn).toHaveTextContent('💾 Save')
+    })
+
+    // G23-2: Dirty form — amber-pulse applied, button text = "💾 Save Changes •"
+    it('G23-2: dirty form shows btn-save-dirty class and text "💾 Save Changes •"', async () => {
+        render(<EmailSettingsPage />, { wrapper: createWrapper() })
+        await waitFor(() => expect(screen.getByTestId('smtp-host-input')).toBeInTheDocument())
+
+        // Modify SMTP host to create dirty state
+        fireEvent.change(screen.getByTestId('smtp-host-input'), {
+            target: { value: 'smtp.changed.com' },
+        })
+
+        await waitFor(() => {
+            const saveBtn = screen.getByTestId('save-email-settings-btn')
+            expect(saveBtn.className).toContain('btn-save-dirty')
+            expect(saveBtn).toHaveTextContent('💾 Save Changes •')
+        })
+    })
+
+    // G23-3: Password-only dirty detection — entering password alone triggers dirty
+    it('G23-3: entering password alone triggers dirty state', async () => {
+        render(<EmailSettingsPage />, { wrapper: createWrapper() })
+        await waitFor(() => expect(screen.getByTestId('save-email-settings-btn')).toBeInTheDocument())
+
+        // Initially clean
+        const saveBtn = screen.getByTestId('save-email-settings-btn')
+        expect(saveBtn.className).not.toContain('btn-save-dirty')
+
+        // Type into password field
+        const passwordInput = screen.getByTestId('smtp-password-input')
+        fireEvent.change(passwordInput, { target: { value: 'secret123' } })
+
+        await waitFor(() => {
+            expect(saveBtn.className).toContain('btn-save-dirty')
+            expect(saveBtn).toHaveTextContent('💾 Save Changes •')
+        })
+    })
 })

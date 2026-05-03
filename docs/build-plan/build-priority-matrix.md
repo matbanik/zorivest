@@ -105,6 +105,7 @@
 | **30.11** | REST routes + MCP actions: 8 new endpoints + 8 MCP action mappings (MEU-192) | ✅ Yes | `GET /api/v1/market-data/{type}` + `zorivest_market` |
 | **30.12** | `MarketDataStoreStep` pipeline step (MEU-193) | ✅ Yes | Route normalized DTOs to DB tables, INSERT/UPSERT |
 | **30.13** | Scheduling recipes: 10 pre-built policy templates (MEU-194) | ✅ Yes | Alembic-seeded cron templates |
+| **30.14** | Polygon→Massive domain migration (MEU-195) | ✅ Yes | Update `base_url` from `api.polygon.io` to `api.massive.com`, `signup_url`, display name; verify connection test passes; no API schema changes |
 
 ---
 
@@ -126,6 +127,18 @@
 | **35f** | Reset to Default on settings pages ([06f](06f-gui-settings.md)) | Playwright E2E — wave TBD | Source indicator, per-setting reset, bulk reset |
 | **35g** | `DashboardService` + 6 REST endpoints ([03](03-service-layer.md), [06j](06j-gui-home.md)) | ✅ Yes | Read-only aggregation of accounts, trades, plans, watchlists, jobs |
 | **35h** | Home Dashboard GUI ([06j](06j-gui-home.md)) | Playwright E2E (Wave 7) | Default startup route `/`, skeleton loading, settings (toggle/reorder sections), nav rail update |
+
+---
+
+## P2.1 — GUI UX Hardening
+
+> **Source**: [06-gui.md §UX Hardening](06-gui.md#ux-hardening--unsaved-changes-guard). Extracts the unsaved-changes guard from SchedulingLayout into shared infrastructure and rolls it out across all data-entry modules.
+
+| Order | What | Tests First? | Notes |
+|-------|------|-------------|-------|
+| **35i** | Shared `UnsavedChangesModal` + `useFormGuard` hook + amber-pulse CSS (MEU-196) | ✅ Yes | Extract from SchedulingLayout; refactor Scheduling to consume shared components; Vitest unit tests for hook + component |
+| **35j** | Form guard wiring — Market Data Providers (MEU-197) | ✅ Yes | Wire `useFormGuard` to Market Data Providers; add amber-pulse save button; replace "off" → "Disabled" label. Depends on MEU-196 |
+| **35k** | Form guard wiring — CRUD pages (MEU-198) | ✅ Yes | Wire `useFormGuard` to Accounts, Trades, Trade Plans, Watchlists; add amber-pulse save button to all. Depends on MEU-196 |
 
 ---
 

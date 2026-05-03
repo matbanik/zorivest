@@ -3,6 +3,8 @@ import { useQuery, useQueryClient } from '@tanstack/react-query'
 import { apiFetch } from '@/lib/api'
 import { useStatusBar } from '@/hooks/useStatusBar'
 import { usePersistedState } from '@/hooks/usePersistedState'
+import { useFormGuard } from '@/hooks/useFormGuard'
+import UnsavedChangesModal from '@/components/UnsavedChangesModal'
 import TickerAutocomplete from '@/components/TickerAutocomplete'
 import WatchlistTable from './WatchlistTable'
 
@@ -164,6 +166,33 @@ export default function WatchlistPage() {
         setDescInput('')
     }, [])
 
+    // ── Dirty state computation ───────────────────────────────────────────
+    const isDirty = (() => {
+        if (isCreating) {
+            return !!nameInput || !!descInput
+        }
+        if (!selectedList) return false
+        return nameInput !== selectedList.name || descInput !== selectedList.description
+    })()
+
+    // ── Unsaved changes guard (3-button: parent-owned form) ─────────────
+    const doNavigate = useCallback((target: Watchlist | '__new__' | null) => {
+        if (target === '__new__') {
+            handleNew()
+        } else if (target) {
+            handleSelect(target)
+        }
+    }, [handleSelect, handleNew])
+
+    const { showModal, guardedSelect, handleCancel, handleDiscard, handleSaveAndContinue } =
+        useFormGuard<Watchlist | '__new__' | null>({
+            isDirty,
+            onNavigate: doNavigate,
+            onSave: async () => {
+                await handleSave()
+            },
+        })
+
     const handleClose = useCallback(() => {
         setSelectedList(null)
         setIsCreating(false)
@@ -267,6 +296,7 @@ export default function WatchlistPage() {
     const isDetailOpen = isCreating || selectedList !== null
 
     return (
+        <>
         <div data-testid="watchlist-page" className="flex h-full">
             {/* Left: Watchlist List */}
             <div className={`flex-1 min-w-0 transition-all ${isDetailOpen ? 'w-[40%]' : 'w-full'}`}>
@@ -275,7 +305,7 @@ export default function WatchlistPage() {
                         <h2 className="text-lg font-semibold text-fg">Watchlists</h2>
                         <button
                             data-testid="new-watchlist-btn"
-                            onClick={handleNew}
+                            onClick={() => guardedSelect('__new__')}
                             className="px-4 py-1.5 text-sm font-medium rounded-md border border-bg-subtle bg-bg hover:bg-bg-elevated text-fg transition-colors cursor-pointer"
                         >
                             + New Watchlist
@@ -290,7 +320,7 @@ export default function WatchlistPage() {
                             <button
                                 key={wl.id}
                                 data-testid={`watchlist-card-${wl.id}`}
-                                onClick={() => handleSelect(wl)}
+                                onClick={() => guardedSelect(wl)}
                                 className={`w-full text-left px-4 py-3 rounded-md border cursor-pointer transition-colors ${selectedList?.id === wl.id
                                     ? 'border-accent bg-accent/10'
                                     : 'border-bg-subtle bg-bg hover:bg-bg-elevated'
@@ -359,9 +389,9 @@ export default function WatchlistPage() {
                                 <button
                                     data-testid="watchlist-save-btn"
                                     onClick={handleSave}
-                                    className="px-4 py-1.5 text-sm rounded-md bg-accent text-accent-fg hover:bg-accent/90 border border-accent cursor-pointer"
+                                    className={`px-4 py-1.5 text-sm rounded-md bg-accent text-accent-fg hover:bg-accent/90 border border-accent cursor-pointer${isDirty ? ' btn-save-dirty' : ''}`}
                                 >
-                                    {isCreating ? 'Create' : 'Save'}
+                                    {isCreating ? 'Create' : (isDirty ? 'Save Changes •' : 'Save')}
                                 </button>
                                 {selectedList && !isCreating && (
                                     <button
@@ -442,5 +472,13 @@ export default function WatchlistPage() {
                 </div>
             )}
         </div>
+
+            <UnsavedChangesModal
+                open={showModal}
+                onCancel={handleCancel}
+                onDiscard={handleDiscard}
+                onSave={handleSaveAndContinue}
+            />
+        </>
     )
 }

@@ -1159,14 +1159,14 @@ class TestOpenFIGIUrlBuilder:
 
         builder = OpenFIGIUrlBuilder()
         spec = builder.build_request(
-            base_url="https://api.openfigi.com",
+            base_url="https://api.openfigi.com/v3",
             data_type="identifier_mapping",
             tickers=["AAPL"],
             criteria={},
         )
         assert isinstance(spec, RequestSpec)
         assert spec.method == "POST"
-        assert "/v3/mapping" in spec.url
+        assert spec.url == "https://api.openfigi.com/v3/mapping"
         assert isinstance(spec.body, list)
         assert spec.body[0]["idValue"] == "AAPL"
 
@@ -1176,7 +1176,7 @@ class TestOpenFIGIUrlBuilder:
 
         builder = OpenFIGIUrlBuilder()
         spec = builder.build_request(
-            base_url="https://api.openfigi.com",
+            base_url="https://api.openfigi.com/v3",
             data_type="identifier_mapping",
             tickers=["MSFT"],
             criteria={},
@@ -1191,7 +1191,7 @@ class TestOpenFIGIUrlBuilder:
 
         builder = OpenFIGIUrlBuilder()
         spec = builder.build_request(
-            base_url="https://api.openfigi.com",
+            base_url="https://api.openfigi.com/v3",
             data_type="identifier_mapping",
             tickers=["US0378331005"],
             criteria={"id_type": "ISIN"},
@@ -1205,7 +1205,7 @@ class TestOpenFIGIUrlBuilder:
 
         builder = OpenFIGIUrlBuilder()
         spec = builder.build_request(
-            base_url="https://api.openfigi.com",
+            base_url="https://api.openfigi.com/v3",
             data_type="identifier_mapping",
             tickers=["AAPL", "MSFT", "GOOG"],
             criteria={},
@@ -1219,12 +1219,12 @@ class TestOpenFIGIUrlBuilder:
 
         builder = OpenFIGIUrlBuilder()
         url = builder.build_url(
-            base_url="https://api.openfigi.com",
+            base_url="https://api.openfigi.com/v3",
             data_type="identifier_mapping",
             tickers=["AAPL"],
             criteria={},
         )
-        assert "/v3/mapping" in url
+        assert url == "https://api.openfigi.com/v3/mapping"
 
 
 # ── AC-10: SECAPIUrlBuilder ───────────────────────────────────────────

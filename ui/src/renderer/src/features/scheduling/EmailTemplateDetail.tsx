@@ -8,7 +8,7 @@
  * MEU: MEU-72b (gui-email-templates)
  */
 
-import { useState, useEffect, useCallback, useMemo, useRef, type KeyboardEvent } from 'react'
+import { useState, useEffect, useCallback, useMemo, useRef, forwardRef, useImperativeHandle, type KeyboardEvent } from 'react'
 import { createPortal } from 'react-dom'
 import { SCHEDULING_TEST_IDS } from './test-ids'
 import type { EmailTemplate } from './template-api'
@@ -38,6 +38,11 @@ const KNOWN_PIPELINE_VARIABLES = [
     'strategy_name',
 ] as const
 
+// Handle type for imperative save
+export interface EmailTemplateDetailHandle {
+    save: () => void
+}
+
 interface EmailTemplateDetailProps {
     template: EmailTemplate
     onSave: (data: Partial<EmailTemplate>) => void
@@ -50,7 +55,7 @@ interface EmailTemplateDetailProps {
     deleteError?: string | null
 }
 
-export default function EmailTemplateDetail({
+const EmailTemplateDetail = forwardRef<EmailTemplateDetailHandle, EmailTemplateDetailProps>(function EmailTemplateDetail({
     template,
     onSave,
     onDuplicate,
@@ -60,7 +65,7 @@ export default function EmailTemplateDetail({
     onDirtyChange,
     isSaving,
     deleteError,
-}: EmailTemplateDetailProps) {
+}, ref) {
     const isDefault = template.is_default
     const [showDeleteConfirm, setShowDeleteConfirm] = useState(false)
 
@@ -132,7 +137,7 @@ export default function EmailTemplateDetail({
         }
     }, [editName, template.name, onRename])
 
-    const handleSave = () => {
+    const handleSave = useCallback(() => {
         onSave({
             body_html: bodyHtml,
             description,
@@ -140,7 +145,12 @@ export default function EmailTemplateDetail({
             subject_template: subjectTemplate,
             required_variables: requiredVariables,
         })
-    }
+    }, [onSave, bodyHtml, description, bodyFormat, subjectTemplate, requiredVariables])
+
+    // Expose imperative save to parent for 3-button modal
+    useImperativeHandle(ref, () => ({
+        save: handleSave,
+    }), [handleSave])
 
     const handleDelete = useCallback(() => {
         setShowDeleteConfirm(true)
@@ -299,9 +309,9 @@ export default function EmailTemplateDetail({
                         isDefault || isSaving || !isDirty
                             ? 'bg-bg-subtle/30 text-fg-muted cursor-not-allowed'
                             : 'border border-accent-green/30 bg-accent-green/20 text-accent-green hover:bg-accent-green/30'
-                    }`}
+                    }${isDirty && !isDefault ? ' btn-save-dirty' : ''}`}
                 >
-                    {isSaving ? 'Saving…' : 'Save'}
+                    {isSaving ? 'Saving…' : (isDirty && !isDefault ? 'Save Changes •' : 'Save')}
                 </button>
                 <button
                     data-testid={SCHEDULING_TEST_IDS.TEMPLATE_DUPLICATE_BTN}
@@ -556,4 +566,6 @@ export default function EmailTemplateDetail({
         )}
     </>
     )
-}
+})
+
+export default EmailTemplateDetail

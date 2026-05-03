@@ -1,7 +1,8 @@
-import { useState, useEffect } from 'react'
+import { useState, useEffect, useMemo } from 'react'
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query'
 import { apiFetch } from '@/lib/api'
 import { useStatusBar } from '@/hooks/useStatusBar'
+import '@/styles/form-guard.css'
 
 interface EmailConfig {
     provider_preset: string | null
@@ -61,6 +62,20 @@ export default function EmailSettingsPage() {
             }))
         }
     }, [config])
+
+    // Dirty-state detection: compare form vs saved config
+    const isDirty = useMemo(() => {
+        if (!config) return false
+        return (
+            form.provider_preset !== (config.provider_preset ?? '') ||
+            form.smtp_host !== (config.smtp_host ?? '') ||
+            form.port !== (config.port ?? 587) ||
+            form.security !== (config.security ?? 'STARTTLS') ||
+            form.username !== (config.username ?? '') ||
+            form.from_email !== (config.from_email ?? '') ||
+            form.password !== '' // any password entry = dirty
+        )
+    }, [form, config])
 
     const handlePresetChange = (preset: string) => {
         setForm(prev => ({
@@ -269,9 +284,9 @@ export default function EmailSettingsPage() {
                     data-testid="save-email-settings-btn"
                     onClick={() => saveMutation.mutate()}
                     disabled={saveMutation.isPending}
-                    className="px-4 py-2 text-sm font-medium rounded-md bg-accent-purple text-fg hover:bg-accent-purple/90 transition-colors disabled:opacity-50 cursor-pointer"
+                    className={`px-4 py-2 text-sm font-medium rounded-md bg-accent-purple text-fg hover:bg-accent-purple/90 transition-colors disabled:opacity-50 cursor-pointer${isDirty ? ' btn-save-dirty' : ''}`}
                 >
-                    {saveMutation.isPending ? '⏳ Saving…' : '💾 Save'}
+                    {saveMutation.isPending ? '⏳ Saving…' : isDirty ? '💾 Save Changes •' : '💾 Save'}
                 </button>
             </div>
         </div>

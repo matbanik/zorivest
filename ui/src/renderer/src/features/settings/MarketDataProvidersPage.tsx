@@ -5,10 +5,12 @@
  * Source: docs/build-plan/06f-gui-settings.md §Market Data Settings Page.
  */
 
-import { useState, useCallback } from 'react'
+import { useState, useCallback, useMemo } from 'react'
 import { useQuery, useQueryClient } from '@tanstack/react-query'
 import { apiFetch } from '@/lib/api'
 import { useStatusBar } from '@/hooks/useStatusBar'
+import { useFormGuard } from '@/hooks/useFormGuard'
+import UnsavedChangesModal from '@/components/UnsavedChangesModal'
 
 // Electron preload bridge type
 declare global {
@@ -92,7 +94,22 @@ export function MarketDataProvidersPage() {
 
     const selectedProvider = providers.find((p) => p.provider_name === selectedName) ?? null
 
-    const handleSelect = useCallback((provider: ProviderStatus) => {
+    // ── Dirty state computation ──────────────────────────────────────────
+    const isDirty = useMemo(() => {
+        if (!selectedProvider) return false
+        const base = buildForm(selectedProvider)
+        // Compare mutable fields against server state
+        return (
+            form.rate_limit !== base.rate_limit ||
+            form.timeout !== base.timeout ||
+            form.is_enabled !== base.is_enabled ||
+            form.api_key !== '' ||
+            form.api_secret !== ''
+        )
+    }, [form, selectedProvider])
+
+    // ── Unsaved changes guard ────────────────────────────────────────────
+    const doNavigate = useCallback((provider: ProviderStatus) => {
         setSelectedName(provider.provider_name)
         setForm(buildForm(provider))
         setTestResult(null)
@@ -126,6 +143,15 @@ export function MarketDataProvidersPage() {
             setStatus(`Error: ${err instanceof Error ? err.message : 'Failed to save'}`)
         }
     }, [selectedName, form, queryClient, setStatus])
+
+    const { showModal, guardedSelect, handleCancel, handleDiscard, handleSaveAndContinue } =
+        useFormGuard<ProviderStatus>({
+            isDirty,
+            onNavigate: doNavigate,
+            onSave: async () => {
+                await handleSave()
+            },
+        })
 
     // Test Connection (AC-4)
     const handleTest = useCallback(async () => {
@@ -193,6 +219,7 @@ export function MarketDataProvidersPage() {
     const isFree = selectedName !== null && FREE_PROVIDERS.has(selectedName)
 
     return (
+        <>
         <div data-testid="market-data-providers" className="flex h-full">
             {/* Left panel: provider list (AC-1, AC-6) */}
             <div className="w-64 shrink-0 border-r border-bg-subtle overflow-y-auto">
@@ -221,7 +248,7 @@ export function MarketDataProvidersPage() {
                             <button
                                 data-testid="provider-item"
                                 aria-label={`${provider.provider_name} — ${provider.last_test_status ?? 'not tested'}${!provider.is_enabled ? ', disabled' : ''}`}
-                                onClick={() => handleSelect(provider)}
+                                onClick={() => guardedSelect(provider)}
                                 className={`w-full text-left px-3 py-2 text-sm transition-colors cursor-pointer flex items-center gap-2 ${selectedName === provider.provider_name
                                     ? 'bg-accent/10 text-accent'
                                     : 'text-fg hover:bg-bg-elevated'
@@ -230,7 +257,7 @@ export function MarketDataProvidersPage() {
                                 <span aria-hidden="true">{statusIcon(provider.last_test_status)}</span>
                                 <span className="flex-1 truncate">{provider.provider_name}</span>
                                 {!provider.is_enabled && (
-                                    <span className="text-xs text-fg-muted" aria-hidden="true">off</span>
+                                    <span className="text-xs text-fg-muted" aria-hidden="true">Disabled</span>
                                 )}
                             </button>
                         </li>
@@ -403,9 +430,9 @@ export function MarketDataProvidersPage() {
                         <button
                             data-testid="provider-save-btn"
                             onClick={handleSave}
-                            className="px-4 py-1.5 text-sm rounded-md bg-accent text-accent-fg hover:bg-accent/90 border border-accent cursor-pointer"
+                            className={`px-4 py-1.5 text-sm rounded-md bg-accent text-accent-fg hover:bg-accent/90 border border-accent cursor-pointer${isDirty ? ' btn-save-dirty' : ''}`}
                         >
-                            Save Changes
+                            {isDirty ? 'Save Changes •' : 'Save Changes'}
                         </button>
                         <button
                             data-testid="provider-remove-key-btn"
@@ -434,5 +461,13 @@ export function MarketDataProvidersPage() {
                 </div>
             )}
         </div>
+
+            <UnsavedChangesModal
+                open={showModal}
+                onCancel={handleCancel}
+                onDiscard={handleDiscard}
+                onSave={handleSaveAndContinue}
+            />
+        </>
     )
 }

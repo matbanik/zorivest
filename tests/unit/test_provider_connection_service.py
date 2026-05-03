@@ -780,12 +780,14 @@ class TestGenericValidation:
     """AC-27: Providers without validation table entry use generic check."""
 
     def test_openfigi_generic(self) -> None:
-        """OpenFIGI uses generic validation — any valid JSON at 200 = success."""
+        """OpenFIGI uses POST with provider-specific validator — data list with 'data' key."""
 
         async def _run() -> None:
             uow = MockUoW()
             _configure_provider_in_uow(uow, "OpenFIGI")
-            http = MockHttpClient(MockResponse(200, _json={"data": [{"figi": "BBG"}]}))
+            http = MockHttpClient(
+                MockResponse(200, _json=[{"data": [{"figi": "BBG"}]}])
+            )
             svc, _, _ = _make_service(uow=uow, http=http)
             success, msg = await svc.test_connection("OpenFIGI")
             assert success is True

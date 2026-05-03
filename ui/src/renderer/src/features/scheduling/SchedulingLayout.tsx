@@ -8,16 +8,19 @@
  * MEU: MEU-72 (gui-scheduling)
  */
 
-import { useState, useCallback } from 'react'
-import { createPortal } from 'react-dom'
+import { useState, useCallback, useRef } from 'react'
 import { useQuery } from '@tanstack/react-query'
 import { apiFetch } from '@/lib/api'
+import { useFormGuard } from '@/hooks/useFormGuard'
+import UnsavedChangesModal from '@/components/UnsavedChangesModal'
 import { SCHEDULING_TEST_IDS } from './test-ids'
 import PolicyList from './PolicyList'
 import PolicyDetail from './PolicyDetail'
+import type { PolicyDetailHandle } from './PolicyDetail'
 import RunHistory from './RunHistory'
 import EmailTemplateList from './EmailTemplateList'
 import EmailTemplateDetail from './EmailTemplateDetail'
+import type { EmailTemplateDetailHandle } from './EmailTemplateDetail'
 import EmailTemplatePreview from './EmailTemplatePreview'
 import {
     useSchedulingPolicies,
@@ -62,14 +65,15 @@ export default function SchedulingLayout() {
     // ── Dirty state + unsaved changes guard ──
     const [policyDirty, setPolicyDirty] = useState(false)
     const [templateDirty, setTemplateDirty] = useState(false)
-    const [pendingNav, setPendingNav] = useState<
+    const policyDetailRef = useRef<PolicyDetailHandle>(null)
+    const templateDetailRef = useRef<EmailTemplateDetailHandle>(null)
+
+    type SchedulingNavTarget =
         | { type: 'policy'; item: Policy }
         | { type: 'template'; item: EmailTemplate }
         | { type: 'tab'; tab: SchedulingTab }
         | { type: 'create-policy' }
         | { type: 'create-template' }
-        | null
-    >(null)
 
     // Fetch default timezone from settings for new policies
     const { data: tzSetting } = useQuery<{ value: string | null }>({
@@ -105,13 +109,7 @@ export default function SchedulingLayout() {
         ? policies.find((p) => p.id === selectedPolicy.id) ?? selectedPolicy
         : null
 
-    const handleSelect = useCallback((policy: Policy) => {
-        if (policyDirty) {
-            setPendingNav({ type: 'policy', item: policy })
-            return
-        }
-        setSelectedPolicy(policy)
-    }, [policyDirty])
+    // ── Create helpers (must be defined before useFormGuard) ──
 
     // Extracted unguarded create helper — used by both direct handler and discard branch
     const doCreatePolicy = useCallback(() => {
@@ -144,14 +142,80 @@ export default function SchedulingLayout() {
         )
     }, [createMutation, tzSetting])
 
-    const handleCreate = useCallback(() => {
-        // F2: Guard create action when editor is dirty
-        if (policyDirty) {
-            setPendingNav({ type: 'create-policy' })
-            return
+    // Extracted unguarded create-template helper — used by both direct handler and discard branch
+    const doCreateTemplate = useCallback(() => {
+        const newTemplate = {
+            name: `custom-template-${Date.now()}`,
+            body_html: '<h1>{{ report_name }}</h1>\n<p>Your report content here.</p>',
         }
-        doCreatePolicy()
-    }, [policyDirty, doCreatePolicy])
+        createTemplateMutation.mutate(newTemplate, {
+            onSuccess: (created) => {
+                setSelectedTemplate(created)
+            },
+        })
+    }, [createTemplateMutation])
+
+    // ── Shared form guard (replaces inline pendingNav + portal modal) ──
+    const { showModal, guardedSelect, handleCancel: guardCancel, handleDiscard: guardDiscard, handleSaveAndContinue: guardSaveAndContinue } =
+        useFormGuard<SchedulingNavTarget>({
+            isDirty: policyDirty || templateDirty,
+            onNavigate: useCallback((target: SchedulingNavTarget) => {
+                switch (target.type) {
+                    case 'policy':
+                        setPolicyDirty(false)
+                        setSelectedPolicy(target.item)
+                        break
+                    case 'template':
+                        setTemplateDirty(false)
+                        setSelectedTemplate(target.item)
+                        previewTemplateMutation.reset()
+                        break
+                    case 'tab':
+                        setPolicyDirty(false)
+                        setTemplateDirty(false)
+                        setActiveTab(target.tab)
+                        break
+                    case 'create-policy':
+                        setPolicyDirty(false)
+                        doCreatePolicy()
+                        break
+                    case 'create-template':
+                        setTemplateDirty(false)
+                        doCreateTemplate()
+                        break
+                }
+            }, [previewTemplateMutation, doCreatePolicy, doCreateTemplate]),
+            onSave: useCallback(async () => {
+                if (policyDirty && policyDetailRef.current) {
+                    policyDetailRef.current.save()
+                }
+                if (templateDirty && templateDetailRef.current) {
+                    templateDetailRef.current.save()
+                }
+                setPolicyDirty(false)
+                setTemplateDirty(false)
+            }, [policyDirty, templateDirty]),
+        })
+
+    // ── Guarded navigation handlers ──
+
+    const handleSelect = useCallback((policy: Policy) => {
+        guardedSelect({ type: 'policy', item: policy })
+    }, [guardedSelect])
+
+    const handleCreate = useCallback(() => {
+        guardedSelect({ type: 'create-policy' })
+    }, [guardedSelect])
+
+    const handleSelectTemplate = useCallback((template: EmailTemplate) => {
+        guardedSelect({ type: 'template', item: template })
+    }, [guardedSelect])
+
+    const handleCreateTemplate = useCallback(() => {
+        guardedSelect({ type: 'create-template' })
+    }, [guardedSelect])
+
+    // ── Policy CRUD handlers ──
 
     const handleSave = useCallback(
         (policyJson: Record<string, unknown>) => {
@@ -229,37 +293,6 @@ export default function SchedulingLayout() {
 
     // ── Email Template Handlers ──
 
-    const handleSelectTemplate = useCallback((template: EmailTemplate) => {
-        if (templateDirty) {
-            setPendingNav({ type: 'template', item: template })
-            return
-        }
-        setSelectedTemplate(template)
-        previewTemplateMutation.reset()
-    }, [templateDirty, previewTemplateMutation])
-
-    // Extracted unguarded create-template helper — used by both direct handler and discard branch
-    const doCreateTemplate = useCallback(() => {
-        const newTemplate = {
-            name: `custom-template-${Date.now()}`,
-            body_html: '<h1>{{ report_name }}</h1>\n<p>Your report content here.</p>',
-        }
-        createTemplateMutation.mutate(newTemplate, {
-            onSuccess: (created) => {
-                setSelectedTemplate(created)
-            },
-        })
-    }, [createTemplateMutation])
-
-    const handleCreateTemplate = useCallback(() => {
-        // F2: Guard create action when template editor is dirty
-        if (templateDirty) {
-            setPendingNav({ type: 'create-template' })
-            return
-        }
-        doCreateTemplate()
-    }, [templateDirty, doCreateTemplate])
-
     const handleSaveTemplate = useCallback(
         (data: Partial<EmailTemplate>) => {
             if (!selectedTemplate) return
@@ -327,35 +360,6 @@ export default function SchedulingLayout() {
         )
     }, [selectedTemplate, createTemplateMutation, deleteTemplateMutation])
 
-    const handleDiscardNav = useCallback(() => {
-        if (!pendingNav) return
-        switch (pendingNav.type) {
-            case 'policy':
-                setPolicyDirty(false)
-                setSelectedPolicy(pendingNav.item)
-                break
-            case 'template':
-                setTemplateDirty(false)
-                setSelectedTemplate(pendingNav.item)
-                previewTemplateMutation.reset()
-                break
-            case 'tab':
-                setPolicyDirty(false)
-                setTemplateDirty(false)
-                setActiveTab(pendingNav.tab)
-                break
-            case 'create-policy':
-                setPolicyDirty(false)
-                doCreatePolicy()
-                break
-            case 'create-template':
-                setTemplateDirty(false)
-                doCreateTemplate()
-                break
-        }
-        setPendingNav(null)
-    }, [pendingNav, previewTemplateMutation, doCreatePolicy, doCreateTemplate])
-
     // Keep selected template in sync when templates refresh
     const currentTemplate = selectedTemplate
         ? templates.find((t) => t.name === selectedTemplate.name) ?? selectedTemplate
@@ -375,12 +379,9 @@ export default function SchedulingLayout() {
                                 : SCHEDULING_TEST_IDS.TAB_EMAIL_TEMPLATES
                         }
                         onClick={() => {
-                            // F2: Guard tab switch when editor is dirty
-                            if ((policyDirty || templateDirty) && tab !== activeTab) {
-                                setPendingNav({ type: 'tab', tab })
-                                return
+                            if (tab !== activeTab) {
+                                guardedSelect({ type: 'tab', tab })
                             }
-                            setActiveTab(tab)
                         }}
                         className={`px-4 py-2.5 text-sm font-medium border-b-2 transition-colors cursor-pointer ${
                             activeTab === tab
@@ -416,6 +417,7 @@ export default function SchedulingLayout() {
                                     {/* Policy detail (scrollable area takes up remaining space) */}
                                     <div className={`min-h-0 overflow-y-auto ${isHistoryCollapsed ? 'flex-1' : 'flex-[2_2_0%]'}`}>
                                         <PolicyDetail
+                                            ref={policyDetailRef}
                                             policy={currentPolicy}
                                             onSave={handleSave}
                                             onApprove={handleApprove}
@@ -517,6 +519,7 @@ export default function SchedulingLayout() {
                                 <>
                                     <div className="flex-1 min-h-0 overflow-y-auto">
                                         <EmailTemplateDetail
+                                            ref={templateDetailRef}
                                             template={currentTemplate}
                                             onSave={handleSaveTemplate}
                                             onDuplicate={handleDuplicateTemplate}
@@ -557,81 +560,13 @@ export default function SchedulingLayout() {
             </div>
         </div>
 
-            {/* Unsaved changes confirmation modal */}
-            {pendingNav && createPortal(
-                <div className="fixed inset-0 z-[9999] flex items-center justify-center" style={{ position: 'fixed', top: 0, left: 0, right: 0, bottom: 0 }}>
-                    {/* Backdrop */}
-                    <div
-                        className="absolute inset-0"
-                        style={{ backgroundColor: 'rgba(0,0,0,0.65)', backdropFilter: 'blur(4px)' }}
-                        onClick={() => setPendingNav(null)}
-                    />
-                    {/* Dialog */}
-                    <div
-                        style={{
-                            position: 'relative',
-                            backgroundColor: 'var(--color-bg-elevated, #1e2030)',
-                            border: '1px solid var(--color-bg-subtle, #2a2e3f)',
-                            borderRadius: '12px',
-                            padding: '24px',
-                            maxWidth: '400px',
-                            width: '90%',
-                            boxShadow: '0 25px 50px -12px rgba(0,0,0,0.5)',
-                            color: 'var(--color-fg, #e0e0e0)',
-                        }}
-                    >
-                        <div style={{ display: 'flex', alignItems: 'center', gap: '12px', marginBottom: '16px' }}>
-                            <div style={{
-                                width: '40px', height: '40px', borderRadius: '50%',
-                                backgroundColor: 'rgba(255,184,108,0.15)',
-                                display: 'flex', alignItems: 'center', justifyContent: 'center', flexShrink: 0,
-                            }}>
-                                <span style={{ color: 'var(--color-accent-amber, #ffb86c)', fontSize: '18px' }}>⚠</span>
-                            </div>
-                            <div>
-                                <h4 style={{ fontSize: '14px', fontWeight: 600, margin: 0, color: 'var(--color-fg, #e0e0e0)' }}>Unsaved Changes</h4>
-                                <p style={{ fontSize: '12px', color: 'var(--color-fg-muted, #8b8fa3)', margin: '2px 0 0 0' }}>Your edits have not been saved.</p>
-                            </div>
-                        </div>
-                        <p style={{ fontSize: '14px', color: 'var(--color-fg-muted, #8b8fa3)', marginBottom: '20px' }}>
-                            You have unsaved changes that will be lost if you navigate away.
-                        </p>
-                        <div style={{ display: 'flex', justifyContent: 'flex-end', gap: '8px' }}>
-                            <button
-                                onClick={() => setPendingNav(null)}
-                                style={{
-                                    padding: '8px 16px',
-                                    borderRadius: '6px',
-                                    fontSize: '13px',
-                                    fontWeight: 500,
-                                    border: '1px solid var(--color-bg-subtle, #2a2e3f)',
-                                    backgroundColor: 'transparent',
-                                    color: 'var(--color-fg, #e0e0e0)',
-                                    cursor: 'pointer',
-                                }}
-                            >
-                                Cancel
-                            </button>
-                            <button
-                                onClick={handleDiscardNav}
-                                style={{
-                                    padding: '8px 16px',
-                                    borderRadius: '6px',
-                                    fontSize: '13px',
-                                    fontWeight: 500,
-                                    border: '1px solid rgba(239,68,68,0.5)',
-                                    backgroundColor: 'rgba(239,68,68,0.1)',
-                                    color: 'var(--color-accent-red, #ef4444)',
-                                    cursor: 'pointer',
-                                }}
-                            >
-                                Discard Changes
-                            </button>
-                        </div>
-                    </div>
-                </div>,
-                document.body,
-            )}
+            {/* Unsaved changes confirmation modal — shared component (F2 refactor) */}
+            <UnsavedChangesModal
+                open={showModal}
+                onCancel={guardCancel}
+                onDiscard={guardDiscard}
+                onSave={guardSaveAndContinue}
+            />
         </>
     )
 }

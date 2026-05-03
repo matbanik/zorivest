@@ -1,8 +1,8 @@
 /**
- * E2E Wave 4: Position sizing calculator.
+ * E2E Wave 4: Position sizing calculator + trade plan dirty-guard.
  *
- * Gate MEU: MEU-48 `gui-plans`
- * Tests: 2 (computation correctness + accessibility)
+ * Gate MEU: MEU-48 `gui-plans`, MEU-198 `gui-form-guard-crud`
+ * Tests: 3 (computation correctness + accessibility + dirty-guard)
  *
  * A11y approach: The Electron app enforces CSP (script-src 'self') which blocks
  * page.addScriptTag injection. Instead, read the axe-core source on the Node side
@@ -13,7 +13,7 @@
 
 import { test, expect } from '@playwright/test'
 import { AppPage } from './pages/AppPage'
-import { CALCULATOR } from './test-ids'
+import { CALCULATOR, UNSAVED_CHANGES } from './test-ids'
 import { readFileSync } from 'fs'
 import { resolve } from 'path'
 
@@ -100,4 +100,106 @@ test('calculator modal has no accessibility violations', async () => {
         throw new Error(`Accessibility violations found:\n${summary}`)
     }
     expect(violations).toEqual([])
+})
+
+// ── Wave 4 extension: Trade Plan dirty-guard (MEU-198) ─────────────────
+
+const API_BASE = 'http://localhost:17787/api/v1'
+const TEST_PREFIX = 'E2E_PlanGuard_'
+
+interface CreatedPlan {
+    id: number
+    ticker: string
+}
+
+async function apiCreatePlan(data: Record<string, unknown>): Promise<CreatedPlan> {
+    const res = await fetch(`${API_BASE}/trade-plans`, {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify(data),
+    })
+    if (!res.ok) throw new Error(`Plan create failed: ${res.status} ${await res.text()}`)
+    return res.json()
+}
+
+async function apiDeletePlan(planId: number): Promise<void> {
+    await fetch(`${API_BASE}/trade-plans/${planId}`, { method: 'DELETE' })
+}
+
+test('dirty-guard: editing trade plan and switching shows unsaved changes modal', async () => {
+    // Stand up a fresh AppPage for this test (no calculator modal)
+    const guardApp = new AppPage()
+    await guardApp.launch()
+
+    const createdPlanIds: number[] = []
+
+    try {
+        // Create two trade plans via API
+        const planA = await apiCreatePlan({
+            ticker: `${TEST_PREFIX}AAPL`,
+            strategy_name: `${TEST_PREFIX}StrategyA`,
+            direction: 'long',
+            conviction: 'medium',
+            entry_price: 150,
+            stop_loss: 145,
+            target_price: 170,
+        })
+        createdPlanIds.push(planA.id)
+
+        const planB = await apiCreatePlan({
+            ticker: `${TEST_PREFIX}MSFT`,
+            strategy_name: `${TEST_PREFIX}StrategyB`,
+            direction: 'long',
+            conviction: 'high',
+            entry_price: 400,
+            stop_loss: 390,
+            target_price: 450,
+        })
+        createdPlanIds.push(planB.id)
+
+        // Navigate to planning page
+        await guardApp.navigateTo('planning')
+
+        // Wait for plan list to render and reload to pick up API-created plans
+        await guardApp.page.reload()
+        await guardApp.waitForTestId('trade-plan-page')
+
+        // Wait for plan A card to appear
+        const cardA = guardApp.testId(`plan-card-${planA.id}`)
+        await cardA.waitFor({ state: 'visible', timeout: 15_000 })
+
+        // Select plan A
+        await cardA.click()
+        await guardApp.waitForTestId('plan-detail-panel')
+
+        // Edit the ticker field to make the form dirty
+        const tickerInput = guardApp.testId('plan-ticker')
+        await tickerInput.clear()
+        await tickerInput.fill(`${TEST_PREFIX}DIRTY`)
+        await guardApp.page.waitForTimeout(300)
+
+        // Click plan B card — should trigger the guard modal
+        const cardB = guardApp.testId(`plan-card-${planB.id}`)
+        await cardB.click()
+
+        // The UnsavedChangesModal should appear
+        await guardApp.waitForTestId(UNSAVED_CHANGES.MODAL, 5_000)
+
+        // Click "Keep Editing" — modal should close, form should preserve dirty value
+        await guardApp.testId(UNSAVED_CHANGES.KEEP_EDITING_BTN).click()
+
+        // Modal should be gone
+        await guardApp.page
+            .locator(`[data-testid="${UNSAVED_CHANGES.MODAL}"]`)
+            .waitFor({ state: 'detached', timeout: 3_000 })
+
+        // The ticker field should still have the dirty value
+        await expect(tickerInput).toHaveValue(`${TEST_PREFIX}DIRTY`)
+    } finally {
+        // Cleanup: delete created plans
+        for (const id of createdPlanIds) {
+            await apiDeletePlan(id)
+        }
+        await guardApp.close()
+    }
 })

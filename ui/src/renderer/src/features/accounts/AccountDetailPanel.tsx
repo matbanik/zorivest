@@ -1,4 +1,4 @@
-import React, { useState, useEffect, useRef } from 'react'
+import React, { useState, useEffect, useRef, useImperativeHandle, forwardRef } from 'react'
 import { useForm } from 'react-hook-form'
 import { z } from 'zod'
 import { zodResolver } from '@hookform/resolvers/zod'
@@ -42,12 +42,19 @@ const currencyFmt = new Intl.NumberFormat('en-US', {
 
 // ── Component ───────────────────────────────────────────────────────────────
 
+export interface AccountDetailPanelHandle {
+    /** Programmatically trigger form save (used by parent for "Save & Continue") */
+    save: () => Promise<void>
+}
+
 interface AccountDetailPanelProps {
     account: Account
     /** When true, form creates a new account instead of updating */
     isNew?: boolean
     /** Callback fired after successful create */
     onCreated?: () => void
+    /** Reports dirty state to parent for unsaved-changes guard */
+    onDirtyChange?: (dirty: boolean) => void
 }
 
 /**
@@ -58,7 +65,8 @@ interface AccountDetailPanelProps {
  * AC-7: Save → PUT /accounts/{id}
  * AC-8: Delete with confirmation → DELETE /accounts/{id}
  */
-export default function AccountDetailPanel({ account, isNew, onCreated }: AccountDetailPanelProps) {
+const AccountDetailPanel = forwardRef<AccountDetailPanelHandle, AccountDetailPanelProps>(
+    function AccountDetailPanel({ account, isNew, onCreated, onDirtyChange }, ref) {
     const updateAccount = useUpdateAccount()
     const deleteAccount = useDeleteAccount()
     const archiveAccount = useArchiveAccount()
@@ -74,7 +82,7 @@ export default function AccountDetailPanel({ account, isNew, onCreated }: Accoun
         register,
         handleSubmit,
         reset,
-        formState: { errors },
+        formState: { errors, isDirty },
     } = useForm<AccountFormData>({
         resolver: zodResolver(accountSchema),
         defaultValues: {
@@ -105,18 +113,44 @@ export default function AccountDetailPanel({ account, isNew, onCreated }: Accoun
         }
     }, [account.account_id, account.name, account.account_type, account.institution, account.currency, account.is_tax_advantaged, account.notes, reset])
 
+    // Report dirty state to parent for unsaved-changes guard
+    useEffect(() => {
+        onDirtyChange?.(isDirty)
+    }, [isDirty, onDirtyChange])
+
     const onSave = (data: AccountFormData) => {
         if (isNew) {
             createAccountMutation.mutate(data, {
-                onSuccess: () => onCreated?.(),
+                onSuccess: () => {
+                    reset(data)
+                    onCreated?.()
+                },
             })
         } else {
             updateAccount.mutate({
                 id: account.account_id,
                 payload: data,
+            }, {
+                onSuccess: () => {
+                    // Reset form with saved values to clear isDirty and amber-pulse
+                    reset(data)
+                },
             })
         }
     }
+
+    // Expose save() to parent via ref for "Save & Continue"
+    useImperativeHandle(ref, () => ({
+        save: () => new Promise<void>((resolve, reject) => {
+            handleSubmit(
+                (data) => {
+                    onSave(data)
+                    resolve()
+                },
+                () => reject(new Error('Validation failed')),
+            )()
+        }),
+    }), [handleSubmit])
 
     const onDelete = () => {
         setDeleteError(null)
@@ -351,12 +385,12 @@ export default function AccountDetailPanel({ account, isNew, onCreated }: Accoun
                     <button
                         type="submit"
                         data-testid="account-submit-btn"
-                        className="flex-1 rounded-md bg-accent px-4 py-1.5 text-sm font-medium text-accent-fg hover:bg-accent/90 border border-accent"
+                        className={`flex-1 rounded-md bg-accent px-4 py-1.5 text-sm font-medium text-accent-fg hover:bg-accent/90 border border-accent${isDirty ? ' btn-save-dirty' : ''}`}
                         disabled={isNew ? createAccountMutation.isPending : updateAccount.isPending}
                     >
                         {isNew
                             ? (createAccountMutation.isPending ? 'Creating...' : 'Create')
-                            : (updateAccount.isPending ? 'Saving...' : 'Save')}
+                            : (updateAccount.isPending ? 'Saving...' : (isDirty ? 'Save Changes •' : 'Save'))}
                     </button>
                     {!isNew && (
                     <button
@@ -446,4 +480,6 @@ export default function AccountDetailPanel({ account, isNew, onCreated }: Accoun
             {!isNew && <BalanceHistory accountId={account.account_id} />}
         </div>
     )
-}
+})
+
+export default AccountDetailPanel

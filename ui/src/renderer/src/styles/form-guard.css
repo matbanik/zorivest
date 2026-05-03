@@ -1,0 +1,37 @@
+/**
+ * Form Guard CSS — amber-pulse animation for dirty save buttons.
+ *
+ * Source: docs/build-plan/06-gui.md §Amber-Pulse Save Button
+ * MEU: MEU-196 (gui-form-guard-infra)
+ *
+ * Usage: Add `btn-save-dirty` class to any Save button when form isDirty.
+ */
+
+/* ── Amber pulse keyframes ──────────────────────────────────────────── */
+
+@keyframes amber-pulse {
+    0% {
+        box-shadow: 0 0 0 0 rgba(255, 184, 108, 0.5);
+    }
+    50% {
+        box-shadow: 0 0 12px 4px rgba(255, 184, 108, 0.3);
+    }
+    100% {
+        box-shadow: 0 0 0 0 rgba(255, 184, 108, 0.5);
+    }
+}
+
+/* ── Dirty save button class ────────────────────────────────────────── */
+
+.btn-save-dirty {
+    animation: amber-pulse 2s ease-in-out infinite;
+    border-color: var(--color-accent-amber, #ffb86c) !important;
+}
+
+/* ── Accessibility: respect reduced motion ──────────────────────────── */
+
+@media (prefers-reduced-motion: reduce) {
+    .btn-save-dirty {
+        animation: none;
+    }
+}

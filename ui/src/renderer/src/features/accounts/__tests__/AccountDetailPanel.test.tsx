@@ -168,4 +168,45 @@ describe('AccountDetailPanel', () => {
         expect(screen.getByRole('button', { name: /create/i })).toBeInTheDocument()
         expect(screen.queryByRole('button', { name: /^save$/i })).not.toBeInTheDocument()
     })
+
+    // ── Dirty-state guard tests (G22/G23) ─────────────────────────────────
+
+    // G22-1: Save button text is "Save" when form is clean (no bullet)
+    it('G22-1: save button shows "Save" when form is clean', () => {
+        renderWithProviders(<AccountDetailPanel account={mockAccount} />)
+        const saveBtn = screen.getByRole('button', { name: /save/i })
+        expect(saveBtn.textContent).not.toContain('•')
+    })
+
+    // G22-2: Save button shows amber-pulse and bullet when form is dirty
+    it('G22-2: save button shows dirty indicators after field change', async () => {
+        const user = userEvent.setup()
+        renderWithProviders(<AccountDetailPanel account={mockAccount} />)
+
+        // Modify the name field to make form dirty
+        const nameInput = screen.getByLabelText(/name/i)
+        await user.clear(nameInput)
+        await user.type(nameInput, 'Changed Name')
+
+        await waitFor(() => {
+            const saveBtn = screen.getByRole('button', { name: /save/i })
+            expect(saveBtn.className).toContain('btn-save-dirty')
+            expect(saveBtn.textContent).toContain('•')
+        })
+    })
+
+    // G22-3: onDirtyChange fires when form becomes dirty
+    it('G22-3: onDirtyChange fires true when form becomes dirty', async () => {
+        const onDirtyChange = vi.fn()
+        const user = userEvent.setup()
+        renderWithProviders(<AccountDetailPanel account={mockAccount} onDirtyChange={onDirtyChange} />)
+
+        const nameInput = screen.getByLabelText(/name/i)
+        await user.clear(nameInput)
+        await user.type(nameInput, 'Changed')
+
+        await waitFor(() => {
+            expect(onDirtyChange).toHaveBeenCalledWith(true)
+        })
+    })
 })

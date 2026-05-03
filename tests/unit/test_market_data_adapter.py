@@ -338,7 +338,7 @@ async def test_AC7_adapter_dispatches_through_url_builder():
     with mock_patch(
         "zorivest_infra.market_data.market_data_adapter.get_url_builder"
     ) as mock_get_builder:
-        mock_builder = MagicMock()
+        mock_builder = MagicMock(spec=["build_url"])
         mock_builder.build_url.return_value = (
             "https://finnhub.io/api/v1/quote?symbol=AAPL"
         )

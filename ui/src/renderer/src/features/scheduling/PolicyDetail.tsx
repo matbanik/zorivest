@@ -11,7 +11,7 @@
  * MEU: MEU-72 (gui-scheduling)
  */
 
-import { useState, useCallback, useEffect, useRef, useMemo } from 'react'
+import { useState, useCallback, useEffect, useRef, useMemo, forwardRef, useImperativeHandle } from 'react'
 import { createPortal } from 'react-dom'
 import { EditorView, keymap } from '@codemirror/view'
 import { EditorState } from '@codemirror/state'
@@ -54,6 +54,12 @@ const STATE_CONFIG: Record<PolicyState, { label: string; color: string; bgClass:
     },
 }
 
+// ── Handle type for imperative save ────────────────────────────────────
+
+export interface PolicyDetailHandle {
+    save: () => void
+}
+
 // ── Props ──────────────────────────────────────────────────────────────
 
 interface PolicyDetailProps {
@@ -68,7 +74,7 @@ interface PolicyDetailProps {
     isSaving: boolean
 }
 
-export default function PolicyDetail({
+const PolicyDetail = forwardRef<PolicyDetailHandle, PolicyDetailProps>(function PolicyDetail({
     policy,
     onSave,
     onApprove,
@@ -78,7 +84,7 @@ export default function PolicyDetail({
     onRename,
     onDirtyChange,
     isSaving,
-}: PolicyDetailProps) {
+}, ref) {
     const editorRef = useRef<HTMLDivElement>(null)
     const viewRef = useRef<EditorView | null>(null)
     const [jsonError, setJsonError] = useState<string | null>(null)
@@ -209,6 +215,11 @@ export default function PolicyDetail({
             setJsonError(e instanceof Error ? e.message : 'Invalid JSON')
         }
     }, [onSave])
+
+    // Expose imperative save to parent for 3-button modal
+    useImperativeHandle(ref, () => ({
+        save: handleSave,
+    }), [handleSave])
 
     const handleDelete = useCallback(() => {
         setShowDeleteConfirm(true)
@@ -409,9 +420,9 @@ export default function PolicyDetail({
                         onClick={handleSave}
                         disabled={isSaving}
                         type="button"
-                        className="px-3 py-1.5 text-sm font-medium rounded-md border border-accent-green/30 bg-accent-green/20 text-accent-green hover:bg-accent-green/30 transition-colors disabled:opacity-50 disabled:cursor-not-allowed"
+                        className={`px-3 py-1.5 text-sm font-medium rounded-md border border-accent-green/30 bg-accent-green/20 text-accent-green hover:bg-accent-green/30 transition-colors disabled:opacity-50 disabled:cursor-not-allowed${isDirty ? ' btn-save-dirty' : ''}`}
                     >
-                        {isSaving ? 'Saving…' : 'Save'}
+                        {isSaving ? 'Saving…' : (isDirty ? 'Save Changes •' : 'Save')}
                     </button>
 
                     <button
@@ -592,4 +603,6 @@ export default function PolicyDetail({
             )}
         </div>
     )
-}
+})
+
+export default PolicyDetail

@@ -204,6 +204,39 @@ describe('TradeDetailPanel', () => {
         const symbolInput = screen.getByTestId('trade-symbol-input') as HTMLInputElement
         expect(symbolInput.value).toBe('AAPL STK')
     })
+
+    // ── Dirty-state guard tests (G22/G23) ─────────────────────────────────
+
+    // G22-1: Save button text is "Save" when form is clean
+    it('G22-1: save button shows "Save" when form is clean', () => {
+        render(<TradeDetailPanel trade={MOCK_TRADES[0]} />, { wrapper: createWrapper() })
+        const saveBtn = screen.getByTestId('trade-submit-btn')
+        expect(saveBtn.textContent).not.toContain('•')
+    })
+
+    // G22-2: Save button shows amber-pulse and bullet when form is dirty
+    it('G22-2: save button shows dirty indicators after field change', () => {
+        render(<TradeDetailPanel trade={MOCK_TRADES[0]} />, { wrapper: createWrapper() })
+
+        // Modify symbol to make form dirty
+        fireEvent.change(screen.getByTestId('trade-symbol-input'), { target: { value: 'TSLA STK' } })
+
+        const saveBtn = screen.getByTestId('trade-submit-btn')
+        expect(saveBtn.className).toContain('btn-save-dirty')
+        expect(saveBtn.textContent).toContain('•')
+    })
+
+    // G22-3: onDirtyChange fires when form becomes dirty
+    it('G22-3: onDirtyChange fires true when form becomes dirty', async () => {
+        const onDirtyChange = vi.fn()
+        render(<TradeDetailPanel trade={MOCK_TRADES[0]} onDirtyChange={onDirtyChange} />, { wrapper: createWrapper() })
+
+        fireEvent.change(screen.getByTestId('trade-symbol-input'), { target: { value: 'TSLA STK' } })
+
+        await waitFor(() => {
+            expect(onDirtyChange).toHaveBeenCalledWith(true)
+        })
+    })
 })
 
 // ─── ScreenshotPanel Tests ───────────────────────────────────────────────────

@@ -672,6 +672,126 @@ Decisions made based on web research (UX Stack Exchange, Nielsen Norman Group, I
   ```
 - **Why this matters:** Bug-fix tests serve as regression guards. Without them, the same bug can be silently reintroduced in future refactors. The test IS the documentation of what broke.
 
+### G23 — Universal Form Guard Save System
+
+- **Severity:** 🔴 Critical
+- **Applies to:** GUI
+- **Rule:** Every form that persists data must implement the three-layer save system: (1) dirty-state detection, (2) amber-pulse visual indicator + `Save Changes •` text cue, (3) navigation guard with `UnsavedChangesModal` (for list-detail pages). No form may ship with a static save button that gives no feedback about unsaved state.
+- **Origin:** 2026-05-02 GUI UX Hardening project (MEU-196/197/198) — Users could not tell whether they had unsaved changes and lost data when navigating between records.
+
+**Architecture — 3 layers:**
+
+| Layer | Purpose | Files | Required? |
+|-------|---------|-------|-----------|
+| **L1 — Dirty Detection** | Compare form state to saved state | `useMemo` or computed boolean | Always |
+| **L2 — Visual Indicators** | Amber-pulse animation + text cue on save button | [`form-guard.css`](file:///p:/zorivest/ui/src/renderer/src/styles/form-guard.css) | Always |
+| **L3 — Navigation Guard** | Intercept item selection when dirty | [`useFormGuard.ts`](file:///p:/zorivest/ui/src/renderer/src/hooks/useFormGuard.ts) + [`UnsavedChangesModal.tsx`](file:///p:/zorivest/ui/src/renderer/src/components/UnsavedChangesModal.tsx) | List-detail pages only |
+
+**Two integration modes:**
+
+| Mode | When to use | Layers | Example modules |
+|------|------------|--------|-----------------|
+| **Settings-only** | Single-page forms (no list selection) | L1 + L2 | `EmailSettingsPage`, `MarketDataProvidersPage` |
+| **List-detail CRUD** | Pages with a list/card sidebar + detail panel | L1 + L2 + L3 | `AccountsHome`, `TradesLayout`, `TradePlanPage`, `WatchlistPage`, `SchedulingLayout` |
+
+**Layer 1 — Dirty Detection pattern:**
+```tsx
+import { useMemo } from 'react'
+
+// For settings pages: compare form fields to saved API config
+const isDirty = useMemo(() => {
+    if (!savedConfig) return false
+    return (
+        form.field_a !== (savedConfig.field_a ?? '') ||
+        form.field_b !== (savedConfig.field_b ?? 0) ||
+        form.password !== ''  // password always dirty when non-empty
+    )
+}, [form, savedConfig])
+
+// For list-detail pages: compare form to selected entity
+const isDirty = useMemo(() => {
+    if (!selectedItem) return false
+    return form.name !== selectedItem.name || form.desc !== selectedItem.description
+}, [form, selectedItem])
+```
+
+**Layer 2 — Visual Indicators pattern:**
+```tsx
+import '@/styles/form-guard.css'
+
+<button
+    className={`... ${isDirty ? ' btn-save-dirty' : ''}`}
+>
+    {isPending ? '⏳ Saving…' : isDirty ? '💾 Save Changes •' : '💾 Save'}
+</button>
+```
+- `btn-save-dirty` CSS class adds `amber-pulse` animation (2s ease-in-out infinite)
+- `Save Changes •` text provides WCAG 1.4.1 non-color indicator of dirty state
+- Animation respects `prefers-reduced-motion: reduce`
+- After successful save, `isDirty` returns to `false` → button reverts to static "Save"
+
+**Layer 3 — Navigation Guard pattern (list-detail pages):**
+```tsx
+import { useFormGuard } from '@/hooks/useFormGuard'
+import UnsavedChangesModal from '@/components/UnsavedChangesModal'
+
+// 2-button mode (Discard / Keep Editing) — no save handler
+const { showModal, guardedSelect, handleCancel, handleDiscard } =
+    useFormGuard<string>({ isDirty, onNavigate: selectItem })
+
+// 3-button mode (Save & Continue / Discard / Keep Editing) — with save handler
+const { showModal, guardedSelect, handleCancel, handleDiscard, handleSaveAndContinue } =
+    useFormGuard<string>({
+        isDirty,
+        onNavigate: selectItem,
+        onSave: async () => { await saveMutation.mutateAsync() },
+    })
+
+// Replace direct selection calls with guarded versions
+<div onClick={() => guardedSelect(item.id)}>...</div>
+
+// Render modal (portaled, WCAG AA compliant)
+<UnsavedChangesModal
+    open={showModal}
+    onCancel={handleCancel}
+    onDiscard={handleDiscard}
+    onSave={handleSaveAndContinue}  // omit for 2-button mode
+/>
+```
+
+**Modal features:**
+- Portal-based (`createPortal` to `document.body`) — escapes parent overflow
+- WCAG 2.1 AA: `role="alertdialog"`, `aria-modal`, `aria-labelledby`, `aria-label` on buttons
+- Manual focus trap (Tab/Shift+Tab wraps within modal buttons)
+- Escape key dismisses → "Keep Editing" behavior
+- Auto-focus "Keep Editing" on mount
+
+**Current module inventory (8 modules):**
+
+| Module | Mode | File |
+|--------|------|------|
+| Accounts | List-detail, 2-button | `AccountsHome.tsx` |
+| Trades | List-detail, 2-button | `TradesLayout.tsx` |
+| Trade Plans | List-detail, 3-button | `TradePlanPage.tsx` |
+| Watchlists | List-detail, 3-button | `WatchlistPage.tsx` |
+| Scheduling (Policies/Templates) | List-detail, 3-button | `SchedulingLayout.tsx` |
+| Market Data Providers | Settings-only | `MarketDataProvidersPage.tsx` |
+| Report Policies | List-detail, 3-button | `PolicyDetail.tsx` |
+| Email Templates | List-detail, 3-button | `EmailTemplateDetail.tsx` |
+| Email Provider | Settings-only | `EmailSettingsPage.tsx` |
+
+**Checklist for adding form guard to a new module:**
+1. [ ] Compute `isDirty` — compare form state to source-of-truth (selected entity or saved config)
+2. [ ] Import `@/styles/form-guard.css` in the component
+3. [ ] Add `btn-save-dirty` class to save button when `isDirty`
+4. [ ] Change button text to `Save Changes •` when dirty, `Save` when clean
+5. [ ] (List-detail only) Call `useFormGuard<T>()` with `isDirty`, `onNavigate`, and optionally `onSave`
+6. [ ] (List-detail only) Replace all direct selection calls with `guardedSelect()`
+7. [ ] (List-detail only) Render `<UnsavedChangesModal>` with handlers from the hook
+8. [ ] (List-detail only) If using 3-button mode, expose `save()` via `forwardRef`/`useImperativeHandle` from child detail panels
+9. [ ] Test: verify button class toggles on dirty state change
+10. [ ] Test: (list-detail) verify modal appears on dirty navigation, dismiss on cancel, navigate on discard
+
 ### G20 — Corrections Agent Must Not Self-Approve
 
 - **Severity:** 🔴 Critical

@@ -1,7 +1,7 @@
 import { useForm } from 'react-hook-form'
 import { zodResolver } from '@hookform/resolvers/zod'
 import { z } from 'zod'
-import { useState } from 'react'
+import { useState, useEffect, useImperativeHandle, forwardRef } from 'react'
 import { useQuery } from '@tanstack/react-query'
 import { apiFetch } from '@/lib/api'
 import type { Trade } from './TradesTable'
@@ -65,29 +65,39 @@ function AccountSelect({ register }: { register: ReturnType<typeof useForm<Trade
 
 // ── Component ────────────────────────────────────────────────────────────
 
+export interface TradeDetailPanelHandle {
+    /** Programmatically trigger form save (used by parent for "Save & Continue") */
+    save: () => Promise<void>
+}
+
 interface TradeDetailPanelProps {
     trade?: Trade | null
     onSave?: (data: TradeFormData) => void
     onDelete?: (execId: string) => void
     onClose?: () => void
+    /** Reports dirty state to parent for unsaved-changes guard */
+    onDirtyChange?: (dirty: boolean) => void
 }
 
 /**
  * TradeDetailPanel — slide-out right panel with 3 tabs: Info, Journal, Screenshots.
  * Info tab has 9 trade form fields with Zod validation.
  */
-export default function TradeDetailPanel({
+const TradeDetailPanel = forwardRef<TradeDetailPanelHandle, TradeDetailPanelProps>(
+    function TradeDetailPanel({
     trade,
     onSave,
     onDelete,
     onClose,
-}: TradeDetailPanelProps) {
+    onDirtyChange,
+}, ref) {
     const [activeTab, setActiveTab] = useState<DetailTab>('info')
 
     const {
         register,
         handleSubmit,
-        formState: { errors },
+        reset,
+        formState: { errors, isDirty },
     } = useForm<TradeFormData>({
         resolver: zodResolver(tradeSchema),
         defaultValues: trade
@@ -115,7 +125,27 @@ export default function TradeDetailPanel({
 
     const onSubmit = (data: TradeFormData) => {
         onSave?.(data)
+        // Reset form with saved values to clear isDirty and amber-pulse
+        reset(data)
     }
+
+    // Expose save() to parent via ref for "Save & Continue"
+    useImperativeHandle(ref, () => ({
+        save: () => new Promise<void>((resolve, reject) => {
+            handleSubmit(
+                (data) => {
+                    onSubmit(data)
+                    resolve()
+                },
+                () => reject(new Error('Validation failed')),
+            )()
+        }),
+    }), [handleSubmit])
+
+    // Report dirty state to parent for unsaved-changes guard
+    useEffect(() => {
+        onDirtyChange?.(isDirty)
+    }, [isDirty, onDirtyChange])
 
     if (!trade) {
         return (
@@ -268,9 +298,9 @@ export default function TradeDetailPanel({
                             <button
                                 type="submit"
                                 data-testid="trade-submit-btn"
-                                className="px-4 py-1.5 text-sm rounded-md bg-accent text-accent-fg hover:bg-accent/90 border border-accent"
+                                className={`px-4 py-1.5 text-sm rounded-md bg-accent text-accent-fg hover:bg-accent/90 border border-accent${isDirty ? ' btn-save-dirty' : ''}`}
                             >
-                                Save
+                                {isDirty ? 'Save Changes •' : 'Save'}
                             </button>
                             {trade.exec_id !== '(new)' && (
                                 <button
@@ -312,4 +342,6 @@ export default function TradeDetailPanel({
             </div>
         </div>
     )
-}
+})
+
+export default TradeDetailPanel

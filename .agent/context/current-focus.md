@@ -2,9 +2,8 @@
 
 ## Current Priority
 
-Phase 8a Layers 1–3 complete (MEU-182a, 182, 183, 184, 185, 186, 187, 188). Pending Codex review.
+GUI UX Hardening (MEU-196/197/198) project complete. All 33 tasks closed. 522/522 vitest, 4/4 E2E dirty-guard, 8/8 MEU gate checks pass. Review verdict: corrections_applied (awaiting final re-review).
 
 ## Next Steps
 
-1. Codex validates Phase 8a Layers 1–3 handoff
-2. Plan Phase 8a Layer 4: MEU-189 (POST-body extractors) → MEU-190/191 (service methods)
+1. Phase 8a Layer 4 planning continues (MEU-190/191 service methods)

@@ -294,4 +294,157 @@ describe('MEU-65: MarketDataProvidersPage', () => {
             expect(screen.getByText(/Default rate limit: 5/)).toBeInTheDocument()
         })
     })
+
+    // ── Dirty-state guard tests (G22/G23) ─────────────────────────────────
+
+    // G22-1: Save button shows "Save Changes" (no bullet) when form is clean
+    it('G22-1: save button shows "Save Changes" when form is clean', async () => {
+        render(<MarketDataProvidersPage />, { wrapper: createWrapper() })
+        await waitFor(() => expect(screen.getByText('Alpha Vantage')).toBeInTheDocument())
+
+        fireEvent.click(screen.getAllByTestId('provider-item')[0])
+
+        await waitFor(() => {
+            const saveBtn = screen.getByTestId('provider-save-btn')
+            expect(saveBtn).toHaveTextContent('Save Changes')
+            expect(saveBtn.textContent).not.toContain('•')
+        })
+    })
+
+    // G22-2: Save button shows "Save Changes •" and btn-save-dirty class when form is dirty
+    it('G22-2: save button shows dirty indicators when form value changed', async () => {
+        render(<MarketDataProvidersPage />, { wrapper: createWrapper() })
+        await waitFor(() => expect(screen.getByText('Alpha Vantage')).toBeInTheDocument())
+
+        fireEvent.click(screen.getAllByTestId('provider-item')[0])
+        await waitFor(() => expect(screen.getByTestId('provider-save-btn')).toBeInTheDocument())
+
+        // Change rate limit to make form dirty
+        const rateLimitInput = screen.getByTestId('provider-rate-limit-input')
+        fireEvent.change(rateLimitInput, { target: { value: '99' } })
+
+        await waitFor(() => {
+            const saveBtn = screen.getByTestId('provider-save-btn')
+            expect(saveBtn.textContent).toContain('•')
+            expect(saveBtn.className).toContain('btn-save-dirty')
+        })
+    })
+
+    // G22-3: Entering an API key makes form dirty
+    it('G22-3: typing API key makes save button dirty', async () => {
+        render(<MarketDataProvidersPage />, { wrapper: createWrapper() })
+        await waitFor(() => expect(screen.getByText('Alpha Vantage')).toBeInTheDocument())
+
+        fireEvent.click(screen.getAllByTestId('provider-item')[0])
+        await waitFor(() => expect(screen.getByTestId('provider-api-key-input')).toBeInTheDocument())
+
+        const apiKeyInput = screen.getByTestId('provider-api-key-input')
+        fireEvent.change(apiKeyInput, { target: { value: 'new-key-123' } })
+
+        await waitFor(() => {
+            const saveBtn = screen.getByTestId('provider-save-btn')
+            expect(saveBtn.className).toContain('btn-save-dirty')
+            expect(saveBtn.textContent).toContain('•')
+        })
+    })
+
+    // G22-4: Guard modal appears when switching providers with dirty form
+    it('G22-4: guard modal appears on dirty provider switch', async () => {
+        render(<MarketDataProvidersPage />, { wrapper: createWrapper() })
+        await waitFor(() => expect(screen.getByText('Alpha Vantage')).toBeInTheDocument())
+
+        // Select Alpha Vantage
+        fireEvent.click(screen.getAllByTestId('provider-item')[0])
+        await waitFor(() => expect(screen.getByTestId('provider-save-btn')).toBeInTheDocument())
+
+        // Make form dirty
+        const rateLimitInput = screen.getByTestId('provider-rate-limit-input')
+        fireEvent.change(rateLimitInput, { target: { value: '99' } })
+
+        // Try to switch to Polygon.io
+        fireEvent.click(screen.getAllByTestId('provider-item')[1])
+
+        // Guard modal should appear (portaled to body)
+        await waitFor(() => {
+            expect(screen.getByRole('alertdialog')).toBeInTheDocument()
+        })
+    })
+
+    // G22-5: Discard in guard modal navigates to new provider
+    it('G22-5: discard button in modal navigates to new provider', async () => {
+        render(<MarketDataProvidersPage />, { wrapper: createWrapper() })
+        await waitFor(() => expect(screen.getByText('Alpha Vantage')).toBeInTheDocument())
+
+        // Select Alpha Vantage and make dirty
+        fireEvent.click(screen.getAllByTestId('provider-item')[0])
+        await waitFor(() => expect(screen.getByTestId('provider-rate-limit-input')).toBeInTheDocument())
+        fireEvent.change(screen.getByTestId('provider-rate-limit-input'), { target: { value: '99' } })
+
+        // Switch provider
+        fireEvent.click(screen.getAllByTestId('provider-item')[1])
+        await waitFor(() => expect(screen.getByRole('alertdialog')).toBeInTheDocument())
+
+        // Click discard
+        const discardBtn = screen.getByRole('button', { name: /discard/i })
+        fireEvent.click(discardBtn)
+
+        // Modal closes and Polygon.io detail should load (form resets)
+        await waitFor(() => {
+            expect(screen.queryByRole('alertdialog')).not.toBeInTheDocument()
+        })
+    })
+
+    // G22-6: Keep Editing in guard modal dismisses and stays on current provider
+    it('G22-6: keep editing button dismisses modal', async () => {
+        render(<MarketDataProvidersPage />, { wrapper: createWrapper() })
+        await waitFor(() => expect(screen.getByText('Alpha Vantage')).toBeInTheDocument())
+
+        // Select Alpha Vantage and make dirty
+        fireEvent.click(screen.getAllByTestId('provider-item')[0])
+        await waitFor(() => expect(screen.getByTestId('provider-rate-limit-input')).toBeInTheDocument())
+        fireEvent.change(screen.getByTestId('provider-rate-limit-input'), { target: { value: '99' } })
+
+        // Switch provider
+        fireEvent.click(screen.getAllByTestId('provider-item')[1])
+        await waitFor(() => expect(screen.getByRole('alertdialog')).toBeInTheDocument())
+
+        // Click Keep Editing
+        const keepBtn = screen.getByRole('button', { name: /keep editing/i })
+        fireEvent.click(keepBtn)
+
+        // Modal closes, dirty value still present
+        await waitFor(() => {
+            expect(screen.queryByRole('alertdialog')).not.toBeInTheDocument()
+            // Rate limit should still be the dirty value
+            const input = screen.getByTestId('provider-rate-limit-input') as HTMLInputElement
+            expect(input.value).toBe('99')
+        })
+    })
+
+    // G22-7: "Disabled" label shown for disabled providers
+    it('G22-7: disabled providers show "Disabled" label', async () => {
+        render(<MarketDataProvidersPage />, { wrapper: createWrapper() })
+        await waitFor(() => expect(screen.getByText('Alpha Vantage')).toBeInTheDocument())
+
+        // Polygon.io and Alpaca are is_enabled=false
+        expect(screen.getAllByText('Disabled')).toHaveLength(2)
+    })
+
+    // G22-8: Clean provider switch does not trigger modal
+    it('G22-8: clean provider switch does not show guard modal', async () => {
+        render(<MarketDataProvidersPage />, { wrapper: createWrapper() })
+        await waitFor(() => expect(screen.getByText('Alpha Vantage')).toBeInTheDocument())
+
+        // Select Alpha Vantage (clean)
+        fireEvent.click(screen.getAllByTestId('provider-item')[0])
+        await waitFor(() => expect(screen.getByTestId('provider-save-btn')).toBeInTheDocument())
+
+        // Switch to Polygon.io without making changes
+        fireEvent.click(screen.getAllByTestId('provider-item')[1])
+
+        // No modal should appear
+        await waitFor(() => {
+            expect(screen.queryByRole('alertdialog')).not.toBeInTheDocument()
+        })
+    })
 })

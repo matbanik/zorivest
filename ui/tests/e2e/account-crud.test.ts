@@ -15,7 +15,7 @@
 
 import { test, expect } from '@playwright/test'
 import { AppPage } from './pages/AppPage'
-import { ACCOUNTS } from './test-ids'
+import { ACCOUNTS, UNSAVED_CHANGES } from './test-ids'
 
 const API_BASE = 'http://localhost:17787/api/v1'
 
@@ -247,5 +247,71 @@ test.describe('Account CRUD', () => {
         const accounts = await apiList()
         const deleted = accounts.find((a) => a.account_id === created.account_id)
         expect(deleted).toBeUndefined()
+    })
+
+    test('dirty-guard: editing account name and switching shows unsaved changes modal', async () => {
+        // Create two accounts via API
+        const acctA = await apiCreate({
+            name: `${TEST_PREFIX}GuardA`,
+            account_type: 'broker',
+            institution: 'Guard Test Inc',
+            currency: 'USD',
+            is_tax_advantaged: false,
+            notes: '',
+        })
+        createdAccountIds.push(acctA.account_id)
+
+        const acctB = await apiCreate({
+            name: `${TEST_PREFIX}GuardB`,
+            account_type: 'bank',
+            institution: 'Guard Test Bank',
+            currency: 'USD',
+            is_tax_advantaged: false,
+            notes: '',
+        })
+        createdAccountIds.push(acctB.account_id)
+
+        // Reload to pick up both accounts
+        await appPage.page.reload()
+        await appPage.waitForTestId(ACCOUNTS.ROOT)
+
+        // Wait for both accounts to appear
+        const nameA = appPage.page.getByText(`${TEST_PREFIX}GuardA`, { exact: true }).first()
+        await nameA.waitFor({ state: 'visible', timeout: 15_000 })
+
+        // Select account A
+        const rowA = appPage.page
+            .locator('[data-testid="account-list"] tbody tr')
+            .filter({ hasText: `${TEST_PREFIX}GuardA` })
+        await rowA.click()
+        await appPage.waitForTestId(ACCOUNTS.DETAIL_PANEL)
+
+        // Edit the name to make it dirty
+        const nameInput = appPage.testId(ACCOUNTS.FORM.NAME)
+        await nameInput.clear()
+        await nameInput.fill(`${TEST_PREFIX}Modified`)
+        await appPage.page.waitForTimeout(300)
+
+        // Click account B — should trigger the guard modal
+        const rowB = appPage.page
+            .locator('[data-testid="account-list"] tbody tr')
+            .filter({ hasText: `${TEST_PREFIX}GuardB` })
+        await rowB.click()
+
+        // The UnsavedChangesModal should appear
+        await appPage.waitForTestId(UNSAVED_CHANGES.MODAL, 5_000)
+        const modal = appPage.testId(UNSAVED_CHANGES.MODAL)
+        await expect(modal).toBeVisible()
+
+        // Verify modal has expected buttons
+        await expect(appPage.testId(UNSAVED_CHANGES.KEEP_EDITING_BTN)).toBeVisible()
+        await expect(appPage.testId(UNSAVED_CHANGES.DISCARD_BTN)).toBeVisible()
+
+        // Click Keep Editing — modal should dismiss
+        await appPage.testId(UNSAVED_CHANGES.KEEP_EDITING_BTN).click()
+        await appPage.page.waitForTimeout(300)
+
+        // Modal should be gone
+        await expect(appPage.testId(UNSAVED_CHANGES.MODAL)).not.toBeVisible()
     })
 })

@@ -15,7 +15,7 @@ import { test, expect } from '@playwright/test'
 import { pathToFileURL } from 'url'
 import { resolve } from 'path'
 import { AppPage } from './pages/AppPage'
-import { MARKET_DATA_PROVIDERS, SETTINGS } from './test-ids'
+import { MARKET_DATA_PROVIDERS, SETTINGS, UNSAVED_CHANGES } from './test-ids'
 
 let appPage: AppPage
 
@@ -155,4 +155,60 @@ test('market data providers page has no accessibility violations', async () => {
         }))
     })
     expect(violations).toEqual([])
+})
+
+test('dirty-guard: editing API key and switching provider shows unsaved changes modal', async () => {
+    await goToMarketPage()
+
+    // Select the first provider (usually Alpha Vantage — an API-key provider)
+    const items = appPage.testId(MARKET_DATA_PROVIDERS.PROVIDER_ITEM)
+    await expect(items.first()).toBeVisible({ timeout: 8_000 })
+    await items.first().click()
+    await appPage.waitForTestId(MARKET_DATA_PROVIDERS.PROVIDER_DETAIL)
+
+    // Type into the API key field to make the form dirty
+    const apiKeyInput = appPage.testId(MARKET_DATA_PROVIDERS.PROVIDER_API_KEY_INPUT)
+    // Some providers may not have an API key input (free providers) — find one that does
+    const isApiKeyVisible = await apiKeyInput.isVisible().catch(() => false)
+
+    if (isApiKeyVisible) {
+        await apiKeyInput.fill('test-dirty-key-e2e')
+        await appPage.page.waitForTimeout(300)
+
+        // Click a different provider — should trigger the guard modal
+        await items.nth(1).click()
+
+        // The UnsavedChangesModal should appear
+        await appPage.waitForTestId(UNSAVED_CHANGES.MODAL, 5_000)
+        const modal = appPage.testId(UNSAVED_CHANGES.MODAL)
+        await expect(modal).toBeVisible()
+
+        // Verify Discard button is present
+        await expect(appPage.testId(UNSAVED_CHANGES.DISCARD_BTN)).toBeVisible()
+
+        // Click Discard — modal should dismiss, navigates to the new provider
+        await appPage.testId(UNSAVED_CHANGES.DISCARD_BTN).click()
+        await appPage.page.waitForTimeout(500)
+
+        // Modal should be gone
+        await expect(appPage.testId(UNSAVED_CHANGES.MODAL)).not.toBeVisible()
+    } else {
+        // If first provider is a free one, try the 3rd item instead
+        await items.nth(2).click()
+        await appPage.waitForTestId(MARKET_DATA_PROVIDERS.PROVIDER_DETAIL)
+        const apiKeyInput2 = appPage.testId(MARKET_DATA_PROVIDERS.PROVIDER_API_KEY_INPUT)
+        const isVisible2 = await apiKeyInput2.isVisible().catch(() => false)
+
+        if (isVisible2) {
+            await apiKeyInput2.fill('test-dirty-key-e2e')
+            await appPage.page.waitForTimeout(300)
+            await items.nth(3).click()
+
+            await appPage.waitForTestId(UNSAVED_CHANGES.MODAL, 5_000)
+            await expect(appPage.testId(UNSAVED_CHANGES.MODAL)).toBeVisible()
+            await appPage.testId(UNSAVED_CHANGES.DISCARD_BTN).click()
+            await appPage.page.waitForTimeout(300)
+            await expect(appPage.testId(UNSAVED_CHANGES.MODAL)).not.toBeVisible()
+        }
+    }
 })

@@ -60,56 +60,26 @@
 - **Status:** Active — environment-specific. E2E verified locally; Codex validates unit/integration only.
 - **Resolution path:** `xvfb-run npx playwright test` in CI.
 
-### [MKTDATA-OPENFIGI405] — OpenFIGI returns HTTP 405 when authenticating with API key
-- **Severity:** Medium
-- **Component:** infrastructure (market_data)
-- **Discovered:** 2026-05-02
-- **Status:** Open — needs investigation
-- **Details:** When the OpenFIGI provider is updated with an API key in the dashboard, authenticated requests return `405 Method Not Allowed`. Web research confirms the OpenFIGI `/v3/mapping` and `/v3/search` endpoints are **POST-only** — a `GET` request to these endpoints will return 405 regardless of authentication. The 405 is almost certainly an HTTP method mismatch, not an auth failure. Our `provider_capabilities.py` already classifies OpenFIGI as `builder_mode="post_body"`, but the actual URL builder and MCP provider test flow may be defaulting to GET.
-- **Additional context:**
-  - Header format must be exactly: `X-OPENFIGI-APIKEY: <key>` (not `Authorization: Bearer`)
-  - `Content-Type: application/json` is required on the POST body
-  - OpenFIGI v2 is **sunset July 1, 2026** — returns `410 Gone`. All code must target v3 (ref: synthesis §9)
-  - Rate limits: 25 req/6s authenticated, 5 req/6s unauthenticated, batch of 100 IDs per request
-- **Investigation steps:**
-  1. Trace the actual HTTP method used when the MCP `zorivest_market` test_provider action hits OpenFIGI
-  2. Verify `url_builders.py` OpenFIGI builder sends POST (not GET)
-  3. Confirm v3 base URL: `https://api.openfigi.com/v3/mapping`
-  4. Test with `curl -X POST -H 'X-OPENFIGI-APIKEY: <key>' -H 'Content-Type: application/json' -d '[{"idType":"TICKER","idValue":"IBM","exchCode":"US"}]' https://api.openfigi.com/v3/mapping`
-- **MEU Impact:** MEU-186 (Special-pattern URL builders) must implement POST-body builder for OpenFIGI
 
-### [MKTDATA-POLYGON-REBRAND] — Polygon.io/Massive.com returns HTTP 405 — auth and domain migration
-- **Severity:** Critical
-- **Component:** infrastructure (market_data), mcp-server, docs
+
+### [MKTDATA-POLYGON-REBRAND] — Polygon.io/Massive.com rebrand — domain migration tracked as MEU-195
+- **Severity:** Low (migration planning)
+- **Component:** infrastructure (market_data), docs
 - **Discovered:** 2026-05-02
-- **Updated:** 2026-05-02 (user-reported: both old Polygon key and new Massive key give 405)
-- **Status:** Open — investigation + migration needed
-- **Details:** Polygon.io **rebranded as Massive.com** (Oct 30, 2025). User reports:
-  - New Massive.com API key → **HTTP 405** when testing
-  - Old Polygon.io API key → **also fails** (key no longer works)
-  - Web research confirms: existing Polygon keys SHOULD work with both domains, same endpoints, same auth. 405 = **HTTP method mismatch** (not auth failure).
-- **Root cause hypothesis:** Our `provider_registry.py:27` has `base_url="https://api.polygon.io/v2"` and `auth_method=AuthMethod.BEARER_HEADER` with template `"Authorization": "Bearer {api_key}"`. The test endpoint is `/aggs/ticker/AAPL/range/1/day/2024-01-02/2024-01-02`. This is a GET endpoint — the 405 suggests the request is being sent as the wrong HTTP method, OR the base URL + endpoint combination is malformed (e.g., double path segments). Polygon also accepts `?apiKey=` query parameter auth, which may be more reliable than Bearer header.
-- **Codebase impact (37 references across 10 files):**
-  - `provider_registry.py:25-34` — base_url, auth, signup_url, test_endpoint
-  - `provider_capabilities.py:79-98` — capability entry
-  - `url_builders.py:94-201` — PolygonUrlBuilder class + registry
-  - `response_extractors.py:108-137` — 3 extractors (ohlcv, quote, news)
-  - `normalizers.py:44-63,226` — normalize_polygon_quote + registry
-  - `field_mappings.py:19,52-136` — alias + 4 mapping tuples (ohlcv/quote/news/fundamentals)
-  - `redaction.py:30` — Bearer token redaction comment
-  - `provider_connection_service.py:87-92` — validator + test flow (uses standard GET path)
-  - `market_data_service.py:393-394` — Polygon quote URL builder
-- **Investigation steps:**
-  1. Test both domains with curl: `curl -v "https://api.polygon.io/v2/aggs/ticker/AAPL/range/1/day/2024-01-02/2024-01-02?apiKey=KEY"` vs `curl -v "https://api.massive.com/v2/aggs/ticker/AAPL/range/1/day/2024-01-02/2024-01-02?apiKey=KEY"`
-  2. Test Bearer header vs query param: `curl -H "Authorization: Bearer KEY" ...` vs `?apiKey=KEY`
-  3. Verify the test_endpoint path doesn't result in a double `/v2/v2/` due to base_url having /v2 and builder adding /v2
-  4. Check if Massive.com requires different auth header format than Polygon.io
-- **Migration scope (once 405 is resolved):**
-  - `api.polygon.io` → `api.massive.com` (both still work in parallel)
-  - Dashboard: `https://massive.com/dashboard/keys`
-  - Docs: `massive.com/docs`
-  - No API schema changes — same endpoints, same response shapes
-- **MEU Impact:** Blocks MEU-185/186 URL builder work until 405 is diagnosed
+- **Updated:** 2026-05-02 (research confirms no breaking changes; 405 is unrelated method mismatch)
+- **Status:** Tracked — MEU-195 (`polygon-massive-migration`) created in Phase 8a
+- **Research findings (2026-05-02):**
+  - Polygon.io rebranded as Massive.com on Oct 30, 2025
+  - `api.polygon.io` endpoints remain fully active in parallel with `api.massive.com`
+  - SDKs updated to default to new domain — Zorivest uses direct HTTP, not SDKs
+  - No API schema changes — same endpoints, same response shapes, same auth
+  - The 405 errors users reported are **HTTP method mismatches** (GET→POST-only endpoints), NOT domain or auth failures. This is the same root cause as [MKTDATA-OPENFIGI405] and is resolved by MEU-189 (POST runtime dispatch).
+- **MEU-195 scope (small):**
+  1. Update `base_url` in `provider_registry.py` from `https://api.polygon.io/v2` to `https://api.massive.com/v2`
+  2. Update `signup_url` to `https://massive.com/pricing`
+  3. Update display name references if applicable
+  4. Verify connection test passes with new domain
+- **MEU Impact:** MEU-195 is independent of MEU-189. Can execute in any order.
 
 ### [MKTDATA-YAHOO-UNOFFICIAL] — Yahoo Finance is deeply integrated as default quote provider — expand via yfinance
 - **Severity:** Medium (risk) / High (opportunity)

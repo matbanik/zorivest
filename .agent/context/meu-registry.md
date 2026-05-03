@@ -1,4 +1,4 @@
-# MEU Registry — Phase 1 + 1A + 2 + 2A + 3 + 4 + 5 + 6 + 8 + 9
+# MEU Registry — Phase 1 + 1A + 2 + 2A + 3 + 4 + 5 + 6 + 6-UX + 8 + 9
 
 > Source: [BUILD_PLAN.md](../docs/BUILD_PLAN.md) | [build-priority-matrix.md](../docs/build-plan/build-priority-matrix.md)
 
@@ -97,24 +97,7 @@
 | MEU-64 | `market-data-mcp` | 29 | Market data MCP tools (7 tools) | ✅ approved |
 | MEU-65 | `market-data-gui` | 30 | Market Data Providers GUI settings page (13 providers, real service wiring, free provider badges, IPC external links, Wave 6 E2E) | ✅ approved |
 
-## P1.5a: Market Data Expansion (Phase 8a)
 
-| MEU | Slug | Matrix | Description | Status |
-|-----|------|:------:|-------------|:------:|
-| MEU-182a | `benzinga-code-purge` | 30.0 | Remove Benzinga provider config, normalizer, validator, service branch + test cleanup (8 files, ~39 refs). Prerequisite for all Phase 8a work. | ✅ complete (2026-05-02) |
-| MEU-182 | `market-expansion-dtos` | 30.1 | 7 new DTOs (OHLCV, Fundamentals, Earnings, Dividends, Splits, Insider, EconomicCalendar) + updated `MarketDataPort` | ✅ complete (2026-05-02) |
-| MEU-183 | `market-expansion-tables` | 30.2 | 4 new SQLAlchemy models (MarketEarnings, MarketDividends, MarketSplits, MarketInsider) via `create_all()` | ✅ complete (2026-05-02) |
-| MEU-184 | `provider-capabilities` | 30.3 | `ProviderCapabilities` dataclass + 11 registry entries (builder_mode, auth_mode, extractor_shape, supported_data_types) | ✅ complete (2026-05-02) |
-| MEU-185 | `simple-get-builders` | 30.4 | 5 Simple GET URL builders: Alpaca, FMP, EODHD, API Ninjas, Tradier | ⬜ planned |
-| MEU-186 | `special-pattern-builders` | 30.5 | 4 special-pattern builders: Alpha Vantage (function-dispatch), Nasdaq DL (dataset/table), OpenFIGI (POST-body), SEC API (POST-body) | ⬜ planned |
-| MEU-187 | `extractors-standard` | 30.6 | Standard JSON envelope extractors for 5 simple-GET providers + ~25 field mapping tuples | ⬜ planned |
-| MEU-188 | `extractors-complex` | 30.7 | Complex extractors: Alpha Vantage (date-keyed dicts + CSV), Finnhub (parallel arrays), Nasdaq DL (parallel arrays), Polygon (ms timestamps) + ~20 field mappings | ⬜ planned |
-| MEU-189 | `extractors-post-body` | 30.8 | POST-based extractors: OpenFIGI v3 (warning key rename), SEC API (Lucene response) + ~10 field mappings | ⬜ planned |
-| MEU-190 | `service-methods-core` | 30.9 | 3 high-value methods: `get_ohlcv` (Alpaca), `get_fundamentals` (FMP), `get_earnings` (Finnhub) + normalizers per provider fallback chain | ⬜ planned |
-| MEU-191 | `service-methods-extended` | 30.10 | 5 additional methods: `get_dividends`, `get_splits`, `get_insider`, `get_economic_calendar`, `get_company_profile` + normalizers | ⬜ planned |
-| MEU-192 | `market-routes-mcp` | 30.11 | 8 new `GET /api/v1/market-data/{type}` endpoints + 8 new action mappings in `zorivest_market` compound tool | ⬜ planned |
-| MEU-193 | `market-store-step` | 30.12 | `MarketDataStoreStep` pipeline step: route normalized DTOs to canonical DB tables, INSERT/UPSERT write modes | ⬜ planned |
-| MEU-194 | `scheduling-recipes` | 30.13 | 10 pre-built policy templates (nightly OHLCV, pre-market quotes, weekly fundamentals, etc.) seeded via migration | ⬜ planned |
 
 ## P1: Trade Reviews & Multi-Account
 
@@ -398,3 +381,33 @@ P2.75 (broker adapters): MEU-96 → MEU-99
 | MEU | Slug | Matrix | Description | Status |
 |-----|------|:------:|-------------|:------:|
 | MEU-TD1 | `mcp-discoverability-audit` | TD.1 | M7 enforcement: audit all 13 compound tool descriptions for workflow context, prerequisites, return shapes, error conditions. Expand server instructions. Add M7 enforcement gate to emerging-standards. | ✅ 2026-04-30 |
+
+## P1.5a: Market Data Expansion (Phase 8a)
+
+> Source: [BUILD_PLAN.md §P1.5a](../../docs/BUILD_PLAN.md), [08a-market-data-expansion.md](../../docs/build-plan/08a-market-data-expansion.md)
+
+| MEU | Slug | Matrix | Description | Status |
+|-----|------|:------:|-------------|:------:|
+| MEU-182a | `benzinga-code-purge` | 30.0 | Remove Benzinga provider config, normalizer, validator, service branch + test cleanup | ✅ 2026-05-01 |
+| MEU-182 | `market-expansion-dtos` | 30.1 | 7 new DTOs + updated MarketDataPort | ✅ 2026-05-01 |
+| MEU-183 | `market-expansion-tables` | 30.2 | 4 new SQLAlchemy models via `create_all()` | ✅ 2026-05-01 |
+| MEU-184 | `provider-capabilities` | 30.3 | ProviderCapabilities dataclass + 11 registry entries | ✅ 2026-05-01 |
+| MEU-185 | `simple-get-builders` | 30.4 | 5 Simple GET URL builders: Alpaca, FMP, EODHD, API Ninjas, Tradier | ✅ 2026-05-02 |
+| MEU-186 | `special-pattern-builders` | 30.5 | 4 special-pattern builders: Alpha Vantage, Nasdaq DL, OpenFIGI, SEC API | ✅ 2026-05-02 |
+| MEU-187 | `extractors-standard` | 30.6 | Standard JSON extractors for 5 simple-GET providers + ~25 field mappings | ✅ 2026-05-02 |
+| MEU-188 | `extractors-complex` | 30.7 | Complex extractors: Alpha Vantage, Finnhub, Nasdaq DL, Polygon + ~20 field mappings | ✅ 2026-05-02 |
+| MEU-189 | `post-body-runtime` | 30.8 | POST-body runtime dispatch: `fetch_with_cache` POST, adapter `_do_fetch` POST, OpenFIGI v3 POST connection test | ✅ 2026-05-02 |
+| MEU-195 | `polygon-massive-migration` | 30.14 | Polygon.io → Massive.com domain migration | ⬜ |
+| MEU-190 | `service-methods-core` | 30.9 | 3 high-value methods: `get_ohlcv`, `get_fundamentals`, `get_earnings` + normalizers | ⬜ |
+| MEU-191 | `service-methods-extended` | 30.10 | 5 methods: dividends, splits, insider, economic_calendar, company_profile | ⬜ |
+| MEU-192 | `market-routes-mcp` | 30.11 | 8 new REST endpoints + 8 MCP action mappings | ⬜ |
+| MEU-193 | `market-store-step` | 30.12 | MarketDataStoreStep pipeline step | ⬜ |
+| MEU-194 | `scheduler-integration` | 30.13 | Pipeline policy scheduling for market data | ⬜ |
+
+## Phase 6 UX Hardening (P2.1)
+
+| MEU | Slug | Matrix | Description | Status |
+|-----|------|:------:|-------------|:------:|
+| MEU-196 | `gui-form-guard-shared` | 35i | Shared `UnsavedChangesModal` + `useFormGuard` hook + amber-pulse CSS; refactor SchedulingLayout to consume shared components | ✅ complete |
+| MEU-197 | `gui-form-guard-settings` | 35j | Wire form guard to Market Data Providers + Email Provider pages; replace "off" → "Disabled" label; amber-pulse save button | ✅ complete |
+| MEU-198 | `gui-form-guard-crud` | 35k | Wire form guard to Accounts, Trades, Trade Plans, Watchlists; amber-pulse save button on all | ✅ complete |

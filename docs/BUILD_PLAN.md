@@ -287,7 +287,8 @@ Domain → Infrastructure → Services → REST API → MCP Server → GUI → D
 | MEU-186 | `special-pattern-builders` | 30.5 | [08a §8a.5](build-plan/08a-market-data-expansion.md#step-8a5-special-pattern-builders-meu-186-special-pattern-builders) | 4 special-pattern builders: Alpha Vantage, Nasdaq DL, OpenFIGI, SEC API | ✅ |
 | MEU-187 | `extractors-standard` | 30.6 | [08a §8a.6](build-plan/08a-market-data-expansion.md#step-8a6-standard-extractors-meu-187-extractors-standard) | Standard JSON extractors for 5 simple-GET providers + ~25 field mappings | ✅ |
 | MEU-188 | `extractors-complex` | 30.7 | [08a §8a.7](build-plan/08a-market-data-expansion.md#step-8a7-complex-extractors-meu-188-extractors-complex) | Complex extractors: Alpha Vantage, Finnhub, Nasdaq DL, Polygon + ~20 field mappings | ✅ |
-| MEU-189 | `extractors-post-body` | 30.8 | [08a §8a.8](build-plan/08a-market-data-expansion.md#step-8a8-post-body-extractors-meu-189-extractors-post-body) | POST-based extractors: OpenFIGI v3, SEC API + ~10 field mappings | ⬜ |
+| MEU-189 | `post-body-runtime` | 30.8 | [08a §8a.8](build-plan/08a-market-data-expansion.md#step-8a8-post-body-runtime-wiring-meu-189-post-body-runtime) | POST-body runtime dispatch: `fetch_with_cache` POST support, adapter `_do_fetch` POST routing, OpenFIGI v3 POST connection test | ✅ |
+| MEU-195 | `polygon-massive-migration` | 30.14 | [08a](build-plan/08a-market-data-expansion.md) | Polygon.io → Massive.com domain migration: update `base_url`, `signup_url`, display name in provider_registry.py; verify connection test with new domain | ⬜ |
 | MEU-190 | `service-methods-core` | 30.9 | [08a §8a.9](build-plan/08a-market-data-expansion.md#step-8a9-core-service-methods-meu-190-service-methods-core) | 3 high-value methods: `get_ohlcv`, `get_fundamentals`, `get_earnings` + normalizers | ⬜ |
 | MEU-191 | `service-methods-extended` | 30.10 | [08a §8a.10](build-plan/08a-market-data-expansion.md#step-8a10-extended-service-methods-meu-191-service-methods-extended) | 5 methods: dividends, splits, insider, economic_calendar, company_profile | ⬜ |
 | MEU-192 | `market-routes-mcp` | 30.11 | [08a §8a.11](build-plan/08a-market-data-expansion.md#step-8a11-routes--mcp-meu-192-market-routes-mcp) | 8 new REST endpoints + 8 MCP action mappings | ⬜ |
@@ -714,8 +715,9 @@ Domain → Infrastructure → Services → REST API → MCP Server → GUI → D
 | P0 — Phase 6 | MEU-43 → MEU-51 | 10 | 10 |
 | P1 | MEU-52 → MEU-55 | 4 | 4 |
 | P1.5 — Phase 8 | MEU-56 → MEU-65a | 11 | 11 |
-| P1.5a — Phase 8a | MEU-182a → MEU-194 | 14 | 8 |
+| P1.5a — Phase 8a | MEU-182a → MEU-195 | 15 | 8 |
 | P2 | MEU-66 → MEU-76, MEU-171 → MEU-172, MEU-72b | 18 | 9 |
+| P2.1 — GUI UX Hardening | MEU-196 → MEU-198 | 3 | 0 |
 | P2.5 — Phase 9 + WebSocket | MEU-77 → MEU-90, MEU-174 | 15 | 14 |
 | P2.5a — Integration | MEU-90a → MEU-90d | 4 | 3 + 1 🚫 |
 | P2.5b — Wiring & Quality + Hardening | MEU-PW1 → MEU-PW14, MEU-72a, MEU-TD1 | 15 | 14 + 1 🟡 |
@@ -730,7 +732,7 @@ Domain → Infrastructure → Services → REST API → MCP Server → GUI → D
 | Phase 7 | MEU-157 | 1 | 0 |
 | P4 — Phase 11 | MEU-175 → MEU-181 | 7 | 0 |
 | Research | MEU-158 → MEU-170, MEU-173, MEU-TS1 → MEU-TS3 | 17 | 3 |
-| **Total** | | **249** | **143 + 1 🟡 + 1 🚫** |
+| **Total** | | **253** | **143 + 1 🟡 + 1 🚫** |
 
 ---
 

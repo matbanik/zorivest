@@ -219,3 +219,12 @@ export const SCHEDULING = {
     TEMPLATE_DELETE_BTN: 'template-delete-btn',
     TEMPLATE_DEFAULT_BADGE: 'template-default-badge',
 } as const
+
+// ── Unsaved Changes Modal (MEU-196) ─────────────────────────────────────────
+
+export const UNSAVED_CHANGES = {
+    MODAL: 'unsaved-changes-modal',
+    KEEP_EDITING_BTN: 'unsaved-keep-editing-btn',
+    DISCARD_BTN: 'unsaved-discard-btn',
+    SAVE_CONTINUE_BTN: 'unsaved-save-continue-btn',
+} as const
