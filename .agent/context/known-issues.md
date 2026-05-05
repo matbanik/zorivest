@@ -60,118 +60,32 @@
 - **Status:** Active — environment-specific. E2E verified locally; Codex validates unit/integration only.
 - **Resolution path:** `xvfb-run npx playwright test` in CI.
 
-
-
-### [MKTDATA-POLYGON-REBRAND] — Polygon.io/Massive.com rebrand — domain migration tracked as MEU-195
-- **Severity:** Low (migration planning)
-- **Component:** infrastructure (market_data), docs
+### [MKTDATA-POLYGON-REBRAND] — Polygon.io → Massive.com domain migration
+- **Severity:** Low
+- **Component:** infrastructure (market_data)
 - **Discovered:** 2026-05-02
-- **Updated:** 2026-05-02 (research confirms no breaking changes; 405 is unrelated method mismatch)
-- **Status:** Tracked — MEU-195 (`polygon-massive-migration`) created in Phase 8a
-- **Research findings (2026-05-02):**
-  - Polygon.io rebranded as Massive.com on Oct 30, 2025
-  - `api.polygon.io` endpoints remain fully active in parallel with `api.massive.com`
-  - SDKs updated to default to new domain — Zorivest uses direct HTTP, not SDKs
-  - No API schema changes — same endpoints, same response shapes, same auth
-  - The 405 errors users reported are **HTTP method mismatches** (GET→POST-only endpoints), NOT domain or auth failures. This is the same root cause as [MKTDATA-OPENFIGI405] and is resolved by MEU-189 (POST runtime dispatch).
-- **MEU-195 scope (small):**
-  1. Update `base_url` in `provider_registry.py` from `https://api.polygon.io/v2` to `https://api.massive.com/v2`
-  2. Update `signup_url` to `https://massive.com/pricing`
-  3. Update display name references if applicable
-  4. Verify connection test passes with new domain
-- **MEU Impact:** MEU-195 is independent of MEU-189. Can execute in any order.
+- **Status:** Tracked — MEU-195 (`polygon-massive-migration`) ⬜ planned in Phase 8a
+- **Details:** Polygon.io rebranded as Massive.com (Oct 2025). `api.polygon.io` still works in parallel. No API schema changes. Simple `base_url` + `signup_url` swap.
+- **MEU Impact:** MEU-195 is small and independent. Piggybacks on Phase 8a L4 batch.
 
-### [MKTDATA-YAHOO-UNOFFICIAL] — Yahoo Finance is deeply integrated as default quote provider — expand via yfinance
+### [MKTDATA-YAHOO-UNOFFICIAL] — Yahoo Finance expansion (unofficial API)
 - **Severity:** Medium (risk) / High (opportunity)
 - **Component:** infrastructure (market_data)
 - **Discovered:** 2026-05-02
-- **Updated:** 2026-05-02 (codebase audit reveals Yahoo is the PRIMARY provider, not just a fallback)
-- **Status:** Open — expansion discovery in progress
-- **Codebase integration (deeply embedded across 6+ files):**
-  - `market_data_service.py:98-113` — **Yahoo is tried FIRST for every quote** (before any API-key provider). `get_quote()` calls `_yahoo_quote()` before the provider loop.
-  - `market_data_service.py:245-303` — Full `_yahoo_quote()` implementation using `v8/finance/chart/{ticker}?range=1d&interval=1d` — extracts regularMarketPrice, chartPreviousClose, volume from chart meta.
-  - `provider_connection_service.py:338-415` — Dedicated `_test_yahoo_finance_crumb()` with 2-step cookie+crumb dance (`fc.yahoo.com` → `/v1/test/getcrumb`).
-  - `provider_registry.py:141-157` — Full ProviderConfig with `base_url="https://query1.finance.yahoo.com"`, browser-like headers (User-Agent, Referer), signup_url pointing to `pypi.org/project/yfinance/`.
-  - `url_builders.py:46-75,200` — `YahooUrlBuilder` class using v8/chart epochs.
-  - `response_extractors.py:45-107` — 2 extractors: `yahoo/quote` (v8/chart meta), `yahoo/news` (list or items wrapper).
-  - `field_mappings.py:18,70-135` — 3 mapping tuples: `yahoo/quote`, `yahoo/news`, `yahoo/fundamentals`.
-  - `service_factory.py:88` — GET-with-cookies adapter specifically for Yahoo.
-- **Current data coverage vs yfinance potential:**
-  | Data Type | Current Status | yfinance Capability | Expansion Path |
-  |---|---|---|---|
-  | **Quote** | ✅ Default (v8/chart meta) | ✅ `Ticker.info` | Already working |
-  | **OHLCV** | ❌ Not wired | ✅ `Ticker.history()` / `yf.download()` | `v8/chart` with full history params |
-  | **News** | ⚠️ Extractor exists, broken | ⚠️ `Ticker.news` (fragile) | Needs endpoint update |
-  | **Fundamentals** | ⚠️ Field mapping exists, not wired | ✅ `Ticker.info`, `balance_sheet`, `financials`, `cashflow` | `quoteSummary` modules |
-  | **Earnings** | ❌ | ✅ `Ticker.calendar`, `get_earnings_dates()` | `/v10/finance/quoteSummary?modules=earnings` |
-  | **Dividends** | ❌ | ✅ `Ticker.dividends` | `/v8/finance/chart` includes dividend events |
-  | **Splits** | ❌ | ✅ `Ticker.splits` | `/v8/finance/chart` includes split events |
-  | **Insider** | ❌ | ❌ Not reliable in yfinance | Use Finnhub/FMP instead |
-  | **Economic Calendar** | ❌ | ⚠️ `Calendars` class (fragile) | Not recommended |
-- **Risk factors (unchanged):**
-  - All Yahoo endpoints are **unofficial/reverse-engineered** (no official API since 2017)
-  - v6 `/finance/quote` has returned **404 since ~2024** — v8/chart is current working endpoint
-  - Using these endpoints **violates Yahoo's Terms of Service**
-  - Endpoints break frequently — the 2-step cookie+crumb dance was added mid-2023
-- **Decision update:** Given Yahoo is already the DEFAULT quote provider (tried before all API-key providers), removal is impractical. **Recommended approach: expand cautiously.** Use v8/chart for OHLCV/dividends/splits (same endpoint, different params) and v10/quoteSummary for fundamentals/earnings. Keep as best-effort fallback with graceful degradation. All expanded data types should have API-key-provider fallbacks.
-- **Resolved (2026-05-02):** Yahoo OHLCV extractor + field mapping added — same parallel-array zip pattern as Finnhub candles. URL builder already supported ohlcv; now extractor completes the pipeline.
-- **Expansion items needing separate planning (mini-MEU or piggyback on MEU-190/191):**
-  | Item | Effort | What's needed |
-  |------|--------|---------------|
-  | **Fundamentals** | Medium | New URL path (`/v10/finance/quoteSummary?modules=defaultKeyStatistics,financialData`), new extractor for deeply-nested module dicts, field mapping already exists |
-  | **Earnings** | Medium | Same quoteSummary approach (`modules=earnings,earningsHistory`), new extractor + field mapping |
-  | **Dividends** | Medium | URL builder update (`&events=div`), new extractor for `chart.result[0].events.dividends` dict, new field mapping |
-  | **Splits** | Medium | URL builder update (`&events=split`), new extractor for `chart.result[0].events.splits` dict, new field mapping |
-  | **News endpoint fix** | Low | Existing extractor may need endpoint update — `v1/finance/search` news has been fragile |
-- **MEU Impact:** OHLCV resolved. Remaining items can piggyback on MEU-190/191 (service methods) or be a standalone mini-MEU.
+- **Status:** Open — OHLCV resolved (2026-05-02); remaining expansion tracked
+- **Details:** Yahoo is the DEFAULT quote provider (tried before API-key providers). Deeply embedded across 6+ files. All endpoints are unofficial (no official API since 2017, TOS violation).
+- **Resolved:** OHLCV extractor + field mapping added (2026-05-02).
+- **Remaining:** Fundamentals (v10/quoteSummary), earnings, dividends (`v8/chart?events=div`), splits, news endpoint fix. All piggyback on MEU-190/191.
+- **Research detail:** See [08a-market-data-expansion.md](../../docs/build-plan/08a-market-data-expansion.md) and [issue-triage-report.md](issue-triage-report.md) for full capability tables.
 
-
-### [MKTDATA-TRADINGVIEW-NOPUBLICAPI] — TradingView scanner API already integrated — expand data types cautiously
+### [MKTDATA-TRADINGVIEW-NOPUBLICAPI] — TradingView scanner expansion (unofficial API)
 - **Severity:** Medium (opportunity)
 - **Component:** infrastructure (market_data)
 - **Discovered:** 2026-05-02
-- **Updated:** 2026-05-02 (quote + fundamentals extractors added via scanner column-zip)
-- **Status:** Open — partial expansion complete, further items need planning
-- **Codebase integration (registered as free provider, actively used for screening):**
-  - `provider_registry.py:158-178` — Full ProviderConfig: `base_url="https://scanner.tradingview.com"`, `AuthMethod.NONE`, POST-based with JSON Content-Type.
-  - `provider_connection_service.py:343-457` — Dedicated `_test_tradingview_scanner()` method: POST to `/america/scan` with `{"columns": ["name"], "range": [0, 1]}` — returns `{"totalCount": N, "data": [...]}`.
-  - `service_factory.py:64,78` — POST-with-JSON adapter specifically for TradingView scanner API, with `follow_redirects=True` for pingpong redirect.
-  - `url_builders.py` — `TradingViewUrlBuilder` with `build_request()` → `RequestSpec(method="POST", ...)` supporting quote + fundamentals column sets.
-  - `response_extractors.py` — `_tradingview_quote` and `_tradingview_fundamentals` extractors using column-zip pattern for `{data: [{s, d}]}` envelope.
-  - `field_mappings.py` — 2 mapping tuples: `tradingview/quote` (identity), `tradingview/fundamentals` (scanner columns → canonical).
-  - `test_provider_service_wiring.py:5,59,74,79` — Tests confirm TradingView in provider list (13 total).
-  - `test_provider_registry.py:10,47` — Tests confirm `AuthMethod.NONE` classification.
-  - `ui/src/renderer/src/features/settings/MarketDataProvidersPage.tsx:44` — Listed in `FREE_PROVIDERS` set.
-  - `ui/tests/e2e/settings-market-data.test.ts:105-110` — E2E test for "no-API-key badge".
-- **Scanner API data capabilities (from web research + `tradingview-screener` library analysis):**
-  - The `scanner.tradingview.com/{exchange}/scan` POST endpoint accepts a `columns` array with **thousands of available fields**.
-  - Via unofficial `tradingview-screener` / `tvscreener` Python libraries, the scanner can return:
-  | Data Type | Scanner Field Examples | Viability |
-  |---|---|---|
-  | **Quote** | `close`, `volume`, `change`, `change_abs`, `Recommend.All` | ✅ Current price + technicals |
-  | **OHLCV** | `open`, `high`, `low`, `close`, `volume` (snapshot, NOT historical) | ⚠️ Current bar only — no historical candles |
-  | **Fundamentals** | `market_cap_basic`, `earnings_per_share_basic_ttm`, `price_earnings_ttm`, `dividend_yield_indication`, `price_book_ratio`, `debt_to_equity` | ✅ Rich fundamental screening data |
-  | **Technicals** | RSI, MACD, Bollinger, moving averages, oscillators | ✅ Full technical indicator suite |
-  | **Historical OHLCV** | ❌ Not available via scanner | ❌ No candle history endpoint |
-  | **News** | ❌ Not available via scanner | ❌ No news endpoint |
-  | **Earnings/Dividends/Splits** | `earnings_release_date`, `dividends_yield`, `split_ratio` | ⚠️ Snapshot fields only, no history |
-- **Key limitations:**
-  - Scanner returns **point-in-time screening data**, NOT historical time series
-  - All access is **unofficial** — same TOS risk as Yahoo
-  - Rate limiting is undocumented — aggressive requests may be blocked
-  - `symbol-search.tradingview.com` is **Cloudflare-blocked (403)** for scripts (already documented in registry)
-- **Revised assessment:** TradingView CAN serve as a **supplementary free provider** for real-time quotes and fundamental snapshots, similar to Yahoo's role. It cannot replace API-key providers for historical data, news, or detailed earnings/dividend history.
-- **Resolved (2026-05-02):** Quote + fundamentals extractors added via scanner column-zip pattern. URL builder with `build_request()` → `RequestSpec(method="POST")`. Field mappings registered. Same POST runtime deferral as OpenFIGI/SecApi (MEU-189).
-- **What would need more planning:**
-  | Item | Effort | What's needed |
-  |------|--------|---------------|
-  | **POST runtime wiring** | MEU-189 | Adapter `_do_fetch()` + `fetch_with_cache()` POST dispatch — same blocker as OpenFIGI/SecApi. Without this, builder/extractor are tested but not runtime-callable. |
-  | **Exchange routing** | Medium | Currently hardcoded to `/america/scan`. International tickers need exchange detection logic (e.g., `7203` → `japan`, `VOW3` → `germany`). Decision: auto-detect from ticker format, or require explicit `criteria.exchange`? |
-  | **Rate limiting strategy** | Medium | Undocumented limits. Need retry/backoff/429-handling. Could be aggressive since no API key → no accountability. |
-  | **Multi-ticker batching** | Medium | Scanner natively supports multiple symbols per POST (`symbols.tickers` array). Current per-ticker adapter loop is wasteful. Needs batch adapter or explicit batch endpoint. |
-  | **Response freshness / caching** | Low | Scanner returns latest snapshot only (no time-series). Caching semantics differ from REST GET patterns — needs TTL policy (e.g., 5-min cache vs daily for OHLCV). |
-  | **Technicals data type** | Low | Rich technical indicator columns available (RSI, MACD, etc.) but no canonical schema defined yet. Needs data type definition + field mapping. |
-- **MEU Impact:** Quote + fundamentals resolved. Remaining items can piggyback on MEU-189 (POST runtime) or be a standalone mini-MEU for exchange routing / batching.
+- **Status:** Open — quote + fundamentals resolved (2026-05-02); POST runtime resolved (MEU-189 ✅)
+- **Details:** TradingView scanner (`scanner.tradingview.com`) registered as free provider. Column-zip extractors for quote + fundamentals. Same TOS risk as Yahoo.
+- **Remaining:** Exchange routing (hardcoded `/america/scan`), multi-ticker batching, rate limiting, caching TTL, technicals schema. All are opportunistic P4 items.
+- **Research detail:** See [issue-triage-report.md](issue-triage-report.md) for full scanner capability analysis.
 
 ## Archived (see [known-issues-archive.md](known-issues-archive.md))
 

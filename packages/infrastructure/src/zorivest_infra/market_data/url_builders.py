@@ -96,11 +96,11 @@ class YahooUrlBuilder:
 
 
 class PolygonUrlBuilder:
-    """Polygon.io URL construction.
+    """Polygon.io (now Massive) URL construction.
 
     Patterns:
-    - ohlcv: /aggs/ticker/{symbol}/range/1/day/{from}/{to}
-    - quote: /snapshot/locale/us/markets/stocks/tickers?tickers={symbols}
+    - ohlcv: /v2/aggs/ticker/{symbol}/range/1/day/{from}/{to}
+    - quote: /v2/snapshot/locale/us/markets/stocks/tickers?tickers={symbols}
     """
 
     def build_url(
@@ -116,14 +116,20 @@ class PolygonUrlBuilder:
             dr = criteria.get("date_range", {})
             start = dr.get("start_date", "")
             end = dr.get("end_date", "")
-            return f"{base_url}/aggs/ticker/{symbol}/range/1/day/{start}/{end}"
+            return f"{base_url}/v2/aggs/ticker/{symbol}/range/1/day/{start}/{end}"
 
         if data_type == "quote":
             symbols = ",".join(tickers)
-            return f"{base_url}/snapshot/locale/us/markets/stocks/tickers?tickers={symbols}"
+            return f"{base_url}/v2/snapshot/locale/us/markets/stocks/tickers?tickers={symbols}"
+
+        if data_type == "dividends":
+            return f"{base_url}/v3/reference/dividends?ticker={symbol}"
+
+        if data_type == "splits":
+            return f"{base_url}/v3/reference/splits?ticker={symbol}"
 
         # Fallback
-        return f"{base_url}/ticker/{symbol}"
+        return f"{base_url}/v3/reference/tickers/{symbol}"
 
 
 # ── Finnhub URL Builder ────────────────────────────────────────────────
@@ -168,6 +174,18 @@ class FinnhubUrlBuilder:
                 "to": dr.get("end_date", ""),
             }
             return f"{base_url}/company-news?{urlencode(params_news)}"
+
+        if data_type == "company_profile":
+            return f"{base_url}/stock/profile2?symbol={symbol}"
+
+        if data_type == "insider":
+            return f"{base_url}/stock/insider-transactions?symbol={symbol}"
+
+        if data_type == "earnings":
+            return f"{base_url}/stock/earnings?symbol={symbol}"
+
+        if data_type == "economic_calendar":
+            return f"{base_url}/calendar/economic"
 
         # Fallback
         return f"{base_url}/quote?symbol={symbol}"

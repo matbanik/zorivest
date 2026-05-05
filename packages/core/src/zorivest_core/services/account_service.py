@@ -215,6 +215,23 @@ class AccountService:
                 "total_realized_pnl": round(total_realized_pnl, 2),
             }
 
+    def get_trade_counts(self, account_ids: list[str]) -> dict[str, dict[str, int]]:
+        """Return trade + plan counts for a batch of account IDs.
+
+        Returns:
+            dict mapping account_id -> {trade_count, plan_count}
+        """
+        with self.uow:
+            result: dict[str, dict[str, int]] = {}
+            for aid in account_ids:
+                trades = self.uow.trades.list_for_account(aid)
+                plan_count = self.uow.trade_plans.count_for_account(aid)
+                result[aid] = {
+                    "trade_count": len(trades) if trades else 0,
+                    "plan_count": plan_count or 0,
+                }
+            return result
+
     # ── Balance management ───────────────────────────────────────────────
 
     def add_balance_snapshot(self, command: UpdateBalance) -> BalanceSnapshot:

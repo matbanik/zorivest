@@ -1,4 +1,4 @@
-import { useRef, useCallback, useState } from 'react'
+import { useRef, useCallback, useState, useEffect } from 'react'
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query'
 import { apiFetch } from '@/lib/api'
 
@@ -43,6 +43,7 @@ export default function ScreenshotPanel({ tradeId }: ScreenshotPanelProps) {
     const fileInputRef = useRef<HTMLInputElement>(null)
     const [lightboxImageId, setLightboxImageId] = useState<number | null>(null)
     const [isDragOver, setIsDragOver] = useState(false)
+    const isNewTrade = !tradeId || tradeId === '(new)'
 
     // ── AC-4: Fetch trade images ─────────────────────────────────────────
 
@@ -53,7 +54,7 @@ export default function ScreenshotPanel({ tradeId }: ScreenshotPanelProps) {
     } = useQuery<ImageMeta[]>({
         queryKey: ['trade-images', tradeId],
         queryFn: () => apiFetch(`/api/v1/trades/${tradeId}/images`),
-        enabled: !!tradeId,
+        enabled: !!tradeId && !isNewTrade,
     })
 
     // ── AC-6: Upload mutation ────────────────────────────────────────────
@@ -87,10 +88,11 @@ export default function ScreenshotPanel({ tradeId }: ScreenshotPanelProps) {
 
     const handleUpload = useCallback(
         (file: File) => {
+            if (isNewTrade) return  // Can't upload to unsaved trade
             if (!file.type.startsWith('image/')) return
             uploadMutation.mutate(file)
         },
-        [uploadMutation],
+        [uploadMutation, isNewTrade],
     )
 
     // ── File input change ────────────────────────────────────────────────
@@ -105,21 +107,26 @@ export default function ScreenshotPanel({ tradeId }: ScreenshotPanelProps) {
         [handleUpload],
     )
 
-    // ── AC-12: Clipboard paste ───────────────────────────────────────────
+    // ── AC-12: Clipboard paste (window-level for Electron compatibility) ──
 
-    const handlePaste = useCallback(
-        (e: React.ClipboardEvent) => {
+    useEffect(() => {
+        if (isNewTrade) return
+        const handlePaste = (e: ClipboardEvent) => {
             const items = e.clipboardData?.items
             if (!items) return
             for (const item of Array.from(items)) {
                 if (item.type.startsWith('image/')) {
                     const file = item.getAsFile()
-                    if (file) handleUpload(file)
+                    if (file) {
+                        e.preventDefault()
+                        handleUpload(file)
+                    }
                 }
             }
-        },
-        [handleUpload],
-    )
+        }
+        window.addEventListener('paste', handlePaste)
+        return () => window.removeEventListener('paste', handlePaste)
+    }, [handleUpload, isNewTrade])
 
     // ── AC-13: Drag and drop ─────────────────────────────────────────────
 
@@ -146,6 +153,19 @@ export default function ScreenshotPanel({ tradeId }: ScreenshotPanelProps) {
         },
         [handleUpload],
     )
+
+    // ── Unsaved trade guard ──────────────────────────────────────────────
+
+    if (isNewTrade) {
+        return (
+            <div data-testid="screenshot-panel" className="space-y-3">
+                <h4 className="text-sm font-medium text-fg">Screenshots</h4>
+                <div className="text-fg-muted text-sm px-3 py-4 rounded-md border border-bg-subtle bg-bg text-center">
+                    Save the trade first to attach screenshots.
+                </div>
+            </div>
+        )
+    }
 
     // ── AC-10: Loading state ─────────────────────────────────────────────
 
@@ -193,7 +213,6 @@ export default function ScreenshotPanel({ tradeId }: ScreenshotPanelProps) {
             tabIndex={0}
             role="region"
             aria-label="Screenshot panel — paste, drag, or click to upload images"
-            onPaste={handlePaste}
             onDragOver={handleDragOver}
             onDragLeave={handleDragLeave}
             onDrop={handleDrop}

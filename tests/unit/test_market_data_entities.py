@@ -69,7 +69,7 @@ class TestProviderConfig:
 
         config = ProviderConfig(
             name="Alpha Vantage",
-            base_url="https://www.alphavantage.co/query",
+            base_url="https://www.alphavantage.co",
             auth_method=AuthMethod.QUERY_PARAM,
             auth_param_name="apikey",
             headers_template={},

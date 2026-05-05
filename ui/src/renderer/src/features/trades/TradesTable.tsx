@@ -10,6 +10,7 @@ import {
 } from '@tanstack/react-table'
 import { useState, useMemo } from 'react'
 import AccountTypeBadge from './AccountTypeBadge'
+import SelectionCheckbox from '@/components/SelectionCheckbox'
 
 // ── Types ────────────────────────────────────────────────────────────────
 
@@ -138,6 +139,9 @@ interface TradesTableProps {
     selectedId?: string
     onSelectTrade?: (trade: Trade) => void
     pageSize?: number
+    selectedIds?: Set<string>
+    onToggleSelect?: (execId: string) => void
+    onToggleSelectAll?: () => void
 }
 
 /**
@@ -150,12 +154,45 @@ export default function TradesTable({
     selectedId,
     onSelectTrade,
     pageSize = 25,
+    selectedIds,
+    onToggleSelect,
+    onToggleSelectAll,
 }: TradesTableProps) {
     const [sorting, setSorting] = useState<SortingState>([])
 
+    // AH-8: Prepend selection checkbox column when selection is enabled
+    const columnsWithSelection = useMemo(() => {
+        if (!selectedIds || !onToggleSelect) return tradeColumns
+        const selectCol: ColumnDef<Trade, any> = {
+            id: 'select',
+            header: () => (
+                <SelectionCheckbox
+                    checked={selectedIds.size === data.length && data.length > 0}
+                    indeterminate={selectedIds.size > 0 && selectedIds.size < data.length}
+                    onChange={() => onToggleSelectAll?.()}
+                    ariaLabel="Select all trades"
+                    data-testid="select-all-trade-checkbox"
+                />
+            ),
+            cell: ({ row }) => (
+                <span onClick={(e) => e.stopPropagation()}>
+                    <SelectionCheckbox
+                        checked={selectedIds.has(row.original.exec_id)}
+                        onChange={() => onToggleSelect(row.original.exec_id)}
+                        ariaLabel={`Select ${row.original.instrument}`}
+                        data-testid={`trade-row-checkbox-${row.original.exec_id}`}
+                    />
+                </span>
+            ),
+            enableSorting: false,
+            size: 40,
+        }
+        return [selectCol, ...tradeColumns]
+    }, [selectedIds, onToggleSelect, onToggleSelectAll, data.length])
+
     const table = useReactTable({
         data,
-        columns: tradeColumns,
+        columns: columnsWithSelection,
         state: { sorting },
         onSortingChange: setSorting,
         getCoreRowModel: getCoreRowModel(),

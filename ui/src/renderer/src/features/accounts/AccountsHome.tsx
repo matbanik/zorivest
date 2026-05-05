@@ -1,9 +1,14 @@
 import React, { useCallback, useMemo, useRef, useState } from 'react'
-import { useAccounts, useCreateAccount, useArchivedAccounts } from '@/hooks/useAccounts'
+import { useAccounts, useCreateAccount, useArchivedAccounts, useDeleteAccount, useForceDeleteAccount, useArchiveAccount, useUnarchiveAccount, fetchTradeCounts } from '@/hooks/useAccounts'
+import type { Account, TradeCountInfo } from '@/hooks/useAccounts'
 import { useAccountContext } from '@/context/AccountContext'
-import type { Account } from '@/hooks/useAccounts'
 import { useFormGuard } from '@/hooks/useFormGuard'
 import UnsavedChangesModal from '@/components/UnsavedChangesModal'
+import SelectionCheckbox from '@/components/SelectionCheckbox'
+import BulkActionBar from '@/components/BulkActionBar'
+import TableFilterBar from '@/components/TableFilterBar'
+import ConfirmDeleteModal from '@/components/ConfirmDeleteModal'
+import TradeWarningModal from '@/components/TradeWarningModal'
 import AccountDetailPanel from './AccountDetailPanel'
 import type { AccountDetailPanelHandle } from './AccountDetailPanel'
 
@@ -100,14 +105,24 @@ interface AccountRowProps {
     account: Account
     onSelect: (id: string) => void
     portfolioPercent: number | null
+    isSelected: boolean
+    onToggleSelect: (id: string) => void
 }
 
-function AccountRow({ account, onSelect, portfolioPercent }: AccountRowProps) {
+function AccountRow({ account, onSelect, portfolioPercent, isSelected, onToggleSelect }: AccountRowProps) {
     return (
         <tr
-            className="cursor-pointer border-b border-border transition-colors hover:bg-bg-elevated"
+            className={`cursor-pointer border-b border-border transition-colors hover:bg-bg-elevated${isSelected ? ' bg-bg-subtle' : ''}`}
             onClick={() => onSelect(account.account_id)}
         >
+            <td className="px-3 py-2 text-sm w-8" onClick={(e) => e.stopPropagation()}>
+                <SelectionCheckbox
+                    checked={isSelected}
+                    onChange={() => onToggleSelect(account.account_id)}
+                    ariaLabel={`Select ${account.name}`}
+                    data-testid={`account-row-checkbox-${account.account_id}`}
+                />
+            </td>
             <td className="px-3 py-2 text-sm">
                 <span className="inline-block rounded bg-bg-subtle px-1.5 py-0.5 text-xs font-medium text-fg-muted">
                     {ACCOUNT_TYPE_LABELS[account.account_type] ?? account.account_type}
@@ -158,11 +173,29 @@ export default function AccountsHome() {
     const { accounts, portfolioTotal, isFetching, refetch } = useAccounts()
     const { activeAccountId, selectAccount, mruAccountIds } = useAccountContext()
     const createAccount = useCreateAccount()
+    const deleteAccount = useDeleteAccount()
+    const forceDeleteAccount = useForceDeleteAccount()
+    const archiveAccount = useArchiveAccount()
+    const unarchiveAccount = useUnarchiveAccount()
     const [showCreateForm, setShowCreateForm] = useState(false)
     const [typeFilter, setTypeFilter] = useState<string>('ALL')
     const [sortBy, setSortBy] = useState<'last_used' | 'name' | 'balance' | 'type' | 'institution' | 'portfolio'>('last_used')
     const [sortDir, setSortDir] = useState<'asc' | 'desc'>('desc')
     const [childDirty, setChildDirty] = useState(false)
+    const [searchText, setSearchText] = useState('')
+    const [selectedIds, setSelectedIds] = useState<Set<string>>(new Set())
+    const [showBulkConfirm, setShowBulkConfirm] = useState(false)
+    const [showBulkArchive, setShowBulkArchive] = useState(false)
+    const [showBulkUnarchive, setShowBulkUnarchive] = useState(false)
+
+    // Trade warning queue for second confirmation on accounts with linked trades
+    const [tradeWarningQueue, setTradeWarningQueue] = useState<Array<{
+        accountId: string
+        accountName: string
+        tradeCount: number
+        planCount: number
+    }>>([])
+    const [isCheckingTrades, setIsCheckingTrades] = useState(false)
 
     // Column sort handler — toggles direction, or resets to default when clicking a new column
     const handleColumnSort = useCallback((col: typeof sortBy) => {
@@ -234,13 +267,160 @@ export default function AccountsHome() {
     const isArchivedMode = typeFilter === 'ARCHIVED'
     const { accounts: archivedAccounts, isFetching: isFetchingArchived } = useArchivedAccounts(isArchivedMode)
 
+    // ── Selection helpers ──────────────────────────────────────────────────
+    const toggleSelect = useCallback((id: string) => {
+        setSelectedIds((prev) => {
+            const next = new Set(prev)
+            if (next.has(id)) {
+                next.delete(id)
+            } else {
+                next.add(id)
+            }
+            return next
+        })
+    }, [])
+
+    const clearSelection = useCallback(() => {
+        setSelectedIds(new Set())
+    }, [])
+
+    // ── Bulk delete handler (two-stage: check trades, then confirm individually) ──
+    const executeBulkDelete = useCallback(async () => {
+        const ids = Array.from(selectedIds)
+        setIsCheckingTrades(true)
+        setShowBulkConfirm(false)
+
+        try {
+            // Fetch trade counts for all selected accounts
+            const counts = await fetchTradeCounts(ids)
+
+            // Separate accounts into no-trades (immediate delete) and has-trades (needs warning)
+            const noTradeIds: string[] = []
+            const withTrades: Array<{ accountId: string; accountName: string; tradeCount: number; planCount: number }> = []
+
+            // Resolve account names from both active and archived lists
+            const allAccounts = [...accounts, ...archivedAccounts]
+
+            for (const id of ids) {
+                const info: TradeCountInfo = counts[id] || { trade_count: 0, plan_count: 0 }
+                if (info.trade_count === 0 && info.plan_count === 0) {
+                    noTradeIds.push(id)
+                } else {
+                    const acct = allAccounts.find(a => a.account_id === id)
+                    withTrades.push({
+                        accountId: id,
+                        accountName: acct?.name || id,
+                        tradeCount: info.trade_count,
+                        planCount: info.plan_count,
+                    })
+                }
+            }
+
+            // Immediately delete accounts with no trades
+            for (const id of noTradeIds) {
+                deleteAccount.mutate(id)
+            }
+
+            // Queue trade-warning modals for accounts with trades
+            if (withTrades.length > 0) {
+                setTradeWarningQueue(withTrades)
+            } else {
+                // All deleted, clean up
+                clearSelection()
+            }
+        } catch {
+            // If trade count check fails, fall back to regular delete
+            for (const id of ids) {
+                deleteAccount.mutate(id)
+            }
+            clearSelection()
+        } finally {
+            setIsCheckingTrades(false)
+        }
+    }, [selectedIds, accounts, archivedAccounts, deleteAccount, clearSelection])
+
+    // Handle confirming a single trade-warning item (force-delete)
+    const handleTradeWarningConfirm = useCallback(() => {
+        const current = tradeWarningQueue[0]
+        if (!current) return
+
+        forceDeleteAccount.mutate(current.accountId, {
+            onSettled: () => {
+                setTradeWarningQueue(prev => {
+                    const next = prev.slice(1)
+                    if (next.length === 0) {
+                        clearSelection()
+                        refetch()
+                    }
+                    return next
+                })
+            },
+        })
+    }, [tradeWarningQueue, forceDeleteAccount, clearSelection, refetch])
+
+    // Handle cancelling a trade-warning item (skip this account)
+    const handleTradeWarningCancel = useCallback(() => {
+        setTradeWarningQueue(prev => {
+            const next = prev.slice(1)
+            if (next.length === 0) {
+                clearSelection()
+                refetch()
+            }
+            return next
+        })
+    }, [clearSelection, refetch])
+
+    // ── Bulk archive handler ─────────────────────────────────────────────
+    const executeBulkArchive = useCallback(() => {
+        const ids = Array.from(selectedIds)
+        let completed = 0
+        ids.forEach((id) => {
+            archiveAccount.mutate(id, {
+                onSettled: () => {
+                    completed++
+                    if (completed === ids.length) {
+                        clearSelection()
+                        setShowBulkArchive(false)
+                        refetch()
+                    }
+                },
+            })
+        })
+    }, [selectedIds, archiveAccount, clearSelection, refetch])
+
+    // ── Bulk unarchive handler ────────────────────────────────────────────
+    const executeBulkUnarchive = useCallback(() => {
+        const ids = Array.from(selectedIds)
+        let completed = 0
+        ids.forEach((id) => {
+            unarchiveAccount.mutate(id, {
+                onSettled: () => {
+                    completed++
+                    if (completed === ids.length) {
+                        clearSelection()
+                        setShowBulkUnarchive(false)
+                        refetch()
+                    }
+                },
+            })
+        })
+    }, [selectedIds, unarchiveAccount, clearSelection, refetch])
+
     // Filter + sort accounts
     const filteredAccounts = useMemo(() => {
         const source = isArchivedMode ? archivedAccounts : (
             typeFilter === 'ALL' ? accounts : accounts.filter((a) => a.account_type === typeFilter)
         )
 
-        const sorted = [...source].sort((a, b) => {
+        // Apply text search filter
+        const searched = searchText
+            ? source.filter((a) => {
+                const q = searchText.toLowerCase()
+                return a.name.toLowerCase().includes(q) || (a.institution ?? '').toLowerCase().includes(q)
+            })
+            : source
+
+        const sorted = [...searched].sort((a, b) => {
             let cmp = 0
             switch (sortBy) {
                 case 'name':
@@ -270,7 +450,19 @@ export default function AccountsHome() {
         })
 
         return sorted
-    }, [accounts, archivedAccounts, typeFilter, sortBy, sortDir, isArchivedMode, portfolioTotal])
+    }, [accounts, archivedAccounts, typeFilter, sortBy, sortDir, isArchivedMode, portfolioTotal, searchText])
+
+    // ── Select-all toggle ────────────────────────────────────────────────
+    const allSelected = filteredAccounts.length > 0 && filteredAccounts.every((a) => selectedIds.has(a.account_id))
+    const someSelected = filteredAccounts.some((a) => selectedIds.has(a.account_id))
+
+    const toggleSelectAll = useCallback(() => {
+        if (allSelected) {
+            clearSelection()
+        } else {
+            setSelectedIds(new Set(filteredAccounts.map((a) => a.account_id)))
+        }
+    }, [allSelected, filteredAccounts, clearSelection])
 
     return (
         <>
@@ -315,25 +507,38 @@ export default function AccountsHome() {
                     <AddNewCard onAdd={guardedAddNew} />
                 </div>
 
-                {/* Filter / Sort Controls */}
-                <div data-testid="filter-sort-controls" className="flex items-center gap-3 mb-2">
-                    <label className="flex items-center gap-1 text-xs text-fg-muted">
-                        Filter:
-                        <select
-                            data-testid="type-filter"
-                            className="rounded border border-border bg-bg px-1.5 py-0.5 text-xs"
-                            value={typeFilter}
-                            onChange={(e) => setTypeFilter(e.target.value)}
-                        >
-                            <option value="ALL">All Types</option>
-                            {ACCOUNT_TYPES.map((t) => (
-                                <option key={t} value={t}>{ACCOUNT_TYPE_LABELS[t] ?? t}</option>
-                            ))}
-                            <option disabled>────────</option>
-                            <option value="ARCHIVED">📦 Archived</option>
-                        </select>
-                    </label>
+                {/* Text Search + Type Filter */}
+                <TableFilterBar
+                    searchPlaceholder="Search by name or institution…"
+                    searchValue={searchText}
+                    onSearchChange={setSearchText}
+                    debounceMs={0}
+                    filterOptions={[
+                        ...ACCOUNT_TYPES.map((t) => ({
+                            label: ACCOUNT_TYPE_LABELS[t] ?? t,
+                            value: t,
+                        })),
+                        { label: '📦 Archived', value: 'ARCHIVED' },
+                    ]}
+                    filterValue={typeFilter === 'ALL' ? '' : typeFilter}
+                    onFilterChange={(v) => setTypeFilter(v || 'ALL')}
+                    filterLabel="Type"
+                />
 
+                {/* Bulk Action Bar */}
+                <BulkActionBar
+                    selectedCount={selectedIds.size}
+                    itemType="accounts"
+                    onDelete={() => setShowBulkConfirm(true)}
+                    onClearSelection={clearSelection}
+                    actions={isArchivedMode
+                        ? [{ label: '📤 Unarchive', onClick: () => setShowBulkUnarchive(true) }]
+                        : [{ label: '📦 Archive', onClick: () => setShowBulkArchive(true) }]
+                    }
+                />
+
+                {/* Portfolio summary */}
+                <div data-testid="filter-sort-controls" className="flex items-center gap-3 mb-2">
                     <div className="ml-auto flex items-baseline gap-2">
                         <span className="text-sm font-semibold text-fg tabular-nums">
                             Portfolio: {currencyFmt.format(portfolioTotal)}
@@ -352,6 +557,15 @@ export default function AccountsHome() {
                     >
                         <thead className="border-b border-border bg-bg-subtle">
                             <tr>
+                                <th className="px-3 py-2 w-8">
+                                    <SelectionCheckbox
+                                        checked={allSelected}
+                                        indeterminate={!allSelected && someSelected}
+                                        onChange={toggleSelectAll}
+                                        ariaLabel="Select all accounts"
+                                        data-testid="select-all-checkbox"
+                                    />
+                                </th>
                                 {[
                                     { key: 'type' as const, label: 'Type', align: '' },
                                     { key: 'name' as const, label: 'Name', align: '' },
@@ -384,6 +598,8 @@ export default function AccountsHome() {
                                         account={account}
                                         onSelect={guardedSelectAccount}
                                         portfolioPercent={pct}
+                                        isSelected={selectedIds.has(account.account_id)}
+                                        onToggleSelect={toggleSelect}
                                     />
                                 )
                             })}
@@ -401,6 +617,7 @@ export default function AccountsHome() {
             >
                 {showCreateForm ? (
                     <AccountDetailPanel
+                        ref={panelRef}
                         key="create"
                         account={{
                             account_id: '',
@@ -416,7 +633,10 @@ export default function AccountsHome() {
                             latest_balance_date: null,
                         }}
                         isNew
-                        onCreated={() => setShowCreateForm(false)}
+                        onCreated={() => {
+                            setChildDirty(false)
+                            setShowCreateForm(false)
+                        }}
                         onDirtyChange={setChildDirty}
                     />
                 ) : activeAccount ? (
@@ -435,6 +655,65 @@ export default function AccountsHome() {
                 onDiscard={handleDiscard}
                 onSave={handleSaveAndContinue}
             />
+
+            {/* Bulk Delete Confirmation Modal (first stage) */}
+            {showBulkConfirm && (
+                <ConfirmDeleteModal
+                    open={showBulkConfirm}
+                    target={{
+                        type: 'accounts',
+                        count: selectedIds.size,
+                    }}
+                    onCancel={() => setShowBulkConfirm(false)}
+                    onConfirm={executeBulkDelete}
+                    isDeleting={isCheckingTrades}
+                />
+            )}
+
+            {/* Trade Warning Modal (second stage — sequential per account) */}
+            {tradeWarningQueue.length > 0 && (
+                <TradeWarningModal
+                    open={true}
+                    target={{
+                        accountName: tradeWarningQueue[0].accountName,
+                        tradeCount: tradeWarningQueue[0].tradeCount,
+                        planCount: tradeWarningQueue[0].planCount,
+                    }}
+                    onCancel={handleTradeWarningCancel}
+                    onConfirm={handleTradeWarningConfirm}
+                    isDeleting={forceDeleteAccount.isPending}
+                />
+            )}
+
+            {/* Bulk Archive Confirmation Modal */}
+            {showBulkArchive && (
+                <ConfirmDeleteModal
+                    open={showBulkArchive}
+                    target={{
+                        type: 'accounts',
+                        count: selectedIds.size,
+                    }}
+                    action="archive"
+                    onCancel={() => setShowBulkArchive(false)}
+                    onConfirm={executeBulkArchive}
+                    isDeleting={archiveAccount.isPending}
+                />
+            )}
+
+            {/* Bulk Unarchive Confirmation Modal */}
+            {showBulkUnarchive && (
+                <ConfirmDeleteModal
+                    open={showBulkUnarchive}
+                    target={{
+                        type: 'accounts',
+                        count: selectedIds.size,
+                    }}
+                    action="unarchive"
+                    onCancel={() => setShowBulkUnarchive(false)}
+                    onConfirm={executeBulkUnarchive}
+                    isDeleting={unarchiveAccount.isPending}
+                />
+            )}
         </>
     )
 }

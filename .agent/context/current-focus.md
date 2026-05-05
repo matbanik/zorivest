@@ -2,8 +2,9 @@
 
 ## Current Priority
 
-GUI UX Hardening (MEU-196/197/198) project complete. All 33 tasks closed. 522/522 vitest, 4/4 E2E dirty-guard, 8/8 MEU gate checks pass. Review verdict: corrections_applied (awaiting final re-review).
+Phase 8a Layer 4 (MEU-195/190/191) — status `complete`, pending Codex review. 8 service methods + 24 normalizers + Massive migration hardening. All tasks `[x]`.
 
 ## Next Steps
 
-1. Phase 8a Layer 4 planning continues (MEU-190/191 service methods)
+1. Codex validation review of MEU-195/190/191 handoff
+2. Phase 8a Layer 5 planning (MEU-192 — API routes + MCP action mappings)

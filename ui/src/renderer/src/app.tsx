@@ -8,6 +8,7 @@ import { NotificationProvider } from './hooks/useNotifications'
 import ModuleSkeleton from './components/ModuleSkeleton'
 import './globals.css'
 import './styles/form-guard.css'
+import './styles/table-enhancements.css'
 
 function App() {
     // Initialize preload bridge — fetch backend URL and auth token from main process

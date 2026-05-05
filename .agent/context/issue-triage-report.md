@@ -1,78 +1,99 @@
-# Known Issue Triage Report — 2026-04-30
+# Known Issue Triage Report — 2026-05-03
 
 ## Summary
-- Total issues reviewed: 9
-- Archived in Step 1: 0
-- Remaining active: 9
-- Actionable (new/expanded MEUs): 0
+- Total issues reviewed: 12
+- Archived in Step 1: 0 (no fully resolved issues found)
+- Remaining active: 12
+- Actionable (new/expanded MEUs): 2
 - Upstream/deferred: 3
-- Workaround-sufficient: 3
-- Blocked on future work: 2
-- Technical debt (low priority): 1
+- Workaround-OK: 4
+- Tech debt: 2
+- Blocked: 2
 - Architecture decisions needed: 0
 
 ## Archival Actions Performed (Step 1)
 
-No issues qualified for archival. All 9 were verified against the codebase:
+**No issues were archived.** All 12 active issues were verified against the codebase and none are fully resolved:
 
-| Issue ID | Verification Method | Result |
-|----------|-------------------|--------|
-| STUB-RETIRE | `rg StubAnalyticsService/StubReviewService/StubTaxService` in packages/ | All 3 stubs still active in stubs.py + main.py |
-| MCP-ZODSTRIP | `rg z.object` in mcp-server/src/ | 18 files use z.object — raw shape workaround in place |
-| MCP-WINDETACH | `rg detached` in ui/src/ | No matches — Windows Job Objects workaround confirmed |
-| MCP-HTTPBROKEN | `rg stdio` in mcp-server/src/ | StdioServerTransport confirmed as sole transport |
-| MCP-DIST-REBUILD | Architectural review | By-design — TypeScript compilation required |
-| UI-ESMSTORE | `rg electron-store` in ui/package.json | Pinned to `^8.2.0` (CJS) |
-| E2E-AXEELECTRON | `rg axe-core` in ui/ | 5 E2E test files use file:// workaround |
-| E2E-AXESILENT | Process awareness issue | No code fix possible |
-| E2E-ELECTRONLAUNCH | Environment-specific | E2E verified locally; CI resolution known but unimplemented |
+- **[STUB-RETIRE]** — `StubAnalyticsService`, `StubReviewService`, `StubTaxService` still active in `stubs.py`, `main.py`, `dependencies.py` (14 references).
+- **[MCP-ZODSTRIP]** — Upstream TS-SDK #1291/#1380/PR #1603 still open. Startup assertion workaround in place.
+- **[MCP-WINDETACH]** — Upstream Node.js #5146/#36808 still open (since 2016).
+- **[MCP-HTTPBROKEN]** — Mitigated by design (stdio primary). No Streamable HTTP references in codebase.
+- **[MCP-DIST-REBUILD]** — By design (`"main": "dist/index.js"` in package.json).
+- **[UI-ESMSTORE]** — Pinned at `"electron-store": "^8.2.0"` (CJS). Upstream v9+ still ESM-only.
+- **[E2E-AXEELECTRON]** — axe-core referenced in 5 E2E test files. `file://` workaround still active.
+- **[E2E-AXESILENT]** — Process awareness issue. No automated fix in place.
+- **[E2E-ELECTRONLAUNCH]** — Environment-specific. No CI xvfb setup yet.
+- **[MKTDATA-POLYGON-REBRAND]** — `provider_registry.py` still uses `https://api.polygon.io/v2`. MEU-195 planned.
+- **[MKTDATA-YAHOO-UNOFFICIAL]** — Partially resolved (OHLCV done). Remaining: fundamentals, earnings, dividends, splits, news fix.
+- **[MKTDATA-TRADINGVIEW-NOPUBLICAPI]** — Partially resolved (quote+fundamentals+POST runtime). Remaining: exchange routing, batching, caching, technicals.
 
 ## Classification Table (Active Issues)
 
 | Issue ID | Severity | Component | Classification | Target | Priority | Notes |
 |----------|----------|-----------|---------------|--------|----------|-------|
-| STUB-RETIRE | Low | api | `BLOCKED` | MEU-104–116, MEU-110, MEU-123–126 | P4 | Stubs retire when analytics/review/tax services are implemented (P2.75/P3) |
-| MCP-ZODSTRIP | Critical | mcp-server | `UPSTREAM` | TS-SDK #1291, #1380, PR #1603 | N/A | Raw shape convention workaround is stable |
-| MCP-WINDETACH | Critical | infrastructure | `UPSTREAM` | Node.js #5146, #36808 | N/A | Windows Job Objects workaround in place |
-| MCP-HTTPBROKEN | High | mcp-server | `WORKAROUND-OK` | — | N/A | Design decision: stdio-only transport |
-| MCP-DIST-REBUILD | High | mcp-server | `WORKAROUND-OK` | — | N/A | By-design: `npm run build` before IDE restart |
-| UI-ESMSTORE | Medium | ui | `UPSTREAM` | electron-store maintainer | N/A | Pinned to v8 (last CJS version) |
-| E2E-AXEELECTRON | High | ui (E2E) | `WORKAROUND-OK` | — | N/A | file:// URL + page.evaluate() workaround functional |
-| E2E-AXESILENT | Medium | ui (E2E) | `TECH-DEBT` | — | P4 | Wrap axe scans in error handling + "scan completed" assertion |
-| E2E-ELECTRONLAUNCH | High | ui (E2E) | `BLOCKED` | CI infrastructure | P3 | xvfb-run resolution path known but unimplemented |
+| STUB-RETIRE | Low | api | `BLOCKED` | MEU-104-116, MEU-110, MEU-123-126 | P4 | Retires when analytics/review/tax services built |
+| MCP-ZODSTRIP | Critical | mcp-server | `UPSTREAM` | TS-SDK #1291/#1380 | — | Startup assertion workaround sufficient |
+| MCP-WINDETACH | Critical | infrastructure | `UPSTREAM` | Node.js #5146/#36808 | — | Job Objects workaround in place |
+| MCP-HTTPBROKEN | High | mcp-server | `WORKAROUND-OK` | — | — | stdio is primary transport by design |
+| MCP-DIST-REBUILD | High | mcp-server | `WORKAROUND-OK` | — | — | By design; npm run build + restart |
+| UI-ESMSTORE | Medium | ui | `UPSTREAM` | electron-store v9+ | — | Pinned to v8 CJS; adequate indefinitely |
+| E2E-AXEELECTRON | High | ui (E2E) | `WORKAROUND-OK` | — | — | file:// + page.evaluate() pattern |
+| E2E-AXESILENT | Medium | ui (E2E) | `TECH-DEBT` | E2E test hardening | P4 | Wrap axe scan in structured try/catch |
+| E2E-ELECTRONLAUNCH | High | ui (E2E) | `BLOCKED` | CI pipeline setup | P3 | xvfb-run needed in CI; local works |
+| MKTDATA-POLYGON-REBRAND | Low | infrastructure | `MEU-EXPAND` | MEU-195 (planned) | P3 | Simple domain swap; independent |
+| MKTDATA-YAHOO-UNOFFICIAL | Med/High | infrastructure | `MEU-EXPAND` | MEU-190/191 scope | P2 | Remaining Yahoo data types piggyback on Phase 8a L4 |
+| MKTDATA-TRADINGVIEW-NOPUBLICAPI | Medium | infrastructure | `TECH-DEBT` | Future mini-MEU | P4 | POST runtime resolved (MEU-189); remaining items opportunistic |
 
 ## Recommended Project Batches
 
-**No project batches recommended.** All 9 active issues are classified as upstream, workaround-sufficient, blocked, or low-priority tech debt. None require immediate MEU creation or expansion.
+### Batch 1: `phase-8a-layer4-service-methods` — Priority P2
 
-## Architecture Decisions Required
+- **Issues addressed**: [MKTDATA-YAHOO-UNOFFICIAL] (remaining expansion items), [MKTDATA-POLYGON-REBRAND]
+- **Existing MEUs**: MEU-190 `service-methods-core`, MEU-191 `service-methods-extended`, MEU-195 `polygon-massive-migration`
+- **Scope expansion**: MEU-190/191 acceptance criteria should include Yahoo-specific data types (fundamentals via v10/quoteSummary, earnings, dividends via v8/chart?events=div, splits). These are same-endpoint expansions, not new providers.
+- **Build-plan section**: `docs/build-plan/08a-market-data-expansion.md` (items 30.9, 30.10, 30.14)
+- **Complexity**: M (MEU-190/191) + S (MEU-195) = overall M
+- **Dependencies**: MEU-182-189 all complete. No blockers.
+- **Next step**: Invoke `/create-plan` with this batch. Already identified as next priority in `current-focus.md`.
 
-None.
+### Batch 2: `e2e-ci-infrastructure` — Priority P3
+
+- **Issues addressed**: [E2E-ELECTRONLAUNCH]
+- **New MEUs**: Mini-MEU for CI E2E configuration (xvfb-run wrapper, GitHub Actions workflow)
+- **Build-plan section**: CI/DevOps (no existing section — would need `docs/build-plan/07a-ci-e2e.md` or piggyback on existing CI docs)
+- **Complexity**: S
+- **Dependencies**: None
+- **Next step**: Defer until CI pipeline work is prioritized. Not blocking any current development.
 
 ## No Action Required
 
+Issues classified as UPSTREAM, WORKAROUND-OK, BLOCKED, or TECH-DEBT with no near-term action:
+
 | Issue ID | Classification | Rationale |
 |----------|---------------|-----------|
-| STUB-RETIRE | BLOCKED | Stubs retire naturally when analytics (MEU-104–116), review (MEU-110), and tax (MEU-123–126) services are implemented in P2.75/P3 phases |
-| MCP-ZODSTRIP | UPSTREAM | TS-SDK bug (#1291, #1380). Raw shape convention workaround is stable and verified. Track upstream progress. |
-| MCP-WINDETACH | UPSTREAM | Node.js bug (#5146, #36808) open since 2016. Windows Job Objects workaround is permanent. No local fix possible. |
-| MCP-HTTPBROKEN | WORKAROUND-OK | Intentional design decision to use stdio transport exclusively. HTTP transport failure modes are irrelevant to Zorivest's architecture. |
-| MCP-DIST-REBUILD | WORKAROUND-OK | TypeScript MCP server inherently requires compilation. The documented `npm run build` workflow is the expected developer experience. Could be addressed by watch mode in P2.6. |
-| UI-ESMSTORE | UPSTREAM | electron-store v9+ is ESM-only, incompatible with electron-vite CJS main process. Pin to v8 is stable. Track when electron-vite adds full ESM support. |
-| E2E-AXEELECTRON | WORKAROUND-OK | The file:// URL + page.evaluate() workaround achieves identical accessibility scanning results. No loss of functionality. |
-| E2E-AXESILENT | TECH-DEBT | Low-severity cleanup. Could batch with other E2E test improvements in a future debt-reduction project. |
-| E2E-ELECTRONLAUNCH | BLOCKED | Resolution path (xvfb-run) is known but blocked on CI infrastructure setup. E2E tests work locally. Will be addressed when CI hardening work begins. |
+| STUB-RETIRE | `BLOCKED` | Stubs retire when real services are implemented (P2.75 analytics, P3 tax). No action until those phases. |
+| MCP-ZODSTRIP | `UPSTREAM` | TS-SDK bug. Startup assertion prevents silent failures. Monitor PRs. |
+| MCP-WINDETACH | `UPSTREAM` | Node.js bug since 2016. Job Objects workaround is permanent. |
+| MCP-HTTPBROKEN | `WORKAROUND-OK` | stdio transport is the design choice. HTTP transport avoided entirely. |
+| MCP-DIST-REBUILD | `WORKAROUND-OK` | By-design rebuild requirement. Documented in skill (mcp-rebuild). |
+| UI-ESMSTORE | `UPSTREAM` | electron-store v8 pin is stable. v9+ ESM-only is a library decision. |
+| E2E-AXEELECTRON | `WORKAROUND-OK` | file:// axe-core injection works. No upstream fix expected. |
+| E2E-AXESILENT | `TECH-DEBT` | Low-severity process awareness. Can batch into future E2E hardening. |
+| E2E-ELECTRONLAUNCH | `BLOCKED` | CI-specific. Local dev unaffected. Defer until CI pipeline project. |
+| MKTDATA-TRADINGVIEW-NOPUBLICAPI | `TECH-DEBT` | Core integration done. Expansion items (exchange routing, batching, technicals) are opportunistic. |
 
-## Observations
+## Known-Issues.md Cleanup Recommendation
 
-### known-issues.md Health
-- **Line count:** 122 (target: < 100) — slightly over but no issues can be pruned
-- **Archive health:** 41 entries properly archived with resolution dates
-- **No premature archival detected** in known-issues-archive.md
+**Current line count: 211 lines (target: <100)**
 
-### Build Plan Next Steps
-Per `current-focus.md`, the project is at a natural transition point after MEU-PH14 completion. The next logical work items from `build-priority-matrix.md` are:
-1. **P2:** MEU-171 `dashboard-service` + MEU-172 `gui-home-dashboard` (both ⬜ planned)
-2. **P2.5:** MEU-174 `websocket-infrastructure` (⬜ planned)
-3. **P2.6:** MEU-91–95b service daemon & tray icon (all ⬜ planned)
-4. **Research items:** MEU-165a/b workspace setup (🔲 planned)
+The file is bloated by two research-tracking entries that have outgrown the issue format:
+
+| Entry | Current Lines | Recommended Lines | Action |
+|-------|:---:|:---:|--------|
+| MKTDATA-YAHOO-UNOFFICIAL | ~43 | ~10 | Condense: move detailed tables/research to build-plan docs |
+| MKTDATA-TRADINGVIEW-NOPUBLICAPI | ~45 | ~10 | Condense: move detailed tables/research to build-plan docs |
+| MKTDATA-POLYGON-REBRAND | ~17 | ~8 | Condense: research findings belong in build-plan |
+| Archived table | ~45 | ~45 | Keep as-is (ID/date/summary rows) |
+
+**Recommended action**: After this triage is approved, condense the three market data entries and move their detailed research/capability tables into `08a-market-data-expansion.md` or a dedicated research doc. This would bring the file to ~100 lines.

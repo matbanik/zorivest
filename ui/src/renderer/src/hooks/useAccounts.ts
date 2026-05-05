@@ -16,6 +16,7 @@ export interface Account {
     notes: string
     latest_balance: number | null
     latest_balance_date: string | null
+    trade_count?: number | null
 }
 
 /** Payload for creating/updating an account */
@@ -210,6 +211,28 @@ export function useDeleteAccount() {
         },
         onSettled: () => {
             queryClient.invalidateQueries({ queryKey: accountKeys.all })
+            queryClient.invalidateQueries({ queryKey: ['accounts', 'archived'] })
+        },
+    })
+}
+
+/**
+ * useForceDeleteAccount — POST /api/v1/accounts/{id}:reassign-trades
+ *
+ * Moves all trades to SYSTEM_DEFAULT then hard-deletes the account.
+ * Use this for archived accounts that have trades (where DELETE returns 409).
+ */
+export function useForceDeleteAccount() {
+    const queryClient = useQueryClient()
+
+    return useMutation({
+        mutationFn: (id: string) =>
+            apiFetch<{ trades_reassigned: number; account_id: string }>(`/api/v1/accounts/${id}:reassign-trades`, {
+                method: 'POST',
+            }),
+        onSettled: () => {
+            queryClient.invalidateQueries({ queryKey: accountKeys.all })
+            queryClient.invalidateQueries({ queryKey: ['accounts', 'archived'] })
         },
     })
 }
@@ -244,6 +267,27 @@ export function useArchiveAccount() {
         },
         onSettled: () => {
             queryClient.invalidateQueries({ queryKey: accountKeys.all })
+            queryClient.invalidateQueries({ queryKey: ['accounts', 'archived'] })
+        },
+    })
+}
+
+/**
+ * useUnarchiveAccount — POST /api/v1/accounts/{id}:unarchive
+ *
+ * Restore an archived account: set is_archived=False.
+ */
+export function useUnarchiveAccount() {
+    const queryClient = useQueryClient()
+
+    return useMutation({
+        mutationFn: (id: string) =>
+            apiFetch<{ status: string; account_id: string }>(`/api/v1/accounts/${id}:unarchive`, {
+                method: 'POST',
+            }),
+        onSettled: () => {
+            queryClient.invalidateQueries({ queryKey: accountKeys.all })
+            queryClient.invalidateQueries({ queryKey: ['accounts', 'archived'] })
         },
     })
 }
@@ -287,5 +331,27 @@ export function useAddBalance() {
             queryClient.invalidateQueries({ queryKey: accountKeys.balances(variables.accountId) })
             queryClient.invalidateQueries({ queryKey: accountKeys.all })
         },
+    })
+}
+
+// ── Trade count query ───────────────────────────────────────────────────
+
+/** Result shape from POST /accounts:trade-counts */
+export interface TradeCountInfo {
+    trade_count: number
+    plan_count: number
+}
+
+/**
+ * Fetch trade + plan counts for a list of account IDs.
+ * Used by the delete flow to determine which accounts need
+ * a second confirmation (trade reassignment warning).
+ */
+export async function fetchTradeCounts(
+    accountIds: string[],
+): Promise<Record<string, TradeCountInfo>> {
+    return apiFetch<Record<string, TradeCountInfo>>('/api/v1/accounts:trade-counts', {
+        method: 'POST',
+        body: JSON.stringify({ account_ids: accountIds }),
     })
 }

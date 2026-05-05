@@ -9,7 +9,7 @@
  */
 
 import { useState, useCallback, useRef } from 'react'
-import { useQuery } from '@tanstack/react-query'
+import { useQuery, useQueryClient } from '@tanstack/react-query'
 import { apiFetch } from '@/lib/api'
 import { useFormGuard } from '@/hooks/useFormGuard'
 import UnsavedChangesModal from '@/components/UnsavedChangesModal'
@@ -360,6 +360,25 @@ export default function SchedulingLayout() {
         )
     }, [selectedTemplate, createTemplateMutation, deleteTemplateMutation])
 
+    // ── Bulk delete handlers (wiring for MEU-203 child components) ──
+    const queryClient = useQueryClient()
+
+    const handleBulkDeletePolicies = useCallback(async (ids: string[]) => {
+        for (const id of ids) {
+            await apiFetch(`/api/v1/scheduling/policies/${id}`, { method: 'DELETE' })
+        }
+        await queryClient.invalidateQueries({ queryKey: ['scheduling-policies'] })
+        setSelectedPolicy(null)
+    }, [queryClient])
+
+    const handleBulkDeleteTemplates = useCallback(async (names: string[]) => {
+        for (const name of names) {
+            await apiFetch(`/api/v1/scheduling/templates/${encodeURIComponent(name)}`, { method: 'DELETE' })
+        }
+        await queryClient.invalidateQueries({ queryKey: ['email-templates'] })
+        setSelectedTemplate(null)
+    }, [queryClient])
+
     // Keep selected template in sync when templates refresh
     const currentTemplate = selectedTemplate
         ? templates.find((t) => t.name === selectedTemplate.name) ?? selectedTemplate
@@ -405,6 +424,7 @@ export default function SchedulingLayout() {
                                 selectedPolicyId={currentPolicy?.id ?? null}
                                 onSelect={handleSelect}
                                 onCreate={handleCreate}
+                                onDeletePolicies={handleBulkDeletePolicies}
                                 isLoading={isLoading}
                                 error={error}
                             />
@@ -508,6 +528,7 @@ export default function SchedulingLayout() {
                                 selectedTemplateName={currentTemplate?.name ?? null}
                                 onSelect={handleSelectTemplate}
                                 onCreate={handleCreateTemplate}
+                                onDeleteTemplates={handleBulkDeleteTemplates}
                                 isLoading={templatesLoading}
                                 error={templatesError}
                             />

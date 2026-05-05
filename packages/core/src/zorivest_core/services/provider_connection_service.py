@@ -188,6 +188,30 @@ def _validate_openfigi(data: Any) -> bool:
     return False
 
 
+@_register_validator("Tradier")
+def _validate_tradier(data: Any) -> bool:
+    """Tradier /user/profile returns {"profile": {"account": {...}}}.
+
+    Accepts: {"profile": {}} — key presence confirms valid auth.
+    Rejects: {"fault": {"faultstring": "..."}}, None
+    """
+    if isinstance(data, dict):
+        return "profile" in data and "fault" not in data
+    return False
+
+
+@_register_validator("Alpaca")
+def _validate_alpaca(data: Any) -> bool:
+    """Alpaca /v2/account returns {"id": "...", "status": "..."}.
+
+    Accepts: {"id": "..."} — key presence confirms valid auth.
+    Rejects: {"code": 40110000, "message": "..."}, None
+    """
+    if isinstance(data, dict):
+        return "id" in data and "code" not in data
+    return False
+
+
 def _validate_generic(data: Any) -> bool:
     """AC-27: Generic check for providers not in the validation table."""
     return data is not None
@@ -239,6 +263,7 @@ class ProviderConnectionService:
             result.append(
                 ProviderStatus(
                     provider_name=name,
+                    display_name=config.name if config.name != name else None,
                     is_enabled=bool(setting.is_enabled) if setting else False,
                     has_api_key=bool(setting and setting.encrypted_api_key),
                     rate_limit=(

@@ -32,10 +32,12 @@ vi.mock('@/hooks/useAccounts', () => ({
     useCreateAccount: () => ({ mutate: vi.fn(), isPending: false }),
     useUpdateAccount: () => ({ mutate: mockUpdateMutate, isPending: false }),
     useDeleteAccount: () => ({ mutate: mockDeleteMutate, isPending: false }),
+    useForceDeleteAccount: () => ({ mutate: vi.fn(), isPending: false }),
     useBalanceHistory: () => ({ data: [], isLoading: false }),
     useAddBalance: () => ({ mutate: mockAddBalanceMutate, isPending: false }),
     useArchiveAccount: () => ({ mutate: vi.fn(), isPending: false }),
     useArchivedAccounts: () => ({ accounts: [], isLoading: false, isFetching: false, error: null, refetch: vi.fn() }),
+    fetchTradeCounts: vi.fn().mockResolvedValue({}),
 }))
 
 import AccountDetailPanel from '../AccountDetailPanel'

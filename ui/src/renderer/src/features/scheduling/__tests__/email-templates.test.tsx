@@ -564,8 +564,8 @@ describe('EmailTemplateDetail', () => {
 
         fireEvent.click(screen.getByTestId(SCHEDULING_TEST_IDS.TEMPLATE_DELETE_BTN))
 
+        expect(screen.getByTestId('confirm-delete-modal')).toBeInTheDocument()
         expect(screen.getByText(/Are you sure you want to delete/)).toBeInTheDocument()
-        expect(screen.getByText('my-custom-report', { selector: 'strong' })).toBeInTheDocument()
     })
 
     it('F1: clicking Cancel in delete modal closes it without calling onDelete', () => {
@@ -576,10 +576,10 @@ describe('EmailTemplateDetail', () => {
         )
 
         fireEvent.click(screen.getByTestId(SCHEDULING_TEST_IDS.TEMPLATE_DELETE_BTN))
-        expect(screen.getByText(/Are you sure you want to delete/)).toBeInTheDocument()
+        expect(screen.getByTestId('confirm-delete-modal')).toBeInTheDocument()
 
-        fireEvent.click(screen.getByText('Cancel'))
-        expect(screen.queryByText(/Are you sure you want to delete/)).not.toBeInTheDocument()
+        fireEvent.click(screen.getByTestId('confirm-delete-cancel-btn'))
+        expect(screen.queryByTestId('confirm-delete-modal')).not.toBeInTheDocument()
         expect(onDelete).not.toHaveBeenCalled()
     })
 
@@ -591,9 +591,8 @@ describe('EmailTemplateDetail', () => {
         )
 
         fireEvent.click(screen.getByTestId(SCHEDULING_TEST_IDS.TEMPLATE_DELETE_BTN))
-        // Modal has both an h4 "Delete Template" and a button "Delete Template" — target the button
-        const deleteButtons = screen.getAllByText('Delete Template')
-        const confirmBtn = deleteButtons.find(el => el.tagName === 'BUTTON')!
+        // Use the standardized data-testid from ConfirmDeleteModal
+        const confirmBtn = screen.getByTestId('confirm-delete-confirm-btn')
         fireEvent.click(confirmBtn)
 
         expect(onDelete).toHaveBeenCalled()

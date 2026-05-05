@@ -53,7 +53,7 @@ FREE_PROVIDER_NAMES = sorted(
 
 EXPECTED_AUTH_METHODS: dict[str, AuthMethod] = {
     "Alpha Vantage": AuthMethod.QUERY_PARAM,
-    "Polygon.io": AuthMethod.BEARER_HEADER,
+    "Polygon.io": AuthMethod.QUERY_PARAM,
     "Finnhub": AuthMethod.CUSTOM_HEADER,
     "Financial Modeling Prep": AuthMethod.QUERY_PARAM,
     "EODHD": AuthMethod.QUERY_PARAM,
@@ -80,8 +80,12 @@ class TestProviderRegistryAC1:
     def test_all_values_are_provider_config(self) -> None:
         for name, config in PROVIDER_REGISTRY.items():
             assert isinstance(config, ProviderConfig), f"{name} is not ProviderConfig"
-            # Value: verify each config has a non-empty name
-            assert config.name == name
+            # Value: verify each config has a non-empty name matching key
+            # Exception: Polygon.io rebranded to Massive; key kept for compat
+            if name == "Polygon.io":
+                assert config.name == "Massive"
+            else:
+                assert config.name == name
 
 
 class TestProviderRegistryAC2:
@@ -110,7 +114,11 @@ class TestProviderRegistryAC2:
     @pytest.mark.parametrize("name", EXPECTED_NAMES)
     def test_provider_name_matches_key(self, name: str) -> None:
         config = PROVIDER_REGISTRY[name]
-        assert config.name == name, f"Key '{name}' != config.name '{config.name}'"
+        # Polygon.io rebranded to Massive; dict key kept for backward compat
+        if name == "Polygon.io":
+            assert config.name == "Massive"
+        else:
+            assert config.name == name, f"Key '{name}' != config.name '{config.name}'"
 
 
 class TestProviderRegistryAC3:
@@ -196,3 +204,25 @@ class TestFreeProvidersAC7:
         config = PROVIDER_REGISTRY[name]
         assert isinstance(config, ProviderConfig)
         assert config.name == name
+
+
+class TestTradierAcceptHeader:
+    """Tradier API requires Accept: application/json to return JSON instead of XML.
+
+    Without this header, Tradier returns XML by default, causing response.json()
+    to fail and the connection test to report "unexpected response".
+    """
+
+    def test_tradier_headers_include_accept_json(self) -> None:
+        config = PROVIDER_REGISTRY["Tradier"]
+        assert "Accept" in config.headers_template, (
+            "Tradier headers_template must include 'Accept' header"
+        )
+        assert config.headers_template["Accept"] == "application/json", (
+            "Tradier Accept header must be 'application/json'"
+        )
+
+    def test_tradier_headers_include_authorization(self) -> None:
+        config = PROVIDER_REGISTRY["Tradier"]
+        assert "Authorization" in config.headers_template
+        assert "{api_key}" in config.headers_template["Authorization"]

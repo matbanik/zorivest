@@ -23,12 +23,18 @@ declare global {
 
 export interface ProviderStatus {
     provider_name: string
+    display_name: string | null
     is_enabled: boolean
     has_api_key: boolean
     rate_limit: number
     timeout: number
     last_test_status: string | null
     signup_url: string | null
+}
+
+/** Use display_name when available, otherwise fall back to provider_name. */
+function label(p: ProviderStatus): string {
+    return p.display_name ?? p.provider_name
 }
 
 interface ProviderForm {
@@ -138,6 +144,8 @@ export function MarketDataProvidersPage() {
                 body: JSON.stringify(payload),
             })
             await queryClient.invalidateQueries({ queryKey: ['market-providers'] })
+            // Clear sensitive fields so isDirty returns to false
+            setForm((prev) => ({ ...prev, api_key: '', api_secret: '' }))
             setStatus('Saved')
         } catch (err) {
             setStatus(`Error: ${err instanceof Error ? err.message : 'Failed to save'}`)
@@ -255,7 +263,7 @@ export function MarketDataProvidersPage() {
                                     }`}
                             >
                                 <span aria-hidden="true">{statusIcon(provider.last_test_status)}</span>
-                                <span className="flex-1 truncate">{provider.provider_name}</span>
+                                <span className="flex-1 truncate">{label(provider)}</span>
                                 {!provider.is_enabled && (
                                     <span className="text-xs text-fg-muted" aria-hidden="true">Disabled</span>
                                 )}
@@ -274,7 +282,7 @@ export function MarketDataProvidersPage() {
                     {/* Header */}
                     <div className="flex items-center justify-between">
                         <h2 className="text-base font-semibold text-fg">
-                            {selectedProvider.provider_name}
+                            {label(selectedProvider)}
                         </h2>
                         <span className="text-sm" aria-hidden="true">
                             {statusIcon(selectedProvider.last_test_status)}

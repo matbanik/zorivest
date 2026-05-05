@@ -628,12 +628,12 @@ describe('PolicyDetail', () => {
         fireEvent.click(screen.getByTestId(SCHEDULING_TEST_IDS.POLICY_DELETE_BTN))
 
         // Modal should be visible in the DOM (portaled to body)
-        // 'Delete Policy' appears in heading + confirm button, so use getAllByText
-        expect(screen.getAllByText('Delete Policy').length).toBeGreaterThanOrEqual(1)
+        // ConfirmDeleteModal renders 'Delete policy' in heading and 'Are you sure...' in body
+        expect(screen.getByTestId('confirm-delete-modal')).toBeInTheDocument()
         expect(screen.getByText(/Are you sure you want to delete/)).toBeInTheDocument()
 
         // Click the confirm button in the modal
-        const confirmBtn = screen.getByRole('button', { name: 'Delete Policy' })
+        const confirmBtn = screen.getByTestId('confirm-delete-confirm-btn')
         fireEvent.click(confirmBtn)
 
         expect(defaultHandlers.onDelete).toHaveBeenCalled()
@@ -647,10 +647,10 @@ describe('PolicyDetail', () => {
 
         // Open the delete modal
         fireEvent.click(screen.getByTestId(SCHEDULING_TEST_IDS.POLICY_DELETE_BTN))
-        expect(screen.getAllByText('Delete Policy').length).toBeGreaterThanOrEqual(1)
+        expect(screen.getByTestId('confirm-delete-modal')).toBeInTheDocument()
 
         // Click Cancel — modal should close, onDelete NOT called
-        const cancelBtn = screen.getByRole('button', { name: 'Cancel' })
+        const cancelBtn = screen.getByTestId('confirm-delete-cancel-btn')
         fireEvent.click(cancelBtn)
 
         expect(defaultHandlers.onDelete).not.toHaveBeenCalled()

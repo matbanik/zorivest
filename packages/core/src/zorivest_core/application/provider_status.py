@@ -17,6 +17,7 @@ class ProviderStatus(BaseModel):
     """
 
     provider_name: str
+    display_name: str | None = None
     is_enabled: bool
     has_api_key: bool
     rate_limit: int

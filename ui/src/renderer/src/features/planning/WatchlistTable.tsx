@@ -14,9 +14,12 @@
  * CSS: imports watchlist-tokens.css for design token custom properties.
  */
 
-import { useState, useMemo } from 'react'
+import { useState, useMemo, useCallback } from 'react'
 import '../../styles/watchlist-tokens.css'
 import { formatVolume, formatPrice, getChangeColor, formatFreshness } from './watchlist-utils'
+import SelectionCheckbox from '@/components/SelectionCheckbox'
+import BulkActionBar from '@/components/BulkActionBar'
+import ConfirmDeleteModal from '@/components/ConfirmDeleteModal'
 
 // ── Types ────────────────────────────────────────────────────────────────
 
@@ -93,6 +96,11 @@ export default function WatchlistTable({
     const [sortField, setSortField] = useState<SortField | null>(null)
     const [sortDir, setSortDir] = useState<SortDir>('asc')
 
+    // MEU-202: Multi-select state
+    const [selectedTickers, setSelectedTickers] = useState<Set<string>>(new Set())
+    const [searchQuery, setSearchQuery] = useState('')
+    const [showBulkConfirm, setShowBulkConfirm] = useState(false)
+
     const startEdit = (ticker: string, currentNotes: string) => {
         setEditingTicker(ticker)
         setEditValue(currentNotes)
@@ -132,10 +140,20 @@ export default function WatchlistTable({
         }
     }
 
-    const sortedItems = useMemo(() => {
-        if (!sortField) return items
+    // MEU-202: Text search filter
+    const filteredItems = useMemo(() => {
+        if (!searchQuery.trim()) return items
+        const q = searchQuery.toLowerCase()
+        return items.filter((item) =>
+            item.ticker.toLowerCase().includes(q) ||
+            item.notes.toLowerCase().includes(q)
+        )
+    }, [items, searchQuery])
 
-        const sorted = [...items].sort((a, b) => {
+    const sortedItems = useMemo(() => {
+        if (!sortField) return filteredItems
+
+        const sorted = [...filteredItems].sort((a, b) => {
             if (sortField === 'ticker') {
                 return a.ticker.localeCompare(b.ticker)
             }
@@ -150,7 +168,35 @@ export default function WatchlistTable({
 
         if (sortDir === 'desc') sorted.reverse()
         return sorted
-    }, [items, quotes, sortField, sortDir])
+    }, [filteredItems, quotes, sortField, sortDir])
+
+    // MEU-202: Selection handlers
+    const toggleSelect = useCallback((ticker: string) => {
+        setSelectedTickers(prev => {
+            const next = new Set(prev)
+            if (next.has(ticker)) next.delete(ticker)
+            else next.add(ticker)
+            return next
+        })
+    }, [])
+
+    const toggleSelectAll = useCallback(() => {
+        setSelectedTickers(prev => {
+            if (prev.size === filteredItems.length && prev.size > 0) {
+                return new Set()
+            }
+            return new Set(filteredItems.map(i => i.ticker))
+        })
+    }, [filteredItems])
+
+    const handleBulkRemove = useCallback(async () => {
+        const tickers = Array.from(selectedTickers)
+        for (const ticker of tickers) {
+            onRemoveTicker?.(ticker)
+        }
+        setSelectedTickers(new Set())
+        setShowBulkConfirm(false)
+    }, [selectedTickers, onRemoveTicker])
 
     if (items.length === 0) {
         return (
@@ -164,9 +210,41 @@ export default function WatchlistTable({
 
     return (
         <div className={colorblind ? 'wl-colorblind' : ''} data-testid="watchlist-table-wrapper">
+            {/* MEU-202: Search input */}
+            <div style={{ marginBottom: '8px' }}>
+                <input
+                    data-testid="ticker-search-input"
+                    type="text"
+                    value={searchQuery}
+                    onChange={(e) => setSearchQuery(e.target.value)}
+                    placeholder="Search by ticker or notes…"
+                    className="w-full px-3 py-1.5 text-sm rounded-md bg-bg border border-bg-subtle text-fg"
+                />
+            </div>
+
+            {/* MEU-202: Bulk action bar */}
+            {selectedTickers.size > 0 && (
+                <BulkActionBar
+                    selectedCount={selectedTickers.size}
+                    entityLabel="ticker"
+                    onDelete={() => setShowBulkConfirm(true)}
+                    onClearSelection={() => setSelectedTickers(new Set())}
+                />
+            )}
+
             <table className="watchlist-table" data-testid="watchlist-table">
                 <thead>
                     <tr>
+                        {/* MEU-202: Select-all checkbox header */}
+                        <th style={{ width: '32px', textAlign: 'center' }}>
+                            <SelectionCheckbox
+                                checked={selectedTickers.size === filteredItems.length && filteredItems.length > 0}
+                                indeterminate={selectedTickers.size > 0 && selectedTickers.size < filteredItems.length}
+                                onChange={toggleSelectAll}
+                                ariaLabel="Select all tickers"
+                                data-testid="select-all-ticker-checkbox"
+                            />
+                        </th>
                         <th
                             className={`wl-ticker ${thClass}`}
                             style={{ textAlign: 'left' }}
@@ -236,6 +314,15 @@ export default function WatchlistTable({
 
                         return (
                             <tr key={item.id} data-testid={`watchlist-row-${item.ticker}`}>
+                                {/* MEU-202: Row checkbox */}
+                                <td style={{ textAlign: 'center', width: '32px' }}>
+                                    <SelectionCheckbox
+                                        checked={selectedTickers.has(item.ticker)}
+                                        onChange={() => toggleSelect(item.ticker)}
+                                        ariaLabel={`Select ${item.ticker}`}
+                                        data-testid={`ticker-row-checkbox-${item.ticker}`}
+                                    />
+                                </td>
                                 {/* Ticker */}
                                 <td className="wl-ticker">{item.ticker}</td>
 
@@ -324,6 +411,14 @@ export default function WatchlistTable({
             <div className="wl-freshness" data-testid="watchlist-freshness">
                 {formatFreshness(lastQuoteTime)}
             </div>
+
+            {/* MEU-202: Bulk remove confirmation */}
+            <ConfirmDeleteModal
+                open={showBulkConfirm}
+                target={{ count: selectedTickers.size, type: selectedTickers.size === 1 ? 'ticker' : 'tickers' }}
+                onCancel={() => setShowBulkConfirm(false)}
+                onConfirm={handleBulkRemove}
+            />
         </div>
     )
 }

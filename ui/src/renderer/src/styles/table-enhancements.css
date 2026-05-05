@@ -1,0 +1,67 @@
+/**
+ * Table Enhancements CSS — styles for selection, bulk actions, and sort indicators.
+ *
+ * Source: docs/build-plan/06-gui.md §Table UX Standardization
+ * MEU: MEU-199 (gui-table-list-primitives)
+ *
+ * Imported globally via app.tsx alongside form-guard.css.
+ */
+
+/* ── Selected row highlight ────────────────────────────────────────── */
+
+.row-selected {
+    background-color: rgba(99, 102, 241, 0.08);
+}
+
+.row-selected:hover {
+    background-color: rgba(99, 102, 241, 0.12);
+}
+
+/* ── Bulk action bar slide-in ──────────────────────────────────────── */
+
+@keyframes bulk-bar-slide-in {
+    from {
+        opacity: 0;
+        transform: translateY(-8px);
+    }
+    to {
+        opacity: 1;
+        transform: translateY(0);
+    }
+}
+
+[data-testid="bulk-action-bar"] {
+    animation: bulk-bar-slide-in 0.2s ease-out;
+}
+
+/* ── Sort indicator emphasis ──────────────────────────────────────── */
+
+.sort-active {
+    color: var(--color-accent, #6366f1);
+    font-weight: 600;
+}
+
+/* ── Checkbox hover glow ─────────────────────────────────────────── */
+
+[data-testid="selection-checkbox"]:hover {
+    box-shadow: 0 0 0 3px rgba(99, 102, 241, 0.2);
+    border-radius: 3px;
+}
+
+/* ── Delete button hover ─────────────────────────────────────────── */
+
+[data-testid="bulk-delete-btn"]:hover {
+    background-color: rgba(239, 68, 68, 0.2) !important;
+}
+
+[data-testid="confirm-delete-confirm-btn"]:hover:not(:disabled) {
+    background-color: rgba(239, 68, 68, 0.25) !important;
+}
+
+/* ── Accessibility: respect reduced motion ─────────────────────────── */
+
+@media (prefers-reduced-motion: reduce) {
+    [data-testid="bulk-action-bar"] {
+        animation: none;
+    }
+}

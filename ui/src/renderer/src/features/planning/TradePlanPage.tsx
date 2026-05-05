@@ -4,7 +4,12 @@ import { apiFetch } from '@/lib/api'
 import { useStatusBar } from '@/hooks/useStatusBar'
 import { useFormGuard } from '@/hooks/useFormGuard'
 import UnsavedChangesModal from '@/components/UnsavedChangesModal'
+import ConfirmDeleteModal from '@/components/ConfirmDeleteModal'
+import { useConfirmDelete } from '@/hooks/useConfirmDelete'
 import TickerAutocomplete from '@/components/TickerAutocomplete'
+import SelectionCheckbox from '@/components/SelectionCheckbox'
+import BulkActionBar from '@/components/BulkActionBar'
+import TableFilterBar from '@/components/TableFilterBar'
 
 // ── Types (G6: exact API field names) ────────────────────────────────────
 
@@ -134,6 +139,11 @@ export default function TradePlanPage({ onOpenCalculator }: TradePlanPageProps) 
     const queryClient = useQueryClient()
     const { setStatus } = useStatusBar()
 
+    // MEU-201: Multi-select state
+    const [selectedIds, setSelectedIds] = useState<Set<number>>(new Set())
+    const [searchQuery, setSearchQuery] = useState('')
+    const [showBulkConfirm, setShowBulkConfirm] = useState(false)
+
     // Fetch plans (G5: 5s auto-refresh)
     const { data: plans = [] } = useQuery<TradePlan[]>({
         queryKey: ['trade-plans'],
@@ -186,13 +196,20 @@ export default function TradePlanPage({ onOpenCalculator }: TradePlanPageProps) 
         enabled: planTicker.length > 0,  // MEU-70b: always fetch when ticker set; picker is shown disabled
     })
 
-    // Client-side filtering (AC-6)
+    // Client-side filtering (AC-6) + MEU-201: text search
     const filteredPlans = useMemo(() => {
         let result = plans
         if (statusFilter) result = result.filter((p) => p.status === statusFilter)
         if (convictionFilter) result = result.filter((p) => p.conviction === convictionFilter)
+        if (searchQuery.trim()) {
+            const q = searchQuery.toLowerCase()
+            result = result.filter((p) =>
+                p.ticker.toLowerCase().includes(q) ||
+                p.strategy_name.toLowerCase().includes(q)
+            )
+        }
         return result
-    }, [plans, statusFilter, convictionFilter])
+    }, [plans, statusFilter, convictionFilter, searchQuery])
 
     // Select plan and populate form
     const handleSelectPlan = useCallback((plan: TradePlan) => {
@@ -297,7 +314,16 @@ export default function TradePlanPage({ onOpenCalculator }: TradePlanPageProps) 
 
     // Save (AC-5)
     const handleSave = useCallback(async () => {
-        const payload = {
+        // Frontend validation — prevent 422 from empty required fields
+        if (!form.ticker?.trim()) {
+            setStatus('Error: Ticker is required')
+            return
+        }
+        if (!form.strategy_name?.trim()) {
+            setStatus('Error: Strategy Name is required')
+            return
+        }
+        const payload: Record<string, unknown> = {
             ticker: form.ticker,
             direction: form.direction,
             conviction: form.conviction,
@@ -312,8 +338,10 @@ export default function TradePlanPage({ onOpenCalculator }: TradePlanPageProps) 
             account_id: form.account_id || null,
             shares_planned: form.shares_planned || null,
             position_size: form.position_size || null,
-            // R1: persist the linked trade selection on saves
-            linked_trade_id: linkedTradeId || form.linked_trade_id || null,
+        }
+        // R1: linked_trade_id is only accepted on UPDATE (not CREATE — backend extra="forbid")
+        if (!isCreating) {
+            payload.linked_trade_id = linkedTradeId || form.linked_trade_id || null
         }
 
         try {
@@ -367,19 +395,59 @@ export default function TradePlanPage({ onOpenCalculator }: TradePlanPageProps) 
         }
     }, [linkedTradeId, queryClient, setStatus, updateField])
 
-    // Delete (AC-5, G2: disabled on new)
-    const handleDelete = useCallback(async () => {
-        if (!selectedPlan) return
+    // MEU-201: Multi-select handlers
+    const toggleSelect = useCallback((planId: number) => {
+        setSelectedIds(prev => {
+            const next = new Set(prev)
+            if (next.has(planId)) next.delete(planId)
+            else next.add(planId)
+            return next
+        })
+    }, [])
+
+    const toggleSelectAll = useCallback(() => {
+        setSelectedIds(prev => {
+            if (prev.size === filteredPlans.length && prev.size > 0) {
+                return new Set()
+            }
+            return new Set(filteredPlans.map(p => p.id))
+        })
+    }, [filteredPlans])
+
+    const handleBulkDelete = useCallback(async () => {
+        const ids = Array.from(selectedIds)
+        setStatus(`Deleting ${ids.length} plans...`)
         try {
-            setStatus('Deleting plan...')
-            await apiFetch(`/api/v1/trade-plans/${selectedPlan.id}`, { method: 'DELETE' })
-            setStatus('Plan deleted')
+            await Promise.all(ids.map(id => apiFetch(`/api/v1/trade-plans/${id}`, { method: 'DELETE' })))
+            setStatus(`Deleted ${ids.length} plans`)
+            setSelectedIds(new Set())
+            setShowBulkConfirm(false)
             await queryClient.invalidateQueries({ queryKey: ['trade-plans'] })
-            handleClose()
         } catch (err) {
-            setStatus(`Error: ${err instanceof Error ? err.message : 'Failed'}`)
+            setStatus(`Error: ${err instanceof Error ? err.message : 'Bulk delete failed'}`)
+            setShowBulkConfirm(false)
         }
-    }, [selectedPlan, queryClient, setStatus, handleClose])
+    }, [selectedIds, queryClient, setStatus])
+
+    // Delete (AC-5, G2: disabled on new)
+    const deleteConfirm = useConfirmDelete()
+    const handleDelete = useCallback(() => {
+        if (!selectedPlan) return
+        const planLabel = selectedPlan.strategy_name
+            ? `${selectedPlan.ticker} — ${selectedPlan.strategy_name}`
+            : selectedPlan.ticker
+        deleteConfirm.confirmSingle('trade plan', planLabel, async () => {
+            try {
+                setStatus('Deleting plan...')
+                await apiFetch(`/api/v1/trade-plans/${selectedPlan.id}`, { method: 'DELETE' })
+                setStatus('Plan deleted')
+                await queryClient.invalidateQueries({ queryKey: ['trade-plans'] })
+                handleClose()
+            } catch (err) {
+                setStatus(`Error: ${err instanceof Error ? err.message : 'Failed'}`)
+            }
+        })
+    }, [selectedPlan, deleteConfirm, queryClient, setStatus, handleClose])
 
     // T2: Open calculator with plan prices and ticker (G11: custom event pattern)
     // R5: include ticker so modal can prefill the instrument field
@@ -475,6 +543,35 @@ export default function TradePlanPage({ onOpenCalculator }: TradePlanPageProps) 
                         </select>
                     </div>
 
+                    {/* MEU-201: Text search */}
+                    <TableFilterBar
+                        searchValue={searchQuery}
+                        onSearchChange={setSearchQuery}
+                        searchPlaceholder="Search by ticker or strategy…"
+                        debounceMs={0}
+                    />
+
+                    {/* MEU-201: Select-all + BulkActionBar */}
+                    <div className="flex items-center gap-2 mb-2 mt-2">
+                        <SelectionCheckbox
+                            checked={selectedIds.size === filteredPlans.length && filteredPlans.length > 0}
+                            indeterminate={selectedIds.size > 0 && selectedIds.size < filteredPlans.length}
+                            onChange={toggleSelectAll}
+                            ariaLabel="Select all plans"
+                            data-testid="select-all-plan-checkbox"
+                        />
+                        <span className="text-xs text-fg-muted">{filteredPlans.length} plans</span>
+                    </div>
+
+                    {selectedIds.size > 0 && (
+                        <BulkActionBar
+                            selectedCount={selectedIds.size}
+                            entityLabel="trade plan"
+                            onDelete={() => setShowBulkConfirm(true)}
+                            onClearSelection={() => setSelectedIds(new Set())}
+                        />
+                    )}
+
                     {/* Plan Cards */}
                     <div className="space-y-2" data-testid="plan-list">
                         {filteredPlans.length === 0 && (
@@ -487,11 +584,22 @@ export default function TradePlanPage({ onOpenCalculator }: TradePlanPageProps) 
                                 onClick={() => guardedSelect(plan)}
                                 className={`w-full text-left px-4 py-3 rounded-md border cursor-pointer transition-colors ${selectedPlan?.id === plan.id
                                     ? 'border-accent bg-accent/10'
-                                    : 'border-bg-subtle bg-bg hover:bg-bg-elevated'
+                                    : selectedIds.has(plan.id)
+                                        ? 'border-accent/50 bg-bg-subtle'
+                                        : 'border-bg-subtle bg-bg hover:bg-bg-elevated'
                                     }`}
                             >
                                 <div className="flex items-center justify-between">
                                     <div className="flex items-center gap-2">
+                                        {/* MEU-201: Row checkbox */}
+                                        <span onClick={(e) => e.stopPropagation()}>
+                                            <SelectionCheckbox
+                                                checked={selectedIds.has(plan.id)}
+                                                onChange={() => toggleSelect(plan.id)}
+                                                ariaLabel={`Select ${plan.ticker}`}
+                                                data-testid={`plan-row-checkbox-${plan.id}`}
+                                            />
+                                        </span>
                                         <span data-testid="conviction-indicator">
                                             {convictionIcon(plan.conviction)}
                                         </span>
@@ -958,6 +1066,23 @@ export default function TradePlanPage({ onOpenCalculator }: TradePlanPageProps) 
                 onCancel={handleCancel}
                 onDiscard={handleDiscard}
                 onSave={handleSaveAndContinue}
+            />
+
+            {deleteConfirm.target && (
+                <ConfirmDeleteModal
+                    open={deleteConfirm.showModal}
+                    target={deleteConfirm.target}
+                    onCancel={deleteConfirm.handleCancel}
+                    onConfirm={deleteConfirm.handleConfirm}
+                />
+            )}
+
+            {/* MEU-201: Bulk delete confirmation */}
+            <ConfirmDeleteModal
+                open={showBulkConfirm}
+                target={{ count: selectedIds.size, type: selectedIds.size === 1 ? 'trade plan' : 'trade plans' }}
+                onCancel={() => setShowBulkConfirm(false)}
+                onConfirm={handleBulkDelete}
             />
         </>
     )

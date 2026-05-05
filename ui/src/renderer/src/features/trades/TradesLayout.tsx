@@ -4,6 +4,9 @@ import { apiFetch } from '@/lib/api'
 import { useStatusBar } from '@/hooks/useStatusBar'
 import { useFormGuard } from '@/hooks/useFormGuard'
 import UnsavedChangesModal from '@/components/UnsavedChangesModal'
+import ConfirmDeleteModal from '@/components/ConfirmDeleteModal'
+import { useConfirmDelete } from '@/hooks/useConfirmDelete'
+import BulkActionBar from '@/components/BulkActionBar'
 import TradesTable, { type Trade } from './TradesTable'
 import TradeDetailPanel from './TradeDetailPanel'
 import type { TradeDetailPanelHandle } from './TradeDetailPanel'
@@ -50,6 +53,10 @@ export default function TradesLayout() {
     const queryClient = useQueryClient()
     const { setStatus } = useStatusBar()
     const [childDirty, setChildDirty] = useState(false)
+
+    // AH-8: Multi-select state for bulk operations
+    const [selectedTradeIds, setSelectedTradeIds] = useState<Set<string>>(new Set())
+    const [showBulkTradeConfirm, setShowBulkTradeConfirm] = useState(false)
 
     // Debounce the search input (300ms)
     const debounceRef = useRef<ReturnType<typeof setTimeout>>(undefined)
@@ -204,6 +211,9 @@ export default function TradesLayout() {
                             exec_id: `${Date.now()}`,
                             time: new Date().toISOString(),
                             ...data,
+                            // Backend CreateTradeRequest expects float, not null
+                            realized_pnl: (data as Record<string, unknown>).realized_pnl ?? 0,
+                            notes: (data as Record<string, unknown>).notes ?? '',
                         }),
                     })
                     setStatus('Trade created')
@@ -225,22 +235,59 @@ export default function TradesLayout() {
         [selectedTrade, queryClient, setStatus],
     )
 
+    const deleteConfirm = useConfirmDelete()
     const handleDeleteTrade = useCallback(
-        async (execId: string) => {
-            try {
-                setStatus('Deleting trade...')
-                await apiFetch(`/api/v1/trades/${execId}`, {
-                    method: 'DELETE',
-                })
-                setStatus('Trade deleted')
-                await queryClient.invalidateQueries({ queryKey: ['trades'] })
-                setSelectedTrade(null)
-            } catch (err) {
-                setStatus(`Error: ${err instanceof Error ? err.message : 'Failed to delete trade'}`)
-            }
+        (execId: string) => {
+            // Find the trade to show its instrument in the confirmation
+            const trade = trades?.find((t: Trade) => t.exec_id === execId)
+            const label = trade
+                ? `${trade.instrument} (${execId})`
+                : execId
+            deleteConfirm.confirmSingle('trade', label, async () => {
+                try {
+                    setStatus('Deleting trade...')
+                    await apiFetch(`/api/v1/trades/${execId}`, {
+                        method: 'DELETE',
+                    })
+                    setStatus('Trade deleted')
+                    await queryClient.invalidateQueries({ queryKey: ['trades'] })
+                    setSelectedTrade(null)
+                } catch (err) {
+                    setStatus(`Error: ${err instanceof Error ? err.message : 'Failed to delete trade'}`)
+                }
+            })
         },
-        [queryClient, setStatus],
+        [trades, deleteConfirm, queryClient, setStatus],
     )
+
+    // AH-8: Selection handlers
+    const toggleTradeSelect = useCallback((execId: string) => {
+        setSelectedTradeIds(prev => {
+            const next = new Set(prev)
+            if (next.has(execId)) next.delete(execId)
+            else next.add(execId)
+            return next
+        })
+    }, [])
+
+    const toggleTradeSelectAll = useCallback(() => {
+        setSelectedTradeIds(prev => {
+            if (prev.size === enrichedTrades.length && prev.size > 0) return new Set()
+            return new Set(enrichedTrades.map(t => t.exec_id))
+        })
+    }, [enrichedTrades])
+
+    const handleBulkTradeDelete = useCallback(async () => {
+        setStatus('Deleting trades...')
+        for (const id of selectedTradeIds) {
+            await apiFetch(`/api/v1/trades/${id}`, { method: 'DELETE' })
+        }
+        setSelectedTradeIds(new Set())
+        setShowBulkTradeConfirm(false)
+        await queryClient.invalidateQueries({ queryKey: ['trades'] })
+        setSelectedTrade(null)
+        setStatus(`${selectedTradeIds.size} trade(s) deleted`)
+    }, [selectedTradeIds, queryClient, setStatus])
 
     return (
         <>
@@ -298,10 +345,26 @@ export default function TradesLayout() {
                         ))}
                     </select>
                 </div>
+
+                {/* AH-8: Bulk action bar */}
+                {selectedTradeIds.size > 0 && (
+                    <div className="px-4 pb-2">
+                        <BulkActionBar
+                            selectedCount={selectedTradeIds.size}
+                            entityLabel="trade"
+                            onDelete={() => setShowBulkTradeConfirm(true)}
+                            onClearSelection={() => setSelectedTradeIds(new Set())}
+                        />
+                    </div>
+                )}
+
                 <TradesTable
                     data={enrichedTrades}
                     selectedId={selectedTrade?.exec_id}
                     onSelectTrade={guardedSelectTrade}
+                    selectedIds={selectedTradeIds}
+                    onToggleSelect={toggleTradeSelect}
+                    onToggleSelectAll={toggleTradeSelectAll}
                 />
             </div>
 
@@ -326,6 +389,23 @@ export default function TradesLayout() {
                 onCancel={handleCancel}
                 onDiscard={handleDiscard}
                 onSave={handleSaveAndContinue}
+            />
+
+            {deleteConfirm.target && (
+                <ConfirmDeleteModal
+                    open={deleteConfirm.showModal}
+                    target={deleteConfirm.target}
+                    onCancel={deleteConfirm.handleCancel}
+                    onConfirm={deleteConfirm.handleConfirm}
+                />
+            )}
+
+            {/* AH-8: Bulk delete confirmation for trades */}
+            <ConfirmDeleteModal
+                open={showBulkTradeConfirm}
+                target={{ count: selectedTradeIds.size, type: selectedTradeIds.size === 1 ? 'trade' : 'trades' }}
+                onCancel={() => setShowBulkTradeConfirm(false)}
+                onConfirm={handleBulkTradeDelete}
             />
         </>
     )

@@ -79,7 +79,7 @@ def _make_service(
     registry = {
         "Alpha Vantage": ProviderConfig(
             name="Alpha Vantage",
-            base_url="https://www.alphavantage.co/query",
+            base_url="https://www.alphavantage.co",
             auth_method=AuthMethod.QUERY_PARAM,
             auth_param_name="apikey",
             headers_template={},
@@ -464,7 +464,7 @@ class TestSearchTickerYahooFallback:
 
         fmp_config = ProviderConfig(
             name="Financial Modeling Prep",
-            base_url="https://financialmodelingprep.com/api/v3",
+            base_url="https://financialmodelingprep.com",
             auth_method=AuthMethod.QUERY_PARAM,
             auth_param_name="apikey",
             headers_template={},

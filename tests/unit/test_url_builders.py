@@ -118,19 +118,19 @@ class TestPolygonUrlBuilder:
     """AC-PW6-2: PolygonUrlBuilder produces correct Polygon.io URLs."""
 
     def test_polygon_ohlcv_url(self) -> None:
-        """Polygon OHLCV URL uses /aggs/ticker/{symbol}/range pattern."""
+        """Polygon OHLCV URL uses /v2/aggs/ticker/{symbol}/range pattern."""
         from zorivest_infra.market_data.url_builders import PolygonUrlBuilder
 
         builder = PolygonUrlBuilder()
         url = builder.build_url(
-            base_url="https://api.polygon.io/v2",
+            base_url="https://api.massive.com",
             data_type="ohlcv",
             tickers=["AAPL"],
             criteria={
                 "date_range": {"start_date": "2024-01-01", "end_date": "2024-01-31"}
             },
         )
-        assert "/aggs/ticker/AAPL/range" in url
+        assert "/v2/aggs/ticker/AAPL/range" in url
         assert "2024-01-01" in url
         assert "2024-01-31" in url
 
@@ -140,14 +140,14 @@ class TestPolygonUrlBuilder:
 
         builder = PolygonUrlBuilder()
         url = builder.build_url(
-            base_url="https://api.polygon.io/v2",
+            base_url="https://api.massive.com",
             data_type="quote",
             tickers=["MSFT"],
             criteria={},
         )
         assert (
             url
-            == "https://api.polygon.io/v2/snapshot/locale/us/markets/stocks/tickers?tickers=MSFT"
+            == "https://api.massive.com/v2/snapshot/locale/us/markets/stocks/tickers?tickers=MSFT"
         )
 
     def test_polygon_quote_url_multi_ticker(self) -> None:
@@ -156,14 +156,14 @@ class TestPolygonUrlBuilder:
 
         builder = PolygonUrlBuilder()
         url = builder.build_url(
-            base_url="https://api.polygon.io/v2",
+            base_url="https://api.massive.com",
             data_type="quote",
             tickers=["AAPL", "MSFT"],
             criteria={},
         )
         assert (
             url
-            == "https://api.polygon.io/v2/snapshot/locale/us/markets/stocks/tickers?tickers=AAPL,MSFT"
+            == "https://api.massive.com/v2/snapshot/locale/us/markets/stocks/tickers?tickers=AAPL,MSFT"
         )
 
 

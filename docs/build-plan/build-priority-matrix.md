@@ -142,6 +142,20 @@
 
 ---
 
+## P2.2 — GUI Table & List Enhancements
+
+> **Source**: [06-gui.md §GUI Shipping Gate](06-gui.md#gui-shipping-gate-mandatory-for-all-gui-meus), [approved proposal](../../docs/execution/plans/2026-05-03-gui-table-list-enhancements/gui-table-list-enhancements-proposal.md). Delete confirmation, multi-select + bulk delete, and unified filter/sort across 5 GUI surfaces. Depends on P2.1 (MEU-196/197/198).
+
+| Order | What | Tests First? | Notes |
+|-------|------|-------------|-------|
+| **35l** | Shared table/list primitives: `ConfirmDeleteModal`, `useConfirmDelete`, `BulkActionBar`, `SortableColumnHeader`, `TableFilterBar`, `SelectionCheckbox`, `useTableSelection`, `table-enhancements.css` (MEU-199) | ✅ Yes | Infrastructure MEU; unblocks 35m–35p. E2E Wave 10. |
+| **35m** | Accounts table enhancements (MEU-200) | ✅ Yes | Delete confirm, multi-select, bulk delete, filter/sort on AccountsHome. Depends on 35l |
+| **35n** | Trade Plans table enhancements (MEU-201) | ✅ Yes | Delete confirm, multi-select, bulk delete, filter/sort on TradePlanPage. Depends on 35l |
+| **35o** | Watchlist tickers table enhancements (MEU-202) | ✅ Yes | Delete confirm, multi-select, bulk remove, filter/sort on WatchlistTable. Depends on 35l |
+| **35p** | Scheduling list enhancements — Policies + Email Templates (MEU-203) | ✅ Yes | Delete confirm, multi-select, bulk delete, filter/sort on PolicyList + EmailTemplateList. Sidebar list pattern preserved. Depends on 35l |
+
+---
+
 ## P2.5 — Scheduling & Pipeline Engine (Phase 9)
 
 > **Source**: [Scheduling Integration Roadmap](../../_inspiration/scheduling_research/scheduling-integration-roadmap.md). See [Phase 9](09-scheduling.md) for full spec.

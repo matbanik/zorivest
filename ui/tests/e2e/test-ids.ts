@@ -228,3 +228,30 @@ export const UNSAVED_CHANGES = {
     DISCARD_BTN: 'unsaved-discard-btn',
     SAVE_CONTINUE_BTN: 'unsaved-save-continue-btn',
 } as const
+
+// ── Table Enhancement Primitives (MEU-199/200) ──────────────────────────────
+
+export const CONFIRM_DELETE = {
+    MODAL: 'confirm-delete-modal',
+    BACKDROP: 'confirm-delete-backdrop',
+    CONFIRM_BTN: 'confirm-delete-confirm-btn',
+    CANCEL_BTN: 'confirm-delete-cancel-btn',
+} as const
+
+export const BULK_ACTION = {
+    BAR: 'bulk-action-bar',
+    DELETE_BTN: 'bulk-delete-btn',
+    CLEAR_BTN: 'bulk-clear-btn',
+    COUNT: 'bulk-selected-count',
+} as const
+
+export const TABLE_FILTER = {
+    BAR: 'table-filter-bar',
+    SEARCH_INPUT: 'table-search-input',
+    FILTER_SELECT: 'table-filter-select',
+} as const
+
+export const SELECTION = {
+    CHECKBOX: 'selection-checkbox',
+    SELECT_ALL: 'select-all-checkbox',
+} as const

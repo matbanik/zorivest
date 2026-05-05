@@ -1,10 +1,14 @@
-import { useState, useCallback, useEffect, useRef } from 'react'
+import { useState, useCallback, useEffect, useRef, useMemo } from 'react'
 import { useQuery, useQueryClient } from '@tanstack/react-query'
 import { apiFetch } from '@/lib/api'
 import { useStatusBar } from '@/hooks/useStatusBar'
 import { usePersistedState } from '@/hooks/usePersistedState'
 import { useFormGuard } from '@/hooks/useFormGuard'
 import UnsavedChangesModal from '@/components/UnsavedChangesModal'
+import ConfirmDeleteModal from '@/components/ConfirmDeleteModal'
+import { useConfirmDelete } from '@/hooks/useConfirmDelete'
+import SelectionCheckbox from '@/components/SelectionCheckbox'
+import BulkActionBar from '@/components/BulkActionBar'
 import TickerAutocomplete from '@/components/TickerAutocomplete'
 import WatchlistTable from './WatchlistTable'
 
@@ -132,6 +136,11 @@ export default function WatchlistPage() {
     const queryClient = useQueryClient()
     const { setStatus } = useStatusBar()
 
+    // AH-7: Search + selection state for watchlist sidebar
+    const [sidebarSearch, setSidebarSearch] = useState('')
+    const [selectedWlIds, setSelectedWlIds] = useState<Set<number>>(new Set())
+    const [showBulkWlConfirm, setShowBulkWlConfirm] = useState(false)
+
     // W2: Fetch quotes for visible tickers when a watchlist is selected
     const visibleTickers = selectedList?.items.map((i) => i.ticker) ?? []
     const { quotes, lastQuoteTime } = useWatchlistQuotes(visibleTickers)
@@ -158,6 +167,43 @@ export default function WatchlistPage() {
         setNameInput(wl.name)
         setDescInput(wl.description)
     }, [])
+
+    // AH-7: Filtered watchlists
+    const filteredWatchlists = useMemo(() => {
+        if (!sidebarSearch.trim()) return watchlists
+        const q = sidebarSearch.toLowerCase()
+        return watchlists.filter((wl) =>
+            wl.name.toLowerCase().includes(q) || wl.description.toLowerCase().includes(q)
+        )
+    }, [watchlists, sidebarSearch])
+
+    // AH-7: Selection handlers
+    const toggleWlSelect = useCallback((id: number) => {
+        setSelectedWlIds(prev => {
+            const next = new Set(prev)
+            if (next.has(id)) next.delete(id)
+            else next.add(id)
+            return next
+        })
+    }, [])
+
+    const toggleWlSelectAll = useCallback(() => {
+        setSelectedWlIds(prev => {
+            if (prev.size === filteredWatchlists.length && prev.size > 0) return new Set()
+            return new Set(filteredWatchlists.map(wl => wl.id))
+        })
+    }, [filteredWatchlists])
+
+    const handleBulkWlDelete = useCallback(async () => {
+        for (const id of selectedWlIds) {
+            await apiFetch(`/api/v1/watchlists/${id}`, { method: 'DELETE' })
+        }
+        setSelectedWlIds(new Set())
+        setShowBulkWlConfirm(false)
+        await queryClient.invalidateQueries({ queryKey: ['watchlists'] })
+        setSelectedList(null)
+        setStatus(`${selectedWlIds.size} watchlist(s) deleted`)
+    }, [selectedWlIds, queryClient, setStatus])
 
     const handleNew = useCallback(() => {
         setSelectedList(null)
@@ -226,18 +272,21 @@ export default function WatchlistPage() {
     }, [isCreating, selectedList, nameInput, descInput, queryClient, setStatus, handleClose])
 
     // Delete watchlist (G2: only shown for existing)
-    const handleDelete = useCallback(async () => {
+    const deleteConfirm = useConfirmDelete()
+    const handleDelete = useCallback(() => {
         if (!selectedList) return
-        try {
-            setStatus('Deleting watchlist...')
-            await apiFetch(`/api/v1/watchlists/${selectedList.id}`, { method: 'DELETE' })
-            setStatus('Watchlist deleted')
-            await queryClient.invalidateQueries({ queryKey: ['watchlists'] })
-            handleClose()
-        } catch (err) {
-            setStatus(`Error: ${err instanceof Error ? err.message : 'Failed'}`)
-        }
-    }, [selectedList, queryClient, setStatus, handleClose])
+        deleteConfirm.confirmSingle('watchlist', selectedList.name, async () => {
+            try {
+                setStatus('Deleting watchlist...')
+                await apiFetch(`/api/v1/watchlists/${selectedList.id}`, { method: 'DELETE' })
+                setStatus('Watchlist deleted')
+                await queryClient.invalidateQueries({ queryKey: ['watchlists'] })
+                handleClose()
+            } catch (err) {
+                setStatus(`Error: ${err instanceof Error ? err.message : 'Failed'}`)
+            }
+        })
+    }, [selectedList, deleteConfirm, queryClient, setStatus, handleClose])
 
     // Add ticker to watchlist (AC-9)
     const handleAddTicker = useCallback(async () => {
@@ -312,11 +361,47 @@ export default function WatchlistPage() {
                         </button>
                     </div>
 
+                    {/* AH-7: Search input */}
+                    <div className="mb-3">
+                        <input
+                            data-testid="watchlist-sidebar-search"
+                            type="text"
+                            value={sidebarSearch}
+                            onChange={(e) => setSidebarSearch(e.target.value)}
+                            placeholder="Search watchlists…"
+                            className="w-full px-3 py-1.5 text-sm rounded-md bg-bg border border-bg-subtle text-fg placeholder:text-fg-muted/50"
+                        />
+                    </div>
+
+                    {/* AH-7: Select-all */}
+                    {filteredWatchlists.length > 0 && (
+                        <div className="flex items-center gap-2 mb-2">
+                            <SelectionCheckbox
+                                checked={selectedWlIds.size === filteredWatchlists.length && filteredWatchlists.length > 0}
+                                indeterminate={selectedWlIds.size > 0 && selectedWlIds.size < filteredWatchlists.length}
+                                onChange={toggleWlSelectAll}
+                                ariaLabel="Select all watchlists"
+                                data-testid="select-all-watchlist-checkbox"
+                            />
+                            <span className="text-xs text-fg-muted">Select all</span>
+                        </div>
+                    )}
+
+                    {/* AH-7: Bulk action bar */}
+                    {selectedWlIds.size > 0 && (
+                        <BulkActionBar
+                            selectedCount={selectedWlIds.size}
+                            entityLabel="watchlist"
+                            onDelete={() => setShowBulkWlConfirm(true)}
+                            onClearSelection={() => setSelectedWlIds(new Set())}
+                        />
+                    )}
+
                     <div className="space-y-2" data-testid="watchlist-list">
-                        {watchlists.length === 0 && (
+                        {filteredWatchlists.length === 0 && (
                             <p className="text-sm text-fg-muted py-4 text-center">No watchlists yet</p>
                         )}
-                        {watchlists.map((wl) => (
+                        {filteredWatchlists.map((wl) => (
                             <button
                                 key={wl.id}
                                 data-testid={`watchlist-card-${wl.id}`}
@@ -326,20 +411,33 @@ export default function WatchlistPage() {
                                     : 'border-bg-subtle bg-bg hover:bg-bg-elevated'
                                     }`}
                             >
-                                <div className="flex items-center justify-between">
-                                    <span className="font-medium text-fg">{wl.name}</span>
-                                    <span className="text-xs text-fg-muted">
-                                        {wl.items.length === 0
-                                            ? '0 items'
-                                            : wl.items.length <= 5
-                                                ? wl.items.map((i) => i.ticker).join(', ')
-                                                : `${wl.items.slice(0, 5).map((i) => i.ticker).join(', ')} +${wl.items.length - 5}`
-                                        }
+                                <div className="flex items-center gap-2">
+                                    {/* AH-7: Row checkbox */}
+                                    <span onClick={(e) => e.stopPropagation()}>
+                                        <SelectionCheckbox
+                                            checked={selectedWlIds.has(wl.id)}
+                                            onChange={() => toggleWlSelect(wl.id)}
+                                            ariaLabel={`Select ${wl.name}`}
+                                            data-testid={`watchlist-row-checkbox-${wl.id}`}
+                                        />
                                     </span>
+                                    <div className="flex-1 min-w-0">
+                                        <div className="flex items-center justify-between">
+                                            <span className="font-medium text-fg">{wl.name}</span>
+                                            <span className="text-xs text-fg-muted">
+                                                {wl.items.length === 0
+                                                    ? '0 items'
+                                                    : wl.items.length <= 5
+                                                        ? wl.items.map((i) => i.ticker).join(', ')
+                                                        : `${wl.items.slice(0, 5).map((i) => i.ticker).join(', ')} +${wl.items.length - 5}`
+                                                }
+                                            </span>
+                                        </div>
+                                        {wl.description && (
+                                            <div className="text-xs text-fg-muted mt-1">{wl.description}</div>
+                                        )}
+                                    </div>
                                 </div>
-                                {wl.description && (
-                                    <div className="text-xs text-fg-muted mt-1">{wl.description}</div>
-                                )}
                             </button>
                         ))}
                     </div>
@@ -478,6 +576,23 @@ export default function WatchlistPage() {
                 onCancel={handleCancel}
                 onDiscard={handleDiscard}
                 onSave={handleSaveAndContinue}
+            />
+
+            {deleteConfirm.target && (
+                <ConfirmDeleteModal
+                    open={deleteConfirm.showModal}
+                    target={deleteConfirm.target}
+                    onCancel={deleteConfirm.handleCancel}
+                    onConfirm={deleteConfirm.handleConfirm}
+                />
+            )}
+
+            {/* AH-7: Bulk delete confirmation for watchlist sidebar */}
+            <ConfirmDeleteModal
+                open={showBulkWlConfirm}
+                target={{ count: selectedWlIds.size, type: selectedWlIds.size === 1 ? 'watchlist' : 'watchlists' }}
+                onCancel={() => setShowBulkWlConfirm(false)}
+                onConfirm={handleBulkWlDelete}
             />
         </>
     )

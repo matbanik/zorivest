@@ -13,24 +13,28 @@ from zorivest_core.domain.market_data import ProviderConfig
 PROVIDER_REGISTRY: dict[str, ProviderConfig] = {
     "Alpha Vantage": ProviderConfig(
         name="Alpha Vantage",
-        base_url="https://www.alphavantage.co/query",
+        # Bare domain — AlphaVantageUrlBuilder appends /query?function=...
+        base_url="https://www.alphavantage.co",
         auth_method=AuthMethod.QUERY_PARAM,
         auth_param_name="apikey",
         headers_template={},
-        test_endpoint="?function=GLOBAL_QUOTE&symbol=IBM&apikey={api_key}",
+        test_endpoint="/query?function=GLOBAL_QUOTE&symbol=IBM&apikey={api_key}",
         default_rate_limit=5,
         signup_url="https://www.alphavantage.co/support/#api-key",
         response_validator_key="Global Quote",
     ),
+    # Polygon.io rebranded to Massive.com (2025). Provider key kept as
+    # "Polygon.io" for backward compatibility with stored API keys/settings.
+    # Same API endpoints and auth — only the domain changed.
     "Polygon.io": ProviderConfig(
-        name="Polygon.io",
-        base_url="https://api.polygon.io/v2",
-        auth_method=AuthMethod.BEARER_HEADER,
-        auth_param_name="Authorization",
-        headers_template={"Authorization": "Bearer {api_key}"},
-        test_endpoint="/aggs/ticker/AAPL/range/1/day/2024-01-02/2024-01-02",
+        name="Massive",
+        base_url="https://api.massive.com",
+        auth_method=AuthMethod.QUERY_PARAM,
+        auth_param_name="apiKey",
+        headers_template={},
+        test_endpoint="/v3/reference/tickers?limit=1&apiKey={api_key}",
         default_rate_limit=5,
-        signup_url="https://polygon.io/pricing",
+        signup_url="https://massive.com/pricing",
         response_validator_key="results",
     ),
     "Finnhub": ProviderConfig(
@@ -46,28 +50,31 @@ PROVIDER_REGISTRY: dict[str, ProviderConfig] = {
     ),
     "Financial Modeling Prep": ProviderConfig(
         name="Financial Modeling Prep",
-        base_url="https://financialmodelingprep.com/api/v3",
+        # Bare domain — FMPUrlBuilder appends /api/v3/...
+        base_url="https://financialmodelingprep.com",
         auth_method=AuthMethod.QUERY_PARAM,
         auth_param_name="apikey",
         headers_template={},
-        test_endpoint="/search?query=AAPL&limit=1&apikey={api_key}",
+        test_endpoint="/api/v3/search?query=AAPL&limit=1&apikey={api_key}",
         default_rate_limit=250,
         signup_url="https://financialmodelingprep.com/developer/docs",
     ),
     "EODHD": ProviderConfig(
         name="EODHD",
-        base_url="https://eodhd.com/api",
+        # Bare domain — EODHDUrlBuilder appends /api/...
+        base_url="https://eodhd.com",
         auth_method=AuthMethod.QUERY_PARAM,
         auth_param_name="api_token",
         headers_template={},
-        test_endpoint="/real-time/AAPL.US?api_token={api_key}&fmt=json",
+        test_endpoint="/api/real-time/AAPL.US?api_token={api_key}&fmt=json",
         default_rate_limit=20,
         signup_url="https://eodhd.com/pricing",
         response_validator_key="code",
     ),
     "Nasdaq Data Link": ProviderConfig(
         name="Nasdaq Data Link",
-        base_url="https://data.nasdaq.com/api/v3",
+        # Bare domain — NasdaqDataLinkUrlBuilder appends /datatables/...
+        base_url="https://data.nasdaq.com",
         auth_method=AuthMethod.QUERY_PARAM,
         auth_param_name="api_key",
         headers_template={},
@@ -91,11 +98,12 @@ PROVIDER_REGISTRY: dict[str, ProviderConfig] = {
     ),
     "API Ninjas": ProviderConfig(
         name="API Ninjas",
-        base_url="https://api.api-ninjas.com/v1",
+        # Bare domain — APINinjasUrlBuilder appends /v1/...
+        base_url="https://api.api-ninjas.com",
         auth_method=AuthMethod.CUSTOM_HEADER,
         auth_param_name="X-Api-Key",
         headers_template={"X-Api-Key": "{api_key}"},
-        test_endpoint="/stockprice?ticker=AAPL",
+        test_endpoint="/v1/stockprice?ticker=AAPL",
         default_rate_limit=60,
         signup_url="https://api-ninjas.com/",
         response_validator_key="price",
@@ -113,25 +121,31 @@ PROVIDER_REGISTRY: dict[str, ProviderConfig] = {
     ),
     "Alpaca": ProviderConfig(
         name="Alpaca",
-        base_url="https://api.alpaca.markets/v2",
+        # Data API host — AlpacaUrlBuilder appends /v2/stocks/...
+        # (api.alpaca.markets is the trading API; data.alpaca.markets is market data)
+        base_url="https://data.alpaca.markets",
         auth_method=AuthMethod.CUSTOM_HEADER,
         auth_param_name="APCA-API-KEY-ID",
         headers_template={
             "APCA-API-KEY-ID": "{api_key}",
             "APCA-API-SECRET-KEY": "{api_secret}",
         },
-        test_endpoint="/account",
+        test_endpoint="/v2/stocks/AAPL/snapshot",
         default_rate_limit=200,
         signup_url="https://app.alpaca.markets/signup",
-        response_validator_key="id",
+        response_validator_key="latestTrade",
     ),
     "Tradier": ProviderConfig(
         name="Tradier",
-        base_url="https://api.tradier.com/v1",
+        # Bare domain — TradierUrlBuilder appends /v1/markets/...
+        base_url="https://api.tradier.com",
         auth_method=AuthMethod.BEARER_HEADER,
         auth_param_name="Authorization",
-        headers_template={"Authorization": "Bearer {api_key}"},
-        test_endpoint="/user/profile",
+        headers_template={
+            "Authorization": "Bearer {api_key}",
+            "Accept": "application/json",
+        },
+        test_endpoint="/v1/user/profile",
         default_rate_limit=120,
         signup_url="https://developer.tradier.com/",
         response_validator_key="profile",

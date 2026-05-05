@@ -1,6 +1,6 @@
 {
-  "version": 2,
-  "date": "2026-04-30T23:36:00Z",
+  "version": 3,
+  "date": "2026-05-04T19:42:00Z",
   "agent": "Antigravity (Gemini)",
   "backend_version": "0.1.0",
   "architecture": "compound",
@@ -37,38 +37,42 @@
     }
   },
   "results": {
-    "zorivest_system": { "status": "pass", "m7_markers": 3, "notes": "9 actions, all operational" },
-    "zorivest_trade": { "status": "pass", "m7_markers": 4, "notes": "6 actions, create/delete require confirmation token" },
-    "zorivest_analytics": { "status": "pass", "m7_markers": 3, "notes": "13 actions, all read-only" },
-    "zorivest_report": { "status": "pass", "m7_markers": 4, "notes": "2 actions" },
-    "zorivest_account": { "status": "pass", "m7_markers": 3, "notes": "9 actions, delete/reassign require confirmation token" },
-    "zorivest_market": { "status": "pass", "m7_markers": 4, "notes": "7 actions, filings returns 503 (no SEC API key)" },
-    "zorivest_watchlist": { "status": "pass", "m7_markers": 3, "notes": "5 actions" },
-    "zorivest_import": { "status": "partial", "m7_markers": 3, "notes": "7 actions, 3 return 501 (list_brokers, resolve_identifiers, list_bank_accounts)" },
-    "zorivest_tax": { "status": "stub", "m7_markers": 3, "notes": "4 actions, all return 501 — planned for future phase" },
-    "zorivest_policy": { "status": "pass", "m7_markers": 4, "notes": "9 actions, approval gate documented, delete requires confirmation token" },
-    "zorivest_template": { "status": "pass", "m7_markers": 3, "notes": "6 actions, delete requires confirmation token" },
-    "zorivest_db": { "status": "pass", "m7_markers": 3, "notes": "5 actions, all read-only" },
-    "zorivest_plan": { "status": "pass", "m7_markers": 3, "notes": "3 actions, delete requires confirmation token" }
+    "zorivest_system": { "status": "pass", "notes": "9 actions, all operational" },
+    "zorivest_trade": { "status": "pass", "notes": "6 actions, create/delete require confirmation token" },
+    "zorivest_analytics": { "status": "pass", "notes": "13 actions, all read-only. drawdown schema rejects 'balance' param despite tool description" },
+    "zorivest_report": { "status": "pass", "notes": "2 actions, CRUD lifecycle verified" },
+    "zorivest_account": { "status": "pass", "notes": "9 actions, delete/reassign require confirmation token" },
+    "zorivest_market": { "status": "partial", "notes": "7 actions. news returns 503 (Finnhub 422). filings returns 503 (normalizer not configured). test_provider pass for all 11 key-bearing providers." },
+    "zorivest_watchlist": { "status": "pass", "notes": "5 actions, no delete action exists" },
+    "zorivest_import": { "status": "partial", "notes": "7 actions, 3 return 501 (list_brokers, resolve_identifiers, list_bank_accounts)" },
+    "zorivest_tax": { "status": "stub", "notes": "4 actions, all return 501 — planned for future phase" },
+    "zorivest_policy": { "status": "pass", "notes": "9 actions, approval gate documented, delete requires confirmation token" },
+    "zorivest_template": { "status": "pass", "notes": "6 actions, delete requires confirmation token" },
+    "zorivest_db": { "status": "pass", "notes": "5 actions, all read-only. DDL injection correctly blocked." },
+    "zorivest_plan": { "status": "pass", "notes": "3 actions, delete requires confirmation token. create requires conditions+timeframe." }
   },
   "summary": {
     "total_tools": 13,
     "total_actions": 74,
-    "tested_discoverability": 13,
-    "passed_m7": 13,
-    "failed_m7": 0,
-    "consolidation_score": 1.08,
-    "consolidation_target": 12,
-    "vitest_passed": 377,
-    "vitest_files": 38,
-    "typescript_errors": 0,
-    "build_tools": 13,
-    "build_toolsets": 4
+    "tested_functional": 70,
+    "passed": 68,
+    "failed": 1,
+    "partial": 1,
+    "consolidation_score": 1.0,
+    "consolidation_target": 13,
+    "regressions_vs_v2": 0
   },
   "known_stubs": [
     "zorivest_tax (all 4 actions: 501)",
     "zorivest_import.list_brokers (501)",
     "zorivest_import.resolve_identifiers (501)",
     "zorivest_import.list_bank_accounts (501)"
+  ],
+  "known_issues": [
+    "zorivest_market.news: 503 — Finnhub 422 for news, no fallback",
+    "zorivest_market.filings: 503 — SEC filing normalizer not configured",
+    "zorivest_watchlist: no delete action available",
+    "zorivest_analytics.drawdown: 'balance' param rejected by schema despite tool description",
+    "zorivest_market.test_provider(FMP): returns 'endpoint deprecated' message"
   ]
 }

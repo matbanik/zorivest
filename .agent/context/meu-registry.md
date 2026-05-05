@@ -397,9 +397,9 @@ P2.75 (broker adapters): MEU-96 → MEU-99
 | MEU-187 | `extractors-standard` | 30.6 | Standard JSON extractors for 5 simple-GET providers + ~25 field mappings | ✅ 2026-05-02 |
 | MEU-188 | `extractors-complex` | 30.7 | Complex extractors: Alpha Vantage, Finnhub, Nasdaq DL, Polygon + ~20 field mappings | ✅ 2026-05-02 |
 | MEU-189 | `post-body-runtime` | 30.8 | POST-body runtime dispatch: `fetch_with_cache` POST, adapter `_do_fetch` POST, OpenFIGI v3 POST connection test | ✅ 2026-05-02 |
-| MEU-195 | `polygon-massive-migration` | 30.14 | Polygon.io → Massive.com domain migration | ⬜ |
-| MEU-190 | `service-methods-core` | 30.9 | 3 high-value methods: `get_ohlcv`, `get_fundamentals`, `get_earnings` + normalizers | ⬜ |
-| MEU-191 | `service-methods-extended` | 30.10 | 5 methods: dividends, splits, insider, economic_calendar, company_profile | ⬜ |
+| MEU-195 | `polygon-massive-migration` | 30.14 | Polygon.io → Massive.com domain migration | ✅ complete |
+| MEU-190 | `service-methods-core` | 30.9 | 3 high-value methods: `get_ohlcv`, `get_fundamentals`, `get_earnings` + normalizers | ✅ complete |
+| MEU-191 | `service-methods-extended` | 30.10 | 5 methods: dividends, splits, insider, economic_calendar, company_profile | ✅ complete |
 | MEU-192 | `market-routes-mcp` | 30.11 | 8 new REST endpoints + 8 MCP action mappings | ⬜ |
 | MEU-193 | `market-store-step` | 30.12 | MarketDataStoreStep pipeline step | ⬜ |
 | MEU-194 | `scheduler-integration` | 30.13 | Pipeline policy scheduling for market data | ⬜ |

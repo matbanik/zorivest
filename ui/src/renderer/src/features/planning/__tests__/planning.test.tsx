@@ -222,7 +222,13 @@ describe('MEU-48: TradePlanPage', () => {
         await waitFor(() => {
             expect(screen.getByTestId('plan-delete-btn')).toBeInTheDocument()
         })
+        // Click delete — should open confirmation modal
         fireEvent.click(screen.getByTestId('plan-delete-btn'))
+        await waitFor(() => {
+            expect(screen.getByTestId('confirm-delete-modal')).toBeInTheDocument()
+        })
+        // Confirm deletion in modal
+        fireEvent.click(screen.getByTestId('confirm-delete-confirm-btn'))
         await waitFor(() => {
             expect(mockApiFetch).toHaveBeenCalledWith(
                 '/api/v1/trade-plans/1',
@@ -685,6 +691,7 @@ describe('MEU-70 T1: T3 — Account dropdown', () => {
         })
         fireEvent.change(screen.getByTestId('plan-account-select'), { target: { value: 'acc-1' } })
         fireEvent.change(screen.getByTestId('plan-ticker-input'), { target: { value: 'TSLA' } })
+        fireEvent.change(screen.getByTestId('plan-strategy-name'), { target: { value: 'Test Strategy' } })
         fireEvent.click(screen.getByTestId('plan-save-btn'))
         await waitFor(() => {
             const call = mockApiFetch.mock.calls.find(

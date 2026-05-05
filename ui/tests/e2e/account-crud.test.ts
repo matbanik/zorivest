@@ -15,7 +15,7 @@
 
 import { test, expect } from '@playwright/test'
 import { AppPage } from './pages/AppPage'
-import { ACCOUNTS, UNSAVED_CHANGES } from './test-ids'
+import { ACCOUNTS, CONFIRM_DELETE, UNSAVED_CHANGES } from './test-ids'
 
 const API_BASE = 'http://localhost:17787/api/v1'
 
@@ -239,8 +239,8 @@ test.describe('Account CRUD', () => {
         // Click Delete
         await appPage.testId(ACCOUNTS.FORM.DELETE).click()
 
-        // Confirm deletion
-        await appPage.page.getByText('Confirm Delete').click()
+        // Confirm deletion via ConfirmDeleteModal
+        await appPage.testId(CONFIRM_DELETE.CONFIRM_BTN).click()
         await appPage.page.waitForTimeout(2_000)
 
         // Verify via API — account should be gone

@@ -5,11 +5,17 @@ Source: docs/build-plan/08-market-data.md §8.3b.
 
 Implements MarketDataPort with protocol-based DI.
 Same pattern as ProviderConnectionService (MEU-60).
+
+MEU-190/191: Layer 4 expansion — 8 new service methods
+with Yahoo-first fallback + API-key provider chains.
+Source: docs/build-plan/08a-market-data-expansion.md §8a.9/§8a.10.
 """
 
 from __future__ import annotations
 
 import logging
+from datetime import datetime, timezone
+from decimal import Decimal
 from typing import Any, Callable, Mapping, Protocol
 
 from zorivest_core.application.market_dtos import (
@@ -17,6 +23,16 @@ from zorivest_core.application.market_dtos import (
     MarketQuote,
     SecFiling,
     TickerSearchResult,
+)
+from zorivest_core.domain.enums import AuthMethod
+from zorivest_core.application.market_expansion_dtos import (
+    DividendRecord,
+    EarningsReport,
+    EconomicCalendarEvent,
+    FundamentalsSnapshot,
+    InsiderTransaction,
+    OHLCVBar,
+    StockSplit,
 )
 from zorivest_core.domain.market_data import ProviderConfig
 
@@ -37,6 +53,14 @@ class HttpClient(Protocol):
     """Async HTTP client protocol."""
 
     async def get(self, url: str, headers: dict[str, str], timeout: int) -> Any: ...
+
+    async def post(
+        self,
+        url: str,
+        headers: dict[str, str],
+        timeout: int,
+        json: Any = None,
+    ) -> Any: ...
 
 
 class EncryptionService(Protocol):
@@ -68,7 +92,12 @@ class MarketDataService:
         quote_normalizers: Maps provider name → quote normalizer function.
         news_normalizers: Maps provider name → news normalizer function.
         search_normalizers: Maps provider name → search normalizer function.
+        normalizers: Generic normalizer registry for Layer 4+ data types.
+            Maps data_type → {provider_name → normalizer_function}.
     """
+
+    # Data types that support Yahoo Finance as first-try source.
+    _YAHOO_DATA_TYPES = frozenset({"ohlcv", "fundamentals", "dividends", "splits"})
 
     def __init__(
         self,
@@ -82,6 +111,7 @@ class MarketDataService:
         search_normalizers: dict[str, Callable[..., list[TickerSearchResult]]]
         | None = None,
         sec_normalizer: Callable[..., list[SecFiling]] | None = None,
+        normalizers: dict[str, dict[str, Callable[..., Any]]] | None = None,
     ) -> None:
         self._uow = uow
         self._encryption = encryption
@@ -92,6 +122,7 @@ class MarketDataService:
         self._news_normalizers = news_normalizers or {}
         self._search_normalizers = search_normalizers or {}
         self._sec_normalizer = sec_normalizer
+        self._normalizers = normalizers or {}
 
     # ── Core queries ────────────────────────────────────────────────
 
@@ -349,6 +380,417 @@ class MarketDataService:
 
         return self._sec_normalizer(data)
 
+    # ── Layer 4: Expansion service methods (MEU-190/191) ────────────
+
+    async def get_ohlcv(
+        self, ticker: str, interval: str = "1d", **kwargs: Any
+    ) -> list[OHLCVBar]:
+        """Get OHLCV bars. Yahoo-first, then Alpaca → EODHD → Polygon.
+
+        Source: §8a.9 — MEU-190.
+        """
+        result = await self._fetch_data_type(
+            "ohlcv", ticker, interval=interval, **kwargs
+        )
+        if not isinstance(result, list):
+            raise MarketDataError(f"Unexpected OHLCV result type for '{ticker}'")
+        return result
+
+    async def get_fundamentals(self, ticker: str) -> FundamentalsSnapshot:
+        """Get company fundamentals. Yahoo-first, then FMP → EODHD → AV.
+
+        Source: §8a.9 — MEU-190.
+        """
+        result = await self._fetch_data_type("fundamentals", ticker)
+        if not isinstance(result, FundamentalsSnapshot):
+            raise MarketDataError(f"Unexpected fundamentals result type for '{ticker}'")
+        return result
+
+    async def get_earnings(self, ticker: str) -> list[EarningsReport]:
+        """Get earnings reports. Finnhub → FMP → AV (no Yahoo).
+
+        Source: §8a.9 — MEU-190.
+        """
+        result = await self._fetch_data_type("earnings", ticker)
+        if not isinstance(result, list):
+            raise MarketDataError(f"Unexpected earnings result type for '{ticker}'")
+        return result
+
+    async def get_dividends(self, ticker: str) -> list[DividendRecord]:
+        """Get dividend records. Yahoo-first, then Polygon → EODHD → FMP.
+
+        Source: §8a.10 — MEU-191.
+        """
+        result = await self._fetch_data_type("dividends", ticker)
+        if not isinstance(result, list):
+            raise MarketDataError(f"Unexpected dividends result type for '{ticker}'")
+        return result
+
+    async def get_splits(self, ticker: str) -> list[StockSplit]:
+        """Get stock splits. Yahoo-first, then Polygon → EODHD → FMP.
+
+        Source: §8a.10 — MEU-191.
+        """
+        result = await self._fetch_data_type("splits", ticker)
+        if not isinstance(result, list):
+            raise MarketDataError(f"Unexpected splits result type for '{ticker}'")
+        return result
+
+    async def get_insider(self, ticker: str) -> list[InsiderTransaction]:
+        """Get insider transactions. Finnhub → FMP → SEC API (no Yahoo).
+
+        Source: §8a.10 — MEU-191.
+        """
+        result = await self._fetch_data_type("insider", ticker)
+        if not isinstance(result, list):
+            raise MarketDataError(f"Unexpected insider result type for '{ticker}'")
+        return result
+
+    async def get_economic_calendar(self, **kwargs: Any) -> list[EconomicCalendarEvent]:
+        """Get economic calendar events. Finnhub → FMP → AV (no Yahoo).
+
+        Source: §8a.10 — MEU-191.
+        """
+        result = await self._fetch_data_type("economic_calendar", "", **kwargs)
+        if not isinstance(result, list):
+            raise MarketDataError("Unexpected economic calendar result type")
+        return result
+
+    async def get_company_profile(self, ticker: str) -> FundamentalsSnapshot:
+        """Get company profile. FMP → Finnhub → EODHD (no Yahoo).
+
+        Returns FundamentalsSnapshot (same DTO as fundamentals).
+        Source: §8a.10 — MEU-191.
+        """
+        result = await self._fetch_data_type("company_profile", ticker)
+        if not isinstance(result, FundamentalsSnapshot):
+            raise MarketDataError(
+                f"Unexpected company profile result type for '{ticker}'"
+            )
+        return result
+
+    # ── Generic data-type fetch with fallback ───────────────────────
+
+    async def _fetch_data_type(self, data_type: str, ticker: str, **kwargs: Any) -> Any:
+        """Generic fetch with Yahoo-first fallback + API-key provider chain.
+
+        1. If data_type is in _YAHOO_DATA_TYPES, try Yahoo first.
+        2. Fall through to API-key providers using normalizers registry.
+        3. Raise MarketDataError if all sources fail.
+        """
+        # Step 1: Try Yahoo first (if applicable)
+        if data_type in self._YAHOO_DATA_TYPES:
+            yahoo_method = getattr(self, f"_yahoo_{data_type}", None)
+            if yahoo_method:
+                try:
+                    result = await yahoo_method(ticker, **kwargs)
+                    if result:
+                        return result
+                except Exception as exc:
+                    logger.debug(
+                        "Yahoo Finance %s failed, falling back to providers: %s",
+                        data_type,
+                        exc,
+                    )
+
+        # Step 2: API-key provider chain
+        type_normalizers = self._normalizers.get(data_type, {})
+        providers = self._get_enabled_providers(type_normalizers)
+        if not providers and data_type not in self._YAHOO_DATA_TYPES:
+            raise MarketDataError(
+                f"No {data_type} provider available — "
+                "configure at least one provider with an API key"
+            )
+
+        last_error = ""
+        for name, setting in providers:
+            try:
+                data = await self._generic_api_fetch(
+                    name,
+                    data_type,
+                    ticker,
+                    setting,
+                    criteria=kwargs,
+                )
+                normalizer = type_normalizers[name]
+                return normalizer(data, ticker=ticker)
+            except Exception as exc:
+                last_error = f"{name}: {exc}"
+                logger.warning(
+                    "Provider %s failed for %s %s: %s",
+                    name,
+                    data_type,
+                    ticker,
+                    exc,
+                )
+                continue
+
+        raise MarketDataError(
+            f"All providers failed for {data_type} '{ticker}'. Last error: {last_error}"
+        )
+
+    async def _generic_api_fetch(
+        self,
+        name: str,
+        data_type: str,
+        ticker: str,
+        setting: Any,
+        criteria: dict[str, Any] | None = None,
+    ) -> Any:
+        """Fetch raw data from an API-key provider.
+
+        Uses provider-specific URL builders from the url_builders registry
+        and injects authentication based on the provider's auth_method.
+        Supports POST-body providers via builder.build_request() when available.
+        """
+        from zorivest_infra.market_data.url_builders import get_url_builder
+
+        api_key = self._encryption.decrypt(setting.encrypted_api_key)
+        config = self._registry[name]
+        resolved_criteria = criteria or {}
+
+        limiter = self._rate_limiters.get(name)
+        if limiter:
+            await limiter.wait_if_needed()
+
+        # Provider-specific URL construction
+        builder = get_url_builder(name)
+
+        # POST dispatch: builders with build_request() return a RequestSpec
+        # (mirrors proven pattern from market_data_adapter.py)
+        http_method = "GET"
+        json_body: Any = None
+        build_request_fn = getattr(builder, "build_request", None)
+        if build_request_fn is not None:
+            spec = build_request_fn(
+                config.base_url,
+                data_type,
+                [ticker],
+                resolved_criteria,
+            )
+            url = spec.url
+            http_method = spec.method
+            json_body = spec.body
+        else:
+            url = builder.build_url(
+                config.base_url,
+                data_type,
+                [ticker],
+                resolved_criteria,
+            )
+
+        # Auth injection based on provider auth method
+        if config.auth_method == AuthMethod.QUERY_PARAM:
+            separator = "&" if "?" in url else "?"
+            url = f"{url}{separator}{config.auth_param_name}={api_key}"
+            headers: dict[str, str] = {}
+        else:
+            headers = {
+                k: v.format(api_key=api_key) for k, v in config.headers_template.items()
+            }
+
+        timeout = setting.timeout or 30
+        if http_method == "POST":
+            response = await self._http.post(url, headers, timeout, json=json_body)
+        else:
+            response = await self._http.get(url, headers, timeout)
+
+        if response.status_code != 200:
+            raise MarketDataError(
+                f"{name} returned status {response.status_code} for {ticker}"
+            )
+        return response.json()
+
+    # ── Yahoo Finance private helpers (Layer 4) ─────────────────────
+
+    async def _yahoo_ohlcv(
+        self, ticker: str, interval: str = "1d", **kwargs: Any
+    ) -> list[OHLCVBar] | None:
+        """Fetch OHLCV bars from Yahoo Finance v8/finance/chart."""
+        period = kwargs.get("range", "1mo")
+        url = (
+            f"https://query1.finance.yahoo.com/v8/finance/chart/{ticker}"
+            f"?interval={interval}&range={period}"
+        )
+        response = await self._http.get(
+            url, headers={"User-Agent": "Mozilla/5.0"}, timeout=10
+        )
+        if response.status_code != 200:
+            return None
+
+        data = response.json()
+        results = data.get("chart", {}).get("result")
+        if not results:
+            return None
+
+        result = results[0]
+        timestamps = result.get("timestamp", [])
+        quotes = (result.get("indicators", {}).get("quote") or [{}])[0]
+
+        opens = quotes.get("open", [])
+        highs = quotes.get("high", [])
+        lows = quotes.get("low", [])
+        closes = quotes.get("close", [])
+        volumes = quotes.get("volume", [])
+
+        bars: list[OHLCVBar] = []
+        for i, ts in enumerate(timestamps):
+            if i >= len(closes) or closes[i] is None:
+                continue
+            bars.append(
+                OHLCVBar(
+                    ticker=ticker,
+                    timestamp=datetime.fromtimestamp(ts, tz=timezone.utc),
+                    open=Decimal(str(opens[i]))
+                    if i < len(opens) and opens[i] is not None
+                    else Decimal("0"),
+                    high=Decimal(str(highs[i]))
+                    if i < len(highs) and highs[i] is not None
+                    else Decimal("0"),
+                    low=Decimal(str(lows[i]))
+                    if i < len(lows) and lows[i] is not None
+                    else Decimal("0"),
+                    close=Decimal(str(closes[i])),
+                    adj_close=None,
+                    volume=int(volumes[i])
+                    if i < len(volumes) and volumes[i] is not None
+                    else 0,
+                    vwap=None,
+                    trade_count=None,
+                    provider="Yahoo Finance",
+                )
+            )
+        return bars or None
+
+    async def _yahoo_fundamentals(
+        self, ticker: str, **kwargs: Any
+    ) -> FundamentalsSnapshot | None:
+        """Fetch fundamentals from Yahoo Finance v10/quoteSummary."""
+        url = (
+            f"https://query1.finance.yahoo.com/v10/finance/quoteSummary/{ticker}"
+            f"?modules=financialData,defaultKeyStatistics,summaryProfile"
+        )
+        response = await self._http.get(
+            url, headers={"User-Agent": "Mozilla/5.0"}, timeout=10
+        )
+        if response.status_code != 200:
+            return None
+
+        data = response.json()
+        results = data.get("quoteSummary", {}).get("result")
+        if not results:
+            return None
+
+        r = results[0]
+        stats = r.get("defaultKeyStatistics", {})
+        profile = r.get("summaryProfile", {})
+
+        def _raw(d: dict[str, Any], key: str) -> Any:
+            v = d.get(key, {})
+            return v.get("raw") if isinstance(v, dict) else v
+
+        pe = _raw(stats, "trailingPE")
+        pb = _raw(stats, "priceToBook")
+        beta = _raw(stats, "beta")
+        eps = _raw(stats, "trailingEps")
+        mkt_cap = _raw(stats, "marketCap")
+
+        return FundamentalsSnapshot(
+            ticker=ticker,
+            market_cap=Decimal(str(mkt_cap)) if mkt_cap is not None else None,
+            pe_ratio=Decimal(str(pe)) if pe is not None else None,
+            pb_ratio=Decimal(str(pb)) if pb is not None else None,
+            ps_ratio=None,
+            eps=Decimal(str(eps)) if eps is not None else None,
+            dividend_yield=None,
+            beta=Decimal(str(beta)) if beta is not None else None,
+            sector=profile.get("sector"),
+            industry=profile.get("industry"),
+            employees=profile.get("fullTimeEmployees"),
+            provider="Yahoo Finance",
+            timestamp=datetime.now(timezone.utc),
+        )
+
+    async def _yahoo_dividends(
+        self, ticker: str, **kwargs: Any
+    ) -> list[DividendRecord] | None:
+        """Fetch dividend records from Yahoo Finance v8/chart events."""
+        url = (
+            f"https://query1.finance.yahoo.com/v8/finance/chart/{ticker}"
+            f"?range=10y&interval=1d&events=div"
+        )
+        response = await self._http.get(
+            url, headers={"User-Agent": "Mozilla/5.0"}, timeout=10
+        )
+        if response.status_code != 200:
+            return None
+
+        data = response.json()
+        results = data.get("chart", {}).get("result")
+        if not results:
+            return None
+
+        events = results[0].get("events", {}).get("dividends", {})
+        if not events:
+            return None
+
+        records: list[DividendRecord] = []
+        for _ts, div in events.items():
+            amount = div.get("amount", 0)
+            div_date = div.get("date", 0)
+            records.append(
+                DividendRecord(
+                    ticker=ticker,
+                    dividend_amount=Decimal(str(amount)),
+                    currency="USD",
+                    ex_date=datetime.fromtimestamp(div_date, tz=timezone.utc).date(),
+                    record_date=None,
+                    pay_date=None,
+                    declaration_date=None,
+                    frequency=None,
+                    provider="Yahoo Finance",
+                )
+            )
+        return records or None
+
+    async def _yahoo_splits(
+        self, ticker: str, **kwargs: Any
+    ) -> list[StockSplit] | None:
+        """Fetch stock splits from Yahoo Finance v8/chart events."""
+        url = (
+            f"https://query1.finance.yahoo.com/v8/finance/chart/{ticker}"
+            f"?range=10y&interval=1d&events=split"
+        )
+        response = await self._http.get(
+            url, headers={"User-Agent": "Mozilla/5.0"}, timeout=10
+        )
+        if response.status_code != 200:
+            return None
+
+        data = response.json()
+        results = data.get("chart", {}).get("result")
+        if not results:
+            return None
+
+        events = results[0].get("events", {}).get("splits", {})
+        if not events:
+            return None
+
+        splits: list[StockSplit] = []
+        for _ts, sp in events.items():
+            splits.append(
+                StockSplit(
+                    ticker=ticker,
+                    execution_date=datetime.fromtimestamp(
+                        sp.get("date", 0), tz=timezone.utc
+                    ).date(),
+                    ratio_from=int(sp.get("denominator", 1)),
+                    ratio_to=int(sp.get("numerator", 1)),
+                    provider="Yahoo Finance",
+                )
+            )
+        return splits or None
+
     # ── Internal helpers ────────────────────────────────────────────
 
     def _get_all_settings(self) -> dict[str, Any]:
@@ -362,12 +804,12 @@ class MarketDataService:
     ) -> list[tuple[str, Any]]:
         """Return enabled providers that have both API keys and normalizers.
 
-        Returns providers in alphabetical order (stable priority).
+        Returns providers in normalizer dict insertion order (spec priority).
         """
         settings = self._get_all_settings()
         result: list[tuple[str, Any]] = []
 
-        for name in sorted(normalizers):
+        for name in normalizers:
             setting = settings.get(name)
             if setting and setting.is_enabled and setting.encrypted_api_key:
                 result.append((name, setting))

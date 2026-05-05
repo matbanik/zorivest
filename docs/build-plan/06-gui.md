@@ -425,7 +425,7 @@ export const useAccountContext = () => useContext(AccountContext);
 | 7 | **MEU-170j** `gui-home` | `home-dashboard.test.ts` (3: startup load, section toggle, section reorder) | **32** | `home-page`, `dashboard-grid`, `dashboard-section-*`, `dashboard-settings-btn` |
 | 8 | **MEU-56** `gui-scheduling` | `scheduling.test.ts` (3), `scheduling-tz.test.ts` (2), dirty-guard (1, P2.1) | **38** | `scheduling-page`, `policy-list`, `policy-editor`, `run-history` |
 | 9 | **MEU-128** `gui-screenshot` | `screenshot-panel.test.ts` (3) | **41** | `screenshot-panel`, `screenshot-upload`, `screenshot-lightbox` |
-| 10 | Phase 12+ GUI MEUs | Per-MEU tests defined in sub-file exit criteria | **TBD** | Per-MEU `data-testid` constants |
+| 10 | **MEU-199–203** `gui-table-list-enhancements` | ConfirmDeleteModal + BulkActionBar primitives, multi-select/bulk delete across 5 surfaces (Accounts, Plans, Watchlists, Trades, Scheduling). Unit: 591 tests (38 files). E2E: extends Waves 2, 4, 8 with delete-confirm + bulk flows | **TBD** | `confirm-delete-modal`, `confirm-delete-confirm-btn`, `confirm-delete-cancel-btn`, `confirm-delete-backdrop`, `bulk-action-bar`, `bulk-delete-btn`, `bulk-clear-btn`, `bulk-selected-count`, `selection-checkbox`, `select-all-checkbox`, `table-filter-bar`, `table-search-input`, `table-filter-select` |
 
 > [!IMPORTANT]
 > **Build before every E2E run.** Wave 0 tests require `npm run build` (alias for `electron-vite build`) to produce `out/main/index.js` and a healthy Python backend (automated by `global-setup.ts`). Playwright launches the compiled bundle, not source files — source changes are invisible until you rebuild.

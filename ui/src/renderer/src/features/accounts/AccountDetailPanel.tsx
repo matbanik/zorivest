@@ -3,9 +3,12 @@ import { useForm } from 'react-hook-form'
 import { z } from 'zod'
 import { zodResolver } from '@hookform/resolvers/zod'
 import type { Account } from '@/hooks/useAccounts'
-import { useUpdateAccount, useDeleteAccount, useArchiveAccount, useAddBalance, useCreateAccount } from '@/hooks/useAccounts'
+import { useUpdateAccount, useDeleteAccount, useForceDeleteAccount, useArchiveAccount, useAddBalance, useCreateAccount, fetchTradeCounts } from '@/hooks/useAccounts'
 import BalanceHistory from './BalanceHistory'
 import { formatTimestamp } from '@/lib/formatDate'
+import ConfirmDeleteModal from '@/components/ConfirmDeleteModal'
+import TradeWarningModal from '@/components/TradeWarningModal'
+import { useConfirmDelete } from '@/hooks/useConfirmDelete'
 
 // ── Schema ──────────────────────────────────────────────────────────────────
 
@@ -69,14 +72,20 @@ const AccountDetailPanel = forwardRef<AccountDetailPanelHandle, AccountDetailPan
     function AccountDetailPanel({ account, isNew, onCreated, onDirtyChange }, ref) {
     const updateAccount = useUpdateAccount()
     const deleteAccount = useDeleteAccount()
+    const forceDeleteAccount = useForceDeleteAccount()
     const archiveAccount = useArchiveAccount()
     const addBalance = useAddBalance()
     const createAccountMutation = useCreateAccount()
-    const [showDeleteConfirm, setShowDeleteConfirm] = useState(false)
-    const [showArchiveConfirm, setShowArchiveConfirm] = useState(false)
     const [deleteError, setDeleteError] = useState<string | null>(null)
+    const deleteConfirm = useConfirmDelete()
+    const archiveConfirm = useConfirmDelete()
     const [showBalanceInput, setShowBalanceInput] = useState(false)
     const [newBalance, setNewBalance] = useState('')
+    // Trade warning state for second confirmation
+    const [tradeWarning, setTradeWarning] = useState<{
+        tradeCount: number
+        planCount: number
+    } | null>(null)
 
     const {
         register,
@@ -152,13 +161,28 @@ const AccountDetailPanel = forwardRef<AccountDetailPanelHandle, AccountDetailPan
         }),
     }), [handleSubmit])
 
-    const onDelete = () => {
+    const executeDelete = async () => {
         setDeleteError(null)
+        try {
+            // Check if account has linked trades
+            const counts = await fetchTradeCounts([account.account_id])
+            const info = counts[account.account_id]
+            if (info && (info.trade_count > 0 || info.plan_count > 0)) {
+                // Has trades — show second confirmation
+                setTradeWarning({
+                    tradeCount: info.trade_count,
+                    planCount: info.plan_count,
+                })
+                return
+            }
+        } catch {
+            // If check fails, proceed with regular delete (might get 409)
+        }
+
+        // No trades — proceed with regular delete
         deleteAccount.mutate(account.account_id, {
             onError: (err: Error) => {
-                // Extract the error detail from the API response (e.g., 409 conflict message)
                 const msg = err.message?.replace(/^API \d+:\s*/, '') || 'Failed to delete account'
-                // Try to parse JSON detail from FastAPI's error response
                 try {
                     const parsed = JSON.parse(msg)
                     setDeleteError(parsed.detail || msg)
@@ -167,10 +191,25 @@ const AccountDetailPanel = forwardRef<AccountDetailPanelHandle, AccountDetailPan
                 }
             },
         })
-        setShowDeleteConfirm(false)
     }
 
-    const onArchive = () => {
+    const executeForceDelete = () => {
+        setDeleteError(null)
+        setTradeWarning(null)
+        forceDeleteAccount.mutate(account.account_id, {
+            onError: (err: Error) => {
+                const msg = err.message?.replace(/^API \d+:\s*/, '') || 'Failed to delete account'
+                try {
+                    const parsed = JSON.parse(msg)
+                    setDeleteError(parsed.detail || msg)
+                } catch {
+                    setDeleteError(msg)
+                }
+            },
+        })
+    }
+
+    const executeArchive = () => {
         setDeleteError(null)
         archiveAccount.mutate(account.account_id, {
             onError: (err: Error) => {
@@ -183,7 +222,6 @@ const AccountDetailPanel = forwardRef<AccountDetailPanelHandle, AccountDetailPan
                 }
             },
         })
-        setShowArchiveConfirm(false)
     }
 
     const onUpdateBalance = () => {
@@ -397,7 +435,7 @@ const AccountDetailPanel = forwardRef<AccountDetailPanelHandle, AccountDetailPan
                         type="button"
                         data-testid="account-archive-btn"
                         className="rounded-md bg-yellow-900/30 px-4 py-1.5 text-sm font-medium text-yellow-400 hover:bg-yellow-900/50 border border-yellow-900/50"
-                        onClick={() => setShowArchiveConfirm(true)}
+                        onClick={() => archiveConfirm.confirmSingle('account', account.name, executeArchive)}
                     >
                         Archive
                     </button>
@@ -407,7 +445,7 @@ const AccountDetailPanel = forwardRef<AccountDetailPanelHandle, AccountDetailPan
                         type="button"
                         data-testid="account-delete-btn"
                         className="rounded-md bg-red-900/30 px-4 py-1.5 text-sm font-medium text-red-400 hover:bg-red-900/50 border border-red-900/50"
-                        onClick={() => setShowDeleteConfirm(true)}
+                        onClick={() => deleteConfirm.confirmSingle('account', account.name, executeDelete)}
                     >
                         Delete
                     </button>
@@ -428,52 +466,42 @@ const AccountDetailPanel = forwardRef<AccountDetailPanelHandle, AccountDetailPan
                 </div>
             )}
 
-            {/* Archive Confirmation */}
-            {showArchiveConfirm && (
-                <div className="rounded-lg border border-yellow-700 bg-yellow-900/10 p-3">
-                    <p className="text-sm text-fg mb-2">
-                        Archive <strong>{account.name}</strong>? Trades and plans will remain unchanged.
-                        Archived accounts are hidden from active views.
-                    </p>
-                    <div className="flex gap-2">
-                        <button
-                            className="rounded-md bg-yellow-700 px-3 py-1 text-sm text-white hover:bg-yellow-600"
-                            onClick={onArchive}
-                        >
-                            Confirm Archive
-                        </button>
-                        <button
-                            className="rounded-md border border-border px-3 py-1 text-sm hover:bg-bg-hover"
-                            onClick={() => setShowArchiveConfirm(false)}
-                        >
-                            Cancel
-                        </button>
-                    </div>
-                </div>
+            {/* Delete Confirmation Modal */}
+            {deleteConfirm.target && (
+                <ConfirmDeleteModal
+                    open={deleteConfirm.showModal}
+                    target={deleteConfirm.target}
+                    onCancel={deleteConfirm.handleCancel}
+                    onConfirm={deleteConfirm.handleConfirm}
+                    isDeleting={deleteAccount.isPending}
+                />
             )}
 
-            {/* Delete Confirmation */}
-            {showDeleteConfirm && (
-                <div className="rounded-lg border border-error bg-error/5 p-3">
-                    <p className="text-sm text-fg mb-2">
-                        Are you sure you want to delete <strong>{account.name}</strong>?
-                        This action cannot be undone.
-                    </p>
-                    <div className="flex gap-2">
-                        <button
-                            className="rounded-md bg-error px-3 py-1 text-sm text-white hover:bg-error/80"
-                            onClick={onDelete}
-                        >
-                            Confirm Delete
-                        </button>
-                        <button
-                            className="rounded-md border border-border px-3 py-1 text-sm hover:bg-bg-hover"
-                            onClick={() => setShowDeleteConfirm(false)}
-                        >
-                            Cancel
-                        </button>
-                    </div>
-                </div>
+            {/* Archive Confirmation Modal — amber archive theme */}
+            {archiveConfirm.target && (
+                <ConfirmDeleteModal
+                    open={archiveConfirm.showModal}
+                    target={archiveConfirm.target}
+                    onCancel={archiveConfirm.handleCancel}
+                    onConfirm={archiveConfirm.handleConfirm}
+                    isDeleting={archiveAccount.isPending}
+                    action="archive"
+                />
+            )}
+
+            {/* Trade Warning Modal — second confirmation for accounts with trades */}
+            {tradeWarning && (
+                <TradeWarningModal
+                    open={true}
+                    target={{
+                        accountName: account.name,
+                        tradeCount: tradeWarning.tradeCount,
+                        planCount: tradeWarning.planCount,
+                    }}
+                    onCancel={() => setTradeWarning(null)}
+                    onConfirm={executeForceDelete}
+                    isDeleting={forceDeleteAccount.isPending}
+                />
             )}
 
             {/* Balance History — only for existing accounts */}

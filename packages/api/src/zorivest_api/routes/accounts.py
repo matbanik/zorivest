@@ -250,6 +250,22 @@ async def archive_account(account_id: str, service=Depends(get_account_service))
 
 
 @account_router.post(
+    "/{account_id}:unarchive",
+    status_code=200,
+    dependencies=[Depends(require_unlocked_db)],
+)
+async def unarchive_account(account_id: str, service=Depends(get_account_service)):
+    """Restore an archived account: set is_archived=False."""
+    try:
+        service.update_account(account_id, is_archived=False)
+        return {"status": "unarchived", "account_id": account_id}
+    except ForbiddenError as e:
+        raise HTTPException(403, str(e))
+    except NotFoundError:
+        raise HTTPException(404, f"Account not found: {account_id}")
+
+
+@account_router.post(
     "/{account_id}:reassign-trades",
     status_code=200,
     dependencies=[Depends(require_unlocked_db)],
@@ -263,6 +279,31 @@ async def reassign_trades(account_id: str, service=Depends(get_account_service))
         raise HTTPException(403, str(e))
     except NotFoundError:
         raise HTTPException(404, f"Account not found: {account_id}")
+
+
+# ── Trade count query ────────────────────────────────────────────────────
+
+
+class TradeCountsRequest(BaseModel):
+    model_config = {"extra": "forbid"}
+
+    account_ids: list[str] = Field(min_length=1, max_length=100)
+
+
+@account_router.post(
+    ":trade-counts",
+    status_code=200,
+    dependencies=[Depends(require_unlocked_db)],
+)
+async def get_trade_counts(
+    body: TradeCountsRequest, service=Depends(get_account_service)
+):
+    """Return trade + plan counts for a list of account IDs.
+
+    Used by the UI to determine which accounts need a second confirmation
+    before deletion (accounts with linked trades).
+    """
+    return service.get_trade_counts(body.account_ids)
 
 
 # ── Balance snapshot ────────────────────────────────────────────────────

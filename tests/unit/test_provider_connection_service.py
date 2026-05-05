@@ -28,7 +28,7 @@ def _make_registry() -> dict[str, ProviderConfig]:
     return {
         "Alpha Vantage": ProviderConfig(
             name="Alpha Vantage",
-            base_url="https://alphavantage.co/query",
+            base_url="https://alphavantage.co",
             auth_method=AuthMethod.QUERY_PARAM,
             auth_param_name="apikey",
             headers_template={},
@@ -36,12 +36,12 @@ def _make_registry() -> dict[str, ProviderConfig]:
             default_rate_limit=5,
         ),
         "Polygon.io": ProviderConfig(
-            name="Polygon.io",
-            base_url="https://api.polygon.io",
-            auth_method=AuthMethod.BEARER_HEADER,
-            auth_param_name="Authorization",
-            headers_template={"Authorization": "Bearer {api_key}"},
-            test_endpoint="/test",
+            name="Massive",
+            base_url="https://api.massive.com",
+            auth_method=AuthMethod.QUERY_PARAM,
+            auth_param_name="apiKey",
+            headers_template={},
+            test_endpoint="/v3/reference/tickers?limit=1&apiKey={api_key}",
             default_rate_limit=5,
         ),
         "Finnhub": ProviderConfig(
@@ -773,14 +773,14 @@ class TestDualKeyStorage:
         asyncio.run(_run())
 
 
-# ── AC-27: Generic validation for providers without table entries ──
+# ── AC-27: OpenFIGI provider-specific validation ──
 
 
-class TestGenericValidation:
-    """AC-27: Providers without validation table entry use generic check."""
+class TestOpenFIGIValidation:
+    """OpenFIGI uses POST with provider-specific validator."""
 
-    def test_openfigi_generic(self) -> None:
-        """OpenFIGI uses POST with provider-specific validator — data list with 'data' key."""
+    def test_openfigi_valid_data_list(self) -> None:
+        """OpenFIGI success: list with 'data' key in first element."""
 
         async def _run() -> None:
             uow = MockUoW()
@@ -795,8 +795,37 @@ class TestGenericValidation:
 
         asyncio.run(_run())
 
-    def test_tradier_generic(self) -> None:
-        """Tradier is not in the §8.6 table, uses generic validation."""
+
+# ── Tradier provider-specific validation ──
+
+
+class TestTradierValidation:
+    """Tradier /user/profile returns {"profile": {"account": {...}}}.
+
+    Validator accepts: {"profile": {}} — key presence confirms valid auth.
+    Validator rejects: {"fault": {"faultstring": "..."}}, unexpected shapes.
+    """
+
+    def test_valid_profile_response(self) -> None:
+        """Tradier success: response contains 'profile' key."""
+
+        async def _run() -> None:
+            uow = MockUoW()
+            _configure_provider_in_uow(uow, "Tradier")
+            http = MockHttpClient(
+                MockResponse(
+                    200, _json={"profile": {"account": {"account_number": "123"}}}
+                )
+            )
+            svc, _, _ = _make_service(uow=uow, http=http)
+            success, msg = await svc.test_connection("Tradier")
+            assert success is True
+            assert msg == "Connection successful"
+
+        asyncio.run(_run())
+
+    def test_minimal_profile_response(self) -> None:
+        """Tradier success: empty profile dict still valid."""
 
         async def _run() -> None:
             uow = MockUoW()
@@ -804,20 +833,162 @@ class TestGenericValidation:
             http = MockHttpClient(MockResponse(200, _json={"profile": {}}))
             svc, _, _ = _make_service(uow=uow, http=http)
             success, _ = await svc.test_connection("Tradier")
-            # Tradier not in validator table → generic check (any valid JSON)
             assert success is True
 
         asyncio.run(_run())
 
-    def test_alpaca_generic(self) -> None:
-        """Alpaca is not in the §8.6 table, uses generic validation."""
+    def test_fault_response_rejected(self) -> None:
+        """Tradier failure: 'fault' key indicates invalid API key or auth error."""
+
+        async def _run() -> None:
+            uow = MockUoW()
+            _configure_provider_in_uow(uow, "Tradier")
+            http = MockHttpClient(
+                MockResponse(
+                    200,
+                    _json={"fault": {"faultstring": "Invalid ApiKey"}},
+                )
+            )
+            svc, _, _ = _make_service(uow=uow, http=http)
+            success, msg = await svc.test_connection("Tradier")
+            assert success is False
+            assert "unexpected" in msg.lower()
+
+        asyncio.run(_run())
+
+    def test_unexpected_json_shape_rejected(self) -> None:
+        """Tradier failure: response without 'profile' key."""
+
+        async def _run() -> None:
+            uow = MockUoW()
+            _configure_provider_in_uow(uow, "Tradier")
+            http = MockHttpClient(MockResponse(200, _json={"error": "unauthorized"}))
+            svc, _, _ = _make_service(uow=uow, http=http)
+            success, msg = await svc.test_connection("Tradier")
+            assert success is False
+            assert "unexpected" in msg.lower()
+
+        asyncio.run(_run())
+
+    def test_xml_response_fails_gracefully(self) -> None:
+        """Tradier failure: XML response (json parse throws) → unexpected response.
+
+        This is the root cause of the original bug: Tradier returns XML
+        when Accept header is missing. response.json() throws → data=None.
+        """
+
+        async def _run() -> None:
+            uow = MockUoW()
+            _configure_provider_in_uow(uow, "Tradier")
+            # MockResponse with _json=None causes json() to raise ValueError
+            http = MockHttpClient(
+                MockResponse(200, _json=None, text="<xml>profile</xml>")
+            )
+            svc, _, _ = _make_service(uow=uow, http=http)
+            success, msg = await svc.test_connection("Tradier")
+            assert success is False
+            assert "unexpected" in msg.lower()
+
+        asyncio.run(_run())
+
+
+# ── Alpaca provider-specific validation ──
+
+
+class TestAlpacaValidation:
+    """Alpaca /v2/account returns {"id": "...", "status": "..."}.
+
+    Validator accepts: {"id": "..."} — key presence confirms valid auth.
+    Validator rejects: {"code": 40110000, "message": "..."}, unexpected shapes.
+    """
+
+    def test_valid_account_response(self) -> None:
+        """Alpaca success: response contains 'id' key."""
 
         async def _run() -> None:
             uow = MockUoW()
             _configure_provider_in_uow(uow, "Alpaca")
-            http = MockHttpClient(MockResponse(200, _json={"id": "acct"}))
+            http = MockHttpClient(
+                MockResponse(200, _json={"id": "acct-123", "status": "ACTIVE"})
+            )
             svc, _, _ = _make_service(uow=uow, http=http)
-            success, _ = await svc.test_connection("Alpaca")
+            success, msg = await svc.test_connection("Alpaca")
             assert success is True
+            assert msg == "Connection successful"
+
+        asyncio.run(_run())
+
+    def test_error_code_response_rejected(self) -> None:
+        """Alpaca failure: 'code' key indicates API error."""
+
+        async def _run() -> None:
+            uow = MockUoW()
+            _configure_provider_in_uow(uow, "Alpaca")
+            http = MockHttpClient(
+                MockResponse(
+                    200,
+                    _json={"code": 40110000, "message": "request is not authorized"},
+                )
+            )
+            svc, _, _ = _make_service(uow=uow, http=http)
+            success, msg = await svc.test_connection("Alpaca")
+            assert success is False
+            assert "unexpected" in msg.lower()
+
+        asyncio.run(_run())
+
+    def test_unexpected_json_shape_rejected(self) -> None:
+        """Alpaca failure: response without 'id' key."""
+
+        async def _run() -> None:
+            uow = MockUoW()
+            _configure_provider_in_uow(uow, "Alpaca")
+            http = MockHttpClient(MockResponse(200, _json={"error": "unauthorized"}))
+            svc, _, _ = _make_service(uow=uow, http=http)
+            success, msg = await svc.test_connection("Alpaca")
+            assert success is False
+            assert "unexpected" in msg.lower()
+
+        asyncio.run(_run())
+
+
+# ═══════════════════════════════════════════════════════════════════════════
+# Corrections: Finding 4 — display_name Regression Coverage
+# ═══════════════════════════════════════════════════════════════════════════
+
+
+class TestDisplayNameRegression:
+    """F4: display_name must distinguish rebranded providers from non-rebranded."""
+
+    def test_polygon_produces_display_name_massive(self) -> None:
+        """Polygon.io key → config.name='Massive' → display_name='Massive'."""
+
+        async def _run() -> None:
+            uow = MockUoW()
+            # Enable Polygon.io so it appears in list
+            _configure_provider_in_uow(uow, "Polygon.io")
+            http = MockHttpClient(MockResponse(200, _json={}))
+            svc, _, _ = _make_service(uow=uow, http=http)
+            providers = await svc.list_providers()
+            polygon = next(p for p in providers if p.provider_name == "Polygon.io")
+            assert polygon.display_name == "Massive", (
+                f"Expected display_name='Massive', got '{polygon.display_name}'"
+            )
+
+        asyncio.run(_run())
+
+    def test_non_rebranded_provider_has_no_display_name(self) -> None:
+        """Alpha Vantage key == config.name → display_name=None."""
+
+        async def _run() -> None:
+            uow = MockUoW()
+            _configure_provider_in_uow(uow, "Alpha Vantage")
+            http = MockHttpClient(MockResponse(200, _json={}))
+            svc, _, _ = _make_service(uow=uow, http=http)
+            providers = await svc.list_providers()
+            av = next(p for p in providers if p.provider_name == "Alpha Vantage")
+            assert av.display_name is None, (
+                f"Expected display_name=None for non-rebranded provider, got '{av.display_name}'"
+            )
 
         asyncio.run(_run())

@@ -12,7 +12,6 @@
  */
 
 import { useState, useCallback, useEffect, useRef, useMemo, forwardRef, useImperativeHandle } from 'react'
-import { createPortal } from 'react-dom'
 import { EditorView, keymap } from '@codemirror/view'
 import { EditorState } from '@codemirror/state'
 import { json } from '@codemirror/lang-json'
@@ -22,6 +21,8 @@ import { SCHEDULING_TEST_IDS } from './test-ids'
 import { formatTimestamp } from '@/lib/formatDate'
 import type { Policy } from './api'
 import CronPicker from './CronPicker'
+import ConfirmDeleteModal from '@/components/ConfirmDeleteModal'
+import { useConfirmDelete } from '@/hooks/useConfirmDelete'
 
 // ── Policy State helpers ───────────────────────────────────────────────
 
@@ -87,11 +88,9 @@ const PolicyDetail = forwardRef<PolicyDetailHandle, PolicyDetailProps>(function 
 }, ref) {
     const editorRef = useRef<HTMLDivElement>(null)
     const viewRef = useRef<EditorView | null>(null)
-    const [jsonError, setJsonError] = useState<string | null>(null)
-    const [confirmRun, setConfirmRun] = useState(false)
-    const [showDeleteConfirm, setShowDeleteConfirm] = useState(false)
     const [isDirty, setIsDirty] = useState(false)
     const confirmRunTimerRef = useRef<ReturnType<typeof setTimeout> | null>(null)
+    const deleteConfirm = useConfirmDelete()
 
     // ── Inline editable name ───────────────────────────────────────────
     const [isEditingName, setIsEditingName] = useState(false)
@@ -221,14 +220,12 @@ const PolicyDetail = forwardRef<PolicyDetailHandle, PolicyDetailProps>(function 
         save: handleSave,
     }), [handleSave])
 
-    const handleDelete = useCallback(() => {
-        setShowDeleteConfirm(true)
-    }, [])
+    const [jsonError, setJsonError] = useState<string | null>(null)
+    const [confirmRun, setConfirmRun] = useState(false)
 
-    const handleConfirmDelete = useCallback(() => {
-        setShowDeleteConfirm(false)
-        onDelete()
-    }, [onDelete])
+    const handleDelete = useCallback(() => {
+        deleteConfirm.confirmSingle('policy', policy.name, () => onDelete())
+    }, [deleteConfirm, policy.name, onDelete])
 
     // ── Cron change handler ────────────────────────────────────────────
     // Updates BOTH the schedule metadata via PATCH AND the policy_json
@@ -525,81 +522,14 @@ const PolicyDetail = forwardRef<PolicyDetailHandle, PolicyDetailProps>(function 
 
             </div>
 
-            {/* ── Delete Confirmation Modal (portaled to body) ── */}
-            {showDeleteConfirm && createPortal(
-                <div className="fixed inset-0 z-[9999] flex items-center justify-center" style={{ position: 'fixed', top: 0, left: 0, right: 0, bottom: 0 }}>
-                    {/* Backdrop */}
-                    <div
-                        className="absolute inset-0"
-                        style={{ backgroundColor: 'rgba(0,0,0,0.65)', backdropFilter: 'blur(4px)' }}
-                        onClick={() => setShowDeleteConfirm(false)}
-                    />
-                    {/* Dialog */}
-                    <div
-                        style={{
-                            position: 'relative',
-                            backgroundColor: 'var(--color-bg-elevated, #1e2030)',
-                            border: '1px solid var(--color-bg-subtle, #2a2e3f)',
-                            borderRadius: '12px',
-                            padding: '24px',
-                            maxWidth: '400px',
-                            width: '90%',
-                            boxShadow: '0 25px 50px -12px rgba(0,0,0,0.5)',
-                            color: 'var(--color-fg, #e0e0e0)',
-                        }}
-                    >
-                        <div style={{ display: 'flex', alignItems: 'center', gap: '12px', marginBottom: '16px' }}>
-                            <div style={{
-                                width: '40px', height: '40px', borderRadius: '50%',
-                                backgroundColor: 'rgba(239,68,68,0.15)',
-                                display: 'flex', alignItems: 'center', justifyContent: 'center', flexShrink: 0,
-                            }}>
-                                <span style={{ color: 'var(--color-accent-red, #ef4444)', fontSize: '18px' }}>⚠</span>
-                            </div>
-                            <div>
-                                <h4 style={{ fontSize: '14px', fontWeight: 600, margin: 0, color: 'var(--color-fg, #e0e0e0)' }}>Delete Policy</h4>
-                                <p style={{ fontSize: '12px', color: 'var(--color-fg-muted, #8b8fa3)', margin: '2px 0 0 0' }}>This action cannot be undone.</p>
-                            </div>
-                        </div>
-                        <p style={{ fontSize: '14px', color: 'var(--color-fg-muted, #8b8fa3)', marginBottom: '20px' }}>
-                            Are you sure you want to delete <strong style={{ color: 'var(--color-fg, #e0e0e0)' }}>{policy.name}</strong>?
-                            All associated run history will also be removed.
-                        </p>
-                        <div style={{ display: 'flex', gap: '8px', justifyContent: 'flex-end' }}>
-                            <button
-                                type="button"
-                                onClick={() => setShowDeleteConfirm(false)}
-                                style={{
-                                    padding: '6px 16px', fontSize: '13px', fontWeight: 500, borderRadius: '6px',
-                                    border: '1px solid var(--color-bg-subtle, #2a2e3f)',
-                                    backgroundColor: 'transparent',
-                                    color: 'var(--color-fg-muted, #8b8fa3)',
-                                    cursor: 'pointer',
-                                }}
-                                onMouseEnter={(e) => { e.currentTarget.style.color = 'var(--color-fg, #e0e0e0)' }}
-                                onMouseLeave={(e) => { e.currentTarget.style.color = 'var(--color-fg-muted, #8b8fa3)' }}
-                            >
-                                Cancel
-                            </button>
-                            <button
-                                type="button"
-                                onClick={handleConfirmDelete}
-                                style={{
-                                    padding: '6px 16px', fontSize: '13px', fontWeight: 500, borderRadius: '6px',
-                                    border: 'none',
-                                    backgroundColor: 'var(--color-accent-red, #ef4444)',
-                                    color: '#fff',
-                                    cursor: 'pointer',
-                                }}
-                                onMouseEnter={(e) => { e.currentTarget.style.opacity = '0.85' }}
-                                onMouseLeave={(e) => { e.currentTarget.style.opacity = '1' }}
-                            >
-                                Delete Policy
-                            </button>
-                        </div>
-                    </div>
-                </div>,
-                document.body,
+            {/* ── Delete Confirmation Modal ── */}
+            {deleteConfirm.target && (
+                <ConfirmDeleteModal
+                    open={deleteConfirm.showModal}
+                    target={deleteConfirm.target}
+                    onCancel={deleteConfirm.handleCancel}
+                    onConfirm={deleteConfirm.handleConfirm}
+                />
             )}
         </div>
     )
