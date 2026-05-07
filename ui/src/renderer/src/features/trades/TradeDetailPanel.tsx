@@ -1,7 +1,7 @@
 import { useForm } from 'react-hook-form'
 import { zodResolver } from '@hookform/resolvers/zod'
 import { z } from 'zod'
-import { useState, useEffect, useImperativeHandle, forwardRef } from 'react'
+import { useState, useEffect, useImperativeHandle, forwardRef, useCallback } from 'react'
 import { useQuery } from '@tanstack/react-query'
 import { apiFetch } from '@/lib/api'
 import type { Trade } from './TradesTable'
@@ -68,6 +68,8 @@ function AccountSelect({ register }: { register: ReturnType<typeof useForm<Trade
 export interface TradeDetailPanelHandle {
     /** Programmatically trigger form save (used by parent for "Save & Continue") */
     save: () => Promise<void>
+    /** Returns true when required form fields are invalid */
+    isInvalid: () => boolean
 }
 
 interface TradeDetailPanelProps {
@@ -97,6 +99,7 @@ const TradeDetailPanel = forwardRef<TradeDetailPanelHandle, TradeDetailPanelProp
         register,
         handleSubmit,
         reset,
+        getValues,
         formState: { errors, isDirty },
     } = useForm<TradeFormData>({
         resolver: zodResolver(tradeSchema),
@@ -123,13 +126,13 @@ const TradeDetailPanel = forwardRef<TradeDetailPanelHandle, TradeDetailPanelProp
             },
     })
 
-    const onSubmit = (data: TradeFormData) => {
+    const onSubmit = useCallback((data: TradeFormData) => {
         onSave?.(data)
         // Reset form with saved values to clear isDirty and amber-pulse
         reset(data)
-    }
+    }, [onSave, reset])
 
-    // Expose save() to parent via ref for "Save & Continue"
+    // Expose save() and isInvalid() to parent via ref for "Save & Continue" guard
     useImperativeHandle(ref, () => ({
         save: () => new Promise<void>((resolve, reject) => {
             handleSubmit(
@@ -140,7 +143,11 @@ const TradeDetailPanel = forwardRef<TradeDetailPanelHandle, TradeDetailPanelProp
                 () => reject(new Error('Validation failed')),
             )()
         }),
-    }), [handleSubmit])
+        isInvalid: () => {
+            const v = getValues()
+            return !v.instrument?.trim() || !v.account_id?.trim() || v.quantity <= 0 || v.price <= 0
+        },
+    }), [handleSubmit, getValues, onSubmit])
 
     // Report dirty state to parent for unsaved-changes guard
     useEffect(() => {

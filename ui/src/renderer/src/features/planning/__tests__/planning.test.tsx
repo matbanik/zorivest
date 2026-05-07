@@ -778,7 +778,7 @@ describe('MEU-70 T1: T2 — Calculator ↔ Trade Plan', () => {
         })
         fireEvent.click(screen.getByTestId('plan-card-1'))
         await waitFor(() => {
-            expect(screen.getByTestId('plan-calculate-position-btn')).toBeInTheDocument()
+            expect(screen.getByTestId('plan-copy-from-calc-btn')).toBeInTheDocument()
         })
     })
 
@@ -792,9 +792,9 @@ describe('MEU-70 T1: T2 — Calculator ↔ Trade Plan', () => {
         })
         fireEvent.click(screen.getByTestId('plan-card-1'))
         await waitFor(() => {
-            expect(screen.getByTestId('plan-calculate-position-btn')).toBeInTheDocument()
+            expect(screen.getByTestId('plan-copy-from-calc-btn')).toBeInTheDocument()
         })
-        fireEvent.click(screen.getByTestId('plan-calculate-position-btn'))
+        fireEvent.click(screen.getByTestId('plan-copy-from-calc-btn'))
         expect(spy).toHaveBeenCalledTimes(1)
 
         const event = spy.mock.calls[0][0] as CustomEvent
@@ -805,6 +805,83 @@ describe('MEU-70 T1: T2 — Calculator ↔ Trade Plan', () => {
                 target_price: 196,
             }),
         )
+        window.removeEventListener('zorivest:open-calculator', spy)
+    })
+})
+
+// ─── R4 Regression: duplicate-ticker auto-save uses POST response ID ─────
+
+describe('R4: duplicate-ticker auto-save targets POST response ID', () => {
+    beforeEach(() => {
+        vi.clearAllMocks()
+    })
+
+    it('should use created.id from POST response, not existing same-ticker plan', async () => {
+        // Set up: existing plan #1 has ticker AAPL
+        const existingPlans: TradePlan[] = [MOCK_PLANS[0]] // AAPL, id: 1
+
+        // POST returns a new plan with distinct ID 99
+        const createdPlan: TradePlan = {
+            id: 99,
+            ticker: 'AAPL',
+            direction: 'BOT',
+            conviction: 'medium',
+            strategy_name: 'Duplicate Ticker Strategy',
+            strategy_description: '',
+            entry_price: 195,
+            stop_loss: 193,
+            target_price: 200,
+            entry_conditions: '',
+            exit_conditions: '',
+            timeframe: 'swing',
+            risk_reward_ratio: 2.5,
+            status: 'active',
+            linked_trade_id: null,
+            account_id: null,
+            created_at: '2026-03-21T10:00:00Z',
+            updated_at: '2026-03-21T10:00:00Z',
+        }
+
+        mockApiFetch.mockImplementation((url: string, opts?: { method?: string }) => {
+            if (url.includes('/api/v1/trade-plans') && opts?.method === 'POST') {
+                return Promise.resolve(createdPlan)
+            }
+            if (url.includes('/api/v1/trade-plans')) return Promise.resolve(existingPlans)
+            if (url.includes('/api/v1/accounts')) return Promise.resolve([])
+            return Promise.resolve({})
+        })
+
+        const spy = vi.fn()
+        window.addEventListener('zorivest:open-calculator', spy)
+
+        render(<TradePlanPage />, { wrapper: createWrapper() })
+        await waitFor(() => {
+            expect(screen.getByText('AAPL')).toBeInTheDocument()
+        })
+
+        // Click "+ New Plan" to enter isCreating mode
+        fireEvent.click(screen.getByTestId('new-plan-btn'))
+        await waitFor(() => {
+            expect(screen.getByTestId('plan-ticker')).toBeInTheDocument()
+        })
+
+        // Fill required fields with same ticker as existing plan
+        fireEvent.change(screen.getByTestId('plan-ticker-input'), { target: { value: 'AAPL' } })
+        fireEvent.change(screen.getByTestId('plan-strategy-name'), { target: { value: 'Duplicate Ticker Strategy' } })
+
+        // Click "Calculate Position" — should auto-save first, then dispatch event
+        await act(async () => {
+            fireEvent.click(screen.getByTestId('plan-copy-from-calc-btn'))
+        })
+
+        await waitFor(() => {
+            expect(spy).toHaveBeenCalledTimes(1)
+        })
+
+        const event = spy.mock.calls[0][0] as CustomEvent
+        // CRITICAL: plan_id must be 99 (from POST response), not 1 (existing AAPL plan)
+        expect(event.detail.plan_id).toBe(99)
+
         window.removeEventListener('zorivest:open-calculator', spy)
     })
 })
@@ -1050,14 +1127,14 @@ describe('Recheck R1-R5: persistence and contract regressions', () => {
         render(<TradePlanPage />, { wrapper: createWrapper() })
         await waitFor(() => expect(screen.getByText('asd')).toBeInTheDocument())
         fireEvent.click(screen.getByTestId('plan-card-1'))
-        await waitFor(() => expect(screen.getByTestId('plan-calculate-position-btn')).toBeInTheDocument())
+        await waitFor(() => expect(screen.getByTestId('plan-copy-from-calc-btn')).toBeInTheDocument())
 
         let capturedDetail: Record<string, unknown> | null = null
         window.addEventListener('zorivest:open-calculator', (e) => {
             capturedDetail = (e as CustomEvent).detail
         }, { once: true })
 
-        fireEvent.click(screen.getByTestId('plan-calculate-position-btn'))
+        fireEvent.click(screen.getByTestId('plan-copy-from-calc-btn'))
         expect(capturedDetail).not.toBeNull()
         expect(capturedDetail).toHaveProperty('ticker')
         expect(typeof (capturedDetail as unknown as Record<string, unknown>).ticker).toBe('string')
@@ -1227,9 +1304,8 @@ describe('MEU-70a Sub-MEU C: AC-20 — Readonly position_size display', () => {
         await waitFor(() => {
             const posField = screen.getByTestId('plan-position-size')
             expect(posField).toBeInTheDocument()
-            expect(posField).toHaveAttribute('readonly')
-            // Should show formatted value $19,000.00
-            expect(posField).toHaveValue('$19,000.00')
+            // Position size is now a display div in the computed metrics row
+            expect(posField.textContent).toBe('$19,000.00')
         })
     })
 
@@ -1245,7 +1321,7 @@ describe('MEU-70a Sub-MEU C: AC-20 — Readonly position_size display', () => {
         fireEvent.click(screen.getByTestId('plan-card-1'))
         await waitFor(() => {
             const posField = screen.getByTestId('plan-position-size')
-            expect(posField).toHaveValue('—')
+            expect(posField.textContent).toBe('—')
         })
     })
 
@@ -1263,7 +1339,7 @@ describe('MEU-70a Sub-MEU C: AC-20 — Readonly position_size display', () => {
 
 describe('MEU-70a Sub-MEU C: AC-21 — Apply to Plan button in Calculator', () => {
     it('should render "Apply to Plan" button in calculator results section', () => {
-        render(<PositionCalculatorModal isOpen={true} onClose={vi.fn()} />, { wrapper: createWrapper() })
+        render(<PositionCalculatorModal isOpen={true} onClose={vi.fn()} fromPlanContext={true} />, { wrapper: createWrapper() })
         expect(screen.getByTestId('calc-apply-to-plan-btn')).toBeInTheDocument()
     })
 
@@ -1279,19 +1355,13 @@ describe('MEU-70a Sub-MEU C: AC-21 — Apply to Plan button in Calculator', () =
         fireEvent.change(screen.getByTestId('calc-stop-price'), { target: { value: '98' } })
         fireEvent.change(screen.getByTestId('calc-target-price'), { target: { value: '106' } })
 
-        fireEvent.click(screen.getByTestId('calc-apply-to-plan-btn'))
-
-        expect(spy).toHaveBeenCalledTimes(1)
-        const event = spy.mock.calls[0][0] as CustomEvent
-        // shares = floor(1000/2) = 500, positionValue = 500 * 100 = 50000
-        expect(event.detail).toEqual({
-            shares_planned: 500,
-            position_size: 50000,
-            account_id: undefined,
-            entry: 100,
-            stop: 98,
-            target: 106,
-        })
+        // Need to select a plan before Apply works
+        // Simulate plan selection via the plan picker (just check button is disabled without selection)
+        const applyBtn = screen.getByTestId('calc-apply-to-plan-btn')
+        expect(applyBtn).toBeDisabled()
+        // Click apply when disabled — spy should not fire
+        fireEvent.click(applyBtn)
+        expect(spy).not.toHaveBeenCalled()
 
         window.removeEventListener('zorivest:calculator-apply', spy)
     })
@@ -1325,9 +1395,9 @@ describe('MEU-70a Sub-MEU C: AC-22 — TradePlanPage calculator-apply listener',
             // shares_planned should be populated (editable field)
             const sharesInput = screen.getByTestId('plan-shares-planned') as HTMLInputElement
             expect(parseInt(sharesInput.value)).toBe(250)
-            // position_size should be populated (readonly field)
-            const posField = screen.getByTestId('plan-position-size') as HTMLInputElement
-            expect(posField.value).toBe('$47,500.00')
+            // position_size should be populated (display div in computed row)
+            const posField = screen.getByTestId('plan-position-size')
+            expect(posField.textContent).toBe('$47,500.00')
         })
     })
 
@@ -1804,5 +1874,428 @@ describe('Redesign: Quote polling cadence (5s interval)', () => {
         expect(quoteFetchCount).toBeGreaterThan(initialCount)
 
         vi.useRealTimers()
+    })
+})
+
+// ─── Validation Error Tests: TradePlanPage ────────────────────────────────
+
+describe('TradePlanPage — inline validation errors', () => {
+    beforeEach(() => {
+        vi.clearAllMocks()
+        mockApiFetch.mockImplementation((url: string) => {
+            if (url.includes('/api/v1/trade-plans')) return Promise.resolve(MOCK_PLANS)
+            if (url.includes('/api/v1/accounts')) return Promise.resolve([])
+            return Promise.resolve({})
+        })
+    })
+
+    it('shows "Ticker is required" when saving with empty ticker', async () => {
+        render(<TradePlanPage />, { wrapper: createWrapper() })
+        fireEvent.click(screen.getByTestId('new-plan-btn'))
+        await waitFor(() => {
+            expect(screen.getByTestId('plan-detail-panel')).toBeInTheDocument()
+        })
+        // Fill strategy but leave ticker empty
+        fireEvent.change(screen.getByTestId('plan-strategy-name'), { target: { value: 'Breakout' } })
+        fireEvent.click(screen.getByTestId('plan-save-btn'))
+        await waitFor(() => {
+            expect(screen.getByText('Ticker is required')).toBeInTheDocument()
+        })
+        // Should NOT have called POST
+        expect(mockApiFetch).not.toHaveBeenCalledWith(
+            '/api/v1/trade-plans',
+            expect.objectContaining({ method: 'POST' }),
+        )
+    })
+
+    it('shows "Strategy Name is required" when saving with empty strategy name', async () => {
+        render(<TradePlanPage />, { wrapper: createWrapper() })
+        fireEvent.click(screen.getByTestId('new-plan-btn'))
+        await waitFor(() => {
+            expect(screen.getByTestId('plan-detail-panel')).toBeInTheDocument()
+        })
+        // Fill ticker but leave strategy empty
+        fireEvent.change(screen.getByTestId('plan-ticker-input'), { target: { value: 'AAPL' } })
+        fireEvent.click(screen.getByTestId('plan-save-btn'))
+        await waitFor(() => {
+            expect(screen.getByText('Strategy Name is required')).toBeInTheDocument()
+        })
+    })
+
+    it('shows both errors when saving with all fields empty', async () => {
+        render(<TradePlanPage />, { wrapper: createWrapper() })
+        fireEvent.click(screen.getByTestId('new-plan-btn'))
+        await waitFor(() => {
+            expect(screen.getByTestId('plan-detail-panel')).toBeInTheDocument()
+        })
+        fireEvent.click(screen.getByTestId('plan-save-btn'))
+        await waitFor(() => {
+            expect(screen.getByText('Ticker is required')).toBeInTheDocument()
+            expect(screen.getByText('Strategy Name is required')).toBeInTheDocument()
+        })
+    })
+
+    it('clears ticker error when user types in ticker field', async () => {
+        render(<TradePlanPage />, { wrapper: createWrapper() })
+        fireEvent.click(screen.getByTestId('new-plan-btn'))
+        await waitFor(() => {
+            expect(screen.getByTestId('plan-detail-panel')).toBeInTheDocument()
+        })
+        fireEvent.click(screen.getByTestId('plan-save-btn'))
+        await waitFor(() => {
+            expect(screen.getByText('Ticker is required')).toBeInTheDocument()
+        })
+        // Type in ticker field — error should clear
+        fireEvent.change(screen.getByTestId('plan-ticker-input'), { target: { value: 'TSLA' } })
+        await waitFor(() => {
+            expect(screen.queryByText('Ticker is required')).not.toBeInTheDocument()
+        })
+    })
+
+    it('clears strategy error when user types in strategy field', async () => {
+        render(<TradePlanPage />, { wrapper: createWrapper() })
+        fireEvent.click(screen.getByTestId('new-plan-btn'))
+        await waitFor(() => {
+            expect(screen.getByTestId('plan-detail-panel')).toBeInTheDocument()
+        })
+        fireEvent.click(screen.getByTestId('plan-save-btn'))
+        await waitFor(() => {
+            expect(screen.getByText('Strategy Name is required')).toBeInTheDocument()
+        })
+        // Type in strategy field — error should clear
+        fireEvent.change(screen.getByTestId('plan-strategy-name'), { target: { value: 'Gap Fill' } })
+        await waitFor(() => {
+            expect(screen.queryByText('Strategy Name is required')).not.toBeInTheDocument()
+        })
+    })
+
+    it('applies red border to strategy name field when validation fails', async () => {
+        render(<TradePlanPage />, { wrapper: createWrapper() })
+        fireEvent.click(screen.getByTestId('new-plan-btn'))
+        await waitFor(() => {
+            expect(screen.getByTestId('plan-detail-panel')).toBeInTheDocument()
+        })
+        fireEvent.click(screen.getByTestId('plan-save-btn'))
+        await waitFor(() => {
+            const strategyInput = screen.getByTestId('plan-strategy-name')
+            expect(strategyInput.className).toContain('border-red-500')
+        })
+    })
+})
+
+// ─── Validation Error Tests: WatchlistPage ────────────────────────────────
+
+describe('WatchlistPage — inline validation errors', () => {
+    beforeEach(() => {
+        vi.clearAllMocks()
+        mockApiFetch.mockImplementation((url: string) => {
+            if (url === '/api/v1/watchlists/') return Promise.resolve(MOCK_WATCHLISTS)
+            if (url === '/api/v1/watchlists/1') return Promise.resolve(MOCK_WATCHLISTS[0])
+            if (url.includes('/api/v1/settings/')) return Promise.resolve({ value: false })
+            return Promise.resolve({})
+        })
+    })
+
+    it('shows "Name is required" when creating watchlist with empty name', async () => {
+        render(<WatchlistPage />, { wrapper: createWrapper() })
+        fireEvent.click(screen.getByTestId('new-watchlist-btn'))
+        await waitFor(() => {
+            expect(screen.getByTestId('watchlist-name')).toBeInTheDocument()
+        })
+        // Click save without filling name
+        fireEvent.click(screen.getByTestId('watchlist-save-btn'))
+        await waitFor(() => {
+            expect(screen.getByText('Name is required')).toBeInTheDocument()
+        })
+        // Should NOT have called POST
+        expect(mockApiFetch).not.toHaveBeenCalledWith(
+            '/api/v1/watchlists/',
+            expect.objectContaining({ method: 'POST' }),
+        )
+    })
+
+    it('shows "Name must be at least 2 characters" for single-character name', async () => {
+        render(<WatchlistPage />, { wrapper: createWrapper() })
+        fireEvent.click(screen.getByTestId('new-watchlist-btn'))
+        await waitFor(() => {
+            expect(screen.getByTestId('watchlist-name')).toBeInTheDocument()
+        })
+        fireEvent.change(screen.getByTestId('watchlist-name'), { target: { value: 'A' } })
+        fireEvent.click(screen.getByTestId('watchlist-save-btn'))
+        await waitFor(() => {
+            expect(screen.getByText('Name must be at least 2 characters')).toBeInTheDocument()
+        })
+    })
+
+    it('clears name error when user types valid name', async () => {
+        render(<WatchlistPage />, { wrapper: createWrapper() })
+        fireEvent.click(screen.getByTestId('new-watchlist-btn'))
+        await waitFor(() => {
+            expect(screen.getByTestId('watchlist-name')).toBeInTheDocument()
+        })
+        fireEvent.click(screen.getByTestId('watchlist-save-btn'))
+        await waitFor(() => {
+            expect(screen.getByText('Name is required')).toBeInTheDocument()
+        })
+        // Type a valid name — error should clear
+        fireEvent.change(screen.getByTestId('watchlist-name'), { target: { value: 'Tech Picks' } })
+        await waitFor(() => {
+            expect(screen.queryByText('Name is required')).not.toBeInTheDocument()
+        })
+    })
+
+    it('applies red border to name field when validation fails', async () => {
+        render(<WatchlistPage />, { wrapper: createWrapper() })
+        fireEvent.click(screen.getByTestId('new-watchlist-btn'))
+        await waitFor(() => {
+            expect(screen.getByTestId('watchlist-name')).toBeInTheDocument()
+        })
+        fireEvent.click(screen.getByTestId('watchlist-save-btn'))
+        await waitFor(() => {
+            const nameInput = screen.getByTestId('watchlist-name')
+            expect(nameInput.className).toContain('border-red-500')
+        })
+    })
+
+    it('shows error when updating existing watchlist with cleared name', async () => {
+        render(<WatchlistPage />, { wrapper: createWrapper() })
+        await waitFor(() => {
+            expect(screen.getByText('Tech Stocks')).toBeInTheDocument()
+        })
+        fireEvent.click(screen.getByTestId('watchlist-card-1'))
+        await waitFor(() => {
+            expect(screen.getByTestId('watchlist-name')).toBeInTheDocument()
+        })
+        // Clear the name and try to save
+        fireEvent.change(screen.getByTestId('watchlist-name'), { target: { value: '' } })
+        fireEvent.click(screen.getByTestId('watchlist-save-btn'))
+        await waitFor(() => {
+            expect(screen.getByText('Name is required')).toBeInTheDocument()
+        })
+    })
+})
+
+// ─── R2: Calculator Workflow Regression Tests ─────────────────────────────────
+
+describe('R2: Calculator toggle suppresses fields in dispatch event', () => {
+    beforeEach(() => {
+        vi.clearAllMocks()
+        localStorage.clear()
+        // Mock trade plans for the picker
+        mockApiFetch.mockImplementation((url: string) => {
+            if (url.includes('/api/v1/trade-plans')) return Promise.resolve(MOCK_PLANS)
+            if (url.includes('/api/v1/accounts')) return Promise.resolve([])
+            return Promise.resolve({})
+        })
+    })
+
+    it('omits shares_planned from dispatch when shares toggle is off', async () => {
+        const spy = vi.fn()
+        window.addEventListener('zorivest:calculator-apply', spy)
+
+        render(<PositionCalculatorModal isOpen={true} onClose={vi.fn()} fromPlanContext={true} />, { wrapper: createWrapper() })
+
+        // Set calculator inputs
+        fireEvent.change(screen.getByTestId('calc-account-select'), { target: { value: '' } })
+        fireEvent.change(screen.getByTestId('calc-account-size'), { target: { value: '100000' } })
+        fireEvent.change(screen.getByTestId('calc-entry-price'), { target: { value: '100' } })
+        fireEvent.change(screen.getByTestId('calc-stop-price'), { target: { value: '98' } })
+        fireEvent.change(screen.getByTestId('calc-target-price'), { target: { value: '106' } })
+
+        // Select a plan via the picker
+        await waitFor(() => {
+            expect(screen.getByTestId('calc-plan-option-1')).toBeInTheDocument()
+        })
+        // Click the first plan option
+        fireEvent.click(screen.getByTestId('calc-plan-option-1'))
+
+        // Turn off shares toggle
+        const sharesToggle = screen.getByTestId('calc-toggle-shares_planned')
+        fireEvent.click(sharesToggle)
+
+        // Click Apply
+        const applyBtn = screen.getByTestId('calc-apply-to-plan-btn')
+        fireEvent.click(applyBtn)
+
+        expect(spy).toHaveBeenCalledTimes(1)
+        const detail = (spy.mock.calls[0][0] as CustomEvent).detail
+        expect(detail).not.toHaveProperty('shares_planned')
+        expect(detail).toHaveProperty('plan_id', MOCK_PLANS[0].id)
+
+        window.removeEventListener('zorivest:calculator-apply', spy)
+    })
+})
+
+describe('R2: Calculator toggle state persists in localStorage', () => {
+    beforeEach(() => {
+        vi.clearAllMocks()
+        localStorage.clear()
+        mockApiFetch.mockImplementation((url: string) => {
+            if (url.includes('/api/v1/trade-plans')) return Promise.resolve(MOCK_PLANS)
+            if (url.includes('/api/v1/accounts')) return Promise.resolve([])
+            return Promise.resolve({})
+        })
+    })
+
+    it('saves toggle state to localStorage when toggled off', () => {
+        render(<PositionCalculatorModal isOpen={true} onClose={vi.fn()} fromPlanContext={true} />, { wrapper: createWrapper() })
+
+        // Turn off shares toggle
+        const sharesToggle = screen.getByTestId('calc-toggle-shares_planned')
+        fireEvent.click(sharesToggle)
+
+        // Check localStorage
+        const saved = JSON.parse(localStorage.getItem('zorivest:calc-apply-toggles') || '{}')
+        expect(saved.shares_planned).toBe(false)
+    })
+
+    it('restores toggle state from localStorage on mount', () => {
+        // Pre-seed localStorage with shares off
+        const toggleState = {
+            shares_planned: false,
+            position_size: true,
+            entry_price: true,
+            stop_loss: true,
+            target_price: true,
+            account_id: true,
+        }
+        localStorage.setItem('zorivest:calc-apply-toggles', JSON.stringify(toggleState))
+
+        render(<PositionCalculatorModal isOpen={true} onClose={vi.fn()} fromPlanContext={true} />, { wrapper: createWrapper() })
+
+        // Verify the shares toggle is off (red/off state)
+        const sharesToggle = screen.getByTestId('calc-toggle-shares_planned')
+        // Toggle should be unchecked (aria-checked="false" or class indicates off state)
+        expect(sharesToggle.getAttribute('aria-checked')).toBe('false')
+    })
+})
+
+describe('R2: Calculator plan selection dispatches correct plan_id', () => {
+    beforeEach(() => {
+        vi.clearAllMocks()
+        localStorage.clear()
+        mockApiFetch.mockImplementation((url: string) => {
+            if (url.includes('/api/v1/trade-plans')) return Promise.resolve(MOCK_PLANS)
+            if (url.includes('/api/v1/accounts')) return Promise.resolve([])
+            return Promise.resolve({})
+        })
+    })
+
+    it('dispatches plan_id matching the selected plan', async () => {
+        const spy = vi.fn()
+        window.addEventListener('zorivest:calculator-apply', spy)
+
+        render(<PositionCalculatorModal isOpen={true} onClose={vi.fn()} fromPlanContext={true} />, { wrapper: createWrapper() })
+
+        // Set calculator inputs
+        fireEvent.change(screen.getByTestId('calc-account-select'), { target: { value: '' } })
+        fireEvent.change(screen.getByTestId('calc-account-size'), { target: { value: '100000' } })
+        fireEvent.change(screen.getByTestId('calc-entry-price'), { target: { value: '100' } })
+        fireEvent.change(screen.getByTestId('calc-stop-price'), { target: { value: '98' } })
+        fireEvent.change(screen.getByTestId('calc-target-price'), { target: { value: '106' } })
+
+        // Wait for plans to load
+        await waitFor(() => {
+            expect(screen.getByTestId('calc-plan-option-2')).toBeInTheDocument()
+        })
+
+        // Select plan #2 (NVDA)
+        fireEvent.click(screen.getByTestId('calc-plan-option-2'))
+
+        // Apply
+        const applyBtn = screen.getByTestId('calc-apply-to-plan-btn')
+        fireEvent.click(applyBtn)
+
+        expect(spy).toHaveBeenCalledTimes(1)
+        const detail = (spy.mock.calls[0][0] as CustomEvent).detail
+        expect(detail.plan_id).toBe(2)
+
+        window.removeEventListener('zorivest:calculator-apply', spy)
+    })
+})
+
+describe('R2: Calculator Apply closes modal', () => {
+    beforeEach(() => {
+        vi.clearAllMocks()
+        localStorage.clear()
+        mockApiFetch.mockImplementation((url: string) => {
+            if (url.includes('/api/v1/trade-plans')) return Promise.resolve(MOCK_PLANS)
+            if (url.includes('/api/v1/accounts')) return Promise.resolve([])
+            return Promise.resolve({})
+        })
+    })
+
+    it('calls onClose after Apply to Plan is clicked', async () => {
+        const onClose = vi.fn()
+
+        render(<PositionCalculatorModal isOpen={true} onClose={onClose} fromPlanContext={true} />, { wrapper: createWrapper() })
+
+        // Set inputs and select a plan
+        fireEvent.change(screen.getByTestId('calc-account-select'), { target: { value: '' } })
+        fireEvent.change(screen.getByTestId('calc-account-size'), { target: { value: '100000' } })
+        fireEvent.change(screen.getByTestId('calc-entry-price'), { target: { value: '100' } })
+        fireEvent.change(screen.getByTestId('calc-stop-price'), { target: { value: '98' } })
+        fireEvent.change(screen.getByTestId('calc-target-price'), { target: { value: '106' } })
+
+        await waitFor(() => {
+            expect(screen.getByTestId('calc-plan-option-1')).toBeInTheDocument()
+        })
+        fireEvent.click(screen.getByTestId('calc-plan-option-1'))
+
+        // Click Apply
+        fireEvent.click(screen.getByTestId('calc-apply-to-plan-btn'))
+
+        expect(onClose).toHaveBeenCalledTimes(1)
+    })
+})
+
+describe('R2: Position size auto-recalculation in TradePlanPage', () => {
+    beforeEach(() => {
+        vi.clearAllMocks()
+        mockApiFetch.mockImplementation((url: string) => {
+            if (url.includes('/api/v1/trade-plans')) return Promise.resolve(MOCK_PLANS)
+            if (url.includes('/api/v1/accounts')) return Promise.resolve([])
+            return Promise.resolve({})
+        })
+    })
+
+    it('recalculates position_size when shares_planned changes', async () => {
+        render(<TradePlanPage />, { wrapper: createWrapper() })
+        await waitFor(() => expect(screen.getByText('AAPL')).toBeInTheDocument())
+        fireEvent.click(screen.getByTestId('plan-card-1'))
+        await waitFor(() => expect(screen.getByTestId('plan-shares-planned')).toBeInTheDocument())
+
+        // Entry price is 190 (from MOCK_PLANS[0]), shares_planned should be 0 initially
+        const sharesInput = screen.getByTestId('plan-shares-planned') as HTMLInputElement
+
+        // Change shares to 100
+        fireEvent.change(sharesInput, { target: { value: '100' } })
+
+        await waitFor(() => {
+            const posField = screen.getByTestId('plan-position-size')
+            // position_size = 100 shares × $190 entry = $19,000
+            expect(posField.textContent).toBe('$19,000.00')
+        })
+    })
+
+    it('recalculates position_size when entry_price changes', async () => {
+        render(<TradePlanPage />, { wrapper: createWrapper() })
+        await waitFor(() => expect(screen.getByText('AAPL')).toBeInTheDocument())
+        fireEvent.click(screen.getByTestId('plan-card-1'))
+        await waitFor(() => expect(screen.getByTestId('plan-shares-planned')).toBeInTheDocument())
+
+        // First set shares to 50
+        const sharesInput = screen.getByTestId('plan-shares-planned') as HTMLInputElement
+        fireEvent.change(sharesInput, { target: { value: '50' } })
+
+        // Then change entry price to 200
+        const entryInput = screen.getByTestId('plan-entry-price') as HTMLInputElement
+        fireEvent.change(entryInput, { target: { value: '200' } })
+
+        await waitFor(() => {
+            const posField = screen.getByTestId('plan-position-size')
+            // position_size = 50 shares × $200 entry = $10,000
+            expect(posField.textContent).toBe('$10,000.00')
+        })
     })
 })

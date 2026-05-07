@@ -289,9 +289,15 @@ class TransformStep(RegisteredStep):
         """
         import json
 
-        if isinstance(source_content, bytes):
+        if isinstance(source_content, (bytes, str)):
             if not source_content:
                 return []
+            # Ensure we have a str for JSON parsing
+            text = (
+                source_content.decode("utf-8")
+                if isinstance(source_content, bytes)
+                else source_content
+            )
             # Try provider-specific extraction first (AC-2)
             if provider and data_type:
                 try:
@@ -299,13 +305,13 @@ class TransformStep(RegisteredStep):
                         extract_records,
                     )
 
-                    return extract_records(source_content, provider, data_type)
+                    return extract_records(text, provider, data_type)
                 except ImportError:
                     pass  # Infrastructure not available
 
             # Fallback: basic JSON parse
             try:
-                data = json.loads(source_content)
+                data = json.loads(text)
                 if isinstance(data, list):
                     return data
                 if isinstance(data, dict):

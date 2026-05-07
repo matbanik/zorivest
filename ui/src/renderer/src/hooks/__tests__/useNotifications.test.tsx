@@ -34,7 +34,7 @@ vi.mock('sonner', () => ({
             dismiss: mockToastDismiss,
         },
     ),
-    Toaster: (props: any) => React.createElement('div', { 'data-testid': 'toaster' }),
+    Toaster: (_props: any) => React.createElement('div', { 'data-testid': 'toaster' }),
 }))
 
 // Mock apiFetch for settings endpoint
@@ -51,7 +51,7 @@ import {
 
 // ─── Test Helpers ─────────────────────────────────────────────────────────────
 
-function createWrapper(prefsOverrides?: Record<string, boolean>) {
+function createWrapper(_prefsOverrides?: Record<string, boolean>) {
     const queryClient = new QueryClient({
         defaultOptions: {
             queries: { retry: false, staleTime: 0, gcTime: 0 },

@@ -1,5 +1,5 @@
 import { useState, useCallback, useEffect } from 'react'
-import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query'
+import { useQuery, useQueryClient } from '@tanstack/react-query'
 import { apiFetch } from '@/lib/api'
 import { useStatusBar } from '@/hooks/useStatusBar'
 import type { Trade } from './TradesTable'
@@ -16,8 +16,6 @@ const EMOTIONAL_STATES = [
     'Revenge',
     'Indifferent',
 ] as const
-
-type EmotionalState = (typeof EMOTIONAL_STATES)[number]
 
 // API response shape from GET /api/v1/trades/{exec_id}/report
 interface ReportResponse {

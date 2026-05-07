@@ -104,6 +104,31 @@ class SecurityError(Exception):
     """Raised when a template violates security constraints."""
 
 
+def _pipeline_safe_dumps(obj: object, **kwargs: object) -> str:
+    """JSON serializer for Jinja2's |tojson filter.
+
+    Handles types that appear in pipeline step outputs but are not
+    natively JSON-serializable:
+    - bytes  → decoded to str (UTF-8)
+    - datetime/date → ISO 8601 string
+
+    Registered via env.policies['json.dumps_function'] in HardenedSandbox.
+    """
+    import json
+    from datetime import date, datetime
+
+    def _default(o: object) -> object:
+        if isinstance(o, bytes):
+            return o.decode("utf-8", errors="replace")
+        if isinstance(o, datetime):
+            return o.isoformat()
+        if isinstance(o, date):
+            return o.isoformat()
+        raise TypeError(f"Object of type {type(o).__name__} is not JSON serializable")
+
+    return json.dumps(obj, default=_default, **kwargs)  # type: ignore[arg-type]
+
+
 class HardenedSandbox(ImmutableSandboxedEnvironment):
     """Hardened Jinja2 sandbox for AI-authored email templates.
 
@@ -118,6 +143,13 @@ class HardenedSandbox(ImmutableSandboxedEnvironment):
         super().__init__(**kwargs)
         # Strip filters not in the allowlist
         self.filters = {k: v for k, v in self.filters.items() if k in ALLOWED_FILTERS}
+
+        # Configure |tojson filter to use a pipeline-safe JSON serializer.
+        # Jinja2's tojson calls json.dumps() via env.policies['json.dumps_function'].
+        # The default json.dumps cannot serialize bytes or datetime — both of which
+        # appear in pipeline step outputs (HTTP responses, CriteriaResolver dates).
+        # Without this, tojson crashes even if _sanitize_value cleaned the context.
+        self.policies["json.dumps_function"] = _pipeline_safe_dumps
 
     def is_safe_attribute(self, obj: object, attr: str, value: object) -> bool:
         """Block access to dangerous dunder attributes."""
@@ -138,6 +170,10 @@ class HardenedSandbox(ImmutableSandboxedEnvironment):
         """
         if callable(value):
             return _REMOVED
+        # Bytes are not JSON-serializable (Jinja2's |tojson filter calls
+        # json.dumps). Decode to str to prevent serialization failures.
+        if isinstance(value, bytes):
+            return value.decode("utf-8", errors="replace")
         if isinstance(value, dict):
             sanitized = {}
             for k, v in value.items():

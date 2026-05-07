@@ -60,11 +60,6 @@ const MOCK_TRADES: Trade[] = [
     },
 ]
 
-const MOCK_ACCOUNTS = [
-    { account_id: 'DU123456', account_type: 'broker' },
-    { account_id: 'DU789012', account_type: 'ira' },
-]
-
 // ─── Helpers ──────────────────────────────────────────────────────────────────
 
 function createWrapper() {
@@ -235,6 +230,28 @@ describe('TradeDetailPanel', () => {
 
         await waitFor(() => {
             expect(onDirtyChange).toHaveBeenCalledWith(true)
+        })
+    })
+
+    // R1: Child validity reporting for form guard
+    describe('isInvalid() imperative handle', () => {
+        it('returns true when instrument is empty (required field missing)', () => {
+            const ref = React.createRef<{ save: () => Promise<void>; isInvalid: () => boolean }>()
+            // Render with empty instrument (new trade defaults)
+            const emptyTrade: Trade = {
+                ...MOCK_TRADES[0],
+                instrument: '',
+            }
+            render(<TradeDetailPanel ref={ref} trade={emptyTrade} />, { wrapper: createWrapper() })
+
+            expect(ref.current?.isInvalid()).toBe(true)
+        })
+
+        it('returns false when all required fields are populated', () => {
+            const ref = React.createRef<{ save: () => Promise<void>; isInvalid: () => boolean }>()
+            render(<TradeDetailPanel ref={ref} trade={MOCK_TRADES[0]} />, { wrapper: createWrapper() })
+
+            expect(ref.current?.isInvalid()).toBe(false)
         })
     })
 })
@@ -572,6 +589,74 @@ describe('TradesLayout', () => {
         render(<TradesLayout />, { wrapper: createWrapper() })
         await waitFor(() => {
             expect(screen.getByTestId('add-trade-btn')).toBeDisabled()
+        })
+    })
+
+    // ── R5: Parent-level invalid Save & Continue workflow ─────────────────
+    describe('R5: invalid Save & Continue disabled at parent workflow level', () => {
+        it('disables Save & Continue when instrument is cleared and user navigates', async () => {
+            render(<TradesLayout />, { wrapper: createWrapper() })
+
+            // Wait for trades to load
+            await waitFor(() => {
+                expect(screen.getAllByTestId('trade-row').length).toBeGreaterThan(0)
+            })
+
+            // Click first trade → detail panel renders
+            fireEvent.click(screen.getAllByTestId('trade-row')[0])
+            const symbolInput = await waitFor(() => {
+                const input = screen.getByTestId('trade-symbol-input') as HTMLInputElement
+                expect(input).toBeInTheDocument()
+                return input
+            })
+
+            // Clear instrument field → form dirty + invalid
+            fireEvent.change(symbolInput, { target: { value: '' } })
+
+            // Click second trade → should trigger guard
+            fireEvent.click(screen.getAllByTestId('trade-row')[1])
+
+            // Modal should appear with Save & Continue disabled
+            await waitFor(() => {
+                expect(screen.getByTestId('unsaved-changes-modal')).toBeInTheDocument()
+            })
+            const saveBtn = screen.getByTestId('unsaved-save-continue-btn')
+            expect(saveBtn).toBeDisabled()
+        })
+
+        it('does not navigate when clicking disabled Save & Continue on invalid trade form', async () => {
+            render(<TradesLayout />, { wrapper: createWrapper() })
+
+            // Wait for trades to load
+            await waitFor(() => {
+                expect(screen.getAllByTestId('trade-row').length).toBeGreaterThan(0)
+            })
+
+            // Click first trade → detail panel renders
+            fireEvent.click(screen.getAllByTestId('trade-row')[0])
+            await waitFor(() => {
+                expect(screen.getByTestId('trade-symbol-input')).toBeInTheDocument()
+            })
+
+            // Clear instrument → dirty + invalid
+            const symbolInput = screen.getByTestId('trade-symbol-input') as HTMLInputElement
+            fireEvent.change(symbolInput, { target: { value: '' } })
+
+            // Click second trade → guard triggers
+            fireEvent.click(screen.getAllByTestId('trade-row')[1])
+
+            // Modal appears
+            await waitFor(() => {
+                expect(screen.getByTestId('unsaved-changes-modal')).toBeInTheDocument()
+            })
+
+            // Click the disabled Save & Continue button
+            const saveBtn = screen.getByTestId('unsaved-save-continue-btn')
+            fireEvent.click(saveBtn)
+
+            // First trade detail should still be visible (no navigation occurred)
+            expect(screen.getByTestId('trade-symbol-input')).toBeInTheDocument()
+            expect((screen.getByTestId('trade-symbol-input') as HTMLInputElement).value).toBe('')
         })
     })
 })

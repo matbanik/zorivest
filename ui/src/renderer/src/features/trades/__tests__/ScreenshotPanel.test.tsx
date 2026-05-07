@@ -33,8 +33,6 @@ import ScreenshotPanel from '../ScreenshotPanel'
 
 // ─── Test Data ──────────────────────────────────────────────────────────────
 
-const API_BASE = '/api/v1'
-
 const MOCK_IMAGES = [
     { id: 1, caption: 'Entry chart', mime_type: 'image/webp', file_size: 5000 },
     { id: 2, caption: 'Exit chart', mime_type: 'image/webp', file_size: 3000 },

@@ -136,7 +136,7 @@ const EmailTemplateDetail = forwardRef<EmailTemplateDetailHandle, EmailTemplateD
         } else {
             setEditName(template.name)
         }
-    }, [editName, template.name, onRename])
+    }, [editName, template.name, onRename, bodyHtml, description, bodyFormat, subjectTemplate, requiredVariables])
 
     const handleSave = useCallback(() => {
         onSave({

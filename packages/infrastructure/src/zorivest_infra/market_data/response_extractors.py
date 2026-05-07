@@ -691,11 +691,11 @@ def _tradingview_fundamentals(data: Any) -> list[dict]:
 
 
 def extract_records(
-    raw: bytes,
+    raw: bytes | str,
     provider: str,
     data_type: str,
 ) -> list[dict]:
-    """Extract market data records from raw API response bytes.
+    """Extract market data records from raw API response.
 
     Handles provider-specific JSON envelopes:
       - Yahoo quote: quoteResponse.result
@@ -703,7 +703,7 @@ def extract_records(
       - Generic: top-level list or first list-valued key
 
     Args:
-        raw: Raw response bytes (must be valid JSON).
+        raw: Raw response bytes or string (must be valid JSON).
         provider: Data provider key (e.g., 'yahoo', 'polygon').
         data_type: Data type key (e.g., 'quote', 'ohlcv').
 
@@ -724,7 +724,7 @@ def extract_records(
         # AC-25: Alpha Vantage earnings CSV — try CSV parsing before giving up
         if slug in ("alpha_vantage",) and data_type == "earnings":
             try:
-                text = raw.decode("utf-8")
+                text = raw.decode("utf-8") if isinstance(raw, bytes) else raw
                 if "," in text and "\n" in text:
                     reader = csv.DictReader(io.StringIO(text))
                     return list(reader)

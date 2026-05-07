@@ -21,6 +21,8 @@ export interface UnsavedChangesModalProps {
     onCancel: () => void
     onDiscard: () => void
     onSave?: () => void
+    /** When true, the "Save & Continue" button is visually disabled (form has validation errors). */
+    isSaveDisabled?: boolean
 }
 
 const HEADING_ID = 'unsaved-changes-heading'
@@ -30,6 +32,7 @@ export default function UnsavedChangesModal({
     onCancel,
     onDiscard,
     onSave,
+    isSaveDisabled = false,
 }: UnsavedChangesModalProps) {
     const firstButtonRef = useRef<HTMLButtonElement>(null)
     const lastButtonRef = useRef<HTMLButtonElement>(null)
@@ -240,7 +243,9 @@ export default function UnsavedChangesModal({
                     {onSave && (
                         <button
                             ref={lastButtonRef}
-                            onClick={onSave}
+                            onClick={isSaveDisabled ? undefined : onSave}
+                            disabled={isSaveDisabled}
+                            aria-disabled={isSaveDisabled ? 'true' : undefined}
                             data-testid="unsaved-save-continue-btn"
                             aria-label="Save changes and continue"
                             style={{
@@ -251,7 +256,8 @@ export default function UnsavedChangesModal({
                                 border: '1px solid rgba(80,250,123,0.5)',
                                 backgroundColor: 'rgba(80,250,123,0.1)',
                                 color: 'var(--color-accent-green, #50fa7b)',
-                                cursor: 'pointer',
+                                cursor: isSaveDisabled ? 'not-allowed' : 'pointer',
+                                opacity: isSaveDisabled ? 0.5 : 1,
                             }}
                         >
                             Save &amp; Continue

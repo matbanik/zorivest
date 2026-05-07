@@ -237,11 +237,30 @@ When to switch:
 
 ## Completion Timestamp
 
-The **very last line** of the agent's chat response must be a completion timestamp. Generate it by invoking the timestamp skill:
+The **very last line** of the agent's chat response must be the timestamp skill output, copied verbatim.
+
+This is a hard exit requirement for every `/plan-corrections` response, including short correction summaries.
+
+Required sequence:
+
+1. Invoke the timestamp skill by reading `.agent/skills/timestamp/SKILL.md`.
+2. Run the stamp script with the Windows redirect-to-file pattern:
 
 ```powershell
 # // turbo
-python .agent/skills/timestamp/scripts/stamp.py *> C:\Temp\zorivest\stamp.txt; Get-Content C:\Temp\zorivest\stamp.txt
+python .agent/skills/timestamp/scripts/stamp.py *> C:\Temp\zorivest\stamp.txt
 ```
 
-Copy the output verbatim as your final line. See `.agent/skills/timestamp/SKILL.md` for details.
+3. Read `C:\Temp\zorivest\stamp.txt` with the file viewer.
+4. Copy the file's single output line verbatim as the final chat line.
+
+No text, bullets, caveats, or sign-off may appear after the timestamp line.
+
+Compressed variant for correction summaries:
+
+```text
+Corrections applied to <canonical-review-path>. Status: corrections_applied. Key evidence: <one sentence>.
+🕐 Completed: YYYY-MM-DD HH:MM (TZ)
+```
+
+The compressed variant still requires invoking the timestamp skill and copying its real output verbatim for the last line.

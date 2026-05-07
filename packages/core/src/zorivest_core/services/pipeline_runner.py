@@ -345,6 +345,11 @@ class PipelineRunner:
                     duration_ms=int((time.monotonic() - start) * 1000),
                 )
             except Exception as exc:
+                log.exception(
+                    "step_execution_error",
+                    error=str(exc),
+                    exc_type=type(exc).__name__,
+                )
                 last_result = StepResult(
                     status=PipelineStatus.FAILED,
                     error=str(exc),

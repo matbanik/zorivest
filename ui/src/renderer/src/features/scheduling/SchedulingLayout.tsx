@@ -156,7 +156,7 @@ export default function SchedulingLayout() {
     }, [createTemplateMutation])
 
     // ── Shared form guard (replaces inline pendingNav + portal modal) ──
-    const { showModal, guardedSelect, handleCancel: guardCancel, handleDiscard: guardDiscard, handleSaveAndContinue: guardSaveAndContinue } =
+    const { showModal, guardedSelect, handleCancel: guardCancel, handleDiscard: guardDiscard, handleSaveAndContinue: guardSaveAndContinue, isSaveDisabled: guardSaveDisabled } =
         useFormGuard<SchedulingNavTarget>({
             isDirty: policyDirty || templateDirty,
             onNavigate: useCallback((target: SchedulingNavTarget) => {
@@ -187,10 +187,10 @@ export default function SchedulingLayout() {
             }, [previewTemplateMutation, doCreatePolicy, doCreateTemplate]),
             onSave: useCallback(async () => {
                 if (policyDirty && policyDetailRef.current) {
-                    policyDetailRef.current.save()
+                    await policyDetailRef.current.save()
                 }
                 if (templateDirty && templateDetailRef.current) {
-                    templateDetailRef.current.save()
+                    await templateDetailRef.current.save()
                 }
                 setPolicyDirty(false)
                 setTemplateDirty(false)
@@ -587,6 +587,7 @@ export default function SchedulingLayout() {
                 onCancel={guardCancel}
                 onDiscard={guardDiscard}
                 onSave={guardSaveAndContinue}
+                isSaveDisabled={guardSaveDisabled}
             />
         </>
     )

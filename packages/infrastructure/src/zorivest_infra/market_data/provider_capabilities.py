@@ -63,9 +63,8 @@ CAPABILITIES_REGISTRY: dict[str, ProviderCapabilities] = {
             "earnings",
             "economic_calendar",
             "fundamentals",
-            "insider",
-            "ohlcv",
             "quote",
+            "ticker_search",
         ),
         free_tier=FreeTierConfig(
             requests_per_minute=None,
@@ -82,8 +81,6 @@ CAPABILITIES_REGISTRY: dict[str, ProviderCapabilities] = {
         extractor_shape="wrapper_array",
         supported_data_types=(
             "dividends",
-            "fundamentals",
-            "news",
             "ohlcv",
             "quote",
             "splits",
@@ -102,6 +99,7 @@ CAPABILITIES_REGISTRY: dict[str, ProviderCapabilities] = {
         pagination_style="none",
         extractor_shape="parallel_arrays",
         supported_data_types=(
+            "company_profile",
             "earnings",
             "economic_calendar",
             "insider",
@@ -122,13 +120,14 @@ CAPABILITIES_REGISTRY: dict[str, ProviderCapabilities] = {
         pagination_style="offset_limit",
         extractor_shape="root_array",
         supported_data_types=(
+            "company_profile",
             "dividends",
             "earnings",
+            "economic_calendar",
             "fundamentals",
-            "news",
-            "ohlcv",
-            "quote",
+            "insider",
             "splits",
+            "ticker_search",
         ),
         free_tier=FreeTierConfig(
             requests_per_minute=None,
@@ -144,10 +143,11 @@ CAPABILITIES_REGISTRY: dict[str, ProviderCapabilities] = {
         pagination_style="offset_limit",
         extractor_shape="root_object",
         supported_data_types=(
+            "company_profile",
             "dividends",
             "fundamentals",
-            "news",
             "ohlcv",
+            "quote",
             "splits",
         ),
         free_tier=FreeTierConfig(
@@ -177,7 +177,7 @@ CAPABILITIES_REGISTRY: dict[str, ProviderCapabilities] = {
         multi_symbol_style="body_array",
         pagination_style="offset_limit",
         extractor_shape="root_array",
-        supported_data_types=("fundamentals", "insider"),
+        supported_data_types=("insider", "sec_filings"),
         free_tier=FreeTierConfig(
             requests_per_minute=None,
             requests_per_day=None,
@@ -191,7 +191,7 @@ CAPABILITIES_REGISTRY: dict[str, ProviderCapabilities] = {
         multi_symbol_style="none",
         pagination_style="none",
         extractor_shape="root_object",
-        supported_data_types=("earnings", "insider", "quote"),
+        supported_data_types=("quote",),
         free_tier=FreeTierConfig(
             requests_per_minute=None,
             requests_per_day=None,
@@ -219,7 +219,7 @@ CAPABILITIES_REGISTRY: dict[str, ProviderCapabilities] = {
         multi_symbol_style="csv",
         pagination_style="next_page_token",
         extractor_shape="symbol_keyed_dict",
-        supported_data_types=("news", "ohlcv", "quote"),
+        supported_data_types=("ohlcv",),
         free_tier=FreeTierConfig(
             requests_per_minute=200,
             requests_per_day=None,

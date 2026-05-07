@@ -131,6 +131,7 @@ export default function WatchlistPage() {
     const [isCreating, setIsCreating] = useState(false)
     const [nameInput, setNameInput] = useState('')
     const [descInput, setDescInput] = useState('')
+    const [nameError, setNameError] = useState<string | null>(null)
     const [tickerInput, setTickerInput] = useState('')
     const [notesInput, setNotesInput] = useState('')
     const queryClient = useQueryClient()
@@ -166,6 +167,7 @@ export default function WatchlistPage() {
         setIsCreating(false)
         setNameInput(wl.name)
         setDescInput(wl.description)
+        setNameError(null)
     }, [])
 
     // AH-7: Filtered watchlists
@@ -210,6 +212,7 @@ export default function WatchlistPage() {
         setIsCreating(true)
         setNameInput('')
         setDescInput('')
+        setNameError(null)
     }, [])
 
     // ── Dirty state computation ───────────────────────────────────────────
@@ -230,29 +233,42 @@ export default function WatchlistPage() {
         }
     }, [handleSelect, handleNew])
 
-    const { showModal, guardedSelect, handleCancel, handleDiscard, handleSaveAndContinue } =
+    const { showModal, guardedSelect, handleCancel, handleDiscard, handleSaveAndContinue, isSaveDisabled } =
         useFormGuard<Watchlist | '__new__' | null>({
             isDirty,
             onNavigate: doNavigate,
             onSave: async () => {
                 await handleSave()
             },
+            isFormInvalid: () => !nameInput.trim() || nameInput.trim().length < 2,
         })
 
     const handleClose = useCallback(() => {
         setSelectedList(null)
         setIsCreating(false)
+        setNameError(null)
     }, [])
 
     // Create / Update watchlist
     const handleSave = useCallback(async () => {
+        if (!nameInput.trim()) {
+            setNameError('Name is required')
+            setStatus('Error: Please fix the highlighted fields')
+            throw new Error('Validation failed')
+        }
+        if (nameInput.trim().length < 2) {
+            setNameError('Name must be at least 2 characters')
+            setStatus('Error: Please fix the highlighted fields')
+            throw new Error('Validation failed')
+        }
+        setNameError(null)
         try {
             if (isCreating) {
                 setStatus('Creating watchlist...')
                 await apiFetch('/api/v1/watchlists/', {
                     method: 'POST',
                     headers: { 'Content-Type': 'application/json' },
-                    body: JSON.stringify({ name: nameInput, description: descInput }),
+                    body: JSON.stringify({ name: nameInput.trim(), description: descInput }),
                 })
                 setStatus('Watchlist created')
             } else if (selectedList) {
@@ -260,14 +276,19 @@ export default function WatchlistPage() {
                 await apiFetch(`/api/v1/watchlists/${selectedList.id}`, {
                     method: 'PUT',
                     headers: { 'Content-Type': 'application/json' },
-                    body: JSON.stringify({ name: nameInput, description: descInput }),
+                    body: JSON.stringify({ name: nameInput.trim(), description: descInput }),
                 })
                 setStatus('Watchlist updated')
             }
             await queryClient.invalidateQueries({ queryKey: ['watchlists'] })
             handleClose()
         } catch (err) {
-            setStatus(`Error: ${err instanceof Error ? err.message : 'Failed'}`)
+            const msg = err instanceof Error ? err.message : 'Failed'
+            // Parse API 422 errors for field-level feedback
+            if (msg.includes('422') && msg.toLowerCase().includes('name')) {
+                setNameError('Name is too short or invalid')
+            }
+            setStatus(`Error: ${msg}`)
         }
     }, [isCreating, selectedList, nameInput, descInput, queryClient, setStatus, handleClose])
 
@@ -468,10 +489,13 @@ export default function WatchlistPage() {
                                 <input
                                     data-testid="watchlist-name"
                                     value={nameInput}
-                                    onChange={(e) => setNameInput(e.target.value)}
-                                    className="w-full px-3 py-1.5 text-sm rounded-md bg-bg border border-bg-subtle text-fg"
+                                    onChange={(e) => { setNameInput(e.target.value); setNameError(null) }}
+                                    className={`w-full px-3 py-1.5 text-sm rounded-md bg-bg border text-fg ${nameError ? 'border-red-500' : 'border-bg-subtle'}`}
                                     placeholder="My Watchlist"
                                 />
+                                {nameError && (
+                                    <span className="text-xs text-red-400">{nameError}</span>
+                                )}
                             </div>
                             <div>
                                 <label className="block text-xs text-fg-muted mb-1">Description</label>
@@ -486,7 +510,7 @@ export default function WatchlistPage() {
                             <div className="flex gap-2">
                                 <button
                                     data-testid="watchlist-save-btn"
-                                    onClick={handleSave}
+                                    onClick={() => handleSave().catch(() => { /* validation errors already rendered inline */ })}
                                     className={`px-4 py-1.5 text-sm rounded-md bg-accent text-accent-fg hover:bg-accent/90 border border-accent cursor-pointer${isDirty ? ' btn-save-dirty' : ''}`}
                                 >
                                     {isCreating ? 'Create' : (isDirty ? 'Save Changes •' : 'Save')}
@@ -576,6 +600,7 @@ export default function WatchlistPage() {
                 onCancel={handleCancel}
                 onDiscard={handleDiscard}
                 onSave={handleSaveAndContinue}
+                isSaveDisabled={isSaveDisabled}
             />
 
             {deleteConfirm.target && (

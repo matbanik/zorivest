@@ -26,7 +26,7 @@ export function useDynamicEntries(
         // Trade search is handled by the filter bar on the Trades page.
 
         setEntries(result)
-    }, [queryClient])
+    }, [])
 
     useEffect(() => {
         buildEntries()

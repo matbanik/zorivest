@@ -322,7 +322,7 @@ async def test_AC_F11_fetch_step_cache_hit():
         )
 
     assert result.output["cache_status"] == "hit"
-    assert result.output["content"] == cached_content_str.encode("utf-8")
+    assert result.output["content"] == cached_content_str
     assert result.status.value == "success"
 
 
@@ -550,7 +550,7 @@ async def test_AC_F17_fetch_step_calls_provider_adapter():
     assert call_kwargs["provider"] == "ibkr"
     assert call_kwargs["data_type"] == "ohlcv"
     assert "criteria" in call_kwargs
-    assert result.output["content"] == b'{"data": [1, 2, 3]}'
+    assert result.output["content"] == '{"data": [1, 2, 3]}'
     assert result.output["content_len"] > 0
 
 

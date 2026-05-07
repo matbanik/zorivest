@@ -6,14 +6,14 @@
  * Policy object, etc.).
  *
  * Usage:
- *   const { showModal, guardedSelect, handleCancel, handleDiscard, handleSaveAndContinue }
- *     = useFormGuard<string>({ isDirty, onNavigate, onSave })
+ *   const { showModal, guardedSelect, handleCancel, handleDiscard, handleSaveAndContinue, isSaveDisabled }
+ *     = useFormGuard<string>({ isDirty, onNavigate, onSave, isFormInvalid })
  *
  * Source: docs/build-plan/06-gui.md §UX Hardening
- * MEU: MEU-196 (gui-form-guard-infra)
+ * MEU: MEU-196 (gui-form-guard-infra), MEU-204 (calculator-validation-ux)
  */
 
-import { useState, useCallback, useRef } from 'react'
+import { useState, useCallback, useRef, useMemo } from 'react'
 
 export interface UseFormGuardOptions<T> {
     /** Whether the form has unsaved changes. */
@@ -22,6 +22,9 @@ export interface UseFormGuardOptions<T> {
     onNavigate: (target: T) => void
     /** Optional async save handler. When provided, modal shows "Save & Continue". */
     onSave?: () => Promise<void>
+    /** Optional predicate — returns true when the form has validation errors.
+     *  When true, the "Save & Continue" button is disabled in the modal. */
+    isFormInvalid?: () => boolean
 }
 
 export interface UseFormGuardReturn<T> {
@@ -35,10 +38,12 @@ export interface UseFormGuardReturn<T> {
     handleDiscard: () => void
     /** "Save & Continue" — save, then navigate. No-op if onSave not provided. */
     handleSaveAndContinue: () => Promise<void>
+    /** Whether the Save & Continue button should be disabled (form has validation errors). */
+    isSaveDisabled: boolean
 }
 
 export function useFormGuard<T>(options: UseFormGuardOptions<T>): UseFormGuardReturn<T> {
-    const { isDirty, onNavigate, onSave } = options
+    const { isDirty, onNavigate, onSave, isFormInvalid } = options
 
     const [showModal, setShowModal] = useState(false)
     const pendingTargetRef = useRef<T | null>(null)
@@ -81,9 +86,18 @@ export function useFormGuard<T>(options: UseFormGuardOptions<T>): UseFormGuardRe
                 onNavigate(target)
             }
         } catch {
-            // Save failed — keep modal open so user can retry or cancel
+            // Save failed (validation) — dismiss modal so user sees inline errors.
+            // Form remains dirty, so guard will re-trigger on next navigation.
+            setShowModal(false)
+            pendingTargetRef.current = null
         }
     }, [onSave, onNavigate])
+
+    const isSaveDisabled = useMemo(
+        () => isFormInvalid ? isFormInvalid() : false,
+        // eslint-disable-next-line react-hooks/exhaustive-deps -- isFormInvalid is a predicate; re-evaluate when modal visibility changes
+        [isFormInvalid, showModal],
+    )
 
     return {
         showModal,
@@ -91,5 +105,6 @@ export function useFormGuard<T>(options: UseFormGuardOptions<T>): UseFormGuardRe
         handleCancel,
         handleDiscard,
         handleSaveAndContinue,
+        isSaveDisabled,
     }
 }

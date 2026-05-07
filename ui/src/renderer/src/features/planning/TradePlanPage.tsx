@@ -136,6 +136,7 @@ export default function TradePlanPage({ onOpenCalculator }: TradePlanPageProps) 
     const [statusFilter, setStatusFilter] = useState<string>('')
     const [convictionFilter, setConvictionFilter] = useState<string>('')
     const [form, setForm] = useState<Partial<TradePlan>>(NEW_PLAN)
+    const [fieldErrors, setFieldErrors] = useState<Record<string, string>>({})
     const queryClient = useQueryClient()
     const { setStatus } = useStatusBar()
 
@@ -218,6 +219,7 @@ export default function TradePlanPage({ onOpenCalculator }: TradePlanPageProps) 
         setForm({ ...plan })
         setLinkedTradeId(plan.linked_trade_id ?? '')
         setTradePickerLabel(plan.linked_trade_id ?? '')
+        setFieldErrors({})
     }, [])
 
     // ── Dirty state computation ───────────────────────────────────────────
@@ -255,6 +257,7 @@ export default function TradePlanPage({ onOpenCalculator }: TradePlanPageProps) 
         setForm({ ...NEW_PLAN })
         setLinkedTradeId('')
         setTradePickerLabel('')
+        setFieldErrors({})
     }, [])
 
     const doNavigate = useCallback((target: TradePlan | '__new__' | null) => {
@@ -265,18 +268,20 @@ export default function TradePlanPage({ onOpenCalculator }: TradePlanPageProps) 
         }
     }, [handleSelectPlan, handleNewPlan])
 
-    const { showModal, guardedSelect, handleCancel, handleDiscard, handleSaveAndContinue } =
+    const { showModal, guardedSelect, handleCancel, handleDiscard, handleSaveAndContinue, isSaveDisabled } =
         useFormGuard<TradePlan | '__new__' | null>({
             isDirty,
             onNavigate: doNavigate,
             onSave: async () => {
                 await handleSave()
             },
+            isFormInvalid: () => !form.ticker?.trim() || !form.strategy_name?.trim(),
         })
 
     const handleClose = useCallback(() => {
         setSelectedPlan(null)
         setIsCreating(false)
+        setFieldErrors({})
     }, [])
 
     const updateField = useCallback(<K extends keyof TradePlan>(key: K, value: TradePlan[K]) => {
@@ -312,17 +317,32 @@ export default function TradePlanPage({ onOpenCalculator }: TradePlanPageProps) 
         )
     }, [form.entry_price, form.stop_loss, form.target_price])
 
+    // Auto-recalculate position_size when shares_planned or entry_price changes
+    useEffect(() => {
+        const shares = form.shares_planned
+        const entry = form.entry_price
+        if (shares != null && shares > 0 && entry != null && entry > 0) {
+            const newSize = Math.round(shares * entry * 100) / 100
+            setForm((prev) => prev.position_size === newSize ? prev : { ...prev, position_size: newSize })
+        }
+    }, [form.shares_planned, form.entry_price])
+
     // Save (AC-5)
     const handleSave = useCallback(async () => {
-        // Frontend validation — prevent 422 from empty required fields
+        // Frontend validation — show inline errors matching Trade form UX
+        const errors: Record<string, string> = {}
         if (!form.ticker?.trim()) {
-            setStatus('Error: Ticker is required')
-            return
+            errors.ticker = 'Ticker is required'
         }
         if (!form.strategy_name?.trim()) {
-            setStatus('Error: Strategy Name is required')
-            return
+            errors.strategy_name = 'Strategy Name is required'
         }
+        if (Object.keys(errors).length > 0) {
+            setFieldErrors(errors)
+            setStatus('Error: Please fix the highlighted fields')
+            throw new Error('Validation failed')
+        }
+        setFieldErrors({})
         const payload: Record<string, unknown> = {
             ticker: form.ticker,
             direction: form.direction,
@@ -367,7 +387,7 @@ export default function TradePlanPage({ onOpenCalculator }: TradePlanPageProps) 
         } catch (err) {
             setStatus(`Error: ${err instanceof Error ? err.message : 'Failed to save'}`)
         }
-    }, [form, isCreating, selectedPlan, queryClient, setStatus, handleClose])
+    }, [form, isCreating, selectedPlan, queryClient, setStatus, handleClose, linkedTradeId])
 
     // Status transition (AC-5a)
     // R3: updateField fires only on success so local state never diverges from server state on failure
@@ -451,39 +471,105 @@ export default function TradePlanPage({ onOpenCalculator }: TradePlanPageProps) 
 
     // T2: Open calculator with plan prices and ticker (G11: custom event pattern)
     // R5: include ticker so modal can prefill the instrument field
-    const handleCalculatePosition = useCallback(() => {
+    // When creating a new plan, save it first so it gets an ID and appears in the calculator picker
+    const handleCalculatePosition = useCallback(async () => {
+        let planId: number | null = selectedPlan?.id ?? null
+
+        if (isCreating) {
+            // Validate required fields before saving
+            const errors: Record<string, string> = {}
+            if (!form.ticker?.trim()) errors.ticker = 'Ticker is required'
+            if (!form.strategy_name?.trim()) errors.strategy_name = 'Strategy Name is required'
+            if (Object.keys(errors).length > 0) {
+                setFieldErrors(errors)
+                setStatus('Error: Save plan before opening calculator')
+                return
+            }
+            setFieldErrors({})
+
+            try {
+                const payload: Record<string, unknown> = {
+                    ticker: form.ticker,
+                    direction: form.direction,
+                    conviction: form.conviction,
+                    strategy_name: form.strategy_name,
+                    strategy_description: form.strategy_description,
+                    entry_price: form.entry_price,
+                    stop_loss: form.stop_loss,
+                    target_price: form.target_price,
+                    entry_conditions: form.entry_conditions,
+                    exit_conditions: form.exit_conditions,
+                    timeframe: form.timeframe,
+                    account_id: form.account_id || null,
+                    shares_planned: form.shares_planned || null,
+                    position_size: form.position_size || null,
+                }
+
+                setStatus('Saving plan before opening calculator...')
+                const created = await apiFetch<TradePlan>('/api/v1/trade-plans', {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify(payload),
+                })
+
+                // Use the POST response ID directly — no refetch+filter needed
+                planId = created.id
+                setSelectedPlan(created)
+                setIsCreating(false)
+                setForm({ ...created })
+                setStatus('Plan saved — opening calculator')
+                await queryClient.invalidateQueries({ queryKey: ['trade-plans'] })
+            } catch (err) {
+                setStatus(`Error: ${err instanceof Error ? err.message : 'Failed to save plan'}`)
+                return
+            }
+        }
+
         window.dispatchEvent(new CustomEvent('zorivest:open-calculator', {
             detail: {
+                plan_id: planId,
                 ticker: form.ticker ?? '',
                 entry_price: form.entry_price ?? 0,
                 stop_loss: form.stop_loss ?? 0,
                 target_price: form.target_price ?? 0,
             },
         }))
-    }, [form.ticker, form.entry_price, form.stop_loss, form.target_price])
+    }, [selectedPlan?.id, isCreating, form, queryClient, setStatus])
 
     // MEU-70a Sub-MEU C: Listen for calculator-apply event (AC-22)
     useEffect(() => {
         const handler = (e: Event) => {
             const detail = (e as CustomEvent)?.detail
-            if (!detail || typeof detail.shares_planned !== 'number') return
-            // Only apply if a plan is being edited
-            setForm((prev) => {
-                if (!prev.ticker && !prev.id) return prev // no plan loaded
-                return {
-                    ...prev,
-                    shares_planned: detail.shares_planned,
-                    position_size: detail.position_size ?? null,
-                    ...(detail.account_id ? { account_id: detail.account_id } : {}),
-                    ...(detail.entry ? { entry: detail.entry } : {}),
-                    ...(detail.stop ? { stop: detail.stop } : {}),
-                    ...(detail.target ? { target: detail.target } : {}),
+            if (!detail) return
+            // If a plan_id is specified and it matches current plan (or __new__), apply
+            // If no plan_id, apply to whatever plan is currently open (backwards compat)
+            const targetPlanId = detail.plan_id
+            const currentPlanId = selectedPlan?.id ?? (isCreating ? '__new__' : null)
+            if (targetPlanId && targetPlanId !== currentPlanId) {
+                // Calculator is targeting a different plan — auto-select it
+                if (typeof targetPlanId === 'number') {
+                    const targetPlan = plans.find(p => p.id === targetPlanId)
+                    if (targetPlan) {
+                        setSelectedPlan(targetPlan)
+                        setIsCreating(false)
+                        setForm({ ...targetPlan })
+                    }
                 }
-            })
+            }
+            // Apply the values
+            setForm((prev) => ({
+                ...prev,
+                ...(detail.shares_planned != null ? { shares_planned: detail.shares_planned } : {}),
+                ...(detail.position_size != null ? { position_size: detail.position_size } : {}),
+                ...(detail.account_id ? { account_id: detail.account_id } : {}),
+                ...(detail.entry_price != null ? { entry_price: detail.entry_price } : {}),
+                ...(detail.stop_loss != null ? { stop_loss: detail.stop_loss } : {}),
+                ...(detail.target_price != null ? { target_price: detail.target_price } : {}),
+            }))
         }
         window.addEventListener('zorivest:calculator-apply', handler)
         return () => window.removeEventListener('zorivest:calculator-apply', handler)
-    }, [])
+    }, [selectedPlan?.id, isCreating, plans])
 
     const isDetailOpen = isCreating || selectedPlan !== null
 
@@ -654,11 +740,14 @@ export default function TradePlanPage({ onOpenCalculator }: TradePlanPageProps) 
                                     <label className="block text-xs text-fg-muted mb-1">Ticker</label>
                                     <TickerAutocomplete
                                         value={form.ticker ?? ''}
-                                        onChange={(val) => updateField('ticker', val)}
+                                        onChange={(val) => { updateField('ticker', val); setFieldErrors(prev => { const n = { ...prev }; delete n.ticker; return n }) }}
                                         onSelect={handleTickerSelect}
                                         placeholder="AAPL"
                                         data-testid="plan-ticker"
                                     />
+                                    {fieldErrors.ticker && (
+                                        <span className="text-xs text-red-400">{fieldErrors.ticker}</span>
+                                    )}
                                 </div>
                                 <div>
                                     <label className="block text-xs text-fg-muted mb-1">Direction</label>
@@ -712,8 +801,8 @@ export default function TradePlanPage({ onOpenCalculator }: TradePlanPageProps) 
                                     data-testid="plan-strategy-name"
                                     list="strategy-suggestions"
                                     value={form.strategy_name ?? ''}
-                                    onChange={(e) => updateField('strategy_name', e.target.value)}
-                                    className="w-full px-3 py-1.5 text-sm rounded-md bg-bg border border-bg-subtle text-fg"
+                                    onChange={(e) => { updateField('strategy_name', e.target.value); setFieldErrors(prev => { const n = { ...prev }; delete n.strategy_name; return n }) }}
+                                    className={`w-full px-3 py-1.5 text-sm rounded-md bg-bg border text-fg ${fieldErrors.strategy_name ? 'border-red-500' : 'border-bg-subtle'}`}
                                     placeholder="Breakout above resistance"
                                 />
                                 <datalist id="strategy-suggestions">
@@ -721,6 +810,9 @@ export default function TradePlanPage({ onOpenCalculator }: TradePlanPageProps) 
                                         <option key={name} value={name} />
                                     ))}
                                 </datalist>
+                                {fieldErrors.strategy_name && (
+                                    <span className="text-xs text-red-400">{fieldErrors.strategy_name}</span>
+                                )}
                             </div>
                             <div>
                                 <label className="block text-xs text-fg-muted mb-1">Strategy Description</label>
@@ -733,8 +825,8 @@ export default function TradePlanPage({ onOpenCalculator }: TradePlanPageProps) 
                                 />
                             </div>
 
-                            {/* Price Levels + Live R:R (AC-4) */}
-                            <div className="grid grid-cols-3 gap-2">
+                            {/* Price Levels: Entry Price, Planned Shares, Stop Loss, Target (4-col) */}
+                            <div className="grid grid-cols-4 gap-2">
                                 <div>
                                     <label className="block text-xs text-fg-muted mb-1">Entry Price</label>
                                     <input
@@ -743,6 +835,19 @@ export default function TradePlanPage({ onOpenCalculator }: TradePlanPageProps) 
                                         step="0.01"
                                         value={form.entry_price ?? 0}
                                         onChange={(e) => updateField('entry_price', parseFloat(e.target.value) || 0)}
+                                        className="w-full px-3 py-1.5 text-sm rounded-md bg-bg border border-bg-subtle text-fg"
+                                    />
+                                </div>
+                                <div>
+                                    <label className="block text-xs text-fg-muted mb-1">Planned Shares</label>
+                                    <input
+                                        data-testid="plan-shares-planned"
+                                        type="number"
+                                        min="0"
+                                        step="1"
+                                        value={form.shares_planned ?? ''}
+                                        onChange={(e) => updateField('shares_planned', e.target.value === '' ? null : (parseInt(e.target.value) || 0))}
+                                        placeholder="—"
                                         className="w-full px-3 py-1.5 text-sm rounded-md bg-bg border border-bg-subtle text-fg"
                                     />
                                 </div>
@@ -770,8 +875,26 @@ export default function TradePlanPage({ onOpenCalculator }: TradePlanPageProps) 
                                 </div>
                             </div>
 
-                            {/* Live R:R Display */}
-                            <div className="grid grid-cols-3 gap-2 py-2 px-3 rounded-md bg-bg-elevated text-sm" data-testid="plan-rr-display">
+                            {/* Calculator action — centered below inputs per UX best practice */}
+                            <div className="flex justify-center">
+                                <button
+                                    data-testid="plan-copy-from-calc-btn"
+                                    type="button"
+                                    onClick={handleCalculatePosition}
+                                    className="px-4 py-1.5 text-sm rounded-md border border-accent/30 bg-accent/5 text-accent hover:bg-accent/10 cursor-pointer transition-colors"
+                                >
+                                    🧮 Calculator
+                                </button>
+                            </div>
+
+                            {/* Computed metrics: Position Size, Risk/Share, Reward/Share, R:R (4-col) */}
+                            <div className="grid grid-cols-4 gap-2 py-2 px-3 rounded-md bg-bg-elevated text-sm" data-testid="plan-rr-display">
+                                <div>
+                                    <span className="text-xs text-fg-muted">Position Size</span>
+                                    <div className="text-fg font-mono" data-testid="plan-position-size">
+                                        {form.position_size != null ? `$${form.position_size.toLocaleString('en-US', { minimumFractionDigits: 2, maximumFractionDigits: 2 })}` : '—'}
+                                    </div>
+                                </div>
                                 <div>
                                     <span className="text-xs text-fg-muted">Risk/Share</span>
                                     <div className="text-fg font-mono">${rr.riskPerShare.toFixed(2)}</div>
@@ -786,56 +909,6 @@ export default function TradePlanPage({ onOpenCalculator }: TradePlanPageProps) 
                                         {rr.ratio.toFixed(2)}
                                     </div>
                                 </div>
-                            </div>
-
-                            {/* T2: Calculate Position button + MEU-70b: Planned Shares field */}
-                            <button
-                                data-testid="plan-calculate-position-btn"
-                                onClick={handleCalculatePosition}
-                                className="w-full px-3 py-1.5 text-sm rounded-md border border-accent/30 bg-accent/5 text-accent hover:bg-accent/10 cursor-pointer transition-colors"
-                            >
-                                🧮 Calculate Position Size
-                            </button>
-
-                            {/* MEU-70b Issue 5: Editable shares field */}
-                            <div data-testid="plan-shares-section">
-                                <label className="block text-xs text-fg-muted mb-1">
-                                    Planned Shares
-                                    <span className="ml-1 text-fg-muted/50 font-normal">(optional — override calculator result)</span>
-                                </label>
-                                <div className="flex gap-2 items-center">
-                                    <input
-                                        data-testid="plan-shares-planned"
-                                        type="number"
-                                        min="0"
-                                        step="1"
-                                        value={form.shares_planned ?? ''}
-                                        onChange={(e) => updateField('shares_planned', e.target.value === '' ? null : (parseInt(e.target.value) || 0))}
-                                        placeholder="e.g. 100"
-                                        className="flex-1 px-3 py-1.5 text-sm rounded-md bg-bg border border-bg-subtle text-fg"
-                                    />
-                                    <button
-                                        data-testid="plan-copy-from-calc-btn"
-                                        type="button"
-                                        onClick={handleCalculatePosition}
-                                        title="Open calculator and copy result into Planned Shares"
-                                        className="px-3 py-1.5 text-xs rounded-md border border-bg-subtle bg-bg text-fg-muted hover:bg-bg-elevated cursor-pointer transition-colors whitespace-nowrap"
-                                    >
-                                        📋 Copy from Calc
-                                    </button>
-                                </div>
-                            </div>
-
-                            {/* MEU-70a Sub-MEU C: Readonly position_size display (AC-20) */}
-                            <div>
-                                <label className="block text-xs text-fg-muted mb-1">Position Size</label>
-                                <input
-                                    data-testid="plan-position-size"
-                                    type="text"
-                                    readOnly
-                                    value={form.position_size != null ? `$${form.position_size.toLocaleString('en-US', { minimumFractionDigits: 2, maximumFractionDigits: 2 })}` : '—'}
-                                    className="w-full px-3 py-1.5 text-sm rounded-md bg-bg-elevated border border-bg-subtle text-fg-muted cursor-not-allowed font-mono"
-                                />
                             </div>
 
                             {/* Conditions */}
@@ -1034,7 +1107,7 @@ export default function TradePlanPage({ onOpenCalculator }: TradePlanPageProps) 
                             <div className="flex gap-2 pt-3 border-t border-bg-subtle">
                                 <button
                                     data-testid="plan-save-btn"
-                                    onClick={handleSave}
+                                    onClick={() => handleSave().catch(() => { /* validation errors already rendered inline */ })}
                                     className={`px-4 py-1.5 text-sm rounded-md bg-accent text-accent-fg hover:bg-accent/90 border border-accent cursor-pointer${isDirty ? ' btn-save-dirty' : ''}`}
                                 >
                                     {isCreating ? 'Create Plan' : (isDirty ? 'Save Changes •' : 'Save Changes')}
@@ -1066,6 +1139,7 @@ export default function TradePlanPage({ onOpenCalculator }: TradePlanPageProps) 
                 onCancel={handleCancel}
                 onDiscard={handleDiscard}
                 onSave={handleSaveAndContinue}
+                isSaveDisabled={isSaveDisabled}
             />
 
             {deleteConfirm.target && (

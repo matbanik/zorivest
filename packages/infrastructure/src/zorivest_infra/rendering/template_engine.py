@@ -37,4 +37,10 @@ def create_template_engine() -> Environment:
     env.filters["currency"] = _currency_filter
     env.filters["percent"] = _percent_filter
 
+    # Configure |tojson filter to handle pipeline data types (bytes, datetime)
+    # that are not natively JSON-serializable.  Mirrors HardenedSandbox policy.
+    from zorivest_core.services.secure_jinja import _pipeline_safe_dumps
+
+    env.policies["json.dumps_function"] = _pipeline_safe_dumps
+
     return env

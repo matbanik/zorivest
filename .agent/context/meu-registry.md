@@ -137,8 +137,8 @@
 | MEU-PW3 | `market-data-schemas` | 49.6 | 4 SQLAlchemy models + 3 Pandera schemas + field mappings → data quality hardening. Independent. | ✅ complete |
 | MEU-PW4 | `pipeline-charmap-fix` | 49.7 | Fix [PIPE-CHARMAP]: structlog UTF-8 config + bytes-safe JSON serialization. No deps. | ✅ 2026-04-19 |
 | MEU-PW5 | `pipeline-zombie-fix` | 49.8 | Fix [PIPE-ZOMBIE]: eliminate dual-write, per-phase httpx.Timeout, zombie recovery. Depends PW4. | ✅ 2026-04-19 |
-| MEU-PW6 | `provider-url-builders` | 49.9 | Fix [PIPE-URLBUILD]: per-provider URL builder registry + criteria normalization + headers. Depends PW5 (parallel PW7). | ⬜ planned |
-| MEU-PW7 | `pipeline-cancellation` | 49.10 | Fix [PIPE-NOCANCEL]: CANCELLING status, task registry, cancel_run() + REST endpoint. Depends PW5 (parallel PW6). | ⬜ planned |
+| MEU-PW6 | `provider-url-builders` | 49.9 | Fix [PIPE-URLBUILD]: per-provider URL builder registry + criteria normalization + headers. Depends PW5 (parallel PW7). | ✅ 2026-04-19 |
+| MEU-PW7 | `pipeline-cancellation` | 49.10 | Fix [PIPE-NOCANCEL]: CANCELLING status, task registry, cancel_run() + REST endpoint. Depends PW5 (parallel PW6). | ✅ 2026-04-19 |
 | MEU-PW8 | `pipeline-e2e-test-harness` | 49.11 | E2E test infrastructure: 7 policy fixtures, 6 mock steps, 14+ integration tests validating full service stack. Depends PW4–PW7. | 🟡 in-progress |
 | MEU-PW9 | `send-step-template-wiring` | 49.12 | Wire `SendStep._resolve_body()` template rendering: EMAIL_TEMPLATES registry lookup + Jinja2 + html_body priority + raw fallback. Depends MEU-88 ✅. | ✅ 2026-04-20 |
 | MEU-PW11 | `pipeline-cursor-tracking` | 49.13 | FetchStep cursor upsert after successful fetch: pipeline_state_repo.upsert() with ISO timestamp + SHA-256 hash. Depends MEU-PW2 ✅. | ✅ 2026-04-20 |
@@ -400,9 +400,10 @@ P2.75 (broker adapters): MEU-96 → MEU-99
 | MEU-195 | `polygon-massive-migration` | 30.14 | Polygon.io → Massive.com domain migration | ✅ complete |
 | MEU-190 | `service-methods-core` | 30.9 | 3 high-value methods: `get_ohlcv`, `get_fundamentals`, `get_earnings` + normalizers | ✅ complete |
 | MEU-191 | `service-methods-extended` | 30.10 | 5 methods: dividends, splits, insider, economic_calendar, company_profile | ✅ complete |
-| MEU-192 | `market-routes-mcp` | 30.11 | 8 new REST endpoints + 8 MCP action mappings | ⬜ |
-| MEU-193 | `market-store-step` | 30.12 | MarketDataStoreStep pipeline step | ⬜ |
-| MEU-194 | `scheduler-integration` | 30.13 | Pipeline policy scheduling for market data | ⬜ |
+| MEU-192 | `market-routes-mcp` | 30.11 | 8 new REST endpoints + 8 MCP action mappings | ✅ |
+| MEU-193 | `market-store-step` | 30.12 | MarketDataStoreStep pipeline step | ✅ |
+| MEU-194 | `scheduler-integration` | 30.13 | Pipeline policy scheduling for market data | ✅ |
+| MEU-207 | `capability-wiring` | 30.15 | Inject NORMALIZERS registry into MarketDataService + align provider_capabilities supported_data_types with normalizer coverage | ✅ 2026-05-05 |
 
 ## Phase 6 UX Hardening (P2.1)
 
@@ -411,3 +412,24 @@ P2.75 (broker adapters): MEU-96 → MEU-99
 | MEU-196 | `gui-form-guard-shared` | 35i | Shared `UnsavedChangesModal` + `useFormGuard` hook + amber-pulse CSS; refactor SchedulingLayout to consume shared components | ✅ complete |
 | MEU-197 | `gui-form-guard-settings` | 35j | Wire form guard to Market Data Providers + Email Provider pages; replace "off" → "Disabled" label; amber-pulse save button | ✅ complete |
 | MEU-198 | `gui-form-guard-crud` | 35k | Wire form guard to Accounts, Trades, Trade Plans, Watchlists; amber-pulse save button on all | ✅ complete |
+
+## P2.2: GUI Table & List Enhancements
+
+> Source: [build-priority-matrix.md §P2.2](../../docs/build-plan/build-priority-matrix.md)
+> Prerequisite: P2.1 complete (MEU-196→198 ✅)
+
+| MEU | Slug | Matrix | Description | Status |
+|-----|------|:------:|-------------|:------:|
+| MEU-199 | `gui-table-primitives` | 35l | Shared table/list primitives: ConfirmDeleteModal, BulkActionBar, SortableColumnHeader, TableFilterBar, useTableSelection | ✅ 2026-05-03 |
+| MEU-200 | `gui-accounts-table` | 35m | Accounts table enhancements: delete confirm, multi-select, bulk delete, filter/sort | ✅ 2026-05-03 |
+| MEU-201 | `gui-plans-table` | 35n | Trade Plans table enhancements: delete confirm, multi-select, bulk delete, filter/sort | ✅ 2026-05-03 |
+| MEU-202 | `gui-watchlist-table` | 35o | Watchlist tickers table enhancements: delete confirm, multi-select, bulk remove, filter/sort | ✅ 2026-05-03 |
+| MEU-203 | `gui-scheduling-list` | 35p | Scheduling list enhancements: Policies + Email Templates delete confirm, multi-select, bulk delete | ✅ 2026-05-03 |
+
+## P2.3: Calculator & Validation UX Hardening
+
+| MEU | Slug | Matrix | Description | Status |
+|-----|------|:------:|-------------|:------:|
+| MEU-204 | `gui-form-validation-hardening` | 35q | Inline validation errors (red "X is required"), Save & Continue disable on missing fields across all CRUD forms (Accounts, Trades, Trade Plans, Watchlists) | ✅ 2026-05-05 |
+| MEU-205 | `gui-calculator-workflow` | 35r | Calculator plan picker, toggle switches (green/red, 3×2 grid, localStorage persistence), auto-save new unsaved plans, Apply closes modal, "Copying:" status line | ✅ 2026-05-05 |
+| MEU-206 | `gui-tradeplan-layout` | 35s | 4-column price grid (Entry, Shares, Stop, Target), auto position_size recalc on shares/entry change, centered calculator button, computed metrics row | ✅ 2026-05-05 |

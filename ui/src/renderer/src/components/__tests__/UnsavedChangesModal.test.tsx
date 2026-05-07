@@ -237,4 +237,51 @@ describe('MEU-196: UnsavedChangesModal', () => {
         const keepEditing = screen.getByText('Keep Editing')
         expect(document.activeElement).toBe(keepEditing)
     })
+
+    // ── MEU-204: Save & Continue disabled when form invalid ─────────────
+    it('MEU-204: Save & Continue button is disabled when isSaveDisabled=true', () => {
+        render(
+            <UnsavedChangesModal
+                open={true}
+                onCancel={onCancel}
+                onDiscard={onDiscard}
+                onSave={vi.fn()}
+                isSaveDisabled={true}
+            />,
+        )
+
+        const saveBtn = screen.getByTestId('unsaved-save-continue-btn')
+        expect(saveBtn).toBeDisabled()
+        expect(saveBtn).toHaveAttribute('aria-disabled', 'true')
+    })
+
+    it('MEU-204: Save & Continue button is enabled by default (isSaveDisabled not set)', () => {
+        render(
+            <UnsavedChangesModal
+                open={true}
+                onCancel={onCancel}
+                onDiscard={onDiscard}
+                onSave={vi.fn()}
+            />,
+        )
+
+        const saveBtn = screen.getByTestId('unsaved-save-continue-btn')
+        expect(saveBtn).not.toBeDisabled()
+    })
+
+    it('MEU-204: clicking disabled Save & Continue does NOT call onSave', () => {
+        const onSave = vi.fn()
+        render(
+            <UnsavedChangesModal
+                open={true}
+                onCancel={onCancel}
+                onDiscard={onDiscard}
+                onSave={onSave}
+                isSaveDisabled={true}
+            />,
+        )
+
+        fireEvent.click(screen.getByTestId('unsaved-save-continue-btn'))
+        expect(onSave).not.toHaveBeenCalled()
+    })
 })

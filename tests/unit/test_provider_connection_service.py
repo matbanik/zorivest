@@ -896,25 +896,46 @@ class TestTradierValidation:
 
 
 class TestAlpacaValidation:
-    """Alpaca /v2/account returns {"id": "...", "status": "..."}.
+    """Alpaca /v2/stocks/AAPL/snapshot returns market data snapshot.
 
-    Validator accepts: {"id": "..."} — key presence confirms valid auth.
+    Validator accepts: {"latestTrade": ..., "latestQuote": ...} — market data keys.
     Validator rejects: {"code": 40110000, "message": "..."}, unexpected shapes.
     """
 
-    def test_valid_account_response(self) -> None:
-        """Alpaca success: response contains 'id' key."""
+    def test_valid_snapshot_response(self) -> None:
+        """Alpaca success: response contains 'latestTrade' key."""
 
         async def _run() -> None:
             uow = MockUoW()
             _configure_provider_in_uow(uow, "Alpaca")
             http = MockHttpClient(
-                MockResponse(200, _json={"id": "acct-123", "status": "ACTIVE"})
+                MockResponse(
+                    200,
+                    _json={
+                        "latestTrade": {"p": 150.0, "s": 100},
+                        "latestQuote": {"bp": 149.9, "ap": 150.1},
+                    },
+                )
             )
             svc, _, _ = _make_service(uow=uow, http=http)
             success, msg = await svc.test_connection("Alpaca")
             assert success is True
             assert msg == "Connection successful"
+
+        asyncio.run(_run())
+
+    def test_quote_only_response(self) -> None:
+        """Alpaca success: response with only 'latestQuote' also valid."""
+
+        async def _run() -> None:
+            uow = MockUoW()
+            _configure_provider_in_uow(uow, "Alpaca")
+            http = MockHttpClient(
+                MockResponse(200, _json={"latestQuote": {"bp": 149.9}})
+            )
+            svc, _, _ = _make_service(uow=uow, http=http)
+            success, msg = await svc.test_connection("Alpaca")
+            assert success is True
 
         asyncio.run(_run())
 
@@ -938,7 +959,7 @@ class TestAlpacaValidation:
         asyncio.run(_run())
 
     def test_unexpected_json_shape_rejected(self) -> None:
-        """Alpaca failure: response without 'id' key."""
+        """Alpaca failure: response without snapshot keys."""
 
         async def _run() -> None:
             uow = MockUoW()

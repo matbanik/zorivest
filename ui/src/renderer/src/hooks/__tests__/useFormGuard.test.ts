@@ -137,8 +137,9 @@ describe('MEU-196: useFormGuard<T>', () => {
 
         expect(onSave).toHaveBeenCalled()
         expect(onNavigate).not.toHaveBeenCalled()
-        // Modal stays open so user can retry or cancel
-        expect(result.current.showModal).toBe(true)
+        // Modal dismisses so user sees inline validation errors on the form.
+        // Form stays dirty, so guard re-triggers on next navigation attempt.
+        expect(result.current.showModal).toBe(false)
     })
 
     // ── Edge: handleDiscard without prior guardedSelect → no-op ─────────
@@ -192,5 +193,70 @@ describe('MEU-196: useFormGuard<T>', () => {
         })
 
         expect(onNavigate).toHaveBeenCalledWith('item-B')
+    })
+
+    // ── R5: isFormInvalid → isSaveDisabled contract ─────────────────────
+    // Closes recheck-4 finding R5: proves the hook computes isSaveDisabled
+    // from isFormInvalid. Combined with UnsavedChangesModal disabled-prop
+    // tests, this completes the parent→modal disabled chain for all CRUD forms.
+
+    it('R5: isSaveDisabled is true when isFormInvalid returns true', () => {
+        const onSave = vi.fn().mockResolvedValue(undefined)
+
+        const { result } = renderHook(() =>
+            useFormGuard<string>({
+                isDirty: true,
+                onNavigate,
+                onSave,
+                isFormInvalid: () => true,
+            }),
+        )
+
+        // Trigger modal so isSaveDisabled is evaluated
+        act(() => {
+            result.current.guardedSelect('item-2')
+        })
+
+        expect(result.current.showModal).toBe(true)
+        expect(result.current.isSaveDisabled).toBe(true)
+    })
+
+    it('R5: isSaveDisabled is false when isFormInvalid returns false', () => {
+        const onSave = vi.fn().mockResolvedValue(undefined)
+
+        const { result } = renderHook(() =>
+            useFormGuard<string>({
+                isDirty: true,
+                onNavigate,
+                onSave,
+                isFormInvalid: () => false,
+            }),
+        )
+
+        act(() => {
+            result.current.guardedSelect('item-2')
+        })
+
+        expect(result.current.showModal).toBe(true)
+        expect(result.current.isSaveDisabled).toBe(false)
+    })
+
+    it('R5: isSaveDisabled is false when isFormInvalid is not provided', () => {
+        const onSave = vi.fn().mockResolvedValue(undefined)
+
+        const { result } = renderHook(() =>
+            useFormGuard<string>({
+                isDirty: true,
+                onNavigate,
+                onSave,
+            }),
+        )
+
+        act(() => {
+            result.current.guardedSelect('item-2')
+        })
+
+        expect(result.current.showModal).toBe(true)
+        expect(result.current.isSaveDisabled).toBe(false)
     })
 })

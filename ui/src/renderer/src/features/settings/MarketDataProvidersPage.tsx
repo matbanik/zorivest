@@ -152,7 +152,7 @@ export function MarketDataProvidersPage() {
         }
     }, [selectedName, form, queryClient, setStatus])
 
-    const { showModal, guardedSelect, handleCancel, handleDiscard, handleSaveAndContinue } =
+    const { showModal, guardedSelect, handleCancel, handleDiscard, handleSaveAndContinue, isSaveDisabled } =
         useFormGuard<ProviderStatus>({
             isDirty,
             onNavigate: doNavigate,
@@ -475,6 +475,7 @@ export function MarketDataProvidersPage() {
                 onCancel={handleCancel}
                 onDiscard={handleDiscard}
                 onSave={handleSaveAndContinue}
+                isSaveDisabled={isSaveDisabled}
             />
         </>
     )

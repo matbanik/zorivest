@@ -279,3 +279,112 @@ def test_tuple_safe_values_preserved() -> None:
         {"coords": (1, 2, 3)},
     )
     assert result == "1,2,3"
+
+
+# ---------------------------------------------------------------------------
+# AC-6.15: |tojson filter handles bytes without serialization crash
+# ---------------------------------------------------------------------------
+# Root cause: Jinja2's tojson filter calls json.dumps() via
+# env.policies['json.dumps_function']. The default json.dumps cannot
+# serialize bytes.  _sanitize_value converts bytes to str in the context,
+# but if any bytes survive (or are created by step references), tojson
+# crashes with "Object of type bytes is not JSON serializable".
+# Fix: Register a custom json.dumps_function on the HardenedSandbox
+# that handles bytes → str and datetime → isoformat.
+# ---------------------------------------------------------------------------
+
+
+def test_tojson_with_top_level_bytes() -> None:
+    """AC-6.15a: tojson filter handles top-level bytes values.
+
+    Reproduces the production failure: bytes from HTTP responses passed
+    to {{ data|tojson }} in email templates.
+    """
+    from zorivest_core.services.secure_jinja import HardenedSandbox
+
+    sandbox = HardenedSandbox()
+    # Simulate raw HTTP response content that leaked as bytes
+    result = sandbox.render_safe(
+        "{{ data | tojson }}",
+        {"data": b'{"price": 123.45}'},
+    )
+    # bytes should be decoded to str, then JSON-encoded with quotes
+    assert "price" in result
+    assert "123.45" in result
+
+
+def test_tojson_with_nested_bytes_in_dict() -> None:
+    """AC-6.15b: tojson filter handles bytes nested inside dicts.
+
+    Reproduces: {{ fundamentals|tojson(indent=2) }} where one field
+    value is still bytes from the provider API response.
+    """
+    from zorivest_core.services.secure_jinja import HardenedSandbox
+
+    sandbox = HardenedSandbox()
+    result = sandbox.render_safe(
+        "{{ data | tojson }}",
+        {"data": {"MarketCap": b"1000000", "Name": "Apple Inc."}},
+    )
+    assert "1000000" in result
+    assert "Apple Inc." in result
+
+
+def test_tojson_with_datetime() -> None:
+    """AC-6.15c: tojson filter handles datetime objects.
+
+    Pipeline steps store datetime in resolved_criteria and timestamps.
+    """
+    from datetime import datetime, timezone
+
+    from zorivest_core.services.secure_jinja import HardenedSandbox
+
+    sandbox = HardenedSandbox()
+    now = datetime(2026, 5, 5, 12, 0, 0, tzinfo=timezone.utc)
+    result = sandbox.render_safe(
+        "{{ data | tojson }}",
+        {"data": {"timestamp": now, "value": 42}},
+    )
+    assert "2026-05-05" in result
+    assert "42" in result
+
+
+def test_tojson_pipeline_context_simulation() -> None:
+    """AC-6.15d: Full pipeline context with mixed types renders via tojson.
+
+    Simulates the exact context shape from Full Fundamentals Research
+    Pipeline: compose step output with records from multiple providers,
+    some containing bytes or datetime values.
+    """
+    from datetime import date
+
+    from zorivest_core.services.secure_jinja import HardenedSandbox
+
+    sandbox = HardenedSandbox()
+    ctx = {
+        "quote": {"price": 195.5, "volume": 12345678},
+        "fundamentals": {
+            "MarketCap": b"3000000000000",
+            "PERatio": "28.5",
+            "raw_header": b"Content-Type: application/json",
+        },
+        "earnings": [
+            {"period": b"Q1-2026", "actual": 1.53, "estimate": 1.48},
+        ],
+        "profile": {"name": "Apple Inc.", "ipo_date": date(1980, 12, 12)},
+        "clean_data": "no bytes here",
+    }
+    # Template that exercises tojson on multiple context values
+    template = """
+    Quote: {{ quote|tojson(indent=2) }}
+    Fundamentals: {{ fundamentals|tojson(indent=2) }}
+    Earnings: {{ earnings|tojson(indent=2) }}
+    Profile: {{ profile|tojson(indent=2) }}
+    """
+    result = sandbox.render_safe(template, ctx)
+    # Verify all sections rendered without TypeError
+    assert "195.5" in result
+    assert "3000000000000" in result
+    assert "Q1-2026" in result
+    assert "Apple Inc." in result
+    assert "1980-12-12" in result

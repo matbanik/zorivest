@@ -1,5 +1,5 @@
 import React, { useCallback, useMemo, useRef, useState } from 'react'
-import { useAccounts, useCreateAccount, useArchivedAccounts, useDeleteAccount, useForceDeleteAccount, useArchiveAccount, useUnarchiveAccount, fetchTradeCounts } from '@/hooks/useAccounts'
+import { useAccounts, useArchivedAccounts, useDeleteAccount, useForceDeleteAccount, useArchiveAccount, useUnarchiveAccount, fetchTradeCounts } from '@/hooks/useAccounts'
 import type { Account, TradeCountInfo } from '@/hooks/useAccounts'
 import { useAccountContext } from '@/context/AccountContext'
 import { useFormGuard } from '@/hooks/useFormGuard'
@@ -172,7 +172,6 @@ function AccountRow({ account, onSelect, portfolioPercent, isSelected, onToggleS
 export default function AccountsHome() {
     const { accounts, portfolioTotal, isFetching, refetch } = useAccounts()
     const { activeAccountId, selectAccount, mruAccountIds } = useAccountContext()
-    const createAccount = useCreateAccount()
     const deleteAccount = useDeleteAccount()
     const forceDeleteAccount = useForceDeleteAccount()
     const archiveAccount = useArchiveAccount()
@@ -245,11 +244,12 @@ export default function AccountsHome() {
         await panelRef.current?.save()
     }, [])
 
-    const { showModal, guardedSelect, handleCancel, handleDiscard, handleSaveAndContinue } =
+    const { showModal, guardedSelect, handleCancel, handleDiscard, handleSaveAndContinue, isSaveDisabled } =
         useFormGuard<string | null>({
             isDirty: childDirty,
             onNavigate: doNavigate,
             onSave: handleSaveViaRef,
+            isFormInvalid: () => panelRef.current?.isInvalid() ?? false,
         })
 
     const guardedSelectAccount = useCallback((id: string) => {
@@ -654,6 +654,7 @@ export default function AccountsHome() {
                 onCancel={handleCancel}
                 onDiscard={handleDiscard}
                 onSave={handleSaveAndContinue}
+                isSaveDisabled={isSaveDisabled}
             />
 
             {/* Bulk Delete Confirmation Modal (first stage) */}

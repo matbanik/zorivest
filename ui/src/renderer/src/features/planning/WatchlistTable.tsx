@@ -129,7 +129,7 @@ export default function WatchlistTable({
     }
 
     /** Get a numeric sort value for a given item+field, pushing nulls to the end. */
-    const getNumericValue = (item: WatchlistItem, field: SortField): number => {
+    const getNumericValue = useCallback((item: WatchlistItem, field: SortField): number => {
         const q = quotes[item.ticker]
         switch (field) {
             case 'last_price': return q?.last_price ?? -Infinity
@@ -138,7 +138,7 @@ export default function WatchlistTable({
             case 'volume': return q?.volume ?? -Infinity
             default: return 0
         }
-    }
+    }, [quotes])
 
     // MEU-202: Text search filter
     const filteredItems = useMemo(() => {
@@ -168,7 +168,7 @@ export default function WatchlistTable({
 
         if (sortDir === 'desc') sorted.reverse()
         return sorted
-    }, [filteredItems, quotes, sortField, sortDir])
+    }, [filteredItems, sortField, sortDir, getNumericValue])
 
     // MEU-202: Selection handlers
     const toggleSelect = useCallback((ticker: string) => {

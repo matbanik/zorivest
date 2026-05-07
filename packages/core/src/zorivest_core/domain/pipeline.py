@@ -251,14 +251,19 @@ class FetchResult:
 
     provider: str
     data_type: str
-    content: bytes
+    content: bytes | str
     content_hash: str = dc_field(init=False)
     cache_status: str = "miss"  # miss | hit | revalidated
     fetched_at: datetime = dc_field(default_factory=lambda: datetime.now(timezone.utc))
     warnings: list[str] = dc_field(default_factory=list)
 
     def __post_init__(self) -> None:
-        self.content_hash = hashlib.sha256(self.content).hexdigest()
+        raw = (
+            self.content.encode("utf-8")
+            if isinstance(self.content, str)
+            else self.content
+        )
+        self.content_hash = hashlib.sha256(raw).hexdigest()
 
 
 # ---------------------------------------------------------------------------

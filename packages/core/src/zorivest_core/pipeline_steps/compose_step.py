@@ -66,8 +66,20 @@ class ComposeStep(RegisteredStep):
         merged: dict = {}
 
         for src in p.sources:
-            # get_output returns a deep copy (§9C.1b isolation)
-            upstream = context.get_output(src.step_id)
+            # get_output returns a deep copy (§9C.1b isolation).
+            # When an optional upstream step failed (on_error="log_and_continue"),
+            # its output won't exist — skip gracefully instead of crashing.
+            try:
+                upstream = context.get_output(src.step_id)
+            except KeyError:
+                target_key = src.rename or src.key or src.step_id
+                logger.warning(
+                    "compose_step.source_missing",
+                    step_id=src.step_id,
+                    target_key=target_key,
+                    msg=f"Upstream step '{src.step_id}' has no output — skipping",
+                )
+                continue
 
             # Extract specific key if provided, otherwise use entire output
             data = upstream.get(src.key, upstream) if src.key else upstream

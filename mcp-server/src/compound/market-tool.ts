@@ -10,8 +10,12 @@
  *   disconnect_market_provider → action: "disconnect"
  *   test_market_provider    → action: "test_provider"
  *
- * Source: implementation-plan.md MC3
- * Phase: P2.5f (MCP Tool Consolidation)
+ * Plus 8 expansion actions (MEU-192, §8a.11):
+ *   ohlcv, fundamentals, earnings, dividends, splits,
+ *   insider, economic_calendar, company_profile
+ *
+ * Source: implementation-plan.md MC3 + §8a.11
+ * Phase: P2.5f (MCP Tool Consolidation) + P8a (Market Data Expansion)
  */
 
 import { McpServer } from "@modelcontextprotocol/sdk/server/mcp.js";
@@ -26,6 +30,17 @@ function textResult(data: unknown): ToolResult {
     return {
         content: [{ type: "text" as const, text: JSON.stringify(data, null, 2) }],
     };
+}
+
+/** Build query string from key-value pairs, skipping undefined values. */
+function buildQuery(params: Record<string, unknown>): string {
+    const parts: string[] = [];
+    for (const [key, val] of Object.entries(params)) {
+        if (val !== undefined && val !== null) {
+            parts.push(`${key}=${encodeURIComponent(String(val))}`);
+        }
+    }
+    return parts.length > 0 ? `?${parts.join("&")}` : "";
 }
 
 // ── Router definition ──────────────────────────────────────────────────
@@ -107,6 +122,114 @@ const marketRouter = new CompoundToolRouter({
             ));
         },
     },
+
+    // ── Expansion actions (MEU-192, §8a.11) ────────────────────────────
+
+    ohlcv: {
+        schema: z.object({
+            ticker: z.string(),
+            interval: z.string().optional(),
+            start_date: z.string().optional(),
+            end_date: z.string().optional(),
+            limit: z.number().int().min(1).max(1000).optional(),
+            provider: z.string().optional(),
+        }).strict(),
+        handler: async (params): Promise<ToolResult> => {
+            const query = buildQuery({
+                ticker: params.ticker,
+                interval: params.interval,
+                start_date: params.start_date,
+                end_date: params.end_date,
+                limit: params.limit,
+                provider: params.provider,
+            });
+            return textResult(await fetchApi(`/market-data/ohlcv${query}`));
+        },
+    },
+
+    fundamentals: {
+        schema: z.object({
+            ticker: z.string(),
+        }).strict(),
+        handler: async (params): Promise<ToolResult> => {
+            return textResult(await fetchApi(
+                `/market-data/fundamentals?ticker=${encodeURIComponent(params.ticker)}`,
+            ));
+        },
+    },
+
+    earnings: {
+        schema: z.object({
+            ticker: z.string(),
+        }).strict(),
+        handler: async (params): Promise<ToolResult> => {
+            return textResult(await fetchApi(
+                `/market-data/earnings?ticker=${encodeURIComponent(params.ticker)}`,
+            ));
+        },
+    },
+
+    dividends: {
+        schema: z.object({
+            ticker: z.string(),
+        }).strict(),
+        handler: async (params): Promise<ToolResult> => {
+            return textResult(await fetchApi(
+                `/market-data/dividends?ticker=${encodeURIComponent(params.ticker)}`,
+            ));
+        },
+    },
+
+    splits: {
+        schema: z.object({
+            ticker: z.string(),
+        }).strict(),
+        handler: async (params): Promise<ToolResult> => {
+            return textResult(await fetchApi(
+                `/market-data/splits?ticker=${encodeURIComponent(params.ticker)}`,
+            ));
+        },
+    },
+
+    insider: {
+        schema: z.object({
+            ticker: z.string(),
+        }).strict(),
+        handler: async (params): Promise<ToolResult> => {
+            return textResult(await fetchApi(
+                `/market-data/insider?ticker=${encodeURIComponent(params.ticker)}`,
+            ));
+        },
+    },
+
+    economic_calendar: {
+        schema: z.object({
+            country: z.string().optional(),
+            start_date: z.string().optional(),
+            end_date: z.string().optional(),
+            limit: z.number().int().min(1).max(1000).optional(),
+        }).strict(),
+        handler: async (params): Promise<ToolResult> => {
+            const query = buildQuery({
+                country: params.country,
+                start_date: params.start_date,
+                end_date: params.end_date,
+                limit: params.limit,
+            });
+            return textResult(await fetchApi(`/market-data/economic-calendar${query}`));
+        },
+    },
+
+    company_profile: {
+        schema: z.object({
+            ticker: z.string(),
+        }).strict(),
+        handler: async (params): Promise<ToolResult> => {
+            return textResult(await fetchApi(
+                `/market-data/company-profile?ticker=${encodeURIComponent(params.ticker)}`,
+            ));
+        },
+    },
 });
 
 // ── Registration ───────────────────────────────────────────────────────
@@ -114,6 +237,8 @@ const marketRouter = new CompoundToolRouter({
 const MARKET_ACTIONS = [
     "quote", "news", "search", "filings",
     "providers", "disconnect", "test_provider",
+    "ohlcv", "fundamentals", "earnings", "dividends", "splits",
+    "insider", "economic_calendar", "company_profile",
 ] as const;
 
 export function registerMarketTool(server: McpServer): RegisteredToolHandle[] {
@@ -123,6 +248,8 @@ export function registerMarketTool(server: McpServer): RegisteredToolHandle[] {
             {
                 description:
                     "Market data — stock quotes, news, ticker search, SEC filings, provider management. " +
+                    "\\n\\nPhase 8a expansion: OHLCV candles, fundamentals, earnings, dividends, splits, " +
+                    "insider transactions, economic calendar, company profiles. " +
                     "\\n\\nPrerequisite: At least one market data provider must be configured and enabled. " +
                     "Use 'providers' action to check configured providers, 'test_provider' to verify connectivity. " +
                     "\\n\\nWorkflow: search (find ticker) → quote (get price) → news (get headlines) → filings (SEC documents). " +
@@ -137,6 +264,12 @@ export function registerMarketTool(server: McpServer): RegisteredToolHandle[] {
                     count: z.number().optional(),
                     provider_name: z.string().optional(),
                     confirm_destructive: z.literal(true).optional(),
+                    interval: z.string().optional(),
+                    start_date: z.string().optional(),
+                    end_date: z.string().optional(),
+                    limit: z.number().optional(),
+                    country: z.string().optional(),
+                    provider: z.string().optional(),
                 }).strict(),
                 annotations: {
                     readOnlyHint: false,

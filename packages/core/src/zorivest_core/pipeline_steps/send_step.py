@@ -271,13 +271,20 @@ class SendStep(RegisteredStep):
             "policy_id": context.policy_id,
             "run_id": context.run_id,
         }
+
+        def _safe_value(v: Any) -> Any:
+            """Coerce bytes to str to prevent JSON serialization failures."""
+            if isinstance(v, bytes):
+                return v.decode("utf-8", errors="replace")
+            return v
+
         for key, value in context.outputs.items():
             if key not in render_ctx:
-                render_ctx[key] = value
+                render_ctx[key] = _safe_value(value)
             if isinstance(value, dict):
                 for inner_key, inner_value in value.items():
                     if inner_key not in render_ctx:
-                        render_ctx[inner_key] = inner_value
+                        render_ctx[inner_key] = _safe_value(inner_value)
                     # Flatten QueryStep's {output_key: {query_name: [rows]}}
                     # so template can access query results by query name.
                     # When output_key == query_name, the shallow pass sets
@@ -286,7 +293,7 @@ class SendStep(RegisteredStep):
                     if isinstance(inner_value, dict):
                         for deep_key, deep_value in inner_value.items():
                             if deep_key not in render_ctx:
-                                render_ctx[deep_key] = deep_value
+                                render_ctx[deep_key] = _safe_value(deep_value)
                             elif isinstance(deep_value, list) and isinstance(
                                 render_ctx.get(deep_key), dict
                             ):
@@ -339,7 +346,12 @@ class SendStep(RegisteredStep):
             except ImportError:
                 from jinja2 import BaseLoader, Environment
 
+                from zorivest_core.services.secure_jinja import (
+                    _pipeline_safe_dumps,
+                )
+
                 engine = Environment(loader=BaseLoader(), autoescape=True)
+                engine.policies["json.dumps_function"] = _pipeline_safe_dumps
 
         tmpl = engine.from_string(template_source)
 

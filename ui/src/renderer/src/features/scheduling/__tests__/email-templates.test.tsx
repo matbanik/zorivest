@@ -106,8 +106,6 @@ import {
     useCreateTemplate,
     useUpdateTemplate,
     useDeleteTemplate,
-    useDuplicateTemplate,
-    usePreviewTemplate,
     templateKeys,
 } from '../template-hooks'
 

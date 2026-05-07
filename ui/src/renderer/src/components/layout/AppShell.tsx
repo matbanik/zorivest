@@ -1,4 +1,4 @@
-import React, { useEffect, useState, useCallback } from 'react'
+import React, { useEffect, useState } from 'react'
 import { useNavigate, useLocation } from '@tanstack/react-router'
 import SkipLink from '../SkipLink'
 import NavRail from './NavRail'
@@ -84,10 +84,6 @@ export default function AppShell({ children }: AppShellProps) {
         const handler = () => setReviewOpen(true)
         window.addEventListener('zorivest:start-review', handler)
         return () => window.removeEventListener('zorivest:start-review', handler)
-    }, [])
-
-    const handleOpenCalculator = useCallback(() => {
-        setCalculatorOpen(true)
     }, [])
 
     return (

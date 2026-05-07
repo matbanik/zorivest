@@ -141,14 +141,6 @@ export default function TradesLayout() {
 
     const isGuardLocked = guardStatus?.is_locked ?? false
 
-    const handleSelectTrade = useCallback((trade: Trade) => {
-        setSelectedTrade(trade)
-    }, [])
-
-    const handleNewTrade = useCallback(() => {
-        setSelectedTrade({ ...NEW_TRADE, time: new Date().toISOString() })
-    }, [])
-
     // ── Unsaved changes guard (3-button: Save & Continue via child ref) ────
     const panelRef = useRef<TradeDetailPanelHandle>(null)
 
@@ -161,11 +153,12 @@ export default function TradesLayout() {
         await panelRef.current?.save()
     }, [])
 
-    const { showModal, guardedSelect, handleCancel, handleDiscard, handleSaveAndContinue } =
+    const { showModal, guardedSelect, handleCancel, handleDiscard, handleSaveAndContinue, isSaveDisabled } =
         useFormGuard<Trade | null>({
             isDirty: childDirty,
             onNavigate: doNavigate,
             onSave: handleSaveViaRef,
+            isFormInvalid: () => panelRef.current?.isInvalid() ?? false,
         })
 
     const guardedSelectTrade = useCallback((trade: Trade) => {
@@ -389,6 +382,7 @@ export default function TradesLayout() {
                 onCancel={handleCancel}
                 onDiscard={handleDiscard}
                 onSave={handleSaveAndContinue}
+                isSaveDisabled={isSaveDisabled}
             />
 
             {deleteConfirm.target && (

@@ -1,4 +1,4 @@
-import React, { useState, useEffect, useRef, useImperativeHandle, forwardRef } from 'react'
+import React, { useState, useEffect, useRef, useImperativeHandle, useCallback, forwardRef } from 'react'
 import { useForm } from 'react-hook-form'
 import { z } from 'zod'
 import { zodResolver } from '@hookform/resolvers/zod'
@@ -22,7 +22,7 @@ const ACCOUNT_TYPE_LABELS: Record<string, string> = {
     ira: 'IRA',
     '401k': '401(k)',
 }
-const CURRENCIES = ['USD', 'EUR', 'GBP', 'CAD', 'JPY', 'CHF'] as const
+
 
 const accountSchema = z.object({
     name: z.string().min(1, 'Name is required').max(100),
@@ -48,6 +48,8 @@ const currencyFmt = new Intl.NumberFormat('en-US', {
 export interface AccountDetailPanelHandle {
     /** Programmatically trigger form save (used by parent for "Save & Continue") */
     save: () => Promise<void>
+    /** Returns true when required form fields are invalid (empty name or type) */
+    isInvalid: () => boolean
 }
 
 interface AccountDetailPanelProps {
@@ -81,6 +83,7 @@ const AccountDetailPanel = forwardRef<AccountDetailPanelHandle, AccountDetailPan
     const archiveConfirm = useConfirmDelete()
     const [showBalanceInput, setShowBalanceInput] = useState(false)
     const [newBalance, setNewBalance] = useState('')
+    const [balanceError, setBalanceError] = useState<string | null>(null)
     // Trade warning state for second confirmation
     const [tradeWarning, setTradeWarning] = useState<{
         tradeCount: number
@@ -91,6 +94,7 @@ const AccountDetailPanel = forwardRef<AccountDetailPanelHandle, AccountDetailPan
         register,
         handleSubmit,
         reset,
+        getValues,
         formState: { errors, isDirty },
     } = useForm<AccountFormData>({
         resolver: zodResolver(accountSchema),
@@ -127,7 +131,7 @@ const AccountDetailPanel = forwardRef<AccountDetailPanelHandle, AccountDetailPan
         onDirtyChange?.(isDirty)
     }, [isDirty, onDirtyChange])
 
-    const onSave = (data: AccountFormData) => {
+    const onSave = useCallback((data: AccountFormData) => {
         if (isNew) {
             createAccountMutation.mutate(data, {
                 onSuccess: () => {
@@ -146,9 +150,9 @@ const AccountDetailPanel = forwardRef<AccountDetailPanelHandle, AccountDetailPan
                 },
             })
         }
-    }
+    }, [isNew, createAccountMutation, reset, onCreated, updateAccount, account.account_id])
 
-    // Expose save() to parent via ref for "Save & Continue"
+    // Expose save() and isInvalid() to parent via ref for "Save & Continue" guard
     useImperativeHandle(ref, () => ({
         save: () => new Promise<void>((resolve, reject) => {
             handleSubmit(
@@ -159,7 +163,11 @@ const AccountDetailPanel = forwardRef<AccountDetailPanelHandle, AccountDetailPan
                 () => reject(new Error('Validation failed')),
             )()
         }),
-    }), [handleSubmit])
+        isInvalid: () => {
+            const v = getValues()
+            return !v.name?.trim() || !v.account_type?.trim()
+        },
+    }), [handleSubmit, onSave, getValues])
 
     const executeDelete = async () => {
         setDeleteError(null)
@@ -225,15 +233,22 @@ const AccountDetailPanel = forwardRef<AccountDetailPanelHandle, AccountDetailPan
     }
 
     const onUpdateBalance = () => {
-        const num = parseFloat(newBalance)
-        if (!isNaN(num)) {
-            addBalance.mutate({
-                accountId: account.account_id,
-                payload: { balance: num },
-            })
-            setShowBalanceInput(false)
-            setNewBalance('')
+        if (!newBalance.trim()) {
+            setBalanceError('Balance is required')
+            return
         }
+        const num = parseFloat(newBalance)
+        if (isNaN(num)) {
+            setBalanceError('Balance must be a valid number')
+            return
+        }
+        setBalanceError(null)
+        addBalance.mutate({
+            accountId: account.account_id,
+            payload: { balance: num },
+        })
+        setShowBalanceInput(false)
+        setNewBalance('')
     }
 
     return (
@@ -276,16 +291,21 @@ const AccountDetailPanel = forwardRef<AccountDetailPanelHandle, AccountDetailPan
 
                 {showBalanceInput && (
                     <div className="mt-3 flex gap-2">
+                        <div className="flex-1">
                         <input
                             type="number"
                             step="0.01"
                             value={newBalance}
-                            onChange={(e) => setNewBalance(e.target.value)}
-                            className="flex-1 rounded-md border border-border bg-bg px-2 py-1 text-sm"
+                            onChange={(e) => { setNewBalance(e.target.value); setBalanceError(null) }}
+                            className={`w-full rounded-md border bg-bg px-2 py-1 text-sm ${balanceError ? 'border-red-500' : 'border-border'}`}
                             placeholder="New balance..."
                             aria-label="New balance amount"
                             data-testid="balance-input"
                         />
+                        {balanceError && (
+                            <span className="text-xs text-red-400">{balanceError}</span>
+                        )}
+                        </div>
                         <button
                             type="button"
                             data-testid="balance-save-btn"
@@ -298,7 +318,7 @@ const AccountDetailPanel = forwardRef<AccountDetailPanelHandle, AccountDetailPan
                             type="button"
                             data-testid="balance-cancel-btn"
                             className="rounded-md bg-bg px-3 py-1.5 text-sm text-fg-muted hover:text-fg border border-bg-subtle"
-                            onClick={() => setShowBalanceInput(false)}
+                            onClick={() => { setShowBalanceInput(false); setBalanceError(null) }}
                         >
                             Cancel
                         </button>

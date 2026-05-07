@@ -91,7 +91,7 @@ export function useAccounts(): UseAccountsResult {
         refetchOnWindowFocus: true,
     })
 
-    const accounts = Array.isArray(data) ? data : []
+    const accounts = useMemo(() => Array.isArray(data) ? data : [], [data])
 
     // AC-3, AC-6: Compute portfolio total client-side from latest_balance fields
     const portfolioTotal = useMemo(() => {

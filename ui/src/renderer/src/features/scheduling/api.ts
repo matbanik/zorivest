@@ -10,6 +10,15 @@
 
 import { apiFetch } from '@/lib/api'
 
+// Electron IPC bridge type for approval token generation
+interface ElectronAPI {
+    generateApprovalToken: (resourceId: string) => Promise<{ token: string; expiresAt: number }>
+}
+
+interface WindowWithElectron extends Window {
+    electronAPI?: ElectronAPI
+}
+
 // ── Response Types (match Python models exactly) ───────────────────────
 
 /** Matches scheduling.py PolicyResponse */
@@ -121,7 +130,7 @@ export function deletePolicy(policyId: string): Promise<void> {
 
 export async function approvePolicy(policyId: string): Promise<Policy> {
     // PH11: Get CSRF approval token from Electron main process via IPC
-    const tokenResult = await (window as any).electronAPI?.generateApprovalToken(policyId)
+    const tokenResult = await (window as unknown as WindowWithElectron).electronAPI?.generateApprovalToken(policyId)
     if (!tokenResult?.token) {
         throw new Error('Failed to obtain approval token from Electron main process')
     }
@@ -136,7 +145,7 @@ export async function approvePolicy(policyId: string): Promise<Policy> {
 
 export async function triggerRun(policyId: string, payload: RunTriggerPayload): Promise<PipelineRun> {
     // PH11: Get CSRF approval token from Electron main process via IPC
-    const tokenResult = await (window as any).electronAPI?.generateApprovalToken(policyId)
+    const tokenResult = await (window as unknown as WindowWithElectron).electronAPI?.generateApprovalToken(policyId)
     if (!tokenResult?.token) {
         throw new Error('Failed to obtain approval token from Electron main process')
     }

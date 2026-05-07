@@ -793,7 +793,7 @@ describe('RunHistory', () => {
 // ═══════════════════════════════════════════════════════════════════════════════
 
 /** Standard mock that returns [] for /runs URLs to prevent unhandled runtime errors */
-function layoutMock(url: string, init?: Record<string, unknown>) {
+function layoutMock(url: string, _init?: Record<string, unknown>) {
     if (url.includes('/runs')) return Promise.resolve([])
     if (url.includes('/policies')) return Promise.resolve(MOCK_POLICIES_RESPONSE)
     if (url.includes('/scheduler/status')) return Promise.resolve({ running: true, job_count: 2, jobs: [] })

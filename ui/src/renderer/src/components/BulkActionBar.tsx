@@ -25,7 +25,7 @@ export interface BulkActionBarProps {
 
 export default function BulkActionBar({
     selectedCount,
-    itemType,
+    _itemType,
     onDelete,
     onClearSelection,
     actions,

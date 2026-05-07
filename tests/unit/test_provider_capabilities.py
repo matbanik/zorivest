@@ -60,25 +60,37 @@ EXPECTED_BUILDER_MODES = {
     "Tradier": "simple_get",
 }
 
-# ── Expected supported_data_types per provider (from spec §8a.3 table) ──
-
+# Expected supported_data_types per provider.
+# MEU-207 updated 8 normalizer-backed providers; 3 structural providers
+# (Nasdaq Data Link, OpenFIGI, Tradier) carry forward from MEU-184.
 EXPECTED_DATA_TYPES = {
     "Alpha Vantage": sorted(
-        ["quote", "ohlcv", "earnings", "fundamentals", "insider", "economic_calendar"]
+        ["quote", "earnings", "fundamentals", "economic_calendar", "ticker_search"]
     ),
-    "Polygon.io": sorted(
-        ["quote", "ohlcv", "news", "dividends", "splits", "fundamentals"]
+    "Polygon.io": sorted(["quote", "ohlcv", "dividends", "splits"]),
+    "Finnhub": sorted(
+        ["quote", "news", "earnings", "insider", "economic_calendar", "company_profile"]
     ),
-    "Finnhub": sorted(["quote", "news", "earnings", "insider", "economic_calendar"]),
     "Financial Modeling Prep": sorted(
-        ["quote", "ohlcv", "fundamentals", "earnings", "dividends", "splits", "news"]
+        [
+            "fundamentals",
+            "earnings",
+            "dividends",
+            "splits",
+            "insider",
+            "economic_calendar",
+            "company_profile",
+            "ticker_search",
+        ]
     ),
-    "EODHD": sorted(["ohlcv", "fundamentals", "dividends", "splits", "news"]),
+    "EODHD": sorted(
+        ["ohlcv", "fundamentals", "dividends", "splits", "quote", "company_profile"]
+    ),
     "Nasdaq Data Link": sorted(["fundamentals"]),
-    "SEC API": sorted(["fundamentals", "insider"]),
-    "API Ninjas": sorted(["quote", "earnings", "insider"]),
+    "SEC API": sorted(["insider", "sec_filings"]),
+    "API Ninjas": sorted(["quote"]),
     "OpenFIGI": sorted(["identifier_mapping"]),
-    "Alpaca": sorted(["quote", "ohlcv", "news"]),
+    "Alpaca": sorted(["ohlcv"]),
     "Tradier": sorted(["quote", "ohlcv"]),
 }
 

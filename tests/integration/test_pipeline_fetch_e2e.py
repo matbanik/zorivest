@@ -248,7 +248,7 @@ async def test_PW2_AC7_etag_revalidation_304():
 
     # The step should return revalidated content from the adapter
     assert result.output["cache_status"] == "revalidated"
-    assert result.output["content"] == b'{"old": "ohlcv"}'
+    assert result.output["content"] == '{"old": "ohlcv"}'
 
 
 @pytest.mark.asyncio

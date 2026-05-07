@@ -106,6 +106,7 @@
 | **30.12** | `MarketDataStoreStep` pipeline step (MEU-193) | ✅ Yes | Route normalized DTOs to DB tables, INSERT/UPSERT |
 | **30.13** | Scheduling recipes: 10 pre-built policy templates (MEU-194) | ✅ Yes | Alembic-seeded cron templates |
 | **30.14** | Polygon→Massive domain migration (MEU-195) | ✅ Yes | Update `base_url` from `api.polygon.io` to `api.massive.com`, `signup_url`, display name; verify connection test passes; no API schema changes |
+| **30.15** | Capability wiring: inject NORMALIZERS + align supported_data_types (MEU-207) | ⬜ Pending | Corrective: inject `normalizers=NORMALIZERS` kwarg in `MarketDataService()`, update `provider_capabilities.py` tuples to match normalizer coverage |
 
 ---
 

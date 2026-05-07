@@ -202,13 +202,14 @@ def _validate_tradier(data: Any) -> bool:
 
 @_register_validator("Alpaca")
 def _validate_alpaca(data: Any) -> bool:
-    """Alpaca /v2/account returns {"id": "...", "status": "..."}.
+    """Alpaca /v2/stocks/AAPL/snapshot returns market data snapshot.
 
-    Accepts: {"id": "..."} — key presence confirms valid auth.
-    Rejects: {"code": 40110000, "message": "..."}, None
+    Response shape: {"latestTrade": {...}, "latestQuote": {...}, ...}
+    Accepts: {"latestTrade": ...} — key presence confirms valid auth + data.
+    Rejects: {"code": 40110000, "message": "..."} (auth error), None.
     """
     if isinstance(data, dict):
-        return "id" in data and "code" not in data
+        return ("latestTrade" in data or "latestQuote" in data) and "code" not in data
     return False
 
 

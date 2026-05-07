@@ -138,28 +138,39 @@ async def test_rename() -> None:
 
 
 # ---------------------------------------------------------------------------
-# AC-5.4: Non-existent step_id raises KeyError
+# AC-5.4: Non-existent step_id is skipped gracefully (optional upstream)
 # ---------------------------------------------------------------------------
 
 
 @pytest.mark.asyncio
-async def test_missing_step_raises() -> None:
-    """AC-5.4: Non-existent step_id raises KeyError."""
+async def test_missing_step_skipped_gracefully() -> None:
+    """AC-5.4: Non-existent step_id is skipped — compose succeeds without it.
+
+    When an optional upstream step fails (on_error="log_and_continue"),
+    its output won't be in context.outputs. ComposeStep should skip that
+    source and produce a partial result instead of crashing the pipeline.
+    """
     from zorivest_core.pipeline_steps.compose_step import ComposeStep
 
     ctx = _make_context({"existing": {"data": [1, 2, 3]}})
 
     step = ComposeStep()
-    with pytest.raises(KeyError, match="nonexistent"):
-        await step.execute(
-            {
-                "sources": [
-                    {"step_id": "nonexistent", "key": "data"},
-                ],
-                "output_key": "composed",
-            },
-            ctx,
-        )
+    result = await step.execute(
+        {
+            "sources": [
+                {"step_id": "existing", "key": "data", "rename": "good"},
+                {"step_id": "nonexistent", "key": "data", "rename": "missing"},
+            ],
+            "output_key": "composed",
+        },
+        ctx,
+    )
+
+    # The existing source should be merged
+    assert "good" in result.output["composed"]
+    assert result.output["composed"]["good"] == [1, 2, 3]
+    # The missing source should be absent (skipped), not crash
+    assert "missing" not in result.output["composed"]
 
 
 # ---------------------------------------------------------------------------

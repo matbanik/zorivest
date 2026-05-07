@@ -396,52 +396,54 @@ class MarketDataService:
             raise MarketDataError(f"Unexpected OHLCV result type for '{ticker}'")
         return result
 
-    async def get_fundamentals(self, ticker: str) -> FundamentalsSnapshot:
+    async def get_fundamentals(
+        self, ticker: str, **kwargs: Any
+    ) -> FundamentalsSnapshot:
         """Get company fundamentals. Yahoo-first, then FMP → EODHD → AV.
 
         Source: §8a.9 — MEU-190.
         """
-        result = await self._fetch_data_type("fundamentals", ticker)
+        result = await self._fetch_data_type("fundamentals", ticker, **kwargs)
         if not isinstance(result, FundamentalsSnapshot):
             raise MarketDataError(f"Unexpected fundamentals result type for '{ticker}'")
         return result
 
-    async def get_earnings(self, ticker: str) -> list[EarningsReport]:
+    async def get_earnings(self, ticker: str, **kwargs: Any) -> list[EarningsReport]:
         """Get earnings reports. Finnhub → FMP → AV (no Yahoo).
 
         Source: §8a.9 — MEU-190.
         """
-        result = await self._fetch_data_type("earnings", ticker)
+        result = await self._fetch_data_type("earnings", ticker, **kwargs)
         if not isinstance(result, list):
             raise MarketDataError(f"Unexpected earnings result type for '{ticker}'")
         return result
 
-    async def get_dividends(self, ticker: str) -> list[DividendRecord]:
+    async def get_dividends(self, ticker: str, **kwargs: Any) -> list[DividendRecord]:
         """Get dividend records. Yahoo-first, then Polygon → EODHD → FMP.
 
         Source: §8a.10 — MEU-191.
         """
-        result = await self._fetch_data_type("dividends", ticker)
+        result = await self._fetch_data_type("dividends", ticker, **kwargs)
         if not isinstance(result, list):
             raise MarketDataError(f"Unexpected dividends result type for '{ticker}'")
         return result
 
-    async def get_splits(self, ticker: str) -> list[StockSplit]:
+    async def get_splits(self, ticker: str, **kwargs: Any) -> list[StockSplit]:
         """Get stock splits. Yahoo-first, then Polygon → EODHD → FMP.
 
         Source: §8a.10 — MEU-191.
         """
-        result = await self._fetch_data_type("splits", ticker)
+        result = await self._fetch_data_type("splits", ticker, **kwargs)
         if not isinstance(result, list):
             raise MarketDataError(f"Unexpected splits result type for '{ticker}'")
         return result
 
-    async def get_insider(self, ticker: str) -> list[InsiderTransaction]:
+    async def get_insider(self, ticker: str, **kwargs: Any) -> list[InsiderTransaction]:
         """Get insider transactions. Finnhub → FMP → SEC API (no Yahoo).
 
         Source: §8a.10 — MEU-191.
         """
-        result = await self._fetch_data_type("insider", ticker)
+        result = await self._fetch_data_type("insider", ticker, **kwargs)
         if not isinstance(result, list):
             raise MarketDataError(f"Unexpected insider result type for '{ticker}'")
         return result
@@ -456,13 +458,15 @@ class MarketDataService:
             raise MarketDataError("Unexpected economic calendar result type")
         return result
 
-    async def get_company_profile(self, ticker: str) -> FundamentalsSnapshot:
+    async def get_company_profile(
+        self, ticker: str, **kwargs: Any
+    ) -> FundamentalsSnapshot:
         """Get company profile. FMP → Finnhub → EODHD (no Yahoo).
 
         Returns FundamentalsSnapshot (same DTO as fundamentals).
         Source: §8a.10 — MEU-191.
         """
-        result = await self._fetch_data_type("company_profile", ticker)
+        result = await self._fetch_data_type("company_profile", ticker, **kwargs)
         if not isinstance(result, FundamentalsSnapshot):
             raise MarketDataError(
                 f"Unexpected company profile result type for '{ticker}'"

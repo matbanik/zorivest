@@ -1128,6 +1128,21 @@
         "title": "ImportPreviewResponse",
         "type": "object"
       },
+      "IntervalEnum": {
+        "description": "Valid OHLCV interval values. Source: \u00a78a.11.",
+        "enum": [
+          "1m",
+          "5m",
+          "15m",
+          "30m",
+          "1h",
+          "1d",
+          "1w",
+          "1M"
+        ],
+        "title": "IntervalEnum",
+        "type": "string"
+      },
       "KeyCreateRequest": {
         "properties": {
           "name": {
@@ -2116,6 +2131,25 @@
         ],
         "title": "TradeAction",
         "type": "string"
+      },
+      "TradeCountsRequest": {
+        "additionalProperties": false,
+        "properties": {
+          "account_ids": {
+            "items": {
+              "type": "string"
+            },
+            "maxItems": 100,
+            "minItems": 1,
+            "title": "Account Ids",
+            "type": "array"
+          }
+        },
+        "required": [
+          "account_ids"
+        ],
+        "title": "TradeCountsRequest",
+        "type": "object"
       },
       "UnlockRequest": {
         "properties": {
@@ -3199,6 +3233,87 @@
           }
         },
         "summary": "Reassign Trades",
+        "tags": [
+          "accounts"
+        ]
+      }
+    },
+    "/api/v1/accounts/{account_id}:unarchive": {
+      "post": {
+        "description": "Restore an archived account: set is_archived=False.",
+        "operationId": "unarchive_account_api_v1_accounts__account_id__unarchive_post",
+        "parameters": [
+          {
+            "in": "path",
+            "name": "account_id",
+            "required": true,
+            "schema": {
+              "title": "Account Id",
+              "type": "string"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "schema": {}
+              }
+            },
+            "description": "Successful Response"
+          },
+          "422": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HTTPValidationError"
+                }
+              }
+            },
+            "description": "Validation Error"
+          }
+        },
+        "summary": "Unarchive Account",
+        "tags": [
+          "accounts"
+        ]
+      }
+    },
+    "/api/v1/accounts:trade-counts": {
+      "post": {
+        "description": "Return trade + plan counts for a list of account IDs.\n\nUsed by the UI to determine which accounts need a second confirmation\nbefore deletion (accounts with linked trades).",
+        "operationId": "get_trade_counts_api_v1_accounts_trade_counts_post",
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/TradeCountsRequest"
+              }
+            }
+          },
+          "required": true
+        },
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "schema": {}
+              }
+            },
+            "description": "Successful Response"
+          },
+          "422": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HTTPValidationError"
+                }
+              }
+            },
+            "description": "Validation Error"
+          }
+        },
+        "summary": "Get Trade Counts",
         "tags": [
           "accounts"
         ]
@@ -4500,6 +4615,911 @@
         ]
       }
     },
+    "/api/v1/market-data/company-profile": {
+      "get": {
+        "description": "Get company profile. Source: \u00a78a.11.",
+        "operationId": "get_company_profile_api_v1_market_data_company_profile_get",
+        "parameters": [
+          {
+            "description": "Stock ticker (1-10 chars, uppercase alpha + dot)",
+            "in": "query",
+            "name": "ticker",
+            "required": true,
+            "schema": {
+              "description": "Stock ticker (1-10 chars, uppercase alpha + dot)",
+              "maxLength": 10,
+              "minLength": 1,
+              "title": "Ticker",
+              "type": "string"
+            }
+          },
+          {
+            "description": "Provider name override",
+            "in": "query",
+            "name": "provider",
+            "required": false,
+            "schema": {
+              "anyOf": [
+                {
+                  "type": "string"
+                },
+                {
+                  "type": "null"
+                }
+              ],
+              "description": "Provider name override",
+              "title": "Provider"
+            }
+          },
+          {
+            "description": "OHLCV interval (default 1d)",
+            "in": "query",
+            "name": "interval",
+            "required": false,
+            "schema": {
+              "anyOf": [
+                {
+                  "$ref": "#/components/schemas/IntervalEnum"
+                },
+                {
+                  "type": "null"
+                }
+              ],
+              "description": "OHLCV interval (default 1d)",
+              "title": "Interval"
+            }
+          },
+          {
+            "description": "Start date (ISO 8601)",
+            "in": "query",
+            "name": "start_date",
+            "required": false,
+            "schema": {
+              "anyOf": [
+                {
+                  "format": "date",
+                  "type": "string"
+                },
+                {
+                  "type": "null"
+                }
+              ],
+              "description": "Start date (ISO 8601)",
+              "title": "Start Date"
+            }
+          },
+          {
+            "description": "End date (ISO 8601)",
+            "in": "query",
+            "name": "end_date",
+            "required": false,
+            "schema": {
+              "anyOf": [
+                {
+                  "format": "date",
+                  "type": "string"
+                },
+                {
+                  "type": "null"
+                }
+              ],
+              "description": "End date (ISO 8601)",
+              "title": "End Date"
+            }
+          },
+          {
+            "description": "Max results (1-1000)",
+            "in": "query",
+            "name": "limit",
+            "required": false,
+            "schema": {
+              "anyOf": [
+                {
+                  "maximum": 1000,
+                  "minimum": 1,
+                  "type": "integer"
+                },
+                {
+                  "type": "null"
+                }
+              ],
+              "description": "Max results (1-1000)",
+              "title": "Limit"
+            }
+          },
+          {
+            "description": "ISO 3166-1 alpha-2 code",
+            "in": "query",
+            "name": "country",
+            "required": false,
+            "schema": {
+              "anyOf": [
+                {
+                  "type": "string"
+                },
+                {
+                  "type": "null"
+                }
+              ],
+              "description": "ISO 3166-1 alpha-2 code",
+              "title": "Country"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "title": "Response Get Company Profile Api V1 Market Data Company Profile Get"
+                }
+              }
+            },
+            "description": "Successful Response"
+          },
+          "422": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HTTPValidationError"
+                }
+              }
+            },
+            "description": "Validation Error"
+          }
+        },
+        "summary": "Get Company Profile",
+        "tags": [
+          "market-data"
+        ]
+      }
+    },
+    "/api/v1/market-data/dividends": {
+      "get": {
+        "description": "Get dividend records. Source: \u00a78a.11.",
+        "operationId": "get_dividends_api_v1_market_data_dividends_get",
+        "parameters": [
+          {
+            "description": "Stock ticker (1-10 chars, uppercase alpha + dot)",
+            "in": "query",
+            "name": "ticker",
+            "required": true,
+            "schema": {
+              "description": "Stock ticker (1-10 chars, uppercase alpha + dot)",
+              "maxLength": 10,
+              "minLength": 1,
+              "title": "Ticker",
+              "type": "string"
+            }
+          },
+          {
+            "description": "Provider name override",
+            "in": "query",
+            "name": "provider",
+            "required": false,
+            "schema": {
+              "anyOf": [
+                {
+                  "type": "string"
+                },
+                {
+                  "type": "null"
+                }
+              ],
+              "description": "Provider name override",
+              "title": "Provider"
+            }
+          },
+          {
+            "description": "OHLCV interval (default 1d)",
+            "in": "query",
+            "name": "interval",
+            "required": false,
+            "schema": {
+              "anyOf": [
+                {
+                  "$ref": "#/components/schemas/IntervalEnum"
+                },
+                {
+                  "type": "null"
+                }
+              ],
+              "description": "OHLCV interval (default 1d)",
+              "title": "Interval"
+            }
+          },
+          {
+            "description": "Start date (ISO 8601)",
+            "in": "query",
+            "name": "start_date",
+            "required": false,
+            "schema": {
+              "anyOf": [
+                {
+                  "format": "date",
+                  "type": "string"
+                },
+                {
+                  "type": "null"
+                }
+              ],
+              "description": "Start date (ISO 8601)",
+              "title": "Start Date"
+            }
+          },
+          {
+            "description": "End date (ISO 8601)",
+            "in": "query",
+            "name": "end_date",
+            "required": false,
+            "schema": {
+              "anyOf": [
+                {
+                  "format": "date",
+                  "type": "string"
+                },
+                {
+                  "type": "null"
+                }
+              ],
+              "description": "End date (ISO 8601)",
+              "title": "End Date"
+            }
+          },
+          {
+            "description": "Max results (1-1000)",
+            "in": "query",
+            "name": "limit",
+            "required": false,
+            "schema": {
+              "anyOf": [
+                {
+                  "maximum": 1000,
+                  "minimum": 1,
+                  "type": "integer"
+                },
+                {
+                  "type": "null"
+                }
+              ],
+              "description": "Max results (1-1000)",
+              "title": "Limit"
+            }
+          },
+          {
+            "description": "ISO 3166-1 alpha-2 code",
+            "in": "query",
+            "name": "country",
+            "required": false,
+            "schema": {
+              "anyOf": [
+                {
+                  "type": "string"
+                },
+                {
+                  "type": "null"
+                }
+              ],
+              "description": "ISO 3166-1 alpha-2 code",
+              "title": "Country"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "title": "Response Get Dividends Api V1 Market Data Dividends Get"
+                }
+              }
+            },
+            "description": "Successful Response"
+          },
+          "422": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HTTPValidationError"
+                }
+              }
+            },
+            "description": "Validation Error"
+          }
+        },
+        "summary": "Get Dividends",
+        "tags": [
+          "market-data"
+        ]
+      }
+    },
+    "/api/v1/market-data/earnings": {
+      "get": {
+        "description": "Get earnings reports. Source: \u00a78a.11.",
+        "operationId": "get_earnings_api_v1_market_data_earnings_get",
+        "parameters": [
+          {
+            "description": "Stock ticker (1-10 chars, uppercase alpha + dot)",
+            "in": "query",
+            "name": "ticker",
+            "required": true,
+            "schema": {
+              "description": "Stock ticker (1-10 chars, uppercase alpha + dot)",
+              "maxLength": 10,
+              "minLength": 1,
+              "title": "Ticker",
+              "type": "string"
+            }
+          },
+          {
+            "description": "Provider name override",
+            "in": "query",
+            "name": "provider",
+            "required": false,
+            "schema": {
+              "anyOf": [
+                {
+                  "type": "string"
+                },
+                {
+                  "type": "null"
+                }
+              ],
+              "description": "Provider name override",
+              "title": "Provider"
+            }
+          },
+          {
+            "description": "OHLCV interval (default 1d)",
+            "in": "query",
+            "name": "interval",
+            "required": false,
+            "schema": {
+              "anyOf": [
+                {
+                  "$ref": "#/components/schemas/IntervalEnum"
+                },
+                {
+                  "type": "null"
+                }
+              ],
+              "description": "OHLCV interval (default 1d)",
+              "title": "Interval"
+            }
+          },
+          {
+            "description": "Start date (ISO 8601)",
+            "in": "query",
+            "name": "start_date",
+            "required": false,
+            "schema": {
+              "anyOf": [
+                {
+                  "format": "date",
+                  "type": "string"
+                },
+                {
+                  "type": "null"
+                }
+              ],
+              "description": "Start date (ISO 8601)",
+              "title": "Start Date"
+            }
+          },
+          {
+            "description": "End date (ISO 8601)",
+            "in": "query",
+            "name": "end_date",
+            "required": false,
+            "schema": {
+              "anyOf": [
+                {
+                  "format": "date",
+                  "type": "string"
+                },
+                {
+                  "type": "null"
+                }
+              ],
+              "description": "End date (ISO 8601)",
+              "title": "End Date"
+            }
+          },
+          {
+            "description": "Max results (1-1000)",
+            "in": "query",
+            "name": "limit",
+            "required": false,
+            "schema": {
+              "anyOf": [
+                {
+                  "maximum": 1000,
+                  "minimum": 1,
+                  "type": "integer"
+                },
+                {
+                  "type": "null"
+                }
+              ],
+              "description": "Max results (1-1000)",
+              "title": "Limit"
+            }
+          },
+          {
+            "description": "ISO 3166-1 alpha-2 code",
+            "in": "query",
+            "name": "country",
+            "required": false,
+            "schema": {
+              "anyOf": [
+                {
+                  "type": "string"
+                },
+                {
+                  "type": "null"
+                }
+              ],
+              "description": "ISO 3166-1 alpha-2 code",
+              "title": "Country"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "title": "Response Get Earnings Api V1 Market Data Earnings Get"
+                }
+              }
+            },
+            "description": "Successful Response"
+          },
+          "422": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HTTPValidationError"
+                }
+              }
+            },
+            "description": "Validation Error"
+          }
+        },
+        "summary": "Get Earnings",
+        "tags": [
+          "market-data"
+        ]
+      }
+    },
+    "/api/v1/market-data/economic-calendar": {
+      "get": {
+        "description": "Get economic calendar events. No ticker required. Source: \u00a78a.11.",
+        "operationId": "get_economic_calendar_api_v1_market_data_economic_calendar_get",
+        "parameters": [
+          {
+            "description": "ISO 3166-1 alpha-2 code",
+            "in": "query",
+            "name": "country",
+            "required": false,
+            "schema": {
+              "anyOf": [
+                {
+                  "type": "string"
+                },
+                {
+                  "type": "null"
+                }
+              ],
+              "description": "ISO 3166-1 alpha-2 code",
+              "title": "Country"
+            }
+          },
+          {
+            "description": "Start date",
+            "in": "query",
+            "name": "start_date",
+            "required": false,
+            "schema": {
+              "anyOf": [
+                {
+                  "format": "date",
+                  "type": "string"
+                },
+                {
+                  "type": "null"
+                }
+              ],
+              "description": "Start date",
+              "title": "Start Date"
+            }
+          },
+          {
+            "description": "End date",
+            "in": "query",
+            "name": "end_date",
+            "required": false,
+            "schema": {
+              "anyOf": [
+                {
+                  "format": "date",
+                  "type": "string"
+                },
+                {
+                  "type": "null"
+                }
+              ],
+              "description": "End date",
+              "title": "End Date"
+            }
+          },
+          {
+            "description": "Max results",
+            "in": "query",
+            "name": "limit",
+            "required": false,
+            "schema": {
+              "anyOf": [
+                {
+                  "maximum": 1000,
+                  "minimum": 1,
+                  "type": "integer"
+                },
+                {
+                  "type": "null"
+                }
+              ],
+              "description": "Max results",
+              "title": "Limit"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "title": "Response Get Economic Calendar Api V1 Market Data Economic Calendar Get"
+                }
+              }
+            },
+            "description": "Successful Response"
+          },
+          "422": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HTTPValidationError"
+                }
+              }
+            },
+            "description": "Validation Error"
+          }
+        },
+        "summary": "Get Economic Calendar",
+        "tags": [
+          "market-data"
+        ]
+      }
+    },
+    "/api/v1/market-data/fundamentals": {
+      "get": {
+        "description": "Get company fundamentals snapshot. Source: \u00a78a.11.",
+        "operationId": "get_fundamentals_api_v1_market_data_fundamentals_get",
+        "parameters": [
+          {
+            "description": "Stock ticker (1-10 chars, uppercase alpha + dot)",
+            "in": "query",
+            "name": "ticker",
+            "required": true,
+            "schema": {
+              "description": "Stock ticker (1-10 chars, uppercase alpha + dot)",
+              "maxLength": 10,
+              "minLength": 1,
+              "title": "Ticker",
+              "type": "string"
+            }
+          },
+          {
+            "description": "Provider name override",
+            "in": "query",
+            "name": "provider",
+            "required": false,
+            "schema": {
+              "anyOf": [
+                {
+                  "type": "string"
+                },
+                {
+                  "type": "null"
+                }
+              ],
+              "description": "Provider name override",
+              "title": "Provider"
+            }
+          },
+          {
+            "description": "OHLCV interval (default 1d)",
+            "in": "query",
+            "name": "interval",
+            "required": false,
+            "schema": {
+              "anyOf": [
+                {
+                  "$ref": "#/components/schemas/IntervalEnum"
+                },
+                {
+                  "type": "null"
+                }
+              ],
+              "description": "OHLCV interval (default 1d)",
+              "title": "Interval"
+            }
+          },
+          {
+            "description": "Start date (ISO 8601)",
+            "in": "query",
+            "name": "start_date",
+            "required": false,
+            "schema": {
+              "anyOf": [
+                {
+                  "format": "date",
+                  "type": "string"
+                },
+                {
+                  "type": "null"
+                }
+              ],
+              "description": "Start date (ISO 8601)",
+              "title": "Start Date"
+            }
+          },
+          {
+            "description": "End date (ISO 8601)",
+            "in": "query",
+            "name": "end_date",
+            "required": false,
+            "schema": {
+              "anyOf": [
+                {
+                  "format": "date",
+                  "type": "string"
+                },
+                {
+                  "type": "null"
+                }
+              ],
+              "description": "End date (ISO 8601)",
+              "title": "End Date"
+            }
+          },
+          {
+            "description": "Max results (1-1000)",
+            "in": "query",
+            "name": "limit",
+            "required": false,
+            "schema": {
+              "anyOf": [
+                {
+                  "maximum": 1000,
+                  "minimum": 1,
+                  "type": "integer"
+                },
+                {
+                  "type": "null"
+                }
+              ],
+              "description": "Max results (1-1000)",
+              "title": "Limit"
+            }
+          },
+          {
+            "description": "ISO 3166-1 alpha-2 code",
+            "in": "query",
+            "name": "country",
+            "required": false,
+            "schema": {
+              "anyOf": [
+                {
+                  "type": "string"
+                },
+                {
+                  "type": "null"
+                }
+              ],
+              "description": "ISO 3166-1 alpha-2 code",
+              "title": "Country"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "title": "Response Get Fundamentals Api V1 Market Data Fundamentals Get"
+                }
+              }
+            },
+            "description": "Successful Response"
+          },
+          "422": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HTTPValidationError"
+                }
+              }
+            },
+            "description": "Validation Error"
+          }
+        },
+        "summary": "Get Fundamentals",
+        "tags": [
+          "market-data"
+        ]
+      }
+    },
+    "/api/v1/market-data/insider": {
+      "get": {
+        "description": "Get insider transactions. Source: \u00a78a.11.",
+        "operationId": "get_insider_api_v1_market_data_insider_get",
+        "parameters": [
+          {
+            "description": "Stock ticker (1-10 chars, uppercase alpha + dot)",
+            "in": "query",
+            "name": "ticker",
+            "required": true,
+            "schema": {
+              "description": "Stock ticker (1-10 chars, uppercase alpha + dot)",
+              "maxLength": 10,
+              "minLength": 1,
+              "title": "Ticker",
+              "type": "string"
+            }
+          },
+          {
+            "description": "Provider name override",
+            "in": "query",
+            "name": "provider",
+            "required": false,
+            "schema": {
+              "anyOf": [
+                {
+                  "type": "string"
+                },
+                {
+                  "type": "null"
+                }
+              ],
+              "description": "Provider name override",
+              "title": "Provider"
+            }
+          },
+          {
+            "description": "OHLCV interval (default 1d)",
+            "in": "query",
+            "name": "interval",
+            "required": false,
+            "schema": {
+              "anyOf": [
+                {
+                  "$ref": "#/components/schemas/IntervalEnum"
+                },
+                {
+                  "type": "null"
+                }
+              ],
+              "description": "OHLCV interval (default 1d)",
+              "title": "Interval"
+            }
+          },
+          {
+            "description": "Start date (ISO 8601)",
+            "in": "query",
+            "name": "start_date",
+            "required": false,
+            "schema": {
+              "anyOf": [
+                {
+                  "format": "date",
+                  "type": "string"
+                },
+                {
+                  "type": "null"
+                }
+              ],
+              "description": "Start date (ISO 8601)",
+              "title": "Start Date"
+            }
+          },
+          {
+            "description": "End date (ISO 8601)",
+            "in": "query",
+            "name": "end_date",
+            "required": false,
+            "schema": {
+              "anyOf": [
+                {
+                  "format": "date",
+                  "type": "string"
+                },
+                {
+                  "type": "null"
+                }
+              ],
+              "description": "End date (ISO 8601)",
+              "title": "End Date"
+            }
+          },
+          {
+            "description": "Max results (1-1000)",
+            "in": "query",
+            "name": "limit",
+            "required": false,
+            "schema": {
+              "anyOf": [
+                {
+                  "maximum": 1000,
+                  "minimum": 1,
+                  "type": "integer"
+                },
+                {
+                  "type": "null"
+                }
+              ],
+              "description": "Max results (1-1000)",
+              "title": "Limit"
+            }
+          },
+          {
+            "description": "ISO 3166-1 alpha-2 code",
+            "in": "query",
+            "name": "country",
+            "required": false,
+            "schema": {
+              "anyOf": [
+                {
+                  "type": "string"
+                },
+                {
+                  "type": "null"
+                }
+              ],
+              "description": "ISO 3166-1 alpha-2 code",
+              "title": "Country"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "title": "Response Get Insider Api V1 Market Data Insider Get"
+                }
+              }
+            },
+            "description": "Successful Response"
+          },
+          "422": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HTTPValidationError"
+                }
+              }
+            },
+            "description": "Validation Error"
+          }
+        },
+        "summary": "Get Insider",
+        "tags": [
+          "market-data"
+        ]
+      }
+    },
     "/api/v1/market-data/news": {
       "get": {
         "description": "Get market news from news-capable providers.",
@@ -4561,6 +5581,165 @@
           }
         },
         "summary": "Get News",
+        "tags": [
+          "market-data"
+        ]
+      }
+    },
+    "/api/v1/market-data/ohlcv": {
+      "get": {
+        "description": "Get OHLCV candlestick bars. Source: \u00a78a.11.",
+        "operationId": "get_ohlcv_api_v1_market_data_ohlcv_get",
+        "parameters": [
+          {
+            "description": "Stock ticker (1-10 chars, uppercase alpha + dot)",
+            "in": "query",
+            "name": "ticker",
+            "required": true,
+            "schema": {
+              "description": "Stock ticker (1-10 chars, uppercase alpha + dot)",
+              "maxLength": 10,
+              "minLength": 1,
+              "title": "Ticker",
+              "type": "string"
+            }
+          },
+          {
+            "description": "Provider name override",
+            "in": "query",
+            "name": "provider",
+            "required": false,
+            "schema": {
+              "anyOf": [
+                {
+                  "type": "string"
+                },
+                {
+                  "type": "null"
+                }
+              ],
+              "description": "Provider name override",
+              "title": "Provider"
+            }
+          },
+          {
+            "description": "OHLCV interval (default 1d)",
+            "in": "query",
+            "name": "interval",
+            "required": false,
+            "schema": {
+              "anyOf": [
+                {
+                  "$ref": "#/components/schemas/IntervalEnum"
+                },
+                {
+                  "type": "null"
+                }
+              ],
+              "description": "OHLCV interval (default 1d)",
+              "title": "Interval"
+            }
+          },
+          {
+            "description": "Start date (ISO 8601)",
+            "in": "query",
+            "name": "start_date",
+            "required": false,
+            "schema": {
+              "anyOf": [
+                {
+                  "format": "date",
+                  "type": "string"
+                },
+                {
+                  "type": "null"
+                }
+              ],
+              "description": "Start date (ISO 8601)",
+              "title": "Start Date"
+            }
+          },
+          {
+            "description": "End date (ISO 8601)",
+            "in": "query",
+            "name": "end_date",
+            "required": false,
+            "schema": {
+              "anyOf": [
+                {
+                  "format": "date",
+                  "type": "string"
+                },
+                {
+                  "type": "null"
+                }
+              ],
+              "description": "End date (ISO 8601)",
+              "title": "End Date"
+            }
+          },
+          {
+            "description": "Max results (1-1000)",
+            "in": "query",
+            "name": "limit",
+            "required": false,
+            "schema": {
+              "anyOf": [
+                {
+                  "maximum": 1000,
+                  "minimum": 1,
+                  "type": "integer"
+                },
+                {
+                  "type": "null"
+                }
+              ],
+              "description": "Max results (1-1000)",
+              "title": "Limit"
+            }
+          },
+          {
+            "description": "ISO 3166-1 alpha-2 code",
+            "in": "query",
+            "name": "country",
+            "required": false,
+            "schema": {
+              "anyOf": [
+                {
+                  "type": "string"
+                },
+                {
+                  "type": "null"
+                }
+              ],
+              "description": "ISO 3166-1 alpha-2 code",
+              "title": "Country"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "title": "Response Get Ohlcv Api V1 Market Data Ohlcv Get"
+                }
+              }
+            },
+            "description": "Successful Response"
+          },
+          "422": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HTTPValidationError"
+                }
+              }
+            },
+            "description": "Validation Error"
+          }
+        },
+        "summary": "Get Ohlcv",
         "tags": [
           "market-data"
         ]
@@ -4863,6 +6042,165 @@
           }
         },
         "summary": "Get Sec Filings",
+        "tags": [
+          "market-data"
+        ]
+      }
+    },
+    "/api/v1/market-data/splits": {
+      "get": {
+        "description": "Get stock split history. Source: \u00a78a.11.",
+        "operationId": "get_splits_api_v1_market_data_splits_get",
+        "parameters": [
+          {
+            "description": "Stock ticker (1-10 chars, uppercase alpha + dot)",
+            "in": "query",
+            "name": "ticker",
+            "required": true,
+            "schema": {
+              "description": "Stock ticker (1-10 chars, uppercase alpha + dot)",
+              "maxLength": 10,
+              "minLength": 1,
+              "title": "Ticker",
+              "type": "string"
+            }
+          },
+          {
+            "description": "Provider name override",
+            "in": "query",
+            "name": "provider",
+            "required": false,
+            "schema": {
+              "anyOf": [
+                {
+                  "type": "string"
+                },
+                {
+                  "type": "null"
+                }
+              ],
+              "description": "Provider name override",
+              "title": "Provider"
+            }
+          },
+          {
+            "description": "OHLCV interval (default 1d)",
+            "in": "query",
+            "name": "interval",
+            "required": false,
+            "schema": {
+              "anyOf": [
+                {
+                  "$ref": "#/components/schemas/IntervalEnum"
+                },
+                {
+                  "type": "null"
+                }
+              ],
+              "description": "OHLCV interval (default 1d)",
+              "title": "Interval"
+            }
+          },
+          {
+            "description": "Start date (ISO 8601)",
+            "in": "query",
+            "name": "start_date",
+            "required": false,
+            "schema": {
+              "anyOf": [
+                {
+                  "format": "date",
+                  "type": "string"
+                },
+                {
+                  "type": "null"
+                }
+              ],
+              "description": "Start date (ISO 8601)",
+              "title": "Start Date"
+            }
+          },
+          {
+            "description": "End date (ISO 8601)",
+            "in": "query",
+            "name": "end_date",
+            "required": false,
+            "schema": {
+              "anyOf": [
+                {
+                  "format": "date",
+                  "type": "string"
+                },
+                {
+                  "type": "null"
+                }
+              ],
+              "description": "End date (ISO 8601)",
+              "title": "End Date"
+            }
+          },
+          {
+            "description": "Max results (1-1000)",
+            "in": "query",
+            "name": "limit",
+            "required": false,
+            "schema": {
+              "anyOf": [
+                {
+                  "maximum": 1000,
+                  "minimum": 1,
+                  "type": "integer"
+                },
+                {
+                  "type": "null"
+                }
+              ],
+              "description": "Max results (1-1000)",
+              "title": "Limit"
+            }
+          },
+          {
+            "description": "ISO 3166-1 alpha-2 code",
+            "in": "query",
+            "name": "country",
+            "required": false,
+            "schema": {
+              "anyOf": [
+                {
+                  "type": "string"
+                },
+                {
+                  "type": "null"
+                }
+              ],
+              "description": "ISO 3166-1 alpha-2 code",
+              "title": "Country"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "title": "Response Get Splits Api V1 Market Data Splits Get"
+                }
+              }
+            },
+            "description": "Successful Response"
+          },
+          "422": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HTTPValidationError"
+                }
+              }
+            },
+            "description": "Validation Error"
+          }
+        },
+        "summary": "Get Splits",
         "tags": [
           "market-data"
         ]

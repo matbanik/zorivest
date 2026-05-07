@@ -17,7 +17,7 @@ import SelectionCheckbox from '@/components/SelectionCheckbox'
 /** Resolve text-alignment class from column meta. Used by BOTH <th> and <td>
  *  so header/cell alignment can never drift apart. */
 const getAlignClass = (meta: unknown): string =>
-    (meta as any)?.align === 'right' ? 'text-right' : 'text-left'
+    (meta as Record<string, string> | undefined)?.align === 'right' ? 'text-right' : 'text-left'
 
 export interface Trade {
     exec_id: string
@@ -130,7 +130,7 @@ export const tradeColumns = [
         enableSorting: false,
         size: 60,
     }),
-] satisfies ColumnDef<Trade, any>[]
+] satisfies ColumnDef<Trade, unknown>[]
 
 // ── Component ────────────────────────────────────────────────────────────
 
@@ -163,7 +163,7 @@ export default function TradesTable({
     // AH-8: Prepend selection checkbox column when selection is enabled
     const columnsWithSelection = useMemo(() => {
         if (!selectedIds || !onToggleSelect) return tradeColumns
-        const selectCol: ColumnDef<Trade, any> = {
+        const selectCol: ColumnDef<Trade, unknown> = {
             id: 'select',
             header: () => (
                 <SelectionCheckbox

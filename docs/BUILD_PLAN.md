@@ -85,10 +85,10 @@ Domain → Infrastructure → Services → REST API → MCP Server → GUI → D
 | 3 — Service Layer | ✅ Completed | 2026-03-08 |
 | 4 — REST API | ✅ Completed | 2026-03-09 |
 | 5 — MCP Server | ✅ Completed | 2026-03-10 |
-| 6 — GUI | 🟡 In Progress (P0 complete, P2 items remain) | 2026-03-25 |
+| 6 — GUI | 🟡 In Progress (P0 complete, P2.1 ✅, P2.2 ✅, P2.3 ✅, remaining P2 items) | 2026-05-05 |
 | 7 — Distribution | ⚪ Not Started | — |
 | 8 — Market Data | ✅ Completed | 2026-03-23 |
-| 8a — Market Data Expansion | 🟡 In Progress — MEU-182a ✅, MEU-182 ✅, MEU-183 ✅, MEU-184 ✅, MEU-185 ✅, MEU-186 ✅, MEU-187 ✅, MEU-188 ✅ | 2026-05-02 |
+| 8a — Market Data Expansion | 🟡 In Progress — MEU-182a ✅, MEU-182 ✅, MEU-183 ✅, MEU-184 ✅, MEU-185 ✅, MEU-186 ✅, MEU-187 ✅, MEU-188 ✅, MEU-189 ✅, MEU-195 ✅, MEU-190 ✅, MEU-191 ✅, MEU-192 ✅, MEU-193 ✅, MEU-194 ✅ | 2026-05-05 |
 | 9 — Scheduling | ✅ Core complete; P2.5c ✅ (10/10); P2.5b PW14 ✅ + 72b ✅; P2.5d ✅ (3/3); P2.5e ✅ (4/4); P2.5f ✅ (6/6 — 85→13 tools); P2.5g ✅ (1/1 — TokenRefreshManager) | 2026-04-30 |
 | 10 — Service Daemon | ⚪ Not Started | — |
 | 11 — Monetization | ⚪ Not Started | — |
@@ -291,9 +291,10 @@ Domain → Infrastructure → Services → REST API → MCP Server → GUI → D
 | MEU-195 | `polygon-massive-migration` | 30.14 | [08a](build-plan/08a-market-data-expansion.md) | Polygon.io → Massive.com domain migration: update `base_url`, `signup_url`, display name in provider_registry.py; verify connection test with new domain | ✅ |
 | MEU-190 | `service-methods-core` | 30.9 | [08a §8a.9](build-plan/08a-market-data-expansion.md#step-8a9-core-service-methods-meu-190-service-methods-core) | 3 high-value methods: `get_ohlcv`, `get_fundamentals`, `get_earnings` + normalizers | ✅ |
 | MEU-191 | `service-methods-extended` | 30.10 | [08a §8a.10](build-plan/08a-market-data-expansion.md#step-8a10-extended-service-methods-meu-191-service-methods-extended) | 5 methods: dividends, splits, insider, economic_calendar, company_profile | ✅ |
-| MEU-192 | `market-routes-mcp` | 30.11 | [08a §8a.11](build-plan/08a-market-data-expansion.md#step-8a11-routes--mcp-meu-192-market-routes-mcp) | 8 new REST endpoints + 8 MCP action mappings | ⬜ |
-| MEU-193 | `market-store-step` | 30.12 | [08a §8a.12](build-plan/08a-market-data-expansion.md#step-8a12-market-data-store-step-meu-193-market-store-step) | `MarketDataStoreStep` pipeline step: route DTOs to DB tables | ⬜ |
-| MEU-194 | `scheduling-recipes` | 30.13 | [08a §8a.13](build-plan/08a-market-data-expansion.md#step-8a13-scheduling-recipes-meu-194-scheduling-recipes) | 10 pre-built policy templates seeded via migration | ⬜ |
+| MEU-192 | `market-routes-mcp` | 30.11 | [08a §8a.11](build-plan/08a-market-data-expansion.md#step-8a11-routes--mcp-meu-192-market-routes-mcp) | 8 new REST endpoints + 8 MCP action mappings | ✅ |
+| MEU-193 | `market-store-step` | 30.12 | [08a §8a.12](build-plan/08a-market-data-expansion.md#step-8a12-market-data-store-step-meu-193-market-store-step) | `MarketDataStoreStep` pipeline step: route DTOs to DB tables | ✅ |
+| MEU-194 | `scheduling-recipes` | 30.13 | [08a §8a.13](build-plan/08a-market-data-expansion.md#step-8a13-scheduling-recipes-meu-194-scheduling-recipes) | 10 pre-built policy templates seeded via migration | ✅ |
+| MEU-207 | `capability-wiring` | 30.15 | [08a §corrective](build-plan/08a-market-data-expansion.md) | Inject NORMALIZERS registry into MarketDataService + align provider_capabilities supported_data_types with normalizer coverage | ✅ |
 
 
 ---
@@ -320,6 +321,45 @@ Domain → Infrastructure → Services → REST API → MCP Server → GUI → D
 | MEU-74 | `gui-backup-restore` | 35d | [06f §backup](build-plan/06f-gui-settings.md) | Backup & Restore Settings GUI · **E2E [Wave 3](build-plan/06-gui.md#wave-activation-schedule)**: `backup-restore` tests (+2 = 19) | ⬜ |
 | MEU-75 | `gui-config-export` | 35e | [06f §export](build-plan/06f-gui-settings.md) | Config Export/Import GUI · **E2E wave TBD** — define wave before implementation | ⬜ |
 | MEU-76 | `gui-reset-defaults` | 35f | [06f §reset](build-plan/06f-gui-settings.md) | Reset to Default on settings pages · ✅ ~~`[BOUNDARY-GAP]` prerequisite~~ resolved by MEU-BV8 (2026-04-11) · **E2E wave TBD** — define wave before implementation | ⬜ |
+
+---
+
+### P2.1 — GUI UX Hardening
+
+> Source: [06-gui.md §UX Hardening](build-plan/06-gui.md#ux-hardening--unsaved-changes-guard)
+
+| MEU | Slug | Matrix Item | Build Plan Ref | Description | Status |
+|-----|------|:-----------:|----------------|-------------|:------:|
+| MEU-196 | `gui-form-guard-shared` | 35i | [06 §UX](build-plan/06-gui.md) | Shared `UnsavedChangesModal` + `useFormGuard` hook + amber-pulse CSS | ✅ |
+| MEU-197 | `gui-form-guard-settings` | 35j | [06 §UX](build-plan/06-gui.md) | Wire form guard to Market Data Providers + Email Provider pages | ✅ |
+| MEU-198 | `gui-form-guard-crud` | 35k | [06 §UX](build-plan/06-gui.md) | Wire form guard to Accounts, Trades, Trade Plans, Watchlists | ✅ |
+
+---
+
+### P2.2 — GUI Table & List Enhancements
+
+> Source: [build-priority-matrix.md §P2.2](build-plan/build-priority-matrix.md)
+
+| MEU | Slug | Matrix Item | Build Plan Ref | Description | Status |
+|-----|------|:-----------:|----------------|-------------|:------:|
+| MEU-199 | `gui-table-primitives` | 35l | [06 §tables](build-plan/06-gui.md) | Shared table/list primitives: ConfirmDeleteModal, BulkActionBar, SortableColumnHeader, TableFilterBar | ✅ |
+| MEU-200 | `gui-accounts-table` | 35m | [06d](build-plan/06d-gui-accounts.md) | Accounts table enhancements: delete confirm, multi-select, bulk delete, filter/sort | ✅ |
+| MEU-201 | `gui-plans-table` | 35n | [06c](build-plan/06c-gui-planning.md) | Trade Plans table enhancements | ✅ |
+| MEU-202 | `gui-watchlist-table` | 35o | [06i](build-plan/06i-gui-watchlist-visual.md) | Watchlist tickers table enhancements | ✅ |
+| MEU-203 | `gui-scheduling-list` | 35p | [06e](build-plan/06e-gui-scheduling.md) | Scheduling list enhancements: Policies + Email Templates | ✅ |
+
+---
+
+### P2.3 — Calculator & Validation UX Hardening
+
+> Source: [06-gui.md §UX Hardening](build-plan/06-gui.md), [06c-gui-planning.md](build-plan/06c-gui-planning.md), [06h-gui-calculator.md](build-plan/06h-gui-calculator.md)
+> Execution plan: [calculator-validation-ux](execution/plans/2026-05-05-calculator-validation-ux/)
+
+| MEU | Slug | Matrix Item | Build Plan Ref | Description | Status |
+|-----|------|:-----------:|----------------|-------------|:------:|
+| MEU-204 | `gui-form-validation-hardening` | 35q | [06 §UX](build-plan/06-gui.md) | Inline validation errors (red "X is required"), Save & Continue disable on missing fields across all CRUD forms | ✅ |
+| MEU-205 | `gui-calculator-workflow` | 35r | [06h](build-plan/06h-gui-calculator.md) | Calculator plan picker, toggle switches (green/red, 3×2 grid, localStorage), auto-save new plans, Apply closes modal | ✅ |
+| MEU-206 | `gui-tradeplan-layout` | 35s | [06c](build-plan/06c-gui-planning.md) | 4-column price grid, auto position_size recalc, centered calculator button | ✅ |
 
 ---
 
@@ -715,9 +755,11 @@ Domain → Infrastructure → Services → REST API → MCP Server → GUI → D
 | P0 — Phase 6 | MEU-43 → MEU-51 | 10 | 10 |
 | P1 | MEU-52 → MEU-55 | 4 | 4 |
 | P1.5 — Phase 8 | MEU-56 → MEU-65a | 11 | 11 |
-| P1.5a — Phase 8a | MEU-182a → MEU-195 | 15 | 8 |
+| P1.5a — Phase 8a | MEU-182a → MEU-195, MEU-207 | 16 | 16 |
 | P2 | MEU-66 → MEU-76, MEU-171 → MEU-172, MEU-72b | 18 | 9 |
-| P2.1 — GUI UX Hardening | MEU-196 → MEU-198 | 3 | 0 |
+| P2.1 — GUI UX Hardening | MEU-196 → MEU-198 | 3 | 3 |
+| P2.2 — GUI Table Enhancements | MEU-199 → MEU-203 | 5 | 5 |
+| P2.3 — Calculator & Validation UX | MEU-204 → MEU-206 | 3 | 3 |
 | P2.5 — Phase 9 + WebSocket | MEU-77 → MEU-90, MEU-174 | 15 | 14 |
 | P2.5a — Integration | MEU-90a → MEU-90d | 4 | 3 + 1 🚫 |
 | P2.5b — Wiring & Quality + Hardening | MEU-PW1 → MEU-PW14, MEU-72a, MEU-TD1 | 15 | 14 + 1 🟡 |
@@ -732,7 +774,7 @@ Domain → Infrastructure → Services → REST API → MCP Server → GUI → D
 | Phase 7 | MEU-157 | 1 | 0 |
 | P4 — Phase 11 | MEU-175 → MEU-181 | 7 | 0 |
 | Research | MEU-158 → MEU-170, MEU-173, MEU-TS1 → MEU-TS3 | 17 | 3 |
-| **Total** | | **253** | **143 + 1 🟡 + 1 🚫** |
+| **Total** | | **261** | **158 + 1 🟡 + 1 🚫** |
 
 ---
 

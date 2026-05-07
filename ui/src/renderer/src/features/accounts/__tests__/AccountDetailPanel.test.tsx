@@ -211,4 +211,126 @@ describe('AccountDetailPanel', () => {
             expect(onDirtyChange).toHaveBeenCalledWith(true)
         })
     })
+
+    // ── Balance update validation tests ───────────────────────────────────
+
+    it('shows "Balance is required" error when saving empty balance', async () => {
+        const user = userEvent.setup()
+        renderWithProviders(<AccountDetailPanel account={mockAccount} />)
+
+        await user.click(screen.getByRole('button', { name: /update balance/i }))
+        await waitFor(() => {
+            expect(screen.getByTestId('balance-input')).toBeInTheDocument()
+        })
+        // Click save without entering a value
+        await user.click(screen.getByTestId('balance-save-btn'))
+        await waitFor(() => {
+            expect(screen.getByText('Balance is required')).toBeInTheDocument()
+        })
+        // Should NOT have called mutation
+        expect(mockAddBalanceMutate).not.toHaveBeenCalled()
+    })
+
+    it('shows "Balance must be a valid number" for non-numeric input', async () => {
+        const user = userEvent.setup()
+        renderWithProviders(<AccountDetailPanel account={mockAccount} />)
+
+        await user.click(screen.getByRole('button', { name: /update balance/i }))
+        await waitFor(() => {
+            expect(screen.getByTestId('balance-input')).toBeInTheDocument()
+        })
+        const balanceInput = screen.getByTestId('balance-input')
+        // Type non-numeric (HTML number input may not allow this, but test the logic)
+        await user.type(balanceInput, 'abc')
+        await user.click(screen.getByTestId('balance-save-btn'))
+        await waitFor(() => {
+            // Either "required" or "valid number" error should appear
+            const errorText = screen.queryByText('Balance is required') || screen.queryByText('Balance must be a valid number')
+            expect(errorText).toBeInTheDocument()
+        })
+        expect(mockAddBalanceMutate).not.toHaveBeenCalled()
+    })
+
+    it('applies red border to balance input on validation error', async () => {
+        const user = userEvent.setup()
+        renderWithProviders(<AccountDetailPanel account={mockAccount} />)
+
+        await user.click(screen.getByRole('button', { name: /update balance/i }))
+        await waitFor(() => {
+            expect(screen.getByTestId('balance-input')).toBeInTheDocument()
+        })
+        await user.click(screen.getByTestId('balance-save-btn'))
+        await waitFor(() => {
+            const balanceInput = screen.getByTestId('balance-input')
+            expect(balanceInput.className).toContain('border-red-500')
+        })
+    })
+
+    it('clears balance error when user types a value', async () => {
+        const user = userEvent.setup()
+        renderWithProviders(<AccountDetailPanel account={mockAccount} />)
+
+        await user.click(screen.getByRole('button', { name: /update balance/i }))
+        await waitFor(() => {
+            expect(screen.getByTestId('balance-input')).toBeInTheDocument()
+        })
+        await user.click(screen.getByTestId('balance-save-btn'))
+        await waitFor(() => {
+            expect(screen.getByText('Balance is required')).toBeInTheDocument()
+        })
+        // Type a value — error should clear
+        await user.type(screen.getByTestId('balance-input'), '12345')
+        await waitFor(() => {
+            expect(screen.queryByText('Balance is required')).not.toBeInTheDocument()
+        })
+    })
+
+    it('clears balance error when cancel is clicked', async () => {
+        const user = userEvent.setup()
+        renderWithProviders(<AccountDetailPanel account={mockAccount} />)
+
+        await user.click(screen.getByRole('button', { name: /update balance/i }))
+        await waitFor(() => {
+            expect(screen.getByTestId('balance-input')).toBeInTheDocument()
+        })
+        await user.click(screen.getByTestId('balance-save-btn'))
+        await waitFor(() => {
+            expect(screen.getByText('Balance is required')).toBeInTheDocument()
+        })
+        // Cancel — error should clear and input should hide
+        await user.click(screen.getByTestId('balance-cancel-btn'))
+        await waitFor(() => {
+            expect(screen.queryByText('Balance is required')).not.toBeInTheDocument()
+            expect(screen.queryByTestId('balance-input')).not.toBeInTheDocument()
+        })
+    })
+
+    // R1: Child validity reporting for form guard
+    describe('isInvalid() imperative handle', () => {
+        it('returns true when name is cleared (required field empty)', async () => {
+            const user = userEvent.setup()
+            const ref = React.createRef<{ save: () => Promise<void>; isInvalid: () => boolean }>()
+            renderWithProviders(
+                <AccountDetailPanel ref={ref} account={mockAccount} />,
+            )
+
+            // Initially valid — name has a value
+            expect(ref.current?.isInvalid()).toBe(false)
+
+            // Clear the name field
+            const nameInput = screen.getByDisplayValue('Interactive Brokers')
+            await user.clear(nameInput)
+
+            // Now isInvalid should return true
+            expect(ref.current?.isInvalid()).toBe(true)
+        })
+
+        it('returns false when all required fields are populated', () => {
+            const ref = React.createRef<{ save: () => Promise<void>; isInvalid: () => boolean }>()
+            renderWithProviders(
+                <AccountDetailPanel ref={ref} account={mockAccount} />,
+            )
+            expect(ref.current?.isInvalid()).toBe(false)
+        })
+    })
 })

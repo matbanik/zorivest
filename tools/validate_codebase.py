@@ -272,6 +272,7 @@ def _evidence_check() -> CheckResult:
             for f in handoff_path.glob("*.md")
             if f.name not in ("README.md", "TEMPLATE.md")
             and not f.name.endswith("-critical-review.md")
+            and not f.name.endswith("-reflection.md")
         ],
         key=lambda f: f.stat().st_mtime,
         reverse=True,

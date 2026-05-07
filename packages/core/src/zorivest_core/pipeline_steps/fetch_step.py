@@ -117,14 +117,31 @@ class FetchStep(RegisteredStep):
             cache_result = await self._check_cache(p, resolved_criteria, context)
             if cache_result is not None:
                 if cache_result["cache_status"] == "hit":
+                    # Decode content to str for JSON-serializable output
+                    hit_content = cache_result["content"]
+                    if isinstance(hit_content, bytes):
+                        hit_content = hit_content.decode("utf-8", errors="replace")
+                    # Parse records for downstream compose/template consumption
+                    import json as _json_cache
+
+                    hit_records: Any = None
+                    try:
+                        hit_records = _json_cache.loads(hit_content)
+                    except (ValueError, _json_cache.JSONDecodeError):
+                        hit_records = hit_content
                     return StepResult(
                         status=PipelineStatus.SUCCESS,
                         output={
-                            "content": cache_result["content"],
+                            "content": hit_content,
+                            "records": hit_records,
                             "cache_status": "hit",
+                            "content_hash": cache_result.get("content_hash"),
+                            "content_len": len(hit_content),
                             "provider": p.provider,
                             "data_type": p.data_type,
                             "resolved_criteria": resolved_criteria,
+                            "etag": cache_result.get("etag"),
+                            "last_modified": cache_result.get("last_modified"),
                         },
                     )
                 # Stale entry — preserve metadata for conditional revalidation
@@ -208,11 +225,30 @@ class FetchStep(RegisteredStep):
                 last_cursor=_dt.now(_tz.utc).isoformat(),
                 last_hash=result.content_hash,
             )
+        # Parse content as JSON for downstream compose/template consumption.
+        # ComposeStep sources reference key="records" to get structured data.
+        import json as _json
+
+        records: Any = None
+        if isinstance(content, (bytes, str)):
+            text = content.decode("utf-8") if isinstance(content, bytes) else content
+            try:
+                records = _json.loads(text)
+            except (ValueError, _json.JSONDecodeError):
+                records = text  # non-JSON → pass raw string
+        # Ensure content is str (not bytes) for JSON-serializable output.
+        # Bytes break Jinja2 |tojson filter when SendStep flattens context.
+        content_str: str
+        if isinstance(result.content, bytes):
+            content_str = result.content.decode("utf-8", errors="replace")
+        else:
+            content_str = result.content
 
         return StepResult(
             status=PipelineStatus.SUCCESS,
             output={
-                "content": result.content,
+                "content": content_str,
+                "records": records,
                 "content_hash": result.content_hash,
                 "content_len": len(result.content),
                 "cache_status": adapter_result.get("cache_status", "miss"),
@@ -231,7 +267,7 @@ class FetchStep(RegisteredStep):
         data_type: str,
         resolved_criteria: dict[str, Any],
         context: StepContext,
-        cached_content: bytes | None = None,
+        cached_content: bytes | str | None = None,
         cached_etag: str | None = None,
         cached_last_modified: str | None = None,
     ) -> dict[str, Any]:
@@ -293,9 +329,10 @@ class FetchStep(RegisteredStep):
             return None
 
         # Parse payload once — used for both hit and stale paths
+        # Keep as str; bytes causes JSON serialization failures in SendStep
         content = entry.payload_json
-        if isinstance(content, str):
-            content = content.encode("utf-8")
+        if isinstance(content, bytes):
+            content = content.decode("utf-8", errors="replace")
 
         # TTL freshness check
         now = datetime.now(tz=timezone.utc)

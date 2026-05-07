@@ -14,11 +14,13 @@ Spec: 09-scheduling.md §9.4, implementation-plan.md Component 2
 from __future__ import annotations
 
 from typing import Any
+from urllib.parse import urlencode, urlparse, parse_qs, urlunparse
 
 import structlog
 import httpx
 
 from zorivest_core.application.ports import FetchAdapterResult
+from zorivest_core.domain.enums import AuthMethod
 from zorivest_infra.market_data.http_cache import fetch_with_cache
 from zorivest_infra.market_data.provider_registry import PROVIDER_REGISTRY
 from zorivest_infra.market_data.url_builders import (
@@ -29,8 +31,19 @@ from zorivest_infra.market_data.url_builders import (
 
 logger = structlog.get_logger()
 
-# Valid data types for dispatch
-_VALID_DATA_TYPES = {"ohlcv", "quote", "news", "fundamentals"}
+# Valid data types for dispatch — must match URL builder + normalizer coverage
+_VALID_DATA_TYPES = {
+    "ohlcv",
+    "quote",
+    "news",
+    "fundamentals",
+    "earnings",
+    "dividends",
+    "splits",
+    "insider",
+    "company_profile",
+    "economic_calendar",
+}
 
 
 class MarketDataProviderAdapter:
@@ -47,12 +60,16 @@ class MarketDataProviderAdapter:
         http_client: Any,
         rate_limiter: Any,
         timeout: httpx.Timeout | None = None,
+        uow: Any | None = None,
+        encryption: Any | None = None,
     ) -> None:
         self._http_client = http_client
         self._rate_limiter = rate_limiter
         self._timeout = timeout or httpx.Timeout(
             connect=10.0, read=30.0, write=10.0, pool=10.0
         )
+        self._uow = uow
+        self._encryption = encryption
 
     async def fetch(
         self,
@@ -73,7 +90,8 @@ class MarketDataProviderAdapter:
 
         Args:
             provider: Provider key (must match PROVIDER_REGISTRY).
-            data_type: One of 'ohlcv', 'quote', 'news', 'fundamentals'.
+            data_type: Market data type — one of: ohlcv, quote, news, fundamentals,
+                earnings, dividends, splits, insider, company_profile, economic_calendar.
             criteria: Resolved criteria dict with date ranges, symbols, etc.
             cached_content: Previously cached response bytes for conditional request.
             cached_etag: ETag from previous response for If-None-Match.
@@ -112,7 +130,7 @@ class MarketDataProviderAdapter:
 
         # Single ticker (or no tickers) — standard single-request path
         builder = get_url_builder(provider)
-        extra_headers = dict(config.headers_template) if config.headers_template else {}
+        extra_headers = self._resolve_headers(config, provider)
 
         # POST dispatch: builders with build_request() return a RequestSpec
         method = "GET"
@@ -126,6 +144,9 @@ class MarketDataProviderAdapter:
             json_body = spec.body
         else:
             url = builder.build_url(config.base_url, data_type, tickers, criteria)
+
+        # Append API key as query param for QUERY_PARAM auth providers
+        url = self._inject_query_param_key(url, config, provider)
 
         result: dict[str, Any] = await self._rate_limiter.execute_with_limits(
             provider,
@@ -168,7 +189,7 @@ class MarketDataProviderAdapter:
         import json as _json
 
         builder = get_url_builder(provider)
-        extra_headers = dict(config.headers_template) if config.headers_template else {}
+        extra_headers = self._resolve_headers(config, provider)
 
         # POST-batch dispatch: builders with build_request() support multi-ticker
         # natively (e.g. OpenFIGI sends all tickers in one POST body array).
@@ -208,6 +229,7 @@ class MarketDataProviderAdapter:
         for ticker in tickers:
             # Build per-ticker URL
             url = builder.build_url(config.base_url, data_type, [ticker], criteria)
+            url = self._inject_query_param_key(url, config, provider)
             logger.info(
                 "fetch_multi_ticker",
                 provider=provider,
@@ -301,3 +323,97 @@ class MarketDataProviderAdapter:
             timeout=self._timeout,
             extra_headers=extra_headers,
         )
+
+    def _get_api_key(self, provider_name: str) -> str | None:
+        """Look up and decrypt the API key for a provider.
+
+        Returns None if no key is stored, UoW is not injected,
+        or decryption fails.
+        """
+        if self._uow is None or self._encryption is None:
+            return None
+        try:
+            setting = self._uow.market_provider_settings.get(provider_name)
+            if setting and setting.encrypted_api_key:
+                return self._encryption.decrypt(setting.encrypted_api_key)
+        except Exception:
+            logger.warning(
+                "api_key_lookup_failed",
+                provider=provider_name,
+                exc_info=True,
+            )
+        return None
+
+    def _resolve_headers(
+        self, config: Any, provider_key: str | None = None
+    ) -> dict[str, str]:
+        """Build request headers from headers_template with API key substitution.
+
+        Replaces {api_key} and {api_secret} placeholders in the template
+        with the actual decrypted values from market_provider_settings.
+
+        Args:
+            config: ProviderConfig from registry.
+            provider_key: Registry dict key (e.g. "Polygon.io"). Falls back
+                to config.name if not provided (backward compat).
+        """
+        if not config.headers_template:
+            return {}
+
+        headers = dict(config.headers_template)
+        # Check if any header value has a placeholder
+        needs_key = any(
+            "{api_key}" in v or "{api_secret}" in v for v in headers.values()
+        )
+        if not needs_key:
+            return headers
+
+        lookup_name = provider_key or config.name
+        api_key = self._get_api_key(lookup_name) or ""
+        if not api_key:
+            logger.warning(
+                "api_key_missing_for_pipeline_fetch",
+                provider=lookup_name,
+            )
+            return headers
+
+        # Resolve placeholders — match MarketDataService pattern
+        return {
+            k: v.format(api_key=api_key, api_secret=api_key) for k, v in headers.items()
+        }
+
+    def _inject_query_param_key(
+        self, url: str, config: Any, provider_key: str | None = None
+    ) -> str:
+        """Append API key as a URL query parameter for QUERY_PARAM auth providers.
+
+        Providers like Alpha Vantage, EODHD, Polygon, Nasdaq Data Link use
+        auth_method=QUERY_PARAM with auth_param_name specifying the query key.
+
+        Args:
+            url: The request URL to append the key to.
+            config: ProviderConfig from registry.
+            provider_key: Registry dict key (e.g. "Polygon.io"). Falls back
+                to config.name if not provided (backward compat).
+        """
+        if config.auth_method != AuthMethod.QUERY_PARAM:
+            return url
+        if not config.auth_param_name:
+            return url
+
+        lookup_name = provider_key or config.name
+        api_key = self._get_api_key(lookup_name)
+        if not api_key:
+            logger.warning(
+                "api_key_missing_for_query_param",
+                provider=lookup_name,
+                auth_param=config.auth_param_name,
+            )
+            return url
+
+        # Parse and append key to existing query string
+        parsed = urlparse(url)
+        params = parse_qs(parsed.query, keep_blank_values=True)
+        params[config.auth_param_name] = [api_key]
+        new_query = urlencode(params, doseq=True)
+        return urlunparse(parsed._replace(query=new_query))

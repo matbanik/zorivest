@@ -1,7 +1,6 @@
 import React from 'react'
 import { useBalanceHistory } from '@/hooks/useAccounts'
 import { formatDate } from '@/lib/formatDate'
-import type { BalanceEntry } from '@/hooks/useAccounts'
 
 // ── Currency formatter ──────────────────────────────────────────────────────
 

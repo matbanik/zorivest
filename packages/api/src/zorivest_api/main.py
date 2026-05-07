@@ -76,6 +76,7 @@ from zorivest_infra.market_data.service_factory import (
     HttpxClient,
 )
 from zorivest_infra.market_data.normalizers import (
+    NORMALIZERS,
     QUOTE_NORMALIZERS,
     NEWS_NORMALIZERS,
     SEARCH_NORMALIZERS,
@@ -298,6 +299,7 @@ async def lifespan(app: FastAPI) -> AsyncGenerator[None, None]:
         quote_normalizers=QUOTE_NORMALIZERS,
         news_normalizers=NEWS_NORMALIZERS,
         search_normalizers=SEARCH_NORMALIZERS,
+        normalizers=NORMALIZERS,
     )
     # MEU-65: real ProviderConnectionService — shares same http/encryption/rate_limiters
     app.state.provider_connection_service = ProviderConnectionService(
@@ -340,6 +342,8 @@ async def lifespan(app: FastAPI) -> AsyncGenerator[None, None]:
     _market_data_adapter = MarketDataProviderAdapter(
         http_client=_http_client,
         rate_limiter=_pipeline_rate_limiter,
+        uow=uow,
+        encryption=_encryption,
     )
 
     # ── PH9: Template CRUD services (created early for runner injection) ──

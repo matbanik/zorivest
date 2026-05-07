@@ -15,3 +15,4 @@ from zorivest_core.pipeline_steps import render_step  # noqa: F401
 from zorivest_core.pipeline_steps import send_step  # noqa: F401
 from zorivest_core.pipeline_steps import query_step  # noqa: F401
 from zorivest_core.pipeline_steps import compose_step  # noqa: F401
+from zorivest_core.pipeline_steps import market_data_store_step  # noqa: F401

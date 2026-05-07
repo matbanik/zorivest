@@ -1,9 +1,9 @@
 /**
  * Behavior tests for zorivest_market compound tool.
  *
- * Verifies all 7 actions using v3.1 contract action names.
+ * Verifies all 15 actions: 7 base (MEU-63) + 8 expansion (MEU-192).
  * Source: mcp-consolidation-proposal-v3.md §5 zorivest_market
- * Phase: P2.5f corrections (Findings 2+3)
+ *         docs/build-plan/08a-market-data-expansion.md §8a.11
  */
 
 import { describe, it, expect, vi, beforeEach, afterEach } from "vitest";
@@ -23,14 +23,20 @@ describe("zorivest_market compound tool", () => {
         expect(tools[0].name).toBe("zorivest_market");
     });
 
-    it("exposes v3.1 action names in description", async () => {
+    it("exposes all 15 action names in description", async () => {
         const client = await createClient(registerMarketTool);
         const { tools } = await client.listTools();
         const desc = tools[0].description ?? "";
-        for (const action of ["quote", "news", "search", "filings", "providers", "disconnect", "test_provider"]) {
+        for (const action of [
+            "quote", "news", "search", "filings", "providers", "disconnect", "test_provider",
+            "ohlcv", "fundamentals", "earnings", "dividends", "splits", "insider",
+            "economic_calendar", "company_profile",
+        ]) {
             expect(desc).toContain(action);
         }
     });
+
+    // ── Base actions (7) ──────────────────────────────────────────────
 
     it("routes quote to GET /market-data/quote", async () => {
         const client = await createClient(registerMarketTool);
@@ -83,5 +89,61 @@ describe("zorivest_market compound tool", () => {
         const client = await createClient(registerMarketTool);
         const result = await client.callTool({ name: "zorivest_market", arguments: { action: "nonexistent" } });
         expect(result.isError).toBe(true);
+    });
+
+    // ── Expansion actions (8 — MEU-192) ───────────────────────────────
+
+    it("routes ohlcv to GET /market-data/ohlcv", async () => {
+        const client = await createClient(registerMarketTool);
+        await client.callTool({ name: "zorivest_market", arguments: { action: "ohlcv", ticker: "AAPL" } });
+        expect(getLastFetchUrl(fetchMock)).toContain("/market-data/ohlcv");
+    });
+
+    it("routes ohlcv with interval param", async () => {
+        const client = await createClient(registerMarketTool);
+        await client.callTool({ name: "zorivest_market", arguments: { action: "ohlcv", ticker: "AAPL", interval: "5m" } });
+        expect(getLastFetchUrl(fetchMock)).toContain("interval=5m");
+    });
+
+    it("routes fundamentals to GET /market-data/fundamentals", async () => {
+        const client = await createClient(registerMarketTool);
+        await client.callTool({ name: "zorivest_market", arguments: { action: "fundamentals", ticker: "MSFT" } });
+        expect(getLastFetchUrl(fetchMock)).toContain("/market-data/fundamentals");
+    });
+
+    it("routes earnings to GET /market-data/earnings", async () => {
+        const client = await createClient(registerMarketTool);
+        await client.callTool({ name: "zorivest_market", arguments: { action: "earnings", ticker: "GOOG" } });
+        expect(getLastFetchUrl(fetchMock)).toContain("/market-data/earnings");
+    });
+
+    it("routes dividends to GET /market-data/dividends", async () => {
+        const client = await createClient(registerMarketTool);
+        await client.callTool({ name: "zorivest_market", arguments: { action: "dividends", ticker: "JNJ" } });
+        expect(getLastFetchUrl(fetchMock)).toContain("/market-data/dividends");
+    });
+
+    it("routes splits to GET /market-data/splits", async () => {
+        const client = await createClient(registerMarketTool);
+        await client.callTool({ name: "zorivest_market", arguments: { action: "splits", ticker: "TSLA" } });
+        expect(getLastFetchUrl(fetchMock)).toContain("/market-data/splits");
+    });
+
+    it("routes insider to GET /market-data/insider", async () => {
+        const client = await createClient(registerMarketTool);
+        await client.callTool({ name: "zorivest_market", arguments: { action: "insider", ticker: "AAPL" } });
+        expect(getLastFetchUrl(fetchMock)).toContain("/market-data/insider");
+    });
+
+    it("routes economic_calendar to GET /market-data/economic-calendar", async () => {
+        const client = await createClient(registerMarketTool);
+        await client.callTool({ name: "zorivest_market", arguments: { action: "economic_calendar" } });
+        expect(getLastFetchUrl(fetchMock)).toContain("/market-data/economic-calendar");
+    });
+
+    it("routes company_profile to GET /market-data/company-profile", async () => {
+        const client = await createClient(registerMarketTool);
+        await client.callTool({ name: "zorivest_market", arguments: { action: "company_profile", ticker: "AMZN" } });
+        expect(getLastFetchUrl(fetchMock)).toContain("/market-data/company-profile");
     });
 });

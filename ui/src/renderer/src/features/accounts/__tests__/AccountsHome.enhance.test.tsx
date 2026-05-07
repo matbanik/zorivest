@@ -139,7 +139,6 @@ describe('MEU-200: Accounts Table Enhancements', () => {
 
     describe('AC-1: Multi-select row checkboxes', () => {
         it('renders a SelectionCheckbox in each account row', async () => {
-            const user = userEvent.setup()
             renderWithProviders(<AccountsHome />)
             // Each row should have a checkbox with data-testid
             expect(screen.getByTestId('account-row-checkbox-acct-1')).toBeInTheDocument()
@@ -208,7 +207,6 @@ describe('MEU-200: Accounts Table Enhancements', () => {
 
     describe('AC-3: Text search filter', () => {
         it('renders a search input for filtering', async () => {
-            const user = userEvent.setup()
             renderWithProviders(<AccountsHome />)
             expect(screen.getByTestId('table-search-input')).toBeInTheDocument()
         })
@@ -248,7 +246,6 @@ describe('MEU-200: Accounts Table Enhancements', () => {
 
     describe('AC-4: SortableColumnHeader indicators', () => {
         it('renders sort indicators on column headers', async () => {
-            const user = userEvent.setup()
             renderWithProviders(<AccountsHome />)
             // Look for the sort indicator characters (▲ or ▼) in headers
             const table = screen.getByTestId('account-list')
@@ -265,7 +262,6 @@ describe('MEU-200: Accounts Table Enhancements', () => {
 
     describe('AC-6: data-testid attributes', () => {
         it('has select-all-checkbox testid', async () => {
-            const user = userEvent.setup()
             renderWithProviders(<AccountsHome />)
             expect(screen.getByTestId('select-all-checkbox')).toBeInTheDocument()
         })
@@ -278,7 +274,6 @@ describe('MEU-200: Accounts Table Enhancements', () => {
         })
 
         it('has table-search-input testid', async () => {
-            const user = userEvent.setup()
             renderWithProviders(<AccountsHome />)
             expect(screen.getByTestId('table-search-input')).toBeInTheDocument()
         })
