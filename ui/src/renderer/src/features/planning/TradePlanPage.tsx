@@ -3,6 +3,7 @@ import { useQuery, useQueryClient } from '@tanstack/react-query'
 import { apiFetch } from '@/lib/api'
 import { useStatusBar } from '@/hooks/useStatusBar'
 import { useFormGuard } from '@/hooks/useFormGuard'
+import { useAccounts } from '@/hooks/useAccounts'
 import UnsavedChangesModal from '@/components/UnsavedChangesModal'
 import ConfirmDeleteModal from '@/components/ConfirmDeleteModal'
 import { useConfirmDelete } from '@/hooks/useConfirmDelete'
@@ -39,12 +40,7 @@ export interface TradePlan {
     position_size?: number | null
 }
 
-// T3: Account type for dropdown — matches AccountResponse from GET /api/v1/accounts
-interface Account {
-    account_id: string
-    name: string
-    account_type: string
-}
+// T3: Account type imported from useAccounts hook (provides latest_balance)
 
 // T4: Minimal trade shape for the link picker — real API fields
 interface Trade {
@@ -145,6 +141,9 @@ export default function TradePlanPage({ onOpenCalculator }: TradePlanPageProps) 
     const [searchQuery, setSearchQuery] = useState('')
     const [showBulkConfirm, setShowBulkConfirm] = useState(false)
 
+    // All Accounts default resolution message (shown when Calculator sends __ALL__)
+    const [allAccountsDefaultInfo, setAllAccountsDefaultInfo] = useState<string | null>(null)
+
     // Fetch plans (G5: 5s auto-refresh)
     const { data: plans = [] } = useQuery<TradePlan[]>({
         queryKey: ['trade-plans'],
@@ -159,17 +158,8 @@ export default function TradePlanPage({ onOpenCalculator }: TradePlanPageProps) 
         refetchInterval: 5_000,
     })
 
-    // T3: Fetch accounts for dropdown
-    const { data: accounts = [] } = useQuery<Account[]>({
-        queryKey: ['accounts'],
-        queryFn: async () => {
-            try {
-                return await apiFetch<Account[]>('/api/v1/accounts')
-            } catch {
-                return []
-            }
-        },
-    })
+    // T3: Accounts via useAccounts hook — provides latest_balance for dropdown
+    const { accounts, portfolioTotal } = useAccounts()
 
     // T6: Extract distinct strategy names from existing plans
     const strategyNames = useMemo(() => {
@@ -556,12 +546,36 @@ export default function TradePlanPage({ onOpenCalculator }: TradePlanPageProps) 
                     }
                 }
             }
+
+            // Resolve __ALL__ account to the largest-balance account
+            let resolvedAccountId = detail.account_id
+            if (detail.account_id === '__ALL__') {
+                const largestAccount = accounts
+                    .filter(a => (a.latest_balance ?? 0) > 0)
+                    .sort((a, b) => (b.latest_balance ?? 0) - (a.latest_balance ?? 0))[0]
+                if (largestAccount) {
+                    resolvedAccountId = largestAccount.account_id
+                    const balStr = largestAccount.latest_balance?.toLocaleString('en-US', { style: 'currency', currency: 'USD' }) ?? '$0'
+                    setAllAccountsDefaultInfo(
+                        `"All Accounts" (${portfolioTotal.toLocaleString('en-US', { style: 'currency', currency: 'USD' })}) was selected in Calculator. Defaulted to "${largestAccount.name}" (${balStr}) — the account with the largest balance. You can change this above.`
+                    )
+                } else {
+                    resolvedAccountId = undefined
+                    setAllAccountsDefaultInfo(
+                        `"All Accounts" was selected in Calculator but no accounts have a recorded balance. Please select an account manually.`
+                    )
+                }
+            } else {
+                // Clear the info message when a specific account is applied
+                setAllAccountsDefaultInfo(null)
+            }
+
             // Apply the values
             setForm((prev) => ({
                 ...prev,
                 ...(detail.shares_planned != null ? { shares_planned: detail.shares_planned } : {}),
                 ...(detail.position_size != null ? { position_size: detail.position_size } : {}),
-                ...(detail.account_id ? { account_id: detail.account_id } : {}),
+                ...(resolvedAccountId ? { account_id: resolvedAccountId } : {}),
                 ...(detail.entry_price != null ? { entry_price: detail.entry_price } : {}),
                 ...(detail.stop_loss != null ? { stop_loss: detail.stop_loss } : {}),
                 ...(detail.target_price != null ? { target_price: detail.target_price } : {}),
@@ -569,7 +583,7 @@ export default function TradePlanPage({ onOpenCalculator }: TradePlanPageProps) 
         }
         window.addEventListener('zorivest:calculator-apply', handler)
         return () => window.removeEventListener('zorivest:calculator-apply', handler)
-    }, [selectedPlan?.id, isCreating, plans])
+    }, [selectedPlan?.id, isCreating, plans, accounts, portfolioTotal])
 
     const isDetailOpen = isCreating || selectedPlan !== null
 
@@ -935,22 +949,33 @@ export default function TradePlanPage({ onOpenCalculator }: TradePlanPageProps) 
                                 />
                             </div>
 
-                            {/* T3: Account Dropdown (replaces free-text) */}
+                            {/* T3: Account Dropdown — shows balances, resolves __ALL__ */}
                             <div>
                                 <label className="block text-xs text-fg-muted mb-1">Account</label>
                                 <select
                                     data-testid="plan-account-select"
                                     value={form.account_id ?? ''}
-                                    onChange={(e) => updateField('account_id', e.target.value || null)}
+                                    onChange={(e) => {
+                                        updateField('account_id', e.target.value || null)
+                                        setAllAccountsDefaultInfo(null) // Clear info when user manually changes
+                                    }}
                                     className="w-full px-3 py-1.5 text-sm rounded-md bg-bg border border-bg-subtle text-fg"
                                 >
                                     <option value="">None (no account)</option>
                                     {accounts.map((acct) => (
                                         <option key={acct.account_id} value={acct.account_id}>
-                                            {acct.name} ({acct.account_type})
+                                            {acct.name} ({acct.account_type}){acct.latest_balance != null ? ` — $${acct.latest_balance.toLocaleString()}` : ''}
                                         </option>
                                     ))}
                                 </select>
+                                {allAccountsDefaultInfo && (
+                                    <div
+                                        data-testid="all-accounts-default-info"
+                                        className="mt-1.5 px-3 py-2 text-xs rounded-md bg-blue-500/10 border border-blue-500/20 text-blue-300"
+                                    >
+                                        ℹ️ {allAccountsDefaultInfo}
+                                    </div>
+                                )}
                             </div>
 
                             {/* Linked Trade (AC-7: readonly) */}

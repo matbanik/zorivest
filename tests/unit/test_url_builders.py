@@ -1099,7 +1099,7 @@ class TestAlphaVantageUrlBuilder:
 
 
 class TestNasdaqDataLinkUrlBuilder:
-    """AC-8: NasdaqDataLinkUrlBuilder uses /datatables/{vendor}/{table}.json."""
+    """AC-8: NasdaqDataLinkUrlBuilder uses /api/v3/datatables/{vendor}/{table}.json."""
 
     def test_nasdaq_dl_fundamentals_url(self) -> None:
         """Nasdaq Data Link fundamentals uses SHARADAR/SF1."""
@@ -1112,7 +1112,7 @@ class TestNasdaqDataLinkUrlBuilder:
             tickers=["AAPL"],
             criteria={},
         )
-        assert "/datatables/SHARADAR/SF1.json" in url
+        assert "/api/v3/datatables/SHARADAR/SF1.json" in url
         assert "ticker=AAPL" in url
 
     def test_nasdaq_dl_custom_vendor_table(self) -> None:
@@ -1126,7 +1126,7 @@ class TestNasdaqDataLinkUrlBuilder:
             tickers=["MSFT"],
             criteria={"vendor": "ZACKS", "table": "FC"},
         )
-        assert "/datatables/ZACKS/FC.json" in url
+        assert "/api/v3/datatables/ZACKS/FC.json" in url
         assert "ticker=MSFT" in url
 
     def test_nasdaq_dl_fallback_data_type(self) -> None:
@@ -1439,3 +1439,149 @@ class TestTradingViewUrlBuilder:
 
         builder = get_url_builder("TradingView")
         assert isinstance(builder, TradingViewUrlBuilder)
+
+
+# ═══════════════════════════════════════════════════════════════════════════
+# Bug Fix: NASDAQ Data Link 404 — Missing /api/v3/ prefix
+# ═══════════════════════════════════════════════════════════════════════════
+#
+# Root cause: NasdaqDataLinkUrlBuilder builds URLs as:
+#   https://data.nasdaq.com/datatables/{vendor}/{table}.json
+# But the Nasdaq Data Link API requires:
+#   https://data.nasdaq.com/api/v3/datatables/{vendor}/{table}.json
+#
+# The /api/v3/ prefix is missing from both the URL builder and the
+# test_endpoint in the provider registry.
+#
+# AC-1: URL builder must produce /api/v3/datatables/ prefix
+# AC-2: test_endpoint must include /api/v3/ prefix
+# AC-3: Anti-double-prefix test must check /api/v3/api/v3/ (true double)
+
+
+class TestNasdaqDataLinkBugFix404:
+    """Bug fix: NASDAQ Data Link URL builder must include /api/v3/ prefix."""
+
+    def test_nasdaq_fundamentals_url_has_api_v3_prefix(self) -> None:
+        """AC-1: Fundamentals URL must contain /api/v3/datatables/SHARADAR/SF1.json."""
+        from zorivest_infra.market_data.url_builders import NasdaqDataLinkUrlBuilder
+
+        builder = NasdaqDataLinkUrlBuilder()
+        url = builder.build_url(
+            base_url="https://data.nasdaq.com",
+            data_type="fundamentals",
+            tickers=["AAPL"],
+            criteria={},
+        )
+        assert "/api/v3/datatables/SHARADAR/SF1.json" in url, (
+            f"Expected /api/v3/datatables/ prefix in URL, got: {url}"
+        )
+
+    def test_nasdaq_custom_table_url_has_api_v3_prefix(self) -> None:
+        """AC-1: Custom vendor/table URL must also contain /api/v3/datatables/."""
+        from zorivest_infra.market_data.url_builders import NasdaqDataLinkUrlBuilder
+
+        builder = NasdaqDataLinkUrlBuilder()
+        url = builder.build_url(
+            base_url="https://data.nasdaq.com",
+            data_type="fundamentals",
+            tickers=["SPY"],
+            criteria={"vendor": "ETFG", "table": "FUND"},
+        )
+        assert "/api/v3/datatables/ETFG/FUND.json" in url, (
+            f"Expected /api/v3/datatables/ETFG/FUND.json in URL, got: {url}"
+        )
+
+    def test_nasdaq_url_no_true_double_prefix(self) -> None:
+        """AC-3: URL must NOT contain /api/v3/api/v3/ (true double-prefix)."""
+        from zorivest_infra.market_data.url_builders import NasdaqDataLinkUrlBuilder
+
+        builder = NasdaqDataLinkUrlBuilder()
+        url = builder.build_url(
+            base_url="https://data.nasdaq.com",
+            data_type="fundamentals",
+            tickers=["AAPL"],
+            criteria={},
+        )
+        assert "/api/v3/api/v3/" not in url, (
+            f"True double-prefix detected in URL: {url}"
+        )
+
+    def test_nasdaq_url_includes_ticker_param(self) -> None:
+        """URL includes ticker query parameter."""
+        from zorivest_infra.market_data.url_builders import NasdaqDataLinkUrlBuilder
+
+        builder = NasdaqDataLinkUrlBuilder()
+        url = builder.build_url(
+            base_url="https://data.nasdaq.com",
+            data_type="fundamentals",
+            tickers=["MSFT"],
+            criteria={},
+        )
+        assert "ticker=MSFT" in url
+
+    def test_nasdaq_url_json_extension(self) -> None:
+        """URL uses .json extension for response format."""
+        from zorivest_infra.market_data.url_builders import NasdaqDataLinkUrlBuilder
+
+        builder = NasdaqDataLinkUrlBuilder()
+        url = builder.build_url(
+            base_url="https://data.nasdaq.com",
+            data_type="fundamentals",
+            tickers=["AAPL"],
+            criteria={},
+        )
+        assert ".json" in url
+
+    def test_nasdaq_registered_in_registry(self) -> None:
+        """Nasdaq Data Link builder is in _URL_BUILDER_REGISTRY."""
+        from zorivest_infra.market_data.url_builders import (
+            NasdaqDataLinkUrlBuilder,
+            get_url_builder,
+        )
+
+        builder = get_url_builder("Nasdaq Data Link")
+        assert isinstance(builder, NasdaqDataLinkUrlBuilder)
+
+
+class TestNasdaqRegistryTestEndpoint:
+    """AC-2: Provider registry test_endpoint must include /api/v3/ prefix."""
+
+    def test_nasdaq_test_endpoint_has_api_v3_prefix(self) -> None:
+        """test_endpoint must start with /api/v3/datatables/ for correct routing."""
+        from zorivest_infra.market_data.provider_registry import PROVIDER_REGISTRY
+
+        config = PROVIDER_REGISTRY["Nasdaq Data Link"]
+        assert config.test_endpoint.startswith("/api/v3/datatables/"), (
+            f"test_endpoint missing /api/v3/ prefix: {config.test_endpoint}"
+        )
+
+    def test_nasdaq_test_endpoint_not_double_prefixed(self) -> None:
+        """test_endpoint must NOT have /api/v3/api/v3/ double prefix."""
+        from zorivest_infra.market_data.provider_registry import PROVIDER_REGISTRY
+
+        config = PROVIDER_REGISTRY["Nasdaq Data Link"]
+        assert "/api/v3/api/v3/" not in config.test_endpoint, (
+            f"Double prefix in test_endpoint: {config.test_endpoint}"
+        )
+
+
+class TestNasdaqRegistryURLComposition:
+    """AC-3: Production registry + builder must compose without double prefix."""
+
+    def test_nasdaq_production_url_correct_path(self) -> None:
+        """Full URL from registry base_url + builder must have exactly one /api/v3/."""
+        from zorivest_infra.market_data.provider_registry import PROVIDER_REGISTRY
+        from zorivest_infra.market_data.url_builders import get_url_builder
+
+        config = PROVIDER_REGISTRY["Nasdaq Data Link"]
+        builder = get_url_builder("Nasdaq Data Link")
+        url = builder.build_url(config.base_url, "fundamentals", ["AAPL"], {})
+
+        # Must contain exactly one /api/v3/ prefix
+        assert url.count("/api/v3/") == 1, (
+            f"Expected exactly one /api/v3/ in URL, got: {url}"
+        )
+        # Must start with the correct full URL
+        assert url.startswith("https://data.nasdaq.com/api/v3/datatables/"), (
+            f"Incorrect full URL: {url}"
+        )

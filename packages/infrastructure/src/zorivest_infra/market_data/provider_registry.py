@@ -73,13 +73,13 @@ PROVIDER_REGISTRY: dict[str, ProviderConfig] = {
     ),
     "Nasdaq Data Link": ProviderConfig(
         name="Nasdaq Data Link",
-        # Bare domain — NasdaqDataLinkUrlBuilder appends /datatables/...
+        # Bare domain — NasdaqDataLinkUrlBuilder appends /api/v3/datatables/...
         base_url="https://data.nasdaq.com",
         auth_method=AuthMethod.QUERY_PARAM,
         auth_param_name="api_key",
         headers_template={},
         test_endpoint=(
-            "/datatables/ETFG/FUND.json"
+            "/api/v3/datatables/ETFG/FUND.json"
             "?qopts.columns=ticker&api_key={api_key}&qopts.per_page=1"
         ),
         default_rate_limit=50,

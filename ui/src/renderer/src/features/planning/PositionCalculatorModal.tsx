@@ -245,7 +245,8 @@ export default function PositionCalculatorModal({ isOpen, onClose, fromPlanConte
         if (applyToggles.stop_loss) detail.stop_loss = stopPrice || undefined
         if (applyToggles.target_price) detail.target_price = targetPrice || undefined
         if (applyToggles.account_id) {
-            detail.account_id = selectedAccount === '__ALL__' || selectedAccount === '' ? undefined : selectedAccount
+            // Send '__ALL__' so Trade Plan can resolve to largest-balance account
+            detail.account_id = selectedAccount === '' ? undefined : selectedAccount
         }
         window.dispatchEvent(new CustomEvent('zorivest:calculator-apply', { detail }))
         setStatus(`Applied to plan #${selectedPlanId}`)

@@ -1403,14 +1403,16 @@ class TestProductionRegistryURLIntegration:
         assert "/query" in url, f"Missing expected path in AV URL: {url}"
 
     def test_nasdaq_dl_no_double_prefix(self) -> None:
-        """Nasdaq DL URL must not contain /api/v3/datatables/."""
+        """Nasdaq DL URL must not contain /api/v3/api/v3/ (true double-prefix)."""
         url = self._build_url_for_provider("Nasdaq Data Link")
-        # The builder appends /datatables/ directly; if base_url has /api/v3
-        # the result is /api/v3/datatables/ which is wrong
-        assert "/api/v3/datatables/" not in url, (
-            f"Double-prefix in Nasdaq DL URL: {url}"
+        # The correct path is /api/v3/datatables/ — the true double-prefix
+        # error would be /api/v3/api/v3/datatables/
+        assert "/api/v3/api/v3/" not in url, (
+            f"True double-prefix in Nasdaq DL URL: {url}"
         )
-        assert "/datatables/" in url, f"Missing expected path in Nasdaq DL URL: {url}"
+        assert "/api/v3/datatables/" in url, (
+            f"Missing required /api/v3/datatables/ path in Nasdaq DL URL: {url}"
+        )
 
     def test_all_providers_produce_valid_urls(self) -> None:
         """Every registered provider must produce a URL starting with https://."""

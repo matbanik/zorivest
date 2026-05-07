@@ -511,7 +511,7 @@ class AlphaVantageUrlBuilder:
 class NasdaqDataLinkUrlBuilder:
     """Nasdaq Data Link dataset/table GET URL construction.
 
-    Pattern: /datatables/{vendor}/{table}.json?ticker={symbol}
+    Pattern: /api/v3/datatables/{vendor}/{table}.json?ticker={symbol}
     Default vendor/table: SHARADAR/SF1 (fundamentals).
     """
 
@@ -536,7 +536,7 @@ class NasdaqDataLinkUrlBuilder:
             table = table or default[1]
 
         params = {"ticker": symbol}
-        return f"{base_url}/datatables/{vendor}/{table}.json?{urlencode(params)}"
+        return f"{base_url}/api/v3/datatables/{vendor}/{table}.json?{urlencode(params)}"
 
 
 # ── OpenFIGI URL Builder (MEU-186) ─────────────────────────────────────
