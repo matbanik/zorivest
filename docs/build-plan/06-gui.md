@@ -252,6 +252,7 @@ export const router = createRouter({
 | Top (3rd) | 📈 | Trades | `/trades` | `Ctrl+3` | Trade log, journal, screenshots |
 | Top (4th) | 📊 | Planning | `/planning` | `Ctrl+4` | Trade plans, watchlists, calculator access |
 | Top (5th) | 📅 | Scheduling | `/scheduling` | `Ctrl+5` | Pipeline management |
+| Top (6th) | 💲 | Tax | `/tax` | `Ctrl+6` | Tax estimator dashboard ([06g](06g-gui-tax.md)) |
 | Bottom | ⚙️ | Settings | `/settings` | `Ctrl+,` | Settings, logging, backup/restore (pinned bottom) |
 
 **Rail behavior:**
@@ -426,6 +427,7 @@ export const useAccountContext = () => useContext(AccountContext);
 | 8 | **MEU-56** `gui-scheduling` | `scheduling.test.ts` (3), `scheduling-tz.test.ts` (2), dirty-guard (1, P2.1) | **38** | `scheduling-page`, `policy-list`, `policy-editor`, `run-history` |
 | 9 | **MEU-128** `gui-screenshot` | `screenshot-panel.test.ts` (3) | **41** | `screenshot-panel`, `screenshot-upload`, `screenshot-lightbox` |
 | 10 | **MEU-199–203** `gui-table-list-enhancements` | ConfirmDeleteModal + BulkActionBar primitives, multi-select/bulk delete across 5 surfaces (Accounts, Plans, Watchlists, Trades, Scheduling). Unit: 591 tests (38 files). E2E: extends Waves 2, 4, 8 with delete-confirm + bulk flows | **TBD** | `confirm-delete-modal`, `confirm-delete-confirm-btn`, `confirm-delete-cancel-btn`, `confirm-delete-backdrop`, `bulk-action-bar`, `bulk-delete-btn`, `bulk-clear-btn`, `bulk-selected-count`, `selection-checkbox`, `select-all-checkbox`, `table-filter-bar`, `table-search-input`, `table-filter-select` |
+| 11 | **MEU-154** `gui-tax` | `tax-dashboard.test.ts` (3: nav, summary cards, axe-core), `tax-lots.test.ts` (2: render, sort/filter), `tax-wash-sales.test.ts` (2: monitor render, chain detail), `tax-what-if.test.ts` (2: simulator form, result), `tax-quarterly.test.ts` (2: tracker render, payment entry) | **52+** | `nav-tax`, `tax-page`, `tax-dashboard`, `tax-summary-card`, `tax-ytd-table`, `tax-disclaimer`, `tax-lot-viewer`, `tax-lot-row`, `tax-lot-close-btn`, `tax-lot-reassign-btn`, `wash-sale-monitor`, `wash-sale-chain`, `wash-sale-chain-detail`, `what-if-simulator`, `what-if-ticker-input`, `what-if-result`, `loss-harvesting-tool`, `harvest-opportunity-row`, `quarterly-tracker`, `quarterly-payment-input`, `quarterly-payment-submit`, `tx-audit-panel`, `tx-audit-finding-row` |
 
 > [!IMPORTANT]
 > **Build before every E2E run.** Wave 0 tests require `npm run build` (alias for `electron-vite build`) to produce `out/main/index.js` and a healthy Python backend (automated by `global-setup.ts`). Playwright launches the compiled bundle, not source files — source changes are invisible until you rebuild.
@@ -439,7 +441,7 @@ All test IDs are defined in `ui/tests/e2e/test-ids.ts`. Constants use `SCREAMING
 
 ### Exit Criterion
 
-**MEU-170** (`e2e-all-green`): All 41+ Playwright E2E tests pass end-to-end after Waves 0–9 are activated (includes 4 dirty-guard scenarios from P2.1). Wave 10 count is TBD until Phase 12+ GUI MEUs are fully specified.
+**MEU-170** (`e2e-all-green`): All 52+ Playwright E2E tests pass end-to-end after Waves 0–11 are activated (includes 4 dirty-guard scenarios from P2.1, 11 tax estimator tests from Wave 11). Wave 10 count is TBD until remaining Phase 12+ GUI MEUs are fully specified.
 
 #### Implementation Notes (from MEU-47 cycle, 2026-03-18)
 

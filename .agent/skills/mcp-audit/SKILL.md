@@ -90,6 +90,24 @@ For each resource domain that supports CRUD, execute the full lifecycle. **All t
 7. list_email_templates → verify count restored
 ```
 
+#### 2e. Tax Operations
+
+> **Skip condition**: If tax MEUs (P3 / MEU-148) are not yet complete, all actions return 501 — note in report as `stub` and skip.
+
+```
+1. Create test account (or reuse from §2a) → record account_id
+2. Create test trade for that account → establishes tax lot source data
+3. zorivest_tax(action: "estimate", tax_year: current_year, account_id: test_account) → verify 200 + response shape
+4. zorivest_tax(action: "manage_lots", account_id: test_account) → verify lot list shape
+5. zorivest_tax(action: "wash_sales", account_id: test_account) → verify chain list shape
+6. zorivest_tax(action: "harvest", account_id: test_account) → verify opportunities list shape
+7. zorivest_tax(action: "simulate", ticker: "SPY", action: "SLD", quantity: 100, price: 600.00, account_id: test_account) → verify simulation result shape
+8. zorivest_tax(action: "quarterly", quarter: "Q1", tax_year: current_year) → verify estimate shape
+9. zorivest_tax(action: "ytd_summary", tax_year: current_year, account_id: test_account) → verify summary shape
+10. get_confirmation_token(action: record_quarterly_tax_payment) → zorivest_tax(action: "record_payment", quarter: "Q1", tax_year: current_year, payment_amount: 1000.00, token: token) → verify recording
+11. Cleanup: delete test trade → delete test account (reuse §2a/2b cleanup)
+```
+
 ### Phase 3: Functional Testing
 
 For each non-CRUD tool, call with **valid minimal params** and record:
@@ -106,6 +124,7 @@ For each non-CRUD tool, call with **valid minimal params** and record:
 
 - **Market Data**: `search_ticker`, `get_stock_quote`, `get_market_news`, `get_sec_filings`, `list_market_providers`, `list_provider_capabilities`, `test_market_provider`
 - **Analytics**: `get_expectancy_metrics`, `get_sqn`, `simulate_drawdown`, `get_strategy_breakdown`, `get_fee_breakdown`, `get_cost_of_free`, `estimate_pfof_impact`
+- **Tax**: `estimate_tax`, `find_wash_sales`, `simulate_tax_impact`, `get_tax_lots`, `get_quarterly_estimate`, `harvest_losses`, `get_ytd_tax_summary` (skip if 501 stubs)
 - **Planning**: `calculate_position_size`, `create_trade_plan`, `detect_options_strategy`
 - **Scheduling**: `list_policies`, `get_pipeline_history`, `list_step_types`
 - **Security**: `validate_sql` (valid + DDL injection test), `list_db_tables`, `get_db_row_samples`, `emulate_policy`, `resolve_identifiers`
@@ -138,6 +157,22 @@ For each market data provider with a configured API key:
 4. Clean up: delete test policy
 
 **Exit**: At least one end-to-end pipeline validates successfully.
+
+### Phase 3c: Tax Workflow Validation (Multi-Tool Coherence)
+
+> **Skip condition**: If tax tools return 501 (P3 not yet complete), note in report and skip.
+> **Purpose**: Validates that chained tax tool calls produce consistent, coherent outputs — testing the agentic reasoning paths an AI agent would actually follow.
+
+Execute the following multi-tool workflows and verify data coherence:
+
+| # | Workflow | Tool Chain | Coherence Check |
+|---|----------|-----------|----------------|
+| 1 | Tax check-in | `estimate` → `ytd_summary` | YTD summary ST/LT gains should be consistent with estimate's bracket breakdown inputs |
+| 2 | Pre-trade analysis | `simulate(ticker, action, qty, price)` → `wash_sales(account_id)` | If simulation reports `wash_sale_risk: true`, the wash sales scanner should show an active chain or 30-day window conflict for that ticker |
+| 3 | Harvesting flow | `harvest(account_id)` → `simulate(top_candidate)` | The top harvestable position from the scanner should produce a valid simulation result with matching ticker and negative gain |
+| 4 | Quarterly planning | `estimate(tax_year)` → `quarterly(quarter, tax_year)` → `record_payment(quarter, token)` | Quarterly required_payment should relate to the estimate's total liability; recorded payment should appear in subsequent `quarterly` call as `paid` amount |
+
+**Exit**: All 4 workflows produce coherent results (or are documented as untestable with reason).
 
 ### Phase 4: Regression Detection
 

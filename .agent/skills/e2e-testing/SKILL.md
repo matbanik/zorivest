@@ -62,7 +62,12 @@ ui/
     ├── persistence.test.ts       # Wave 2
     ├── backup-restore.test.ts    # Wave 3
     ├── position-size.test.ts     # Wave 4
-    └── import.test.ts            # Wave 5
+    ├── import.test.ts            # Wave 5
+    ├── tax-dashboard.test.ts     # Wave 11
+    ├── tax-lots.test.ts          # Wave 11
+    ├── tax-wash-sales.test.ts    # Wave 11
+    ├── tax-what-if.test.ts       # Wave 11
+    └── tax-quarterly.test.ts     # Wave 11
 ```
 
 ## Wave Activation
@@ -77,6 +82,8 @@ Each wave activates after its gate MEU is implemented:
 | 3 | MEU-74 `gui-backup-restore` | 2 | 16 |
 | 4 | MEU-48 `gui-plans` | 2 | 18 |
 | 5 | MEU-96/99 import GUI | 2 | 20 |
+| 6–10 | See [06-gui.md](../../docs/build-plan/06-gui.md) | — | 41+ |
+| 11 | MEU-154 `gui-tax` | 11 | 52+ |
 
 ## Adding data-testid to Components
 

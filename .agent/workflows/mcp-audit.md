@@ -36,6 +36,7 @@ Follow skill §Phase 2. Test all CRUD-capable resources:
 - Trades: Create → Report → Delete
 - Watchlists: Create → Add → Get → Remove
 - Email Templates: Create → Read → Preview → Update → Delete
+- Tax Operations: Estimate → Lots → Wash Sales → Harvest → Simulate → Quarterly → YTD → Record Payment (skip if 501 stubs)
 
 > [!CAUTION]
 > **Cleanup is mandatory.** Delete all test entities before proceeding to Phase 3.
@@ -72,6 +73,17 @@ Follow skill §Phase 3b:
 
 > **Skip condition**: If pipeline MEUs (MEU-193) are not yet complete, note in report and skip.
 
+### Step 4c: Tax Workflow Coherence
+
+Follow skill §Phase 3c. Execute 4 multi-tool workflows and verify data coherence:
+
+1. Tax check-in: `estimate` → `ytd_summary` → verify consistency
+2. Pre-trade analysis: `simulate` → `wash_sales` → verify wash risk alignment
+3. Harvesting flow: `harvest` → `simulate(top_candidate)` → verify matching ticker/gain
+4. Quarterly planning: `estimate` → `quarterly` → `record_payment` → verify payment tracking
+
+> **Skip condition**: If tax tools return 501 (P3 not yet complete), note in report and skip.
+
 ### Step 5: Regression Check
 
 Follow skill §Phase 4. Load baseline and compare:
@@ -100,8 +112,9 @@ If `consolidation_score > 3.0`:
 
 ## Exit Criteria
 
-- [ ] All CRUD resources tested with full lifecycle
+- [ ] All CRUD resources tested with full lifecycle (including tax operations when live)
 - [ ] All functional tools exercised (or documented as untestable)
+- [ ] Tax workflow coherence validated (or documented as 501 stubs)
 - [ ] Test data cleaned up (zero residual audit entities)
 - [ ] Report written to `.agent/context/MCP/mcp-tool-audit-report.md`
 - [ ] `known-issues.md` `[MCP-TOOLAUDIT]` updated with findings
