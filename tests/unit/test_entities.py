@@ -383,6 +383,8 @@ class TestModuleIntegrity:
             "TradePlan",  # MEU-66
             "Watchlist",  # MEU-68
             "WatchlistItem",  # MEU-68
+            "TaxLot",  # MEU-123
+            "TaxProfile",  # MEU-124
         }
         assert set(class_names) == expected, (
             f"Expected {expected}, got {set(class_names)}"

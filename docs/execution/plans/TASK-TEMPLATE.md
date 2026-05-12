@@ -19,12 +19,15 @@ template_version: "2.0"
 | 1 | {first implementation task} | coder | {deliverable} | `{exact command}` | `[ ]` |
 | 2 | {second implementation task} | coder | {deliverable} | `{exact command}` | `[ ]` |
 | ... | ... | ... | ... | ... | ... |
-| N | Audit `docs/BUILD_PLAN.md` for stale refs | orchestrator | No changes expected; evidence of clean grep | `rg "{project-slug}" docs/BUILD_PLAN.md` (expect 0 matches) | `[ ]` |
-| N+1 | Run verification plan | tester | All checks pass | `{exact command(s) from implementation-plan.md}` | `[ ]` |
-| N+2 | Save session state to pomera_notes | orchestrator | `Memory/Session/Zorivest-{slug}-{date}` | MCP: `pomera_notes(action="search", search_term="Zorivest-{slug}*")` returns ≥1 result | `[ ]` |
-| N+3 | Create handoff | reviewer | `.agent/context/handoffs/{SEQ}-{date}-{slug}-bp{NN}s{X.Y}.md` | `Test-Path .agent/context/handoffs/{filename}` | `[ ]` |
-| N+4 | Create reflection | orchestrator | `docs/execution/reflections/{date}-{slug}-reflection.md` | `Test-Path docs/execution/reflections/{filename}` | `[ ]` |
-| N+5 | Append metrics row | orchestrator | Row appended to `docs/execution/metrics.md` | `Get-Content docs/execution/metrics.md \| Select-Object -Last 3` | `[ ]` |
+| | **🔄 Re-Anchor Gate** | | | | |
+| N | 🔄 `view_file` this `task.md`. Count all `[ ]` rows remaining and list them. If any implementation rows above are still `[ ]`, go back and complete them before proceeding. | coder | Console output confirming 0 unchecked implementation rows | `Select-String '\[ \]' docs/execution/plans/{YYYY-MM-DD}-{project-slug}/task.md` | `[ ]` |
+| | **Post-Implementation** | | | | |
+| N+1 | Audit `docs/BUILD_PLAN.md` for stale refs | orchestrator | No changes expected; evidence of clean grep | `rg "{project-slug}" docs/BUILD_PLAN.md` (expect 0 matches) | `[ ]` |
+| N+2 | Run verification plan | tester | All checks pass | `{exact command(s) from implementation-plan.md}` | `[ ]` |
+| N+3 | Save session state to pomera_notes | orchestrator | `Memory/Session/Zorivest-{slug}-{date}` | MCP: `pomera_notes(action="search", search_term="Zorivest-{slug}*")` returns ≥1 result | `[ ]` |
+| N+4 | Create handoff | reviewer | `.agent/context/handoffs/{SEQ}-{date}-{slug}-bp{NN}s{X.Y}.md` | `Test-Path .agent/context/handoffs/{filename}` | `[ ]` |
+| N+5 | Create reflection | orchestrator | `docs/execution/reflections/{date}-{slug}-reflection.md` | `Test-Path docs/execution/reflections/{filename}` | `[ ]` |
+| N+6 | Append metrics row | orchestrator | Row appended to `docs/execution/metrics.md` | `Get-Content docs/execution/metrics.md \| Select-Object -Last 3` | `[ ]` |
 
 ### Status Legend
 

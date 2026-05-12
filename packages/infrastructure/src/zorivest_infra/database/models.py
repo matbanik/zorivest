@@ -852,6 +852,55 @@ class MarketInsiderModel(Base):
     provider = Column(String(32), nullable=False)
 
 
+# ── Phase 3A: Tax Foundation Models (MEU-123, MEU-124) ────────────────────
+
+
+class TaxLotModel(Base):
+    """Individual purchase lot for cost basis tracking (§3A, MEU-123).
+
+    11 stored columns only — holding_period_days and is_long_term are
+    computed at the domain layer, not persisted.
+    """
+
+    __tablename__ = "tax_lots"
+    __table_args__ = (Index("ix_tax_lots_account_ticker", "account_id", "ticker"),)
+
+    lot_id = Column(String, primary_key=True)
+    account_id = Column(String, ForeignKey("accounts.account_id"), nullable=False)
+    ticker = Column(String, nullable=False)
+    open_date = Column(DateTime, nullable=False)
+    close_date = Column(DateTime, nullable=True)  # NULL = still open
+    quantity = Column(Float, nullable=False)
+    cost_basis = Column(Numeric(15, 6), nullable=False)  # Per-share
+    proceeds = Column(Numeric(15, 6), nullable=False, default=0)  # Per-share
+    wash_sale_adjustment = Column(Numeric(15, 6), nullable=False, default=0)
+    is_closed = Column(Boolean, nullable=False, default=False)
+    linked_trade_ids = Column(Text, nullable=True)  # JSON list of exec_ids
+
+
+class TaxProfileModel(Base):
+    """User tax configuration per year (§3A, MEU-124)."""
+
+    __tablename__ = "tax_profiles"
+    __table_args__ = (UniqueConstraint("tax_year", name="uq_tax_profiles_year"),)
+
+    id = Column(Integer, primary_key=True, autoincrement=True)
+    filing_status = Column(String(30), nullable=False)  # FilingStatus
+    tax_year = Column(Integer, nullable=False)
+    federal_bracket = Column(Float, nullable=False)
+    state_tax_rate = Column(Float, nullable=False)
+    state = Column(String(2), nullable=False)
+    prior_year_tax = Column(Numeric(15, 6), nullable=False)
+    agi_estimate = Column(Numeric(15, 6), nullable=False)
+    capital_loss_carryforward = Column(Numeric(15, 6), nullable=False)
+    wash_sale_method = Column(String(30), nullable=False)  # WashSaleMatchingMethod
+    default_cost_basis = Column(String(30), nullable=False)  # CostBasisMethod
+    include_drip_wash_detection = Column(Boolean, nullable=False, default=True)
+    include_spousal_accounts = Column(Boolean, nullable=False, default=False)
+    section_475_elected = Column(Boolean, nullable=False, default=False)
+    section_1256_eligible = Column(Boolean, nullable=False, default=False)
+
+
 # ── Scheduling Triggers (§9.2h, §9.2i) ───────────────────────────────────
 
 

@@ -2,9 +2,9 @@
 
 ## Current Priority
 
-Phase 8a (Market Data Expansion) — COMPLETE (16/16 MEUs). Ad-hoc pipeline hardening (6 fixes) applied and documented.
+Phase 3A (Tax Foundation Entities) — COMPLETE (MEU-123, MEU-124). TaxLot + TaxProfile entities, enums, repos, and UoW wiring implemented with full TDD cycle.
 
 ## Next Steps
 
-1. Codex validation review of MEU-207 + ad-hoc hardening handoff
-2. Run `/next-project` to identify next priority work
+1. Codex validation review of MEU-123/124 handoff
+2. Phase 3B planning: MEU-125 (TaxCalculationService), MEU-126 (WashSaleDetector)

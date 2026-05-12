@@ -244,3 +244,46 @@ class ImportStatus(StrEnum):  # ADR-0003
     SUCCESS = "SUCCESS"  # All rows parsed successfully
     PARTIAL = "PARTIAL"  # Some rows errored, others parsed
     FAILED = "FAILED"  # No rows could be parsed
+
+
+# ── Phase 3A: Tax Foundation ─────────────────────────────────────────────
+
+
+class CostBasisMethod(StrEnum):  # §3A MEU-123
+    """Cost basis lot selection method for tax optimization.
+
+    Spec: domain-model-reference.md L395-397.
+    """
+
+    FIFO = "FIFO"  # First In, First Out
+    LIFO = "LIFO"  # Last In, First Out
+    HIFO = "HIFO"  # Highest In, First Out
+    SPEC_ID = "SPEC_ID"  # Specific Identification
+    MAX_LT_GAIN = "MAX_LT_GAIN"  # Maximize Long-Term Gains
+    MAX_LT_LOSS = "MAX_LT_LOSS"  # Maximize Long-Term Losses
+    MAX_ST_GAIN = "MAX_ST_GAIN"  # Maximize Short-Term Gains
+    MAX_ST_LOSS = "MAX_ST_LOSS"  # Maximize Short-Term Losses
+
+
+class FilingStatus(StrEnum):  # §3A MEU-124
+    """IRS filing status for tax bracket determination.
+
+    Spec: domain-model-reference.md L382-383.
+    """
+
+    SINGLE = "SINGLE"
+    MARRIED_JOINT = "MARRIED_JOINT"
+    MARRIED_SEPARATE = "MARRIED_SEPARATE"
+    HEAD_OF_HOUSEHOLD = "HEAD_OF_HOUSEHOLD"
+
+
+class WashSaleMatchingMethod(StrEnum):  # §3A MEU-124
+    """Wash sale rule matching aggressiveness.
+
+    Spec: domain-model-reference.md L391-394.
+    Conservative: equity options = substantially identical to stock.
+    Aggressive: different CUSIP = not identical.
+    """
+
+    CONSERVATIVE = "CONSERVATIVE"
+    AGGRESSIVE = "AGGRESSIVE"

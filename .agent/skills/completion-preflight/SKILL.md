@@ -30,6 +30,8 @@ Follow this 4-step sequence before every stop/report:
 
 ### Step 1 — Read Canonical Task File
 
+**FIRST ACTION — non-negotiable.** Before any reasoning about whether you are "done", execute this `view_file` call. If ANY `[ ]` rows remain, you are NOT done — STOP reasoning about completion and resume execution immediately.
+
 ```
 view_file: docs/execution/plans/{project-slug}/task.md
 ```

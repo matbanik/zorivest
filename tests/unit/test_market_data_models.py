@@ -3,8 +3,7 @@
 
 AC-1: 4 SQLAlchemy models with proper column types, nullable constraints, indexes.
 AC-2: UniqueConstraint prevents duplicate entries per natural key.
-AC-3: Base.metadata.create_all() creates all 40 tables (31 + 4 market + 1 email_templates + 4 Phase 8a).
-AC-9: TABLE_ALLOWLIST column sets are superset of ORM model columns.
+AC-3: 42 tables exist after create_all (40 pre-3A + 2 Phase 3A tax).
 """
 
 from __future__ import annotations
@@ -42,7 +41,7 @@ def _session(engine) -> Session:
 
 
 class TestTableCount:
-    """AC-3: 40 tables exist after create_all (36 pre-8a + 4 Phase 8a market)."""
+    """AC-3: 42 tables exist after create_all (40 pre-3A + 2 Phase 3A tax)."""
 
     def test_market_ohlcv_table_exists(self) -> None:
         engine = _engine()
@@ -64,10 +63,10 @@ class TestTableCount:
         tables = inspect(engine).get_table_names()
         assert "market_fundamentals" in tables
 
-    def test_total_table_count_is_40(self) -> None:
+    def test_total_table_count_is_42(self) -> None:
         engine = _engine()
         tables = inspect(engine).get_table_names()
-        assert len(tables) == 40
+        assert len(tables) == 42
 
 
 # ── AC-1: Column types and constraints ─────────────────────────────────────

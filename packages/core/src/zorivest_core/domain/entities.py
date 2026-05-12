@@ -3,7 +3,7 @@
 from __future__ import annotations
 
 from dataclasses import dataclass, field
-from datetime import datetime
+from datetime import datetime, timezone
 from decimal import Decimal
 from typing import Optional
 
@@ -11,9 +11,12 @@ from zorivest_core.domain.enums import (
     AccountType,
     BalanceSource,
     ConvictionLevel,
+    CostBasisMethod,
+    FilingStatus,
     ImageOwnerType,
     PlanStatus,
     TradeAction,
+    WashSaleMatchingMethod,
 )
 
 
@@ -184,3 +187,69 @@ class Watchlist:
     created_at: datetime
     updated_at: datetime
     tickers: list[WatchlistItem] = field(default_factory=list)
+
+
+# ── Phase 3A: Tax Foundation ─────────────────────────────────────────────
+
+
+@dataclass
+class TaxLot:
+    """Individual purchase lot for cost basis tracking.
+
+    MEU-123: FIC AC-2. 11 stored fields + 2 computed properties.
+    Spec: domain-model-reference.md L353-366.
+    """
+
+    lot_id: str  # PK
+    account_id: str  # FK → Account
+    ticker: str
+    open_date: datetime  # Purchase date
+    close_date: Optional[datetime]  # None = still open
+    quantity: float
+    cost_basis: Decimal  # Per-share, adjusted for wash sales
+    proceeds: Decimal  # Per-share, populated on close
+    wash_sale_adjustment: Decimal  # Deferred loss added to basis
+    is_closed: bool
+    linked_trade_ids: list[str] = field(default_factory=list)  # FK → Trade.exec_id
+
+    @property
+    def holding_period_days(self) -> int:
+        """Computed holding period in days.
+
+        Open lots: days from open_date to today (UTC).
+        Closed lots: days from open_date to close_date.
+        Returns 0 if open_date is in the future.
+        """
+        end = self.close_date if self.close_date else datetime.now(tz=timezone.utc)
+        delta = (end - self.open_date).days
+        return max(delta, 0)
+
+    @property
+    def is_long_term(self) -> bool:
+        """True when holding_period >= 366 days (IRS long-term threshold)."""
+        return self.holding_period_days >= 366
+
+
+@dataclass
+class TaxProfile:
+    """User's tax configuration — stored as a settings entity.
+
+    MEU-124: FIC AC-3. 14 spec fields + 1 PK (id).
+    Spec: domain-model-reference.md L381-401.
+    """
+
+    id: int  # PK (auto-increment with unique tax_year constraint)
+    filing_status: FilingStatus
+    tax_year: int  # e.g., 2026
+    federal_bracket: float  # Marginal rate, e.g. 0.37
+    state_tax_rate: float  # e.g., 0.05 for 5%
+    state: str  # e.g., "NY", "TX"
+    prior_year_tax: Decimal  # For safe harbor calculation
+    agi_estimate: Decimal  # For NIIT threshold check
+    capital_loss_carryforward: Decimal  # From prior year
+    wash_sale_method: WashSaleMatchingMethod
+    default_cost_basis: CostBasisMethod
+    include_drip_wash_detection: bool = True
+    include_spousal_accounts: bool = False
+    section_475_elected: bool = False  # Mark-to-Market
+    section_1256_eligible: bool = False  # Futures 60/40

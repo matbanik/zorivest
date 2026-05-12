@@ -29,6 +29,8 @@ from zorivest_core.domain.entities import (
     Account,
     BalanceSnapshot,
     ImageAttachment,
+    TaxLot,
+    TaxProfile,
     Trade,
     TradePlan,
     TradeReport,
@@ -323,6 +325,8 @@ class UnitOfWork(Protocol):
     trade_plans: TradePlanRepository  # MEU-66
     watchlists: WatchlistRepository  # MEU-68
     email_provider: EmailProviderRepository  # MEU-73
+    tax_lots: TaxLotRepository  # MEU-123
+    tax_profiles: TaxProfileRepository  # MEU-124
 
     def __enter__(self) -> UnitOfWork: ...
 
@@ -331,6 +335,67 @@ class UnitOfWork(Protocol):
     def commit(self) -> None: ...
 
     def rollback(self) -> None: ...
+
+
+# ── Phase 3A: Tax Foundation Repository Ports ───────────────────────────
+
+
+class TaxLotRepository(Protocol):
+    """Repository for TaxLot entities.
+
+    MEU-123 AC-5. Follows TradeRepository pattern.
+    """
+
+    def get(self, lot_id: str) -> Optional[TaxLot]: ...
+
+    def save(self, lot: TaxLot) -> None: ...
+
+    def update(self, lot: TaxLot) -> None: ...
+
+    def delete(self, lot_id: str) -> None: ...
+
+    def list_for_account(self, account_id: str) -> list[TaxLot]:
+        """Return all tax lots belonging to the given account."""
+        ...
+
+    def list_filtered(
+        self,
+        limit: int = 100,
+        offset: int = 0,
+        account_id: str | None = None,
+        ticker: str | None = None,
+        is_closed: bool | None = None,
+    ) -> list[TaxLot]:
+        """List tax lots with optional filters."""
+        ...
+
+    def count_filtered(
+        self,
+        account_id: str | None = None,
+        ticker: str | None = None,
+        is_closed: bool | None = None,
+    ) -> int:
+        """Return total count of tax lots matching filters."""
+        ...
+
+
+class TaxProfileRepository(Protocol):
+    """Repository for TaxProfile entities.
+
+    MEU-124 AC-4. Simplified — get, save, update, get_for_year.
+    """
+
+    def get(self, profile_id: int) -> Optional[TaxProfile]: ...
+
+    def save(self, profile: TaxProfile) -> int:
+        """Save a new tax profile and return the assigned ID."""
+        ...
+
+    def update(self, profile: TaxProfile) -> None: ...
+
+    def get_for_year(self, tax_year: int) -> Optional[TaxProfile]:
+        """Return the tax profile for the given year, if any."""
+        ...
 
 
 # ── Build Plan Expansion ports ──────────────────────────────────────────

@@ -1,0 +1,251 @@
+# pyright: reportArgumentType=false, reportReturnType=false, reportAttributeAccessIssue=false, reportGeneralTypeIssues=false
+# SQLAlchemy Column/Session types need suppression for Column[T] → T assignments.
+
+"""SqlAlchemy Tax Repository implementations (MEU-123 + MEU-124).
+
+Source: implementation-plan.md §MEU-123 AC-5, §MEU-124 AC-4.
+Implements TaxLotRepository and TaxProfileRepository ports.
+"""
+
+from __future__ import annotations
+
+import json
+from datetime import datetime, timezone
+from decimal import Decimal
+from typing import Optional
+
+from sqlalchemy.orm import Session
+
+from zorivest_core.domain.entities import TaxLot, TaxProfile
+from zorivest_core.domain.enums import (
+    CostBasisMethod,
+    FilingStatus,
+    WashSaleMatchingMethod,
+)
+from zorivest_infra.database.models import TaxLotModel, TaxProfileModel
+
+
+class SqlTaxLotRepository:
+    """SQL-backed TaxLot repository.
+
+    Implements: get, save, update, delete, list_for_account,
+    list_filtered, count_filtered.
+    """
+
+    def __init__(self, session: Session) -> None:
+        self._session = session
+
+    def get(self, lot_id: str) -> Optional[TaxLot]:
+        model = self._session.get(TaxLotModel, lot_id)
+        if model is None:
+            return None
+        return _lot_model_to_entity(model)
+
+    def save(self, lot: TaxLot) -> None:
+        model = _lot_entity_to_model(lot)
+        self._session.add(model)
+        self._session.flush()
+
+    def update(self, lot: TaxLot) -> None:
+        model = self._session.get(TaxLotModel, lot.lot_id)
+        if model is None:
+            raise ValueError(f"TaxLot not found: {lot.lot_id}")
+        model.account_id = lot.account_id
+        model.ticker = lot.ticker
+        model.open_date = lot.open_date
+        model.close_date = lot.close_date
+        model.quantity = lot.quantity
+        model.cost_basis = lot.cost_basis
+        model.proceeds = lot.proceeds
+        model.wash_sale_adjustment = lot.wash_sale_adjustment
+        model.is_closed = lot.is_closed
+        model.linked_trade_ids = json.dumps(lot.linked_trade_ids)
+        self._session.flush()
+
+    def delete(self, lot_id: str) -> None:
+        model = self._session.get(TaxLotModel, lot_id)
+        if model is not None:
+            self._session.delete(model)
+            self._session.flush()
+
+    def list_for_account(self, account_id: str) -> list[TaxLot]:
+        models = (
+            self._session.query(TaxLotModel)
+            .filter_by(account_id=account_id)
+            .order_by(TaxLotModel.open_date)
+            .all()
+        )
+        return [_lot_model_to_entity(m) for m in models]
+
+    def list_filtered(
+        self,
+        limit: int = 100,
+        offset: int = 0,
+        account_id: str | None = None,
+        ticker: str | None = None,
+        is_closed: bool | None = None,
+    ) -> list[TaxLot]:
+        query = self._session.query(TaxLotModel)
+        if account_id is not None:
+            query = query.filter_by(account_id=account_id)
+        if ticker is not None:
+            query = query.filter_by(ticker=ticker)
+        if is_closed is not None:
+            query = query.filter_by(is_closed=is_closed)
+        models = query.order_by(TaxLotModel.open_date).offset(offset).limit(limit).all()
+        return [_lot_model_to_entity(m) for m in models]
+
+    def count_filtered(
+        self,
+        account_id: str | None = None,
+        ticker: str | None = None,
+        is_closed: bool | None = None,
+    ) -> int:
+        query = self._session.query(TaxLotModel)
+        if account_id is not None:
+            query = query.filter_by(account_id=account_id)
+        if ticker is not None:
+            query = query.filter_by(ticker=ticker)
+        if is_closed is not None:
+            query = query.filter_by(is_closed=is_closed)
+        return query.count()
+
+
+class SqlTaxProfileRepository:
+    """SQL-backed TaxProfile repository.
+
+    Implements: get, save, update, get_for_year.
+    """
+
+    def __init__(self, session: Session) -> None:
+        self._session = session
+
+    def get(self, profile_id: int) -> Optional[TaxProfile]:
+        model = self._session.get(TaxProfileModel, profile_id)
+        if model is None:
+            return None
+        return _profile_model_to_entity(model)
+
+    def save(self, profile: TaxProfile) -> int:
+        model = _profile_entity_to_model(profile)
+        self._session.add(model)
+        self._session.flush()
+        return model.id
+
+    def update(self, profile: TaxProfile) -> None:
+        model = self._session.get(TaxProfileModel, profile.id)
+        if model is None:
+            raise ValueError(f"TaxProfile not found: {profile.id}")
+        model.filing_status = profile.filing_status.value
+        model.tax_year = profile.tax_year
+        model.federal_bracket = profile.federal_bracket
+        model.state_tax_rate = profile.state_tax_rate
+        model.state = profile.state
+        model.prior_year_tax = profile.prior_year_tax
+        model.agi_estimate = profile.agi_estimate
+        model.capital_loss_carryforward = profile.capital_loss_carryforward
+        model.wash_sale_method = profile.wash_sale_method.value
+        model.default_cost_basis = profile.default_cost_basis.value
+        model.include_drip_wash_detection = profile.include_drip_wash_detection
+        model.include_spousal_accounts = profile.include_spousal_accounts
+        model.section_475_elected = profile.section_475_elected
+        model.section_1256_eligible = profile.section_1256_eligible
+        self._session.flush()
+
+    def get_for_year(self, tax_year: int) -> Optional[TaxProfile]:
+        model = (
+            self._session.query(TaxProfileModel).filter_by(tax_year=tax_year).first()
+        )
+        if model is None:
+            return None
+        return _profile_model_to_entity(model)
+
+
+# ── Mappers ──────────────────────────────────────────────────────────────
+
+
+def _ensure_utc(dt: datetime) -> datetime:
+    """Stamp UTC tzinfo on naive datetimes from SQLite storage.
+
+    SQLAlchemy's DateTime column strips tzinfo on write (SQLite stores
+    naive strings). This normalizer re-attaches UTC on read so that
+    entity computed properties (holding_period_days) can safely mix
+    with datetime.now(tz=timezone.utc).
+    """
+    if dt.tzinfo is None:
+        return dt.replace(tzinfo=timezone.utc)
+    return dt
+
+
+def _lot_model_to_entity(model: TaxLotModel) -> TaxLot:
+    linked_ids: list[str] = []
+    if model.linked_trade_ids:
+        linked_ids = json.loads(model.linked_trade_ids)
+    return TaxLot(
+        lot_id=model.lot_id,
+        account_id=model.account_id,
+        ticker=model.ticker,
+        open_date=_ensure_utc(model.open_date),
+        close_date=_ensure_utc(model.close_date) if model.close_date else None,
+        quantity=model.quantity,
+        cost_basis=Decimal(str(model.cost_basis)),
+        proceeds=Decimal(str(model.proceeds)),
+        wash_sale_adjustment=Decimal(str(model.wash_sale_adjustment)),
+        is_closed=model.is_closed,
+        linked_trade_ids=linked_ids,
+    )
+
+
+def _lot_entity_to_model(lot: TaxLot) -> TaxLotModel:
+    return TaxLotModel(
+        lot_id=lot.lot_id,
+        account_id=lot.account_id,
+        ticker=lot.ticker,
+        open_date=lot.open_date,
+        close_date=lot.close_date,
+        quantity=lot.quantity,
+        cost_basis=lot.cost_basis,
+        proceeds=lot.proceeds,
+        wash_sale_adjustment=lot.wash_sale_adjustment,
+        is_closed=lot.is_closed,
+        linked_trade_ids=json.dumps(lot.linked_trade_ids),
+    )
+
+
+def _profile_model_to_entity(model: TaxProfileModel) -> TaxProfile:
+    return TaxProfile(
+        id=model.id,
+        filing_status=FilingStatus(model.filing_status),
+        tax_year=model.tax_year,
+        federal_bracket=model.federal_bracket,
+        state_tax_rate=model.state_tax_rate,
+        state=model.state,
+        prior_year_tax=Decimal(str(model.prior_year_tax)),
+        agi_estimate=Decimal(str(model.agi_estimate)),
+        capital_loss_carryforward=Decimal(str(model.capital_loss_carryforward)),
+        wash_sale_method=WashSaleMatchingMethod(model.wash_sale_method),
+        default_cost_basis=CostBasisMethod(model.default_cost_basis),
+        include_drip_wash_detection=model.include_drip_wash_detection,
+        include_spousal_accounts=model.include_spousal_accounts,
+        section_475_elected=model.section_475_elected,
+        section_1256_eligible=model.section_1256_eligible,
+    )
+
+
+def _profile_entity_to_model(profile: TaxProfile) -> TaxProfileModel:
+    return TaxProfileModel(
+        filing_status=profile.filing_status.value,
+        tax_year=profile.tax_year,
+        federal_bracket=profile.federal_bracket,
+        state_tax_rate=profile.state_tax_rate,
+        state=profile.state,
+        prior_year_tax=profile.prior_year_tax,
+        agi_estimate=profile.agi_estimate,
+        capital_loss_carryforward=profile.capital_loss_carryforward,
+        wash_sale_method=profile.wash_sale_method.value,
+        default_cost_basis=profile.default_cost_basis.value,
+        include_drip_wash_detection=profile.include_drip_wash_detection,
+        include_spousal_accounts=profile.include_spousal_accounts,
+        section_475_elected=profile.section_475_elected,
+        section_1256_eligible=profile.section_1256_eligible,
+    )

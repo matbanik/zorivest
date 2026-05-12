@@ -1,4 +1,4 @@
-# MEU Registry — Phase 1 + 1A + 2 + 2A + 3 + 4 + 5 + 6 + 6-UX + 8 + 9
+# MEU Registry — Phase 1 + 1A + 2 + 2A + 3 + 3A + 4 + 5 + 6 + 6-UX + 8 + 9
 
 > Source: [BUILD_PLAN.md](../docs/BUILD_PLAN.md) | [build-priority-matrix.md](../docs/build-plan/build-priority-matrix.md)
 
@@ -433,3 +433,10 @@ P2.75 (broker adapters): MEU-96 → MEU-99
 | MEU-204 | `gui-form-validation-hardening` | 35q | Inline validation errors (red "X is required"), Save & Continue disable on missing fields across all CRUD forms (Accounts, Trades, Trade Plans, Watchlists) | ✅ 2026-05-05 |
 | MEU-205 | `gui-calculator-workflow` | 35r | Calculator plan picker, toggle switches (green/red, 3×2 grid, localStorage persistence), auto-save new unsaved plans, Apply closes modal, "Copying:" status line | ✅ 2026-05-05 |
 | MEU-206 | `gui-tradeplan-layout` | 35s | 4-column price grid (Entry, Shares, Stop, Target), auto position_size recalc on shares/entry change, centered calculator button, computed metrics row | ✅ 2026-05-05 |
+
+## Phase 3A: Tax Foundation Entities (P1.5)
+
+| MEU | Slug | Matrix | Description | Status |
+|-----|------|:------:|-------------|:------:|
+| MEU-123 | `tax-lot-entity` | 3A | TaxLot entity, CostBasisMethod enum, TaxLotRepository protocol, SqlTaxLotRepository, TaxLotModel | ✅ 2026-05-11 |
+| MEU-124 | `tax-profile-entity` | 3A | TaxProfile entity, FilingStatus + WashSaleMatchingMethod enums, TaxProfileRepository protocol, SqlTaxProfileRepository, TaxProfileModel | ✅ 2026-05-11 |
