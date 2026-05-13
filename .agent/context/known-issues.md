@@ -87,6 +87,14 @@
 - **Remaining:** Exchange routing (hardcoded `/america/scan`), multi-ticker batching, rate limiting, caching TTL, technicals schema. All are opportunistic P4 items.
 - **Research detail:** See [issue-triage-report.md](issue-triage-report.md) for full scanner capability analysis.
 
+### [MEU-128-COLLISION] — MEU-128 ID assigned to both tax and GUI components
+- **Severity:** Low (documentation)
+- **Component:** docs (build-plan)
+- **Discovered:** 2026-05-12
+- **Status:** Tracked — deferred to GUI doc maintenance
+- **Details:** MEU-128 is `options-assignment` in BUILD_PLAN.md (tax, canonical) but `gui-screenshot` in `06-gui.md:428` and `testing-strategy.md:554`. No runtime conflict — purely a doc cross-reference collision.
+- **Resolution:** Renumber the GUI screenshot MEU during the next GUI phase plan update.
+
 ## Archived (see [known-issues-archive.md](known-issues-archive.md))
 
 | ID | Resolved | Summary |

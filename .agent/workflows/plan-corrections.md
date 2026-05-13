@@ -188,6 +188,43 @@ Update the same canonical plan-critical-review handoff in `.agent/context/handof
 
 ---
 
+### Step 7: Completion Timestamp (Mandatory Exit Gate)
+
+> [!IMPORTANT]
+> **Context-rot guard.** Re-read this workflow file before proceeding.
+> If you are resuming after context truncation, this step will not exist in your context unless you re-read.
+
+The **very last line** of the agent's chat response must be the timestamp skill output, copied verbatim.
+
+This is a hard exit requirement for every `/plan-corrections` response, including short correction summaries.
+
+Required sequence:
+
+1. Re-read this workflow file to confirm all prior steps are complete.
+2. Invoke the timestamp skill by reading `.agent/skills/timestamp/SKILL.md`.
+3. Run the stamp script with the Windows redirect-to-file pattern:
+
+```powershell
+# // turbo
+python .agent/skills/timestamp/scripts/stamp.py *> C:\Temp\zorivest\stamp.txt
+```
+
+4. Read `C:\Temp\zorivest\stamp.txt` with the file viewer.
+5. Copy the file's single output line verbatim as the final chat line.
+
+No text, bullets, caveats, or sign-off may appear after the timestamp line.
+
+Compressed variant for correction summaries:
+
+```text
+Corrections applied to <canonical-review-path>. Status: corrections_applied. Key evidence: <one sentence>.
+🕐 Completed: YYYY-MM-DD HH:MM (TZ)
+```
+
+The compressed variant still requires invoking the timestamp skill and copying its real output verbatim for the last line.
+
+---
+
 ## Hard Rules
 
 1. **Always verify findings before fixing.** Reviews can have stale line numbers.
@@ -234,33 +271,3 @@ When to switch:
 > **Do NOT autonomously chain into `/plan-critical-review`, `/execution-corrections`, or any other workflow after completing corrections.** You MUST stop here and report the canonical review handoff path to the user. The user decides what happens next.
 
 **Workflow complete.** Report the handoff path and wait for user direction.
-
-## Completion Timestamp
-
-The **very last line** of the agent's chat response must be the timestamp skill output, copied verbatim.
-
-This is a hard exit requirement for every `/plan-corrections` response, including short correction summaries.
-
-Required sequence:
-
-1. Invoke the timestamp skill by reading `.agent/skills/timestamp/SKILL.md`.
-2. Run the stamp script with the Windows redirect-to-file pattern:
-
-```powershell
-# // turbo
-python .agent/skills/timestamp/scripts/stamp.py *> C:\Temp\zorivest\stamp.txt
-```
-
-3. Read `C:\Temp\zorivest\stamp.txt` with the file viewer.
-4. Copy the file's single output line verbatim as the final chat line.
-
-No text, bullets, caveats, or sign-off may appear after the timestamp line.
-
-Compressed variant for correction summaries:
-
-```text
-Corrections applied to <canonical-review-path>. Status: corrections_applied. Key evidence: <one sentence>.
-🕐 Completed: YYYY-MM-DD HH:MM (TZ)
-```
-
-The compressed variant still requires invoking the timestamp skill and copying its real output verbatim for the last line.

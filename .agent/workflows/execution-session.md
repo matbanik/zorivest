@@ -183,6 +183,41 @@ Present the human with:
 3. Link to the reflection file for review
 4. Draft outline for the next session (used by `/create-plan` workflow)
 
+### 8. Completion Timestamp (Mandatory Exit Gate)
+
+> [!IMPORTANT]
+> **Context-rot guard.** Re-read this workflow file before proceeding.
+> If you are resuming after context truncation, this step will not exist in your context unless you re-read.
+
+The **very last line** of the agent's chat response must be the timestamp skill output, copied verbatim.
+
+This is a hard exit requirement for every `/execution-session` response, including checkpoints, Codex-validation handoffs, and final completion summaries.
+
+Required sequence:
+
+1. Re-read this workflow file to confirm all prior steps are complete.
+2. Invoke the timestamp skill by reading `.agent/skills/timestamp/SKILL.md`.
+3. Run the stamp script with the Windows redirect-to-file pattern:
+
+```powershell
+# // turbo
+python .agent/skills/timestamp/scripts/stamp.py *> C:\Temp\zorivest\stamp.txt
+```
+
+4. Read `C:\Temp\zorivest\stamp.txt` with the file viewer.
+5. Copy the file's single output line verbatim as the final chat line.
+
+No text, bullets, caveats, or sign-off may appear after the timestamp line.
+
+Compressed variant for checkpoints:
+
+```text
+Checkpoint saved for <project-slug>. Status: <blocked|ready-for-review|complete>. Key evidence: <one sentence>.
+🕐 Completed: YYYY-MM-DD HH:MM (TZ)
+```
+
+The compressed variant still requires invoking the timestamp skill and copying its real output verbatim for the last line.
+
 ## Session Lifecycle Summary
 
 ```
@@ -223,33 +258,3 @@ Present the human with:
 - [ ] Metrics table updated
 - [ ] Session state saved to pomera_notes
 - [ ] Proposed commit messages presented to human
-
-## Completion Timestamp
-
-The **very last line** of the agent's chat response must be the timestamp skill output, copied verbatim.
-
-This is a hard exit requirement for every `/execution-session` response, including checkpoints, Codex-validation handoffs, and final completion summaries.
-
-Required sequence:
-
-1. Invoke the timestamp skill by reading `.agent/skills/timestamp/SKILL.md`.
-2. Run the stamp script with the Windows redirect-to-file pattern:
-
-```powershell
-# // turbo
-python .agent/skills/timestamp/scripts/stamp.py *> C:\Temp\zorivest\stamp.txt
-```
-
-3. Read `C:\Temp\zorivest\stamp.txt` with the file viewer.
-4. Copy the file's single output line verbatim as the final chat line.
-
-No text, bullets, caveats, or sign-off may appear after the timestamp line.
-
-Compressed variant for checkpoints:
-
-```text
-Checkpoint saved for <project-slug>. Status: <blocked|ready-for-review|complete>. Key evidence: <one sentence>.
-🕐 Completed: YYYY-MM-DD HH:MM (TZ)
-```
-
-The compressed variant still requires invoking the timestamp skill and copying its real output verbatim for the last line.

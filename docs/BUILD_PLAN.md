@@ -611,13 +611,13 @@ Domain → Infrastructure → Services → REST API → MCP Server → GUI → D
 
 | MEU | Slug | Matrix Item | Build Plan Ref | Description | Status |
 |-----|------|:-----------:|----------------|-------------|:------:|
-| MEU-123 | `tax-lot-entity` | 50 | [matrix §3A](build-plan/build-priority-matrix.md) | TaxLot entity + CostBasisMethod enum | ⬜ |
-| MEU-124 | `tax-profile` | 51 | [matrix §3A](build-plan/build-priority-matrix.md) | TaxProfile entity + FilingStatus enum | ⬜ |
-| MEU-125 | `tax-lot-tracking` | 52 | [matrix §3A](build-plan/build-priority-matrix.md) | Tax lot tracking: open/close, holding period | ⬜ |
-| MEU-126 | `tax-gains-calc` | 53 | [matrix §3A](build-plan/build-priority-matrix.md) | ST vs LT classification + gains calculator | ⬜ |
-| MEU-127 | `tax-loss-carry` | 54 | [matrix §3A](build-plan/build-priority-matrix.md) | Capital loss carryforward + account exclusion | ⬜ |
-| MEU-128 | `options-assignment` | 55 | [matrix §3A](build-plan/build-priority-matrix.md) | Options assignment/exercise cost basis | ⬜ |
-| MEU-129 | `ytd-pnl` | 56 | [matrix §3A](build-plan/build-priority-matrix.md) | YTD P&L by symbol (ST vs LT) | ⬜ |
+| MEU-123 | `tax-lot-entity` | 50 | [matrix §3A](build-plan/build-priority-matrix.md) | TaxLot entity + CostBasisMethod enum | ✅ |
+| MEU-124 | `tax-profile` | 51 | [matrix §3A](build-plan/build-priority-matrix.md) | TaxProfile entity + FilingStatus enum | ✅ |
+| MEU-125 | `tax-lot-tracking` | 52 | [matrix §3A](build-plan/build-priority-matrix.md) | Tax lot tracking: open/close, holding period | ✅ |
+| MEU-126 | `tax-gains-calc` | 53 | [matrix §3A](build-plan/build-priority-matrix.md) | ST vs LT classification + gains calculator | ✅ |
+| MEU-127 | `tax-loss-carry` | 54 | [matrix §3A](build-plan/build-priority-matrix.md) | Capital loss carryforward + account exclusion | ✅ |
+| MEU-128 | `options-assignment` | 55 | [matrix §3A](build-plan/build-priority-matrix.md) | Options assignment/exercise cost basis | ✅ |
+| MEU-129 | `ytd-pnl` | 56 | [matrix §3A](build-plan/build-priority-matrix.md) | YTD P&L by symbol (ST vs LT) | ✅ |
 
 #### Phase 3B — Wash Sale Engine
 

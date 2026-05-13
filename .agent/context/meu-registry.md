@@ -440,3 +440,8 @@ P2.75 (broker adapters): MEU-96 → MEU-99
 |-----|------|:------:|-------------|:------:|
 | MEU-123 | `tax-lot-entity` | 3A | TaxLot entity, CostBasisMethod enum, TaxLotRepository protocol, SqlTaxLotRepository, TaxLotModel | ✅ 2026-05-11 |
 | MEU-124 | `tax-profile-entity` | 3A | TaxProfile entity, FilingStatus + WashSaleMatchingMethod enums, TaxProfileRepository protocol, SqlTaxProfileRepository, TaxProfileModel | ✅ 2026-05-11 |
+| MEU-125 | `tax-lot-tracking` | 52 | Tax lot tracking: open/close, holding period, split-lot on partial close | ✅ 2026-05-12 |
+| MEU-126 | `tax-gains-calc` | 53 | ST vs LT classification, gains calculator, TaxService orchestration, simulate_impact | ✅ 2026-05-12 |
+| MEU-127 | `tax-loss-carry` | 54 | Capital loss carryforward + $3K/$1.5K cap + tax-advantaged account exclusion | ✅ 2026-05-12 |
+| MEU-128 | `options-assignment` | 55 | Options assignment/exercise cost basis pairing (4 IRS paths: short put, short call, long call, long put) | ✅ 2026-05-12 |
+| MEU-129 | `ytd-pnl` | 56 | YTD P&L by symbol (ST vs LT breakdown) | ✅ 2026-05-12 |

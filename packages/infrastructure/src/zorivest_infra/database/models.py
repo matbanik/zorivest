@@ -876,6 +876,12 @@ class TaxLotModel(Base):
     wash_sale_adjustment = Column(Numeric(15, 6), nullable=False, default=0)
     is_closed = Column(Boolean, nullable=False, default=False)
     linked_trade_ids = Column(Text, nullable=True)  # JSON list of exec_ids
+    cost_basis_method = Column(
+        String(30), nullable=True
+    )  # Per-lot override (CostBasisMethod)
+    realized_gain_loss = Column(
+        Numeric(15, 6), nullable=False, default=0
+    )  # Computed on close
 
 
 class TaxProfileModel(Base):

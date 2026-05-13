@@ -60,6 +60,10 @@ class SqlTaxLotRepository:
         model.wash_sale_adjustment = lot.wash_sale_adjustment
         model.is_closed = lot.is_closed
         model.linked_trade_ids = json.dumps(lot.linked_trade_ids)
+        model.cost_basis_method = (
+            lot.cost_basis_method.value if lot.cost_basis_method else None
+        )
+        model.realized_gain_loss = lot.realized_gain_loss
         self._session.flush()
 
     def delete(self, lot_id: str) -> None:
@@ -93,6 +97,23 @@ class SqlTaxLotRepository:
         if is_closed is not None:
             query = query.filter_by(is_closed=is_closed)
         models = query.order_by(TaxLotModel.open_date).offset(offset).limit(limit).all()
+        return [_lot_model_to_entity(m) for m in models]
+
+    def list_all_filtered(
+        self,
+        account_id: str | None = None,
+        ticker: str | None = None,
+        is_closed: bool | None = None,
+    ) -> list[TaxLot]:
+        """Return ALL matching lots without pagination (for aggregate reporting)."""
+        query = self._session.query(TaxLotModel)
+        if account_id is not None:
+            query = query.filter_by(account_id=account_id)
+        if ticker is not None:
+            query = query.filter_by(ticker=ticker)
+        if is_closed is not None:
+            query = query.filter_by(is_closed=is_closed)
+        models = query.order_by(TaxLotModel.open_date).all()
         return [_lot_model_to_entity(m) for m in models]
 
     def count_filtered(
@@ -193,6 +214,12 @@ def _lot_model_to_entity(model: TaxLotModel) -> TaxLot:
         wash_sale_adjustment=Decimal(str(model.wash_sale_adjustment)),
         is_closed=model.is_closed,
         linked_trade_ids=linked_ids,
+        cost_basis_method=CostBasisMethod(model.cost_basis_method)
+        if model.cost_basis_method
+        else None,
+        realized_gain_loss=Decimal(str(model.realized_gain_loss))
+        if model.realized_gain_loss
+        else Decimal("0.00"),
     )
 
 
@@ -209,6 +236,10 @@ def _lot_entity_to_model(lot: TaxLot) -> TaxLotModel:
         wash_sale_adjustment=lot.wash_sale_adjustment,
         is_closed=lot.is_closed,
         linked_trade_ids=json.dumps(lot.linked_trade_ids),
+        cost_basis_method=lot.cost_basis_method.value
+        if lot.cost_basis_method
+        else None,
+        realized_gain_loss=lot.realized_gain_loss,
     )
 
 

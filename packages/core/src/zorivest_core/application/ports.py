@@ -369,6 +369,19 @@ class TaxLotRepository(Protocol):
         """List tax lots with optional filters."""
         ...
 
+    def list_all_filtered(
+        self,
+        account_id: str | None = None,
+        ticker: str | None = None,
+        is_closed: bool | None = None,
+    ) -> list[TaxLot]:
+        """List ALL tax lots matching filters (no pagination).
+
+        Use this for aggregate reporting (tax gains, YTD P&L) where
+        all matching lots must be included.
+        """
+        ...
+
     def count_filtered(
         self,
         account_id: str | None = None,

@@ -196,7 +196,7 @@ class Watchlist:
 class TaxLot:
     """Individual purchase lot for cost basis tracking.
 
-    MEU-123: FIC AC-2. 11 stored fields + 2 computed properties.
+    MEU-123: FIC AC-2. 13 stored fields + 2 computed properties.
     Spec: domain-model-reference.md L353-366.
     """
 
@@ -211,6 +211,12 @@ class TaxLot:
     wash_sale_adjustment: Decimal  # Deferred loss added to basis
     is_closed: bool
     linked_trade_ids: list[str] = field(default_factory=list)  # FK → Trade.exec_id
+    cost_basis_method: Optional[CostBasisMethod] = (
+        None  # Per-lot override (None = use TaxProfile default)
+    )
+    realized_gain_loss: Decimal = Decimal(
+        "0.00"
+    )  # Computed on close via calculate_realized_gain
 
     @property
     def holding_period_days(self) -> int:
