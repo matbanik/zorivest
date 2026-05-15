@@ -1010,6 +1010,7 @@
         "type": "object"
       },
       "EstimateTaxRequest": {
+        "additionalProperties": false,
         "properties": {
           "account_id": {
             "anyOf": [
@@ -1628,7 +1629,27 @@
         "title": "ProviderConfigRequest",
         "type": "object"
       },
+      "ReassignLotBasisRequest": {
+        "additionalProperties": false,
+        "properties": {
+          "method": {
+            "default": "fifo",
+            "enum": [
+              "fifo",
+              "lifo",
+              "hifo",
+              "specific_id",
+              "avg_cost"
+            ],
+            "title": "Method",
+            "type": "string"
+          }
+        },
+        "title": "ReassignLotBasisRequest",
+        "type": "object"
+      },
       "RecordPaymentRequest": {
+        "additionalProperties": false,
         "properties": {
           "confirm": {
             "title": "Confirm",
@@ -1982,6 +2003,7 @@
         "type": "object"
       },
       "SimulateTaxRequest": {
+        "additionalProperties": false,
         "properties": {
           "account_id": {
             "title": "Account Id",
@@ -2775,6 +2797,7 @@
         "type": "object"
       },
       "WashSaleRequest": {
+        "additionalProperties": false,
         "properties": {
           "account_id": {
             "title": "Account Id",
@@ -8205,6 +8228,51 @@
         ]
       }
     },
+    "/api/v1/tax/alpha": {
+      "get": {
+        "description": "Tax alpha report \u2014 comparison of actual vs FIFO counterfactual.\n\nAC-148.5: New route added for MEU-152 service method.",
+        "operationId": "get_tax_alpha_report_api_v1_tax_alpha_get",
+        "parameters": [
+          {
+            "in": "query",
+            "name": "tax_year",
+            "required": true,
+            "schema": {
+              "title": "Tax Year",
+              "type": "integer"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "additionalProperties": true,
+                  "title": "Response Get Tax Alpha Report Api V1 Tax Alpha Get",
+                  "type": "object"
+                }
+              }
+            },
+            "description": "Successful Response"
+          },
+          "422": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HTTPValidationError"
+                }
+              }
+            },
+            "description": "Validation Error"
+          }
+        },
+        "summary": "Get Tax Alpha Report",
+        "tags": [
+          "tax"
+        ]
+      }
+    },
     "/api/v1/tax/audit": {
       "post": {
         "description": "Run transaction audit checks.",
@@ -8273,9 +8341,61 @@
         ]
       }
     },
+    "/api/v1/tax/deferred-losses": {
+      "get": {
+        "description": "Deferred loss report \u2014 surfaces trapped wash sale chains.\n\nAC-148.5: New route added for MEU-151 service method.",
+        "operationId": "get_deferred_loss_report_api_v1_tax_deferred_losses_get",
+        "parameters": [
+          {
+            "in": "query",
+            "name": "tax_year",
+            "required": false,
+            "schema": {
+              "anyOf": [
+                {
+                  "type": "integer"
+                },
+                {
+                  "type": "null"
+                }
+              ],
+              "title": "Tax Year"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "additionalProperties": true,
+                  "title": "Response Get Deferred Loss Report Api V1 Tax Deferred Losses Get",
+                  "type": "object"
+                }
+              }
+            },
+            "description": "Successful Response"
+          },
+          "422": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HTTPValidationError"
+                }
+              }
+            },
+            "description": "Validation Error"
+          }
+        },
+        "summary": "Get Deferred Loss Report",
+        "tags": [
+          "tax"
+        ]
+      }
+    },
     "/api/v1/tax/estimate": {
       "post": {
-        "description": "Compute overall tax estimate.",
+        "description": "Compute overall tax estimate.\n\nAC-148.3: Routes to TaxService.get_taxable_gains() for annual gains.",
         "operationId": "estimate_tax_api_v1_tax_estimate_post",
         "requestBody": {
           "content": {
@@ -8319,7 +8439,7 @@
     },
     "/api/v1/tax/harvest": {
       "get": {
-        "description": "Scan portfolio for harvestable losses.",
+        "description": "Scan portfolio for harvestable losses.\n\nAC-148.3: Returns wash-sale-trapped chains as harvest candidates.\nUses get_trapped_losses() which surfaces chains with deferred losses\nthat may be harvestable when the wash-sale window expires.\n\nNote: Full harvest scanning (with current prices) requires market\ndata integration. This endpoint surfaces known deferred losses\nas a starting point for harvesting analysis.",
         "operationId": "harvest_losses_api_v1_tax_harvest_get",
         "parameters": [
           {
@@ -8391,16 +8511,23 @@
     },
     "/api/v1/tax/lots": {
       "get": {
-        "description": "List tax lots with basis, holding period, and gain/loss.",
+        "description": "List tax lots with basis, holding period, and gain/loss.\n\nAC-148.3: get_lots returns list[TaxLot] \u2192 serialized to dict.",
         "operationId": "get_tax_lots_api_v1_tax_lots_get",
         "parameters": [
           {
             "in": "query",
             "name": "account_id",
-            "required": true,
+            "required": false,
             "schema": {
-              "title": "Account Id",
-              "type": "string"
+              "anyOf": [
+                {
+                  "type": "string"
+                },
+                {
+                  "type": "null"
+                }
+              ],
+              "title": "Account Id"
             }
           },
           {
@@ -8482,7 +8609,7 @@
     },
     "/api/v1/tax/lots/{lot_id}/close": {
       "post": {
-        "description": "Close a specific tax lot (mark as sold).",
+        "description": "Close a specific tax lot (mark as sold).\n\nAC-148.3: Returns serialized TaxLot entity.",
         "operationId": "close_tax_lot_api_v1_tax_lots__lot_id__close_post",
         "parameters": [
           {
@@ -8527,7 +8654,7 @@
     },
     "/api/v1/tax/lots/{lot_id}/reassign": {
       "put": {
-        "description": "Reassign cost basis method for a lot.",
+        "description": "Reassign cost basis method for a lot.\n\nAC-148.3: Converts body.method string to CostBasisMethod enum.",
         "operationId": "reassign_lot_basis_api_v1_tax_lots__lot_id__reassign_put",
         "parameters": [
           {
@@ -8544,9 +8671,7 @@
           "content": {
             "application/json": {
               "schema": {
-                "additionalProperties": true,
-                "title": "Body",
-                "type": "object"
+                "$ref": "#/components/schemas/ReassignLotBasisRequest"
               }
             }
           },
@@ -8584,7 +8709,7 @@
     },
     "/api/v1/tax/quarterly": {
       "get": {
-        "description": "Compute quarterly estimated tax payment obligations.",
+        "description": "Compute quarterly estimated tax payment obligations.\n\nAC-148.9: Quarter string \"Q1\"\u21921, \"Q2\"\u21922 etc.",
         "operationId": "get_quarterly_estimate_api_v1_tax_quarterly_get",
         "parameters": [
           {
@@ -8659,7 +8784,7 @@
     },
     "/api/v1/tax/quarterly/payment": {
       "post": {
-        "description": "Record an actual quarterly tax payment. Requires confirm=true.",
+        "description": "Record an actual quarterly tax payment. Requires confirm=true.\n\nAC-148.6: Routes to TaxService.record_payment() with persistence.",
         "operationId": "record_quarterly_tax_payment_api_v1_tax_quarterly_payment_post",
         "requestBody": {
           "content": {
@@ -8703,7 +8828,7 @@
     },
     "/api/v1/tax/simulate": {
       "post": {
-        "description": "Pre-trade what-if tax simulation.",
+        "description": "Pre-trade what-if tax simulation.\n\nAC-148.3: Decomposes Pydantic body \u2192 TaxService.simulate_impact() args.",
         "operationId": "simulate_tax_impact_api_v1_tax_simulate_post",
         "requestBody": {
           "content": {
@@ -8747,7 +8872,7 @@
     },
     "/api/v1/tax/wash-sales": {
       "post": {
-        "description": "Detect wash sale chains/conflicts within 30-day windows.",
+        "description": "Detect wash sale chains/conflicts within 30-day windows.\n\nAC-148.3: Routes to TaxService.get_trapped_losses().",
         "operationId": "find_wash_sales_api_v1_tax_wash_sales_post",
         "requestBody": {
           "content": {
@@ -8791,7 +8916,7 @@
     },
     "/api/v1/tax/wash-sales/scan": {
       "post": {
-        "description": "Trigger a full wash sale scan across all accounts.",
+        "description": "Trigger a full wash sale scan across all accounts.\n\nAC-148.3: Routes to scan_cross_account_wash_sales for current year.",
         "operationId": "scan_wash_sales_api_v1_tax_wash_sales_scan_post",
         "parameters": [
           {
