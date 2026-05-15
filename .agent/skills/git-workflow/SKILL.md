@@ -62,6 +62,7 @@ pwsh -File .agent/skills/git-workflow/scripts/agent-commit.ps1 -Message "wip: sa
 2. ✅ Checks remote URL format (warns on HTTPS)
 3. ✅ Stages all changes (`git add -A`)
 4. ✅ Runs Ruff lint + unit tests (aborts on failure) — skip with `-SkipTests`
+4c. ✅ Regenerates `openapi.committed.json` if stale (prevents CI drift failures)
 5. ✅ Commits with `-m` flag (never opens editor)
 6. ✅ Pushes to origin (unless `-Push $false`)
 7. ✅ Verifies with `git log --oneline -1`

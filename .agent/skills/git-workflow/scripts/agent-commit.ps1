@@ -114,8 +114,24 @@ else {
         exit 1
     }
     Write-Host "  Unit tests: passed" -ForegroundColor Green
-}
 
+    # 4c: OpenAPI spec drift check
+    Write-Host "  [4c] OpenAPI spec drift check..." -ForegroundColor Yellow
+    if (Test-Path "tools/export_openapi.py") {
+        $null = uv run python tools/export_openapi.py -o openapi.committed.json 2>&1
+        $specDiff = git diff --name-only openapi.committed.json 2>$null
+        if ($specDiff) {
+            Write-Host "  OpenAPI spec was stale — auto-regenerated and staged." -ForegroundColor DarkYellow
+            git add openapi.committed.json
+        }
+        else {
+            Write-Host "  OpenAPI spec: up to date" -ForegroundColor Green
+        }
+    }
+    else {
+        Write-Host "  OpenAPI export tool not found — skipped" -ForegroundColor DarkYellow
+    }
+}
 # ── Step 5: Commit ──────────────────────────────────────────────────────
 Write-Host "[5/7] Committing..." -ForegroundColor Yellow
 
