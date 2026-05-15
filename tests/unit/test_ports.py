@@ -323,7 +323,7 @@ class TestProtocolConvention:
             if obj.__module__ == mod.__name__ and issubclass(obj, Protocol)
         ]
         # Value: verify exact count matches module integrity test
-        assert len(port_classes) == 22
+        assert len(port_classes) == 24
         for cls in port_classes:
             assert cls is not None, f"{cls.__name__} unexpectedly None"
 
@@ -338,8 +338,8 @@ class TestProtocolConvention:
                 is_runtime = getattr(obj, "_is_runtime_protocol", False)
                 assert not is_runtime, f"{name} must NOT be @runtime_checkable"
                 checked_count += 1
-        # Value: verify we actually checked all 23 module classes
-        assert checked_count == 23
+        # Value: verify we actually checked all 24 module classes
+        assert checked_count == 25
 
 
 # ── AC-8: Import surface ────────────────────────────────────────────────
@@ -433,6 +433,10 @@ class TestModuleIntegrity:
             # Phase 3A tax (MEU-123, MEU-124)
             "TaxLotRepository",
             "TaxProfileRepository",
+            # Phase 3B wash sale (MEU-130)
+            "WashSaleChainRepository",
+            # Phase 3D quarterly (MEU-143)
+            "QuarterlyEstimateRepository",
         }
         assert set(class_names) == expected, (
             f"Expected {expected}, got {set(class_names)}"

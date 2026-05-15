@@ -882,6 +882,9 @@ class TaxLotModel(Base):
     realized_gain_loss = Column(
         Numeric(15, 6), nullable=False, default=0
     )  # Computed on close
+    acquisition_source = Column(
+        String(20), nullable=True
+    )  # AcquisitionSource enum (MEU-134)
 
 
 class TaxProfileModel(Base):
@@ -905,6 +908,30 @@ class TaxProfileModel(Base):
     include_spousal_accounts = Column(Boolean, nullable=False, default=False)
     section_475_elected = Column(Boolean, nullable=False, default=False)
     section_1256_eligible = Column(Boolean, nullable=False, default=False)
+
+
+class QuarterlyEstimateModel(Base):
+    """Quarterly estimated tax payment tracking (§3E, MEU-148).
+
+    Matches QuarterlyEstimate entity: entities.py L270-286.
+    """
+
+    __tablename__ = "quarterly_estimates"
+    __table_args__ = (
+        UniqueConstraint(
+            "tax_year", "quarter", name="uq_quarterly_estimate_year_quarter"
+        ),
+    )
+
+    id = Column(Integer, primary_key=True, autoincrement=True)
+    tax_year = Column(Integer, nullable=False)
+    quarter = Column(Integer, nullable=False)  # 1-4
+    due_date = Column(DateTime, nullable=False)
+    required_payment = Column(Numeric(15, 6), nullable=False, default=0)
+    actual_payment = Column(Numeric(15, 6), nullable=False, default=0)
+    method = Column(String(30), nullable=False, default="annualized")
+    cumulative_ytd_gains = Column(Numeric(15, 6), nullable=False, default=0)
+    underpayment_penalty_risk = Column(Numeric(15, 6), nullable=False, default=0)
 
 
 # ── Scheduling Triggers (§9.2h, §9.2i) ───────────────────────────────────

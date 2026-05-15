@@ -115,8 +115,17 @@ Hybrid monorepo — see `.agent/docs/architecture.md` for the target-state archi
 - **Time is not a constraint** in agentic development cycles. Do not optimize for speed over quality.
 - **Token usage is not a constraint** (subscription-based). Do not truncate, summarize prematurely, or skip work to save tokens.
 - **Do not bring up time or token usage** in design discussions, trade-off analyses, or implementation decisions. Quality, wisdom, and expert experience are the only optimization targets.
-- **At session start:** Check `pomera_notes` (`search_term: "Zorivest"`), read `.agent/context/current-focus.md` and `.agent/context/known-issues.md`. Verify MCP server availability (`pomera_diagnose`). If `pomera` or `text-editor` unavailable, report and stop.
+- **At session start:** Check `pomera_notes` (`search_term: "Zorivest"`), read `.agent/context/current-focus.md` and `.agent/context/known-issues.md`. Read `GUARDRAILS.md` for active safety SIGNs. Verify MCP server availability (`pomera_diagnose`). If `pomera` or `text-editor` unavailable, report and stop.
 - **At session end:** Save to `pomera_notes` (`Memory/Session/Zorivest-{project-slug}-{date}`) and create/update handoff(s) at `.agent/context/handoffs/`. Update `.agent/context/current-focus.md` only when the session changes project state; review-only sessions should not overwrite unrelated focus state. **Emit Instruction Coverage YAML** per `.agent/schemas/reflection.v1.yaml` in the reflection file — `view_file` the schema before emitting. This is NOT optional; see `## Instruction Coverage Reflection` at EOF for rules.
+
+> [!IMPORTANT]
+> **Closeout artifact quality rule.** Reflection, handoff, metrics, and pomera session saves are **institutional memory** — apply the same rigor as production code. Before generating ANY closeout artifact, the agent MUST:
+> 1. `view_file` the relevant template (e.g., `reflections/TEMPLATE.md`, `handoffs/TEMPLATE.md`)
+> 2. `view_file` a recent peer exemplar (sorted by date, pick the most recent) for quality calibration
+> 3. Generate the artifact following ALL template sections — no shortcuts, no "from memory"
+> 4. Verify the artifact passes the structural marker checks in `completion-preflight/SKILL.md` §Closeout Artifact Quality Check
+>
+> Writing closeout artifacts from memory is a **quality violation** equivalent to shipping code without tests. Context fatigue at session end is the primary risk — these steps are the countermeasure.
 - **Context file hygiene (session end):**
   - If you resolved a known issue during this session, move its full entry from `known-issues.md` to `known-issues-archive.md` and leave only a 1-line summary row in the "Archived" table.
   - In `current-focus.md`, replace "Current Priority" and "Next Steps" with the session's actual outcome. Delete any completed (`✅`) items. Never append to a historical "Recently Completed" section — that pattern is retired.
@@ -265,7 +274,9 @@ When implementing a Manageable Execution Unit (MEU):
 - A thin spec is not a valid reason to ship a narrower implementation. Resolve the gap in planning/research, update the plan/FIC with the source-backed rule, then implement the full resolved contract.
 
 > [!CAUTION]
-> **Anti-premature-stop rule.** Do NOT stop or report to the user during execution unless blocked by an unresolvable error or a human decision gate. Complete ALL workflow exit criteria in a single continuous pass — including post-MEU deliverables (MEU gate, registry update, BUILD_PLAN.md update, reflection, metrics, pomera session save, commit messages). Before reporting completion, re-read `task.md` and verify every item is `[x]`.
+> **Anti-premature-stop rule (EXECUTION PHASE ONLY — Step 6+).** This rule applies ONLY after the user has explicitly approved the plan and the agent has entered EXECUTION mode. It does NOT apply during PLANNING (Steps 1–5). The Step 5 HARD STOP in `create-plan.md` is a mandatory human decision gate that takes absolute precedence — the agent MUST end its turn after writing plan files, with no questions, no prompts, and no continuation.
+>
+> During execution: Do NOT stop or report to the user unless blocked by an unresolvable error or a human decision gate. Complete ALL workflow exit criteria in a single continuous pass — including post-MEU deliverables (MEU gate, registry update, BUILD_PLAN.md update, reflection, metrics, pomera session save, commit messages). Before reporting completion, re-read `task.md` and verify every item is `[x]`.
 >
 > **Lifecycle escape hatch**: "Trigger Codex validation" IS classified as an allowed human decision gate. The anti-premature-stop rule permits handing off to Codex. Post-validation artifacts (reflection, metrics) are created in the NEXT session after Codex returns its verdict.
 >
@@ -439,16 +450,20 @@ See `.agent/docs/code-quality.md` for full examples and forbidden patterns.
 ### Template-First Rule (Mandatory)
 
 > [!CAUTION]
-> **Before creating ANY handoff, reflection, or review file, `view_file` its canonical template.** Do NOT write artifacts from memory. This is not optional.
+> **Before creating ANY handoff, reflection, or review file, `view_file` its canonical template AND a recent peer exemplar.** Do NOT write artifacts from memory. This is not optional — it is a P1 quality gate.
 
 Required `view_file` calls before artifact creation:
 
-- **Handoff** → `view_file: .agent/context/handoffs/TEMPLATE.md`
-- **Reflection** → `view_file: docs/execution/reflections/TEMPLATE.md`
-- **Plan review** → `view_file: .agent/context/handoffs/REVIEW-TEMPLATE.md`
-- **Implementation review** → `view_file: .agent/context/handoffs/REVIEW-TEMPLATE.md`
+| Artifact | Template | Exemplar (most recent by date) |
+|----------|----------|---------------------------------|
+| **Handoff** | `view_file: .agent/context/handoffs/TEMPLATE.md` | `ls .agent/context/handoffs/ \| Sort-Object` → pick latest |
+| **Reflection** | `view_file: docs/execution/reflections/TEMPLATE.md` | `ls docs/execution/reflections/ \| Sort-Object` → pick latest |
+| **Plan review** | `view_file: .agent/context/handoffs/REVIEW-TEMPLATE.md` | Pick latest `*-plan-critical-review.md` |
+| **Impl review** | `view_file: .agent/context/handoffs/REVIEW-TEMPLATE.md` | Pick latest `*-implementation-critical-review.md` |
 
-If you skip the template read, `completion-preflight` will catch the structural non-compliance and force a rewrite. Read it first to avoid rework.
+**Enforcement:** `completion-preflight` §Closeout Artifact Quality Check validates structural markers. Non-compliant artifacts will force a rewrite. Read the template AND exemplar first to avoid rework.
+
+> **Why the exemplar?** Templates show structure; exemplars show quality. Without an exemplar, agents fill templates with minimal content that is structurally valid but substantively empty. The exemplar provides the quality floor.
 
 ### Rationale (Research-backed)
 

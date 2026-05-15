@@ -5,6 +5,17 @@
 
 ---
 
+### [TAX-DBMIGRATION] — tax_lots table missing 3 Phase 3B/3C columns ✅ RESOLVED
+- **Severity:** ~~High~~ → Resolved (2026-05-14)
+- **Component:** infrastructure (database), api (main.py)
+- **Discovered:** 2026-05-14 (MCP audit v4)
+- **Status:** ✅ **Resolved — inline migration added, 4 endpoints restored**
+- **Root cause:** Phase 3B/3C added `cost_basis_method`, `realized_gain_loss`, `acquisition_source` to `TaxLotModel` ORM but no `ALTER TABLE` was added to `_inline_migrations` in `main.py`. Existing databases lacked the columns, causing `OperationalError` 500s.
+- **Fix:** Extracted `_get_inline_migrations()` to module-level function for testability. Added 3 ALTER TABLE statements. Created `tests/integration/test_inline_migrations.py` with Red/Green TDD (old-shape migration, idempotency, fresh-DB assertions).
+- **Evidence:** 3627 tests pass, 4 tax endpoints (lots/estimate/simulate/ytd_summary) return 200.
+
+---
+
 ### [BOUNDARY-GAP] — Systemic input validation gaps across API/MCP write paths ✅ RESOLVED
 - **Severity:** ~~High~~ → Resolved (2026-04-11)
 - **Component:** api, core (services), mcp-server (planned)

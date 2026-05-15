@@ -16,13 +16,18 @@ from typing import Optional
 
 from sqlalchemy.orm import Session
 
-from zorivest_core.domain.entities import TaxLot, TaxProfile
+from zorivest_core.domain.entities import QuarterlyEstimate, TaxLot, TaxProfile
 from zorivest_core.domain.enums import (
+    AcquisitionSource,
     CostBasisMethod,
     FilingStatus,
     WashSaleMatchingMethod,
 )
-from zorivest_infra.database.models import TaxLotModel, TaxProfileModel
+from zorivest_infra.database.models import (
+    QuarterlyEstimateModel,
+    TaxLotModel,
+    TaxProfileModel,
+)
 
 
 class SqlTaxLotRepository:
@@ -64,6 +69,9 @@ class SqlTaxLotRepository:
             lot.cost_basis_method.value if lot.cost_basis_method else None
         )
         model.realized_gain_loss = lot.realized_gain_loss
+        model.acquisition_source = (
+            lot.acquisition_source.value if lot.acquisition_source else None
+        )
         self._session.flush()
 
     def delete(self, lot_id: str) -> None:
@@ -220,6 +228,9 @@ def _lot_model_to_entity(model: TaxLotModel) -> TaxLot:
         realized_gain_loss=Decimal(str(model.realized_gain_loss))
         if model.realized_gain_loss
         else Decimal("0.00"),
+        acquisition_source=AcquisitionSource(model.acquisition_source)
+        if model.acquisition_source
+        else None,
     )
 
 
@@ -240,6 +251,9 @@ def _lot_entity_to_model(lot: TaxLot) -> TaxLotModel:
         if lot.cost_basis_method
         else None,
         realized_gain_loss=lot.realized_gain_loss,
+        acquisition_source=lot.acquisition_source.value
+        if lot.acquisition_source
+        else None,
     )
 
 
@@ -279,4 +293,92 @@ def _profile_entity_to_model(profile: TaxProfile) -> TaxProfileModel:
         include_spousal_accounts=profile.include_spousal_accounts,
         section_475_elected=profile.section_475_elected,
         section_1256_eligible=profile.section_1256_eligible,
+    )
+
+
+# ── QuarterlyEstimate Repository (MEU-148 AC-148.6) ─────────────────────
+
+
+class SqlQuarterlyEstimateRepository:
+    """SQL-backed QuarterlyEstimate repository.
+
+    Implements: get, save, update, list_for_year, get_for_quarter.
+    Follows QuarterlyEstimateRepository protocol (ports.py L446-468).
+    """
+
+    def __init__(self, session: Session) -> None:
+        self._session = session
+
+    def get(self, estimate_id: int) -> Optional[QuarterlyEstimate]:
+        model = self._session.get(QuarterlyEstimateModel, estimate_id)
+        if model is None:
+            return None
+        return _estimate_model_to_entity(model)
+
+    def save(self, estimate: QuarterlyEstimate) -> int:
+        model = _estimate_entity_to_model(estimate)
+        self._session.add(model)
+        self._session.flush()
+        return model.id
+
+    def update(self, estimate: QuarterlyEstimate) -> None:
+        model = self._session.get(QuarterlyEstimateModel, estimate.id)
+        if model is None:
+            raise ValueError(f"QuarterlyEstimate not found: {estimate.id}")
+        model.tax_year = estimate.tax_year
+        model.quarter = estimate.quarter
+        model.due_date = estimate.due_date
+        model.required_payment = estimate.required_payment
+        model.actual_payment = estimate.actual_payment
+        model.method = estimate.method
+        model.cumulative_ytd_gains = estimate.cumulative_ytd_gains
+        model.underpayment_penalty_risk = estimate.underpayment_penalty_risk
+        self._session.flush()
+
+    def list_for_year(self, tax_year: int) -> list[QuarterlyEstimate]:
+        models = (
+            self._session.query(QuarterlyEstimateModel)
+            .filter_by(tax_year=tax_year)
+            .order_by(QuarterlyEstimateModel.quarter)
+            .all()
+        )
+        return [_estimate_model_to_entity(m) for m in models]
+
+    def get_for_quarter(
+        self, tax_year: int, quarter: int
+    ) -> Optional[QuarterlyEstimate]:
+        model = (
+            self._session.query(QuarterlyEstimateModel)
+            .filter_by(tax_year=tax_year, quarter=quarter)
+            .first()
+        )
+        if model is None:
+            return None
+        return _estimate_model_to_entity(model)
+
+
+def _estimate_model_to_entity(model: QuarterlyEstimateModel) -> QuarterlyEstimate:
+    return QuarterlyEstimate(
+        id=model.id,
+        tax_year=model.tax_year,
+        quarter=model.quarter,
+        due_date=_ensure_utc(model.due_date),
+        required_payment=Decimal(str(model.required_payment)),
+        actual_payment=Decimal(str(model.actual_payment)),
+        method=model.method,
+        cumulative_ytd_gains=Decimal(str(model.cumulative_ytd_gains)),
+        underpayment_penalty_risk=Decimal(str(model.underpayment_penalty_risk)),
+    )
+
+
+def _estimate_entity_to_model(estimate: QuarterlyEstimate) -> QuarterlyEstimateModel:
+    return QuarterlyEstimateModel(
+        tax_year=estimate.tax_year,
+        quarter=estimate.quarter,
+        due_date=estimate.due_date,
+        required_payment=estimate.required_payment,
+        actual_payment=estimate.actual_payment,
+        method=estimate.method,
+        cumulative_ytd_gains=estimate.cumulative_ytd_gains,
+        underpayment_penalty_risk=estimate.underpayment_penalty_risk,
     )

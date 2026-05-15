@@ -58,6 +58,7 @@ Domain → Infrastructure → Services → REST API → MCP Server → GUI → D
 | 9h | [Markdown Migration](build-plan/09h-pipeline-markdown-migration.md) | `09h-pipeline-markdown-migration.md` | Phase 9b | PDF removal, Markdown rendering |
 | 10 | [Service Daemon](build-plan/10-service-daemon.md) | `10-service-daemon.md` | Phases 4, 9 | Cross-platform OS service, ServiceManager |
 | 11 | [Monetization](build-plan/11-monetization.md) | `11-monetization.md` | Phases 2, 4, 8 | Subscription, OAuth, BYOK, usage metering |
+| 12 | [Contributor Documentation](build-plan/12-contributor-docs.md) | `12-contributor-docs.md` | Nothing (parallel) | CONTRIBUTING, SECURITY, AGENTS.md, PR templates, governance, AI policy |
 
 ---
 
@@ -83,6 +84,11 @@ Domain → Infrastructure → Services → REST API → MCP Server → GUI → D
 | 2 — Infrastructure | ✅ Completed | 2026-03-08 |
 | 2A — Backup/Restore | ✅ Completed | 2026-03-08 |
 | 3 — Service Layer | ✅ Completed | 2026-03-08 |
+| 3A — Tax Foundation | ✅ Completed (MEU-123–129) | 2026-05-12 |
+| 3B — Wash Sale Engine | ✅ Completed (MEU-130–136) | 2026-05-13 |
+| 3C — Tax Optimization Tools | ✅ Completed (MEU-137–142) | 2026-05-14 |
+| 3D — Quarterly Payments | ✅ Completed (MEU-143–147) | 2026-05-13 |
+| 3E — Reports & Full-Stack Wiring | ⚪ Not Started | — |
 | 4 — REST API | ✅ Completed | 2026-03-09 |
 | 5 — MCP Server | ✅ Completed | 2026-03-10 |
 | 6 — GUI | 🟡 In Progress (P0 complete, P2.1 ✅, P2.2 ✅, P2.3 ✅, remaining P2 items) | 2026-05-05 |
@@ -92,6 +98,7 @@ Domain → Infrastructure → Services → REST API → MCP Server → GUI → D
 | 9 — Scheduling | ✅ Core complete; P2.5c ✅ (10/10); P2.5b PW14 ✅ + 72b ✅; P2.5d ✅ (3/3); P2.5e ✅ (4/4); P2.5f ✅ (6/6 — 85→13 tools); P2.5g ✅ (1/1 — TokenRefreshManager) | 2026-04-30 |
 | 10 — Service Daemon | ⚪ Not Started | — |
 | 11 — Monetization | ⚪ Not Started | — |
+| 12 — Contributor Documentation | ⚪ Not Started | — |
 
 ---
 
@@ -623,48 +630,81 @@ Domain → Infrastructure → Services → REST API → MCP Server → GUI → D
 
 | MEU | Slug | Matrix Item | Build Plan Ref | Description | Status |
 |-----|------|:-----------:|----------------|-------------|:------:|
-| MEU-130 | `wash-sale-basic` | 57 | [matrix §3B](build-plan/build-priority-matrix.md) | WashSaleChain + 30-day detection | ⬜ |
-| MEU-131 | `wash-sale-chain` | 58 | [matrix §3B](build-plan/build-priority-matrix.md) | Chain tracking (deferred loss rolling) | ⬜ |
-| MEU-132 | `wash-sale-cross` | 59 | [matrix §3B](build-plan/build-priority-matrix.md) | Cross-account wash sale aggregation | ⬜ |
-| MEU-133 | `wash-sale-options` | 60 | [matrix §3B](build-plan/build-priority-matrix.md) | Options-to-stock wash sale matching | ⬜ |
-| MEU-134 | `wash-sale-drip` | 61 | [matrix §3B](build-plan/build-priority-matrix.md) | DRIP wash sale detection | ⬜ |
-| MEU-135 | `wash-sale-rebalance` | 62 | [matrix §3B](build-plan/build-priority-matrix.md) | Auto-rebalance + spousal cross-wash warnings | ⬜ |
-| MEU-136 | `wash-sale-alerts` | 63 | [matrix §3B](build-plan/build-priority-matrix.md) | Wash sale prevention alerts (proactive) | ⬜ |
+| MEU-130 | `wash-sale-basic` | 57 | [matrix §3B](build-plan/build-priority-matrix.md) | WashSaleChain + 30-day detection | ✅ |
+| MEU-131 | `wash-sale-chain` | 58 | [matrix §3B](build-plan/build-priority-matrix.md) | Chain tracking (deferred loss rolling) | ✅ |
+| MEU-132 | `wash-sale-cross` | 59 | [matrix §3B](build-plan/build-priority-matrix.md) | Cross-account wash sale aggregation | ✅ |
+| MEU-133 | `wash-sale-options` | 60 | [matrix §3B](build-plan/build-priority-matrix.md) | Options-to-stock wash sale matching | ✅ |
+| MEU-134 | `wash-sale-drip` | 61 | [matrix §3B](build-plan/build-priority-matrix.md) | DRIP wash sale detection | ✅ |
+| MEU-135 | `wash-sale-rebalance` | 62 | [matrix §3B](build-plan/build-priority-matrix.md) | Auto-rebalance + spousal cross-wash warnings | ✅ |
+| MEU-136 | `wash-sale-alerts` | 63 | [matrix §3B](build-plan/build-priority-matrix.md) | Wash sale prevention alerts (proactive) | ✅ |
 
 #### Phase 3C — Tax Optimization Tools
 
 | MEU | Slug | Matrix Item | Build Plan Ref | Description | Status |
 |-----|------|:-----------:|----------------|-------------|:------:|
-| MEU-137 | `tax-simulator` | 64 | [matrix §3C](build-plan/build-priority-matrix.md) | Pre-trade what-if tax simulator | ⬜ |
-| MEU-138 | `tax-loss-harvest` | 65 | [matrix §3C](build-plan/build-priority-matrix.md) | Tax-loss harvesting scanner | ⬜ |
-| MEU-139 | `tax-smart-replace` | 66 | [matrix §3C](build-plan/build-priority-matrix.md) | Tax-smart replacement suggestions | ⬜ |
-| MEU-140 | `lot-matcher` | 67 | [matrix §3C](build-plan/build-priority-matrix.md) | Lot matcher / close specific lots UI | ⬜ |
-| MEU-141 | `lot-reassignment` | 68 | [matrix §3C](build-plan/build-priority-matrix.md) | Post-trade lot reassignment window | ⬜ |
-| MEU-142 | `tax-rate-compare` | 69 | [matrix §3C](build-plan/build-priority-matrix.md) | ST vs LT tax rate dollar comparison | ⬜ |
+| MEU-137 | `tax-simulator` | 64 | [matrix §3C](build-plan/build-priority-matrix.md) | Pre-trade what-if tax simulator | ✅ |
+| MEU-138 | `tax-loss-harvest` | 65 | [matrix §3C](build-plan/build-priority-matrix.md) | Tax-loss harvesting scanner | ✅ |
+| MEU-139 | `tax-smart-replace` | 66 | [matrix §3C](build-plan/build-priority-matrix.md) | Tax-smart replacement suggestions | ✅ |
+| MEU-140 | `lot-matcher` | 67 | [matrix §3C](build-plan/build-priority-matrix.md) | Lot matcher / close specific lots UI | ✅ |
+| MEU-141 | `lot-reassignment` | 68 | [matrix §3C](build-plan/build-priority-matrix.md) | Post-trade lot reassignment window | ✅ |
+| MEU-142 | `tax-rate-compare` | 69 | [matrix §3C](build-plan/build-priority-matrix.md) | ST vs LT tax rate dollar comparison | ✅ |
 
 #### Phase 3D — Quarterly Payments & Tax Brackets
 
 | MEU | Slug | Matrix Item | Build Plan Ref | Description | Status |
 |-----|------|:-----------:|----------------|-------------|:------:|
-| MEU-143 | `quarterly-estimate` | 70 | [matrix §3D](build-plan/build-priority-matrix.md) | QuarterlyEstimate entity + safe harbor calc | ⬜ |
-| MEU-144 | `annualized-income` | 71 | [matrix §3D](build-plan/build-priority-matrix.md) | Annualized income method (Form 2210) | ⬜ |
-| MEU-145 | `quarterly-tracker` | 72 | [matrix §3D](build-plan/build-priority-matrix.md) | Due date tracker + underpayment penalty | ⬜ |
-| MEU-146 | `marginal-tax-calc` | 73 | [matrix §3D](build-plan/build-priority-matrix.md) | Marginal tax rate calculator (fed + state) | ⬜ |
-| MEU-147 | `niit-alert` | 74 | [matrix §3D](build-plan/build-priority-matrix.md) | NIIT (3.8% surtax) threshold alert | ⬜ |
+| MEU-143 | `quarterly-estimate` | 70 | [matrix §3D](build-plan/build-priority-matrix.md) | QuarterlyEstimate entity + safe harbor calc | ✅ |
+| MEU-144 | `annualized-income` | 71 | [matrix §3D](build-plan/build-priority-matrix.md) | Annualized income method (Form 2210) | ✅ |
+| MEU-145 | `quarterly-tracker` | 72 | [matrix §3D](build-plan/build-priority-matrix.md) | Due date tracker + underpayment penalty | ✅ |
+| MEU-146 | `marginal-tax-calc` | 73 | [matrix §3D](build-plan/build-priority-matrix.md) | Marginal tax rate calculator (fed + state) | ✅ |
+| MEU-147 | `niit-alert` | 74 | [matrix §3D](build-plan/build-priority-matrix.md) | NIIT (3.8% surtax) threshold alert | ✅ |
 
 #### Phase 3E — Reports, Dashboard & API/MCP/GUI
 
 | MEU | Slug | Matrix Item | Build Plan Ref | Description | Status |
 |-----|------|:-----------:|----------------|-------------|:------:|
-| MEU-148 | `tax-api` | 75 | [04f](build-plan/04f-api-tax.md) | Tax REST API endpoints | ⬜ |
-| MEU-149 | `tax-mcp` | 76 | [05h](build-plan/05h-mcp-tax.md) | Tax MCP tools (8 tools) | ⬜ |
-| MEU-150 | `tax-year-end` | 77 | [matrix §3E](build-plan/build-priority-matrix.md) | Year-end tax position summary | ⬜ |
-| MEU-151 | `tax-deferred-loss` | 78 | [matrix §3E](build-plan/build-priority-matrix.md) | Deferred loss carryover report | ⬜ |
-| MEU-152 | `tax-alpha` | 79 | [matrix §3E](build-plan/build-priority-matrix.md) | Tax alpha savings summary | ⬜ |
-| MEU-153 | `tax-audit` | 80 | [matrix §3E](build-plan/build-priority-matrix.md) | Error check / transaction audit | ⬜ |
-| MEU-154 | `gui-tax` | 81 | [06g](build-plan/06g-gui-tax.md) | Tax estimator GUI (React) · **E2E wave TBD (Phase 12+)** — define wave before implementation | ⬜ |
-| MEU-155 | `gui-calculator` | 81a | [06h](build-plan/06h-gui-calculator.md) | Position calculator GUI (React) — expansion modes (Futures/Options/Forex/Crypto), scenario comparison, calculation history, Copy-to-Plan · **E2E wave TBD (Wave 10+)** — define expansion-specific tests before implementation; base equity coverage is [Wave 4](build-plan/06-gui.md#wave-activation-schedule) (MEU-48) | ⬜ |
-| MEU-156 | `tax-section-toggles` | 82 | [matrix §3E](build-plan/build-priority-matrix.md) | Section 475/1256/Forex toggles | ⬜ |
+| MEU-148 | `tax-api` | 75 | [04f](build-plan/04f-api-tax.md) | Tax REST API endpoints | ✅ |
+| MEU-148a | `tax-profile-api` | 75a | [04f §profile](build-plan/04f-api-tax.md) | TaxProfile CRUD API: `GET`/`PUT /api/v1/tax/profile` backed by SettingsRegistry; registers 12 TaxProfile keys (filing_status, tax_year, federal_bracket, state_tax_rate, state, prior_year_tax, agi_estimate, capital_loss_carryforward, wash_sale_method, default_cost_basis, section_475_elected, section_1256_eligible) · Depends on: MEU-18 ✅, MEU-124 ✅, MEU-148 ✅ | ⬜ |
+| MEU-149 | `tax-mcp` | 76 | [05h](build-plan/05h-mcp-tax.md) | Tax MCP tools (8 tools) | ✅ |
+| MEU-150 | `tax-year-end` | 77 | [matrix §3E](build-plan/build-priority-matrix.md) | Year-end tax position summary | ✅ |
+| MEU-151 | `tax-deferred-loss` | 78 | [matrix §3E](build-plan/build-priority-matrix.md) | Deferred loss carryover report | ✅ |
+| MEU-152 | `tax-alpha` | 79 | [matrix §3E](build-plan/build-priority-matrix.md) | Tax alpha savings summary | ✅ |
+| MEU-153 | `tax-audit` | 80 | [matrix §3E](build-plan/build-priority-matrix.md) | Error check / transaction audit | ✅ |
+| MEU-154 | `gui-tax` | 81 | [06g](build-plan/06g-gui-tax.md) | Tax estimator GUI (React) · **E2E Wave 11** — 5 test files, 18 E2E tests | ✅ |
+| MEU-155 | `gui-calculator` | 81a | [06h](build-plan/06h-gui-calculator.md) | Position calculator GUI (React) — expansion modes (Futures/Options/Forex/Crypto), scenario comparison, calculation history, Copy-to-Plan · **Wave 10** — modal expansion tests | ✅ |
+| MEU-156 | `tax-section-toggles` | 82 | [matrix §3E](build-plan/build-priority-matrix.md) | Section 475/1256/Forex toggles · Depends on: MEU-148a | ⬜ |
+
+---
+
+### Phase 12: Contributor Documentation Suite
+
+> Source: [12-contributor-docs.md](build-plan/12-contributor-docs.md) | Research: [COMPOSITE-SYNTHESIS.md](../_inspiration/CONTRIBUTING.md_research/COMPOSITE-SYNTHESIS.md)
+>
+> Depends on: Nothing — pure documentation; parallel with all code phases
+> Blocks: Phase 7 (Distribution) — contributor docs must exist before public release
+
+#### P0 — Foundation (Ship Before First External Contributor)
+
+| MEU | Slug | Matrix Item | Build Plan Ref | Description | Status |
+|-----|------|:-----------:|----------------|-------------|:------:|
+| MEU-208 | `security-reporting` | 12.1 | [12 §12.1](build-plan/12-contributor-docs.md) | SECURITY.md — vulnerability scope, PVR reporting, response SLAs, no-bounty | ⬜ |
+| MEU-209 | `github-templates` | 12.2 | [12 §12.2](build-plan/12-contributor-docs.md) | .github/PULL_REQUEST_TEMPLATE.md + issue templates (bug, feature, config.yml) | ⬜ |
+| MEU-210 | `contributor-guide` | 12.3 | [12 §12.3](build-plan/12-contributor-docs.md) | CONTRIBUTING.md (~390 lines) + CODE_OF_CONDUCT.md (Contributor Covenant 2.1) | ⬜ |
+| MEU-211 | `dev-setup-docs` | 12.4 | [12 §12.4](build-plan/12-contributor-docs.md) | docs/DEVELOPMENT.md + root AGENTS.md (≤200 lines) + README.md link update | ⬜ |
+
+#### P1 — Governance & AI Policy
+
+| MEU | Slug | Matrix Item | Build Plan Ref | Description | Status |
+|-----|------|:-----------:|----------------|-------------|:------:|
+| MEU-212 | `governance-ai-policy` | 12.5 | [12 §12.5](build-plan/12-contributor-docs.md) | GOVERNANCE.md + docs/AI_POLICY.md + docs/ARCHITECTURE.md | ⬜ |
+| MEU-213 | `ai-tool-shims` | 12.6 | [12 §12.6](build-plan/12-contributor-docs.md) | CLAUDE.md redirect + .windsurfrules + per-package AGENTS.md (×5) + docs_improvement.yml | ⬜ |
+
+#### P2 — Advanced Tooling
+
+| MEU | Slug | Matrix Item | Build Plan Ref | Description | Status |
+|-----|------|:-----------:|----------------|-------------|:------:|
+| MEU-214 | `native-ai-rules` | 12.7 | [12 §12.7](build-plan/12-contributor-docs.md) | .github/copilot-instructions.md + .cursor/rules/*.mdc + CODEOWNERS | ⬜ |
+| MEU-215 | `contributor-ci` | 12.8 | [12 §12.8](build-plan/12-contributor-docs.md) | tools/validate_agent_files.py + agent_issue.yml + CONTRIBUTORS.md | ⬜ |
 
 ---
 
@@ -770,11 +810,12 @@ Domain → Infrastructure → Services → REST API → MCP Server → GUI → D
 | P2.5g — Auth Infrastructure | MEU-PH14 | 1 | 1 |
 | P2.6 — Phase 10 | MEU-91 → MEU-95b | 7 | 0 |
 | P2.75 — Expansion | MEU-96 → MEU-122 | 27 | 2 |
-| P3 — Tax | MEU-123 → MEU-156 | 34 | 0 |
+| P3 — Tax | MEU-123 → MEU-156, MEU-148a | 35 | 33 |
 | Phase 7 | MEU-157 | 1 | 0 |
+| Phase 12 — Contributor Docs | MEU-208 → MEU-215 | 8 | 0 |
 | P4 — Phase 11 | MEU-175 → MEU-181 | 7 | 0 |
 | Research | MEU-158 → MEU-170, MEU-173, MEU-TS1 → MEU-TS3 | 17 | 3 |
-| **Total** | | **261** | **158 + 1 🟡 + 1 🚫** |
+| **Total** | | **270** | **170 + 1 🟡 + 1 🚫** |
 
 ---
 

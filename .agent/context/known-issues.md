@@ -5,6 +5,68 @@
 
 ## Active Issues
 
+### [MCP-FINNHUB-NEWS] — Finnhub news endpoint returns 422
+- **Severity:** Medium
+- **Component:** infrastructure (market_data)
+- **Discovered:** 2026-05-14 (MCP Audit v3+)
+- **Status:** Open — KNOWN since audit v3
+- **Details:** `zorivest_market(action:"news")` returns 503 because Finnhub's company news endpoint returns HTTP 422. No fallback provider configured for news.
+- **Audit ref:** I-5
+
+### [MCP-SEC-FILINGS] — SEC filings normalizer not configured
+- **Severity:** Medium
+- **Component:** infrastructure (market_data)
+- **Discovered:** 2026-05-14 (MCP Audit v3+)
+- **Status:** Open — KNOWN since audit v3
+- **Details:** `zorivest_market(action:"filings")` returns 503. SEC filing response normalizer is not implemented in any provider adapter.
+- **Audit ref:** I-6
+
+### [MCP-FMP-DEPRECATED] — Financial Modeling Prep endpoint deprecated
+- **Severity:** Low
+- **Component:** infrastructure (market_data)
+- **Discovered:** 2026-05-14 (MCP Audit v3+)
+- **Status:** Open — informational, provider still responds
+- **Details:** `zorivest_market(action:"test_provider", provider:"FMP")` returns "endpoint deprecated" message. Provider still passes connectivity but may stop working.
+- **Audit ref:** I-7
+
+### [MCP-WATCHLIST-NODELETE] — No delete_watchlist action
+- **Severity:** Low
+- **Component:** mcp-server, api
+- **Discovered:** 2026-05-14 (MCP Audit v3+)
+- **Status:** Open — KNOWN since audit v3
+- **Details:** `zorivest_watchlist` has no `delete` action. Residual test watchlists accumulate with no cleanup path via MCP.
+- **Audit ref:** I-8
+
+### [MCP-IMPORT-STUBS] — 3 import actions return 501 Not Implemented
+- **Severity:** Low
+- **Component:** api, mcp-server
+- **Discovered:** 2026-05-14 (MCP Audit v3+)
+- **Status:** Open — KNOWN since audit v3
+- **Details:** `list_brokers`, `resolve_identifiers`, `list_bank_accounts` all return 501. These are unimplemented backend stubs.
+- **Audit ref:** I-9
+
+### [TAX-PROFILE-BLOCKED] — MEU-156 toggle persistence blocked on missing TaxProfile CRUD API
+- **Severity:** Medium
+- **Component:** api, ui (tax)
+- **Discovered:** 2026-05-14
+- **Status:** Tracked — MEU-148a (`tax-profile-api`) registered in BUILD_PLAN.md, matrix item 75a
+- **Details:** `TaxProfileSettings` page is read-only because no `GET`/`PUT /api/v1/tax/profile` endpoint exists. MEU-156 (`tax-section-toggles`) cannot persist Section 475/1256/Forex elections without it. MEU-148a spec added to `04f-api-tax.md` §TaxProfile CRUD. Dependency chain: MEU-156 → MEU-148a → MEU-18 ✅, MEU-124 ✅, MEU-148 ✅.
+- **Resolution:** Implement MEU-148a before MEU-156.
+
+### [TAX-HARDCODED-IRS] — IRS-dependent constants hardcoded in Python source files
+- **Severity:** Medium (maintenance risk)
+- **Component:** core (domain/tax)
+- **Discovered:** 2026-05-14
+- **Status:** Open — no MEU registered yet (candidate: MEU-148b `tax-schedule-data`)
+- **Details:** All IRS-dependent values are hardcoded as Python dict literals and module-level constants across 4 files. Adding a new tax year requires a code change + redeploy. Inventory:
+  - `brackets.py`: 56 federal bracket threshold/rate pairs + 24 LTCG pairs + penalty rates (annual/quarterly IRS updates)
+  - `niit.py`: NIIT rate (3.8%) + MAGI thresholds ($200K/$250K/$125K) — statutory but could change
+  - `quarterly.py`: safe harbor AGI thresholds ($150K/$75K) — statutory
+  - `loss_carryforward.py`: capital loss deduction caps ($3K/$1.5K) — statutory since 1978
+- **Recommended fix:** Externalize into data layer (JSON files for bracket tables, SettingsRegistry for scalars), add `GET`/`PUT /api/v1/tax/schedule/{year}` endpoints, add separate "Tax Schedule" settings page distinct from "Tax Profile" page. Phase 3E, matrix item 75b.
+- **Workaround:** Currently functional for 2025/2026 tax years. Manual code update required for 2027.
+- **Analysis:** [Full inventory & design options](sessions/2026-05-14-tax-irs-externalization-analysis.md)
+
 ### [STUB-RETIRE] — stubs.py contains legacy stubs that should be retired progressively
 - **Severity:** Low (technical debt)
 - **Component:** api (`stubs.py`), tests
@@ -13,6 +75,18 @@
 - **Phase 2 resolved (MEU-PW1, 2026-04-12):** `StubMarketDataService` and `StubProviderConnectionService` deleted. `MarketQuote` import removed from stubs.py.
 - **Phase 3 blocked on:** `StubAnalyticsService` (MEU-104–116), `StubReviewService` (MEU-110), `StubTaxService` (MEU-123–126). Each retires when its real service is implemented.
 - **Roadmap:** [09a §Stub Retirement Roadmap](../docs/build-plan/09a-persistence-integration.md)
+
+### [TICKER-NONEQUITY-FILTER] — Yahoo search filters out futures, forex, and crypto results; options need chain browser
+- **Severity:** Medium (feature gap)
+- **Component:** core (market_data_service), ui (PositionCalculatorModal)
+- **Discovered:** 2026-05-14
+- **Status:** Open — Phase A is a candidate micro-MEU (~2 hours), Phase B is a separate MEU (~1–2 days)
+- **Details:** `_yahoo_search()` in `market_data_service.py` explicitly excludes `FUTURE`, `CURRENCY`, `CRYPTOCURRENCY` quote types. Yahoo's API already returns these — we just filter them out. Additionally, `TickerSearchResult` DTO has no `instrument_type` field, so the UI uses fragile client-side regex heuristics for auto-mode-switching. Yahoo also provides options chain data via `/v7/finance/options/{symbol}` (calls, puts, strikes, expirations, greeks) — but options don't appear in search results and need a dedicated chain browser UI.
+- **Impact:** Position Calculator cannot auto-switch to futures/forex/crypto mode based on ticker selection. Options mode has no data integration at all.
+- **Resolution path:**
+  - **Phase A** (futures/forex/crypto): (1) Add `instrument_type` to `TickerSearchResult` DTO, (2) remove non-equity types from exclusion set, (3) pass Yahoo's `quoteType` through, (4) use server-provided type in UI. No new provider needed.
+  - **Phase B** (options): (1) Add `get_options_chain()` to `MarketDataService` using Yahoo `/v7/finance/options/{symbol}`, (2) add API endpoint, (3) build Options Chain Browser UI component. No new provider needed — Yahoo covers it.
+- **Analysis:** [Full findings & provider comparison](sessions/2026-05-14-non-equity-ticker-lookup-findings.md)
 
 ## Mitigated / Workaround Applied
 
@@ -136,7 +210,7 @@
 | TRADE-CASCADE | 2026-04-29 | Cascade delete for trade with linked report/images — ORM cascade + service cleanup |
 | MCP-TOOLPROLIFERATION | 2026-04-29 | 85→13 compound-tool consolidation complete (P2.5f MC0–MC5). 4 toolsets: core, trade, data, ops |
 | PIPE-RUNBYPASS | 2026-04-29 | POST /policies/{id}/run CSRF-gated — `validate_approval_token` added to prevent MCP confirmation bypass via direct API (SEC-1) |
-| MCP-TOOLAUDIT | 2026-04-30 | Audit PASS — 46/46 tools, 4/4 critical findings resolved (P2.5f) |
+| MCP-TOOLAUDIT | 2026-05-14 | Audit v4.1 — 69/75 pass, 0 regressions, 4 tax failures RESOLVED (inline migration), tax expanded 4→8 actions, market 7→15 actions |
 | MCP-TOOLDISCOVERY | 2026-04-30 | MEU-TD1: All 13 compound tool descriptions enriched with M7 metadata |
 | MCP-TOOLCAP | 2026-04-30 | 85→13 compound-tool consolidation resolves IDE tool limits permanently |
 | MCP-AUTHRACE | 2026-04-30 | TokenRefreshManager singleton with promise coalescing + 30s proactive expiry (MEU-PH14, P2.5g) |

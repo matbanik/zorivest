@@ -9,6 +9,7 @@ from typing import Optional
 
 from zorivest_core.domain.enums import (
     AccountType,
+    AcquisitionSource,
     BalanceSource,
     ConvictionLevel,
     CostBasisMethod,
@@ -217,6 +218,7 @@ class TaxLot:
     realized_gain_loss: Decimal = Decimal(
         "0.00"
     )  # Computed on close via calculate_realized_gain
+    acquisition_source: AcquisitionSource | None = None  # MEU-134: DRIP detection
 
     @property
     def holding_period_days(self) -> int:
@@ -259,3 +261,27 @@ class TaxProfile:
     include_spousal_accounts: bool = False
     section_475_elected: bool = False  # Mark-to-Market
     section_1256_eligible: bool = False  # Futures 60/40
+
+
+# ── Phase 3D: Quarterly Estimates ────────────────────────────────────────
+
+
+@dataclass
+class QuarterlyEstimate:
+    """Estimated tax payment tracking per quarter.
+
+    MEU-143: FIC AC-143.1. 9 fields per domain-model-reference.md L403-413.
+    Spec: domain-model-reference.md L403-413.
+    """
+
+    id: int  # PK (auto-increment)
+    tax_year: int  # e.g., 2026
+    quarter: int  # 1-4
+    due_date: datetime  # Apr 15, Jun 15, Sep 15, Jan 15
+    required_payment: Decimal  # Computed via safe harbor / annualized method
+    actual_payment: Decimal  # User-entered payment amount
+    method: (
+        str  # "safe_harbor_100" | "safe_harbor_110" | "current_year_90" | "annualized"
+    )
+    cumulative_ytd_gains: Decimal  # At time of calculation
+    underpayment_penalty_risk: Decimal  # Estimated penalty if short

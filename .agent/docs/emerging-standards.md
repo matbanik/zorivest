@@ -811,3 +811,29 @@ const { showModal, guardedSelect, handleCancel, handleDiscard, handleSaveAndCont
   verdict: "approved"  # ← Reviewer approves independently
   ```
 - **Why this matters:** Self-approval eliminates the quality gate that review cycles provide. The corrections agent wrote the code AND judged it sufficient — the same conflict of interest that code review processes exist to prevent. Without this guard, any number of review passes can be short-circuited by the corrections agent declaring itself done.
+
+### G24 — Plan Open Questions Must Include Research-Backed Decision Options
+
+- **Severity:** 🟡 Medium
+- **Applies to:** Workflow governance (`/create-plan`)
+- **Rule:** When a plan surfaces open design questions (spec-silent UX decisions, architecture forks, or ambiguous defaults), the planner must research each question via web search and evaluate options via sequential thinking before presenting them. Open Questions in the plan must use a **Decision Options Table** with at least one external source per option. Bare questions with no evidence are not approvable.
+- **Origin:** 2026-05-14 Tax GUI planning (MEU-154–156) — Plan listed 3 bare open questions (nav rail item count, tax year persistence, disabled vs hidden buttons) with no research. User manually requested web searches, which resolved all 3 definitively. The extra round-trip wasted reviewer time and delayed approval.
+- **Bad example:**
+  ```markdown
+  ## Open Questions
+  1. Should Tax be a 6th nav item or nested under Settings?
+  2. Should the tax year persist across sessions?
+  3. Should lot action buttons be disabled or hidden?
+  ```
+- **Good example:**
+  ```markdown
+  ## Open Questions — Decision Options Table
+
+  | Question | Option | Source | Pros | Cons | Rec |
+  |----------|--------|--------|------|------|-----|
+  | Nav rail item count | 6-item flat rail | Material Design nav rail spec (3–7 items) | Standard pattern, no restructuring | Slightly denser | ✅ |
+  | | Nested under Settings | Enterprise app accordion pattern | Fewer top-level items | Tax is a primary domain, not a setting | ❌ |
+  | Tax year persistence | Default to current year (no persist) | TurboTax/TaxAct — year-scoped product model | Prevents wrong-year data errors | User must re-select for prior year | ✅ |
+  | | Persist via localStorage | QuickBooks multi-year pattern | Convenience for power users | Risk of stale-year confusion | ⚠️ |
+  ```
+- **Workflow integration:** Enforced by `/create-plan` Step 2B (Research Open Design Questions). The reviewer can approve with the agent's recommendation or override.

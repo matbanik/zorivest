@@ -4,8 +4,29 @@ import { apiFetch } from '@/lib/api'
 import { useStatusBar } from '@/hooks/useStatusBar'
 import { useAccounts } from '@/hooks/useAccounts'
 import TickerAutocomplete from '@/components/TickerAutocomplete'
+import {
+    type CalcMode,
+    type FuturesInputs,
+    type OptionsInputs,
+    type ForexInputs,
+    type ForexLotType,
+    type CryptoInputs,
+    type Scenario,
+    type HistoryEntry,
+    CALC_MODES,
+    FUTURES_PRESETS,
+    computeFutures,
+    computeOptions,
+    computeForex,
+    computeCrypto,
+    getWarnings,
+    addScenario,
+    removeScenario,
+    addToHistory,
+    getModeRR,
+} from './calculatorModes'
 
-// ── Equity Position Calculator (AC-13, AC-14, AC-15) ─────────────────────
+// ── Position Calculator (AC-13, AC-14, AC-15, MEU-155) ───────────────────
 
 interface PositionCalculatorModalProps {
     isOpen: boolean
@@ -63,6 +84,34 @@ export default function PositionCalculatorModal({ isOpen, onClose, fromPlanConte
     const [selectedAccount, setSelectedAccount] = useState<string>('__ALL__')  // MEU-71b: default All Accounts per 06h L80
     const { setStatus } = useStatusBar()
     const { accounts, portfolioTotal, isLoading } = useAccounts()  // MEU-71b: account data
+
+    // MEU-155: Mode selector state
+    const [calcMode, setCalcMode] = useState<CalcMode>('equity')
+
+    // MEU-155: Futures mode state
+    const [futuresInputs, setFuturesInputs] = useState<FuturesInputs>({ multiplier: 50, tickSize: 0.25, margin: 12980 })
+    const [futuresPreset, setFuturesPreset] = useState<string>('ES')
+
+    // MEU-155: Options mode state
+    const [optionsInputs, setOptionsInputs] = useState<OptionsInputs>({
+        type: 'call', premium: 0, delta: 0.5, underlyingPrice: 0, multiplier: 100,
+    })
+
+    // MEU-155: Forex mode state
+    const [forexInputs, setForexInputs] = useState<ForexInputs>({
+        pair: 'EUR/USD', lotType: 'standard', pipValue: 10, leverage: 50,
+    })
+
+    // MEU-155: Crypto mode state
+    const [cryptoInputs, setCryptoInputs] = useState<CryptoInputs>({
+        leverage: 1, feeRate: 0.1,
+    })
+
+    // MEU-155: Scenario comparison state
+    const [scenarios, setScenarios] = useState<Scenario[]>([])
+
+    // MEU-155: History state
+    const [history, setHistory] = useState<HistoryEntry[]>([])
 
     // Plan picker state
     const [selectedPlanId, setSelectedPlanId] = useState<number | null>(null)
@@ -152,6 +201,23 @@ export default function PositionCalculatorModal({ isOpen, onClose, fromPlanConte
     const handleTickerSelect = useCallback((result: { symbol: string }) => {
         const sym = result.symbol
         setTicker(sym)
+
+        // Auto-switch calculator mode based on known instrument patterns.
+        // Futures: match against FUTURES_PRESETS keys (ES, NQ, YM, CL, GC).
+        // Forex: detect pairs like EUR/USD, EURUSD, GBP/JPY.
+        // Crypto: detect common crypto tickers (BTC, ETH, SOL, etc.) or BTC-USD patterns.
+        const upperSym = sym.toUpperCase()
+        if (upperSym in FUTURES_PRESETS) {
+            setCalcMode('futures')
+            setFuturesPreset(upperSym)
+            setFuturesInputs(FUTURES_PRESETS[upperSym])
+        } else if (/^[A-Z]{3}\/[A-Z]{3}$/.test(upperSym) || /^[A-Z]{6}$/.test(upperSym) && ['USD', 'EUR', 'GBP', 'JPY', 'CHF', 'AUD', 'CAD', 'NZD'].some(c => upperSym.includes(c) && upperSym.length === 6)) {
+            setCalcMode('forex')
+        } else if (/^(BTC|ETH|SOL|ADA|XRP|DOGE|DOT|AVAX|MATIC|LINK)([-/]?(USD|USDT|USDC|EUR|BTC))?$/i.test(upperSym)) {
+            setCalcMode('crypto')
+        }
+        // Equity is the default — no switch needed
+
         setQuoteFetching(true)
         apiFetch<{ price: number }>(`/api/v1/market-data/quote?ticker=${encodeURIComponent(sym)}`)
             .then((quote) => {
@@ -210,6 +276,83 @@ export default function PositionCalculatorModal({ isOpen, onClose, fromPlanConte
             positionPercent: Math.round(positionPercent * 10) / 10,
         }
     }, [accountSize, riskPercent, entryPrice, stopPrice, targetPrice])
+
+    // MEU-155: Mode-specific computation results
+    const modeResult = useMemo(() => {
+        switch (calcMode) {
+            case 'futures':
+                return computeFutures(accountSize, riskPercent, entryPrice, stopPrice, targetPrice, futuresInputs)
+            case 'options':
+                return computeOptions(accountSize, riskPercent, optionsInputs)
+            case 'forex':
+                return computeForex(accountSize, riskPercent, entryPrice, stopPrice, targetPrice, forexInputs)
+            case 'crypto':
+                return computeCrypto(accountSize, riskPercent, entryPrice, stopPrice, targetPrice, cryptoInputs)
+            default:
+                return null
+        }
+    }, [calcMode, accountSize, riskPercent, entryPrice, stopPrice, targetPrice, futuresInputs, optionsInputs, forexInputs, cryptoInputs])
+
+    // MEU-155: Mode-specific warnings
+    const warnings = useMemo(() => {
+        const resultData = calcMode === 'equity'
+            ? { positionPercent: result.positionPercent }
+            : (modeResult ?? {})
+        return getWarnings(calcMode, accountSize, riskPercent, resultData as Record<string, number>)
+    }, [calcMode, accountSize, riskPercent, result.positionPercent, modeResult])
+
+    // MEU-155: Futures preset handler
+    const handleFuturesPreset = useCallback((preset: string) => {
+        setFuturesPreset(preset)
+        const p = FUTURES_PRESETS[preset]
+        if (p) setFuturesInputs(p)
+    }, [])
+
+    // MEU-155: Save scenario
+    const handleSaveScenario = useCallback(() => {
+        const shares = calcMode === 'equity' ? result.shares : 0
+        const risk = calcMode === 'equity' ? result.dollarRisk : 0
+        const rr = calcMode === 'equity' ? result.rrRatio : getModeRR(modeResult)
+        const scenario: Scenario = {
+            id: `s-${Date.now()}`,
+            mode: calcMode,
+            label: ticker || `${calcMode}-${scenarios.length + 1}`,
+            accountSize, riskPercent, entryPrice, stopPrice, targetPrice,
+            resultShares: shares, resultRisk: risk, resultRR: rr,
+            timestamp: Date.now(),
+        }
+        setScenarios(prev => addScenario(prev, scenario))
+    }, [calcMode, result, modeResult, ticker, accountSize, riskPercent, entryPrice, stopPrice, targetPrice, scenarios.length])
+
+    // MEU-155: Auto-add to history on meaningful computation
+    const lastHistoryRef = useRef<string>('')
+    useEffect(() => {
+        if (entryPrice <= 0 || stopPrice <= 0) return
+        const key = `${calcMode}-${accountSize}-${riskPercent}-${entryPrice}-${stopPrice}-${targetPrice}`
+        if (key === lastHistoryRef.current) return
+        lastHistoryRef.current = key
+        const shares = calcMode === 'equity' ? result.shares : 0
+        const risk = calcMode === 'equity' ? result.dollarRisk : 0
+        const rr = calcMode === 'equity' ? result.rrRatio : getModeRR(modeResult)
+        const entry: HistoryEntry = {
+            id: `h-${Date.now()}`,
+            mode: calcMode,
+            accountSize, riskPercent, entryPrice, stopPrice, targetPrice,
+            resultShares: shares, resultRisk: risk, resultRR: rr,
+            timestamp: Date.now(),
+        }
+        setHistory(prev => addToHistory(prev, entry))
+    }, [calcMode, accountSize, riskPercent, entryPrice, stopPrice, targetPrice, result, modeResult])
+
+    // MEU-155: Load from history
+    const handleLoadHistory = useCallback((entry: HistoryEntry) => {
+        setCalcMode(entry.mode)
+        setAccountSize(entry.accountSize)
+        setRiskPercent(entry.riskPercent)
+        setEntryPrice(entry.entryPrice)
+        setStopPrice(entry.stopPrice)
+        setTargetPrice(entry.targetPrice)
+    }, [])
 
     // C2: Copy shares to clipboard
     const handleCopyShares = useCallback(async () => {
@@ -272,6 +415,24 @@ export default function PositionCalculatorModal({ isOpen, onClose, fromPlanConte
                 </div>
 
                 <div className="p-4 space-y-4">
+                    {/* MEU-155: Mode selector */}
+                    <div className="flex gap-1 p-1 rounded-lg bg-bg" data-testid="calc-mode-selector">
+                        {CALC_MODES.map((m) => (
+                            <button
+                                key={m.value}
+                                data-testid={`calc-mode-${m.value}`}
+                                onClick={() => setCalcMode(m.value)}
+                                className={`flex-1 px-2 py-1 text-xs rounded-md transition-colors cursor-pointer ${
+                                    calcMode === m.value
+                                        ? 'bg-accent/20 text-accent font-medium'
+                                        : 'text-fg-muted hover:text-fg'
+                                }`}
+                            >
+                                {m.icon} {m.label}
+                            </button>
+                        ))}
+                    </div>
+
                     {/* C4: Ticker search + C3: quote loading indicator */}
                     <div>
                         <label className="block text-xs text-fg-muted mb-1">Ticker</label>
@@ -384,7 +545,58 @@ export default function PositionCalculatorModal({ isOpen, onClose, fromPlanConte
                         </div>
                     </div>
 
-                    {/* Outputs (AC-15) */}
+                    {/* MEU-155: Mode-specific inputs */}
+                    {calcMode === 'futures' && (
+                        <div className="space-y-2" data-testid="calc-futures-inputs">
+                            <div className="flex gap-2">
+                                <label className="block text-xs text-fg-muted mb-1">Preset</label>
+                                <select data-testid="calc-futures-preset" value={futuresPreset} onChange={(e) => handleFuturesPreset(e.target.value)} className="px-2 py-1 text-xs rounded bg-bg border border-bg-subtle text-fg">
+                                    {Object.keys(FUTURES_PRESETS).map((k) => <option key={k} value={k}>{k}</option>)}
+                                </select>
+                            </div>
+                            <div className="grid grid-cols-3 gap-2">
+                                <div><label className="block text-xs text-fg-muted">Multiplier</label><input data-testid="calc-futures-multiplier" type="number" value={futuresInputs.multiplier} onChange={(e) => setFuturesInputs(p => ({ ...p, multiplier: +e.target.value || 0 }))} className="w-full px-2 py-1 text-xs rounded bg-bg border border-bg-subtle text-fg" /></div>
+                                <div><label className="block text-xs text-fg-muted">Tick Size</label><input data-testid="calc-futures-tick" type="number" step="0.01" value={futuresInputs.tickSize} onChange={(e) => setFuturesInputs(p => ({ ...p, tickSize: +e.target.value || 0 }))} className="w-full px-2 py-1 text-xs rounded bg-bg border border-bg-subtle text-fg" /></div>
+                                <div><label className="block text-xs text-fg-muted">Margin</label><input data-testid="calc-futures-margin" type="number" value={futuresInputs.margin} onChange={(e) => setFuturesInputs(p => ({ ...p, margin: +e.target.value || 0 }))} className="w-full px-2 py-1 text-xs rounded bg-bg border border-bg-subtle text-fg" /></div>
+                            </div>
+                        </div>
+                    )}
+
+                    {calcMode === 'options' && (
+                        <div className="space-y-2" data-testid="calc-options-inputs">
+                            <div className="grid grid-cols-2 gap-2">
+                                <div><label className="block text-xs text-fg-muted">Type</label><select data-testid="calc-options-type" value={optionsInputs.type} onChange={(e) => setOptionsInputs(p => ({ ...p, type: e.target.value as 'call' | 'put' }))} className="w-full px-2 py-1 text-xs rounded bg-bg border border-bg-subtle text-fg"><option value="call">Call</option><option value="put">Put</option></select></div>
+                                <div><label className="block text-xs text-fg-muted">Premium</label><input data-testid="calc-options-premium" type="number" step="0.01" value={optionsInputs.premium || ''} onChange={(e) => setOptionsInputs(p => ({ ...p, premium: +e.target.value || 0 }))} className="w-full px-2 py-1 text-xs rounded bg-bg border border-bg-subtle text-fg" placeholder="0.00" /></div>
+                            </div>
+                            <div className="grid grid-cols-3 gap-2">
+                                <div><label className="block text-xs text-fg-muted">Delta</label><input data-testid="calc-options-delta" type="number" step="0.01" value={optionsInputs.delta} onChange={(e) => setOptionsInputs(p => ({ ...p, delta: +e.target.value || 0 }))} className="w-full px-2 py-1 text-xs rounded bg-bg border border-bg-subtle text-fg" /></div>
+                                <div><label className="block text-xs text-fg-muted">Underlying</label><input data-testid="calc-options-underlying" type="number" step="0.01" value={optionsInputs.underlyingPrice || ''} onChange={(e) => setOptionsInputs(p => ({ ...p, underlyingPrice: +e.target.value || 0 }))} className="w-full px-2 py-1 text-xs rounded bg-bg border border-bg-subtle text-fg" placeholder="0.00" /></div>
+                                <div><label className="block text-xs text-fg-muted">Multiplier</label><input type="number" value={optionsInputs.multiplier} onChange={(e) => setOptionsInputs(p => ({ ...p, multiplier: +e.target.value || 0 }))} className="w-full px-2 py-1 text-xs rounded bg-bg border border-bg-subtle text-fg" /></div>
+                            </div>
+                        </div>
+                    )}
+
+                    {calcMode === 'forex' && (
+                        <div className="space-y-2" data-testid="calc-forex-inputs">
+                            <div className="grid grid-cols-2 gap-2">
+                                <div><label className="block text-xs text-fg-muted">Lot Type</label><select data-testid="calc-forex-lot" value={forexInputs.lotType} onChange={(e) => setForexInputs(p => ({ ...p, lotType: e.target.value as ForexLotType }))} className="w-full px-2 py-1 text-xs rounded bg-bg border border-bg-subtle text-fg"><option value="standard">Standard (100K)</option><option value="mini">Mini (10K)</option><option value="micro">Micro (1K)</option></select></div>
+                                <div><label className="block text-xs text-fg-muted">Leverage</label><input data-testid="calc-forex-leverage" type="number" value={forexInputs.leverage} onChange={(e) => setForexInputs(p => ({ ...p, leverage: +e.target.value || 1 }))} className="w-full px-2 py-1 text-xs rounded bg-bg border border-bg-subtle text-fg" /></div>
+                            </div>
+                            <div><label className="block text-xs text-fg-muted">Pip Value ($)</label><input data-testid="calc-forex-pip" type="number" step="0.01" value={forexInputs.pipValue} onChange={(e) => setForexInputs(p => ({ ...p, pipValue: +e.target.value || 0 }))} className="w-full px-2 py-1 text-xs rounded bg-bg border border-bg-subtle text-fg" /></div>
+                        </div>
+                    )}
+
+                    {calcMode === 'crypto' && (
+                        <div className="space-y-2" data-testid="calc-crypto-inputs">
+                            <div className="grid grid-cols-2 gap-2">
+                                <div><label className="block text-xs text-fg-muted">Leverage</label><input data-testid="calc-crypto-leverage" type="number" value={cryptoInputs.leverage} onChange={(e) => setCryptoInputs(p => ({ ...p, leverage: +e.target.value || 1 }))} className="w-full px-2 py-1 text-xs rounded bg-bg border border-bg-subtle text-fg" /></div>
+                                <div><label className="block text-xs text-fg-muted">Fee Rate (%)</label><input data-testid="calc-crypto-fee" type="number" step="0.01" value={cryptoInputs.feeRate} onChange={(e) => setCryptoInputs(p => ({ ...p, feeRate: +e.target.value || 0 }))} className="w-full px-2 py-1 text-xs rounded bg-bg border border-bg-subtle text-fg" /></div>
+                            </div>
+                        </div>
+                    )}
+
+                    {/* Outputs — equity mode (AC-15) */}
+                    {calcMode === 'equity' && (
                     <div className="border-t border-bg-subtle pt-4">
                         <h3 className="text-xs text-fg-muted mb-3 uppercase tracking-wider">Results</h3>
                         <div className="grid grid-cols-2 gap-3">
@@ -394,14 +606,7 @@ export default function PositionCalculatorModal({ isOpen, onClose, fromPlanConte
                                     <span className="text-lg font-semibold text-fg font-mono" data-testid="calc-shares-output">
                                         {result.shares.toLocaleString()}
                                     </span>
-                                    {/* C2: Copy-to-clipboard */}
-                                    <button
-                                        data-testid="calc-copy-shares-btn"
-                                        onClick={handleCopyShares}
-                                        className="text-fg-muted hover:text-fg text-xs cursor-pointer transition-colors"
-                                        aria-label="Copy shares to clipboard"
-                                        title="Copy shares to clipboard"
-                                    >
+                                    <button data-testid="calc-copy-shares-btn" onClick={handleCopyShares} className="text-fg-muted hover:text-fg text-xs cursor-pointer transition-colors" aria-label="Copy shares to clipboard" title="Copy shares to clipboard">
                                         {copyFeedback ? '✓' : '📋'}
                                     </button>
                                 </div>
@@ -414,10 +619,7 @@ export default function PositionCalculatorModal({ isOpen, onClose, fromPlanConte
                             </div>
                             <div className="px-3 py-2 rounded-md bg-bg">
                                 <span className="block text-xs text-fg-muted">R:R Ratio</span>
-                                <span
-                                    className={`text-lg font-semibold font-mono ${result.rrRatio >= 2 ? 'text-green-400' : result.rrRatio >= 1 ? 'text-yellow-400' : 'text-red-400'}`}
-                                    data-testid="calc-rr-output"
-                                >
+                                <span className={`text-lg font-semibold font-mono ${result.rrRatio >= 2 ? 'text-green-400' : result.rrRatio >= 1 ? 'text-yellow-400' : 'text-red-400'}`} data-testid="calc-rr-output">
                                     {result.rrRatio.toFixed(2)}
                                 </span>
                             </div>
@@ -428,21 +630,91 @@ export default function PositionCalculatorModal({ isOpen, onClose, fromPlanConte
                                 </span>
                             </div>
                         </div>
-
-                        {/* Warning for >100% position (AC-15) */}
                         {result.positionPercent > 100 && (
                             <div className="mt-3 px-3 py-2 rounded-md bg-red-500/10 border border-red-500/20 text-red-400 text-xs" data-testid="calc-oversize-warning">
                                 ⚠️ Position is {result.positionPercent}% of account — exceeds 100%
                             </div>
                         )}
-
                         <div className="mt-3 text-xs text-fg-muted text-center">
                             Risk/Share: ${result.riskPerShare.toFixed(2)} · Position: {result.positionPercent}% of account
                         </div>
                     </div>
+                    )}
 
-                    {/* Apply to Plan — plan picker + toggle switches */}
-                    {fromPlanContext && (
+                    {/* Outputs — mode-specific results (MEU-155) */}
+                    {calcMode !== 'equity' && modeResult && (
+                    <div className="border-t border-bg-subtle pt-4" data-testid="calc-mode-results">
+                        <h3 className="text-xs text-fg-muted mb-3 uppercase tracking-wider">Results — {CALC_MODES.find(m => m.value === calcMode)?.label}</h3>
+                        <div className="grid grid-cols-2 gap-2">
+                            {Object.entries(modeResult).map(([k, v]) => (
+                                <div key={k} className="px-3 py-1.5 rounded-md bg-bg">
+                                    <span className="block text-xs text-fg-muted">{k.replace(/([A-Z])/g, ' $1').replace(/^./, s => s.toUpperCase())}</span>
+                                    <span className="text-sm font-semibold text-fg font-mono" data-testid={`calc-result-${k}`}>
+                                        {typeof v === 'number' ? v.toLocaleString(undefined, { maximumFractionDigits: 6 }) : String(v)}
+                                    </span>
+                                </div>
+                            ))}
+                        </div>
+                    </div>
+                    )}
+
+                    {/* MEU-155: Warnings */}
+                    {warnings.length > 0 && (
+                        <div className="space-y-1" data-testid="calc-warnings">
+                            {warnings.map((w, i) => (
+                                <div key={i} className={`px-3 py-1.5 rounded-md text-xs ${
+                                    w.level === 'danger' ? 'bg-red-500/10 border border-red-500/20 text-red-400'
+                                    : w.level === 'warn' ? 'bg-yellow-500/10 border border-yellow-500/20 text-yellow-400'
+                                    : 'bg-blue-500/10 border border-blue-500/20 text-blue-400'
+                                }`} data-testid="calc-warning">
+                                    {w.level === 'danger' ? '🚨' : w.level === 'warn' ? '⚠️' : 'ℹ️'} {w.message}
+                                </div>
+                            ))}
+                        </div>
+                    )}
+
+                    {/* MEU-155: Scenario comparison */}
+                    <div className="border-t border-bg-subtle pt-3">
+                        <div className="flex items-center justify-between mb-2">
+                            <h3 className="text-xs text-fg-muted uppercase tracking-wider">Scenarios</h3>
+                            <button data-testid="calc-save-scenario" onClick={handleSaveScenario} className="text-xs px-2 py-0.5 rounded bg-accent/10 text-accent hover:bg-accent/20 cursor-pointer">+ Save</button>
+                        </div>
+                        {scenarios.length > 0 ? (
+                            <div className="space-y-1 max-h-24 overflow-y-auto" data-testid="calc-scenarios">
+                                {scenarios.map((s) => (
+                                    <div key={s.id} className="flex items-center gap-2 px-2 py-1 rounded bg-bg text-xs" data-testid="calc-scenario-row">
+                                        <span className="text-fg-muted">{CALC_MODES.find(m => m.value === s.mode)?.icon}</span>
+                                        <span className="text-fg flex-1 truncate">{s.label}</span>
+                                        <span className="text-fg-muted font-mono">R:R {s.resultRR.toFixed(2)}</span>
+                                        <button onClick={() => setScenarios(prev => removeScenario(prev, s.id))} className="text-fg-muted hover:text-red-400 cursor-pointer">×</button>
+                                    </div>
+                                ))}
+                            </div>
+                        ) : (
+                            <p className="text-xs text-fg-muted">Save current inputs to compare scenarios</p>
+                        )}
+                    </div>
+
+                    {/* MEU-155: History */}
+                    {history.length > 0 && (
+                    <div className="border-t border-bg-subtle pt-3">
+                        <h3 className="text-xs text-fg-muted mb-2 uppercase tracking-wider">History ({history.length})</h3>
+                        <div className="space-y-1 max-h-20 overflow-y-auto" data-testid="calc-history">
+                            {[...history].reverse().map((h) => (
+                                <button key={h.id} onClick={() => handleLoadHistory(h)} className="flex items-center gap-2 w-full px-2 py-1 rounded bg-bg text-xs hover:bg-bg-subtle cursor-pointer text-left" data-testid="calc-history-row">
+                                    <span className="text-fg-muted">{CALC_MODES.find(m => m.value === h.mode)?.icon}</span>
+                                    <span className="text-fg font-mono">${h.entryPrice.toFixed(2)}</span>
+                                    <span className="text-fg-muted">→</span>
+                                    <span className="text-fg font-mono">${h.targetPrice.toFixed(2)}</span>
+                                    <span className="text-fg-muted ml-auto">{new Date(h.timestamp).toLocaleTimeString()}</span>
+                                </button>
+                            ))}
+                        </div>
+                    </div>
+                    )}
+
+                    {/* Apply to Plan — plan picker + toggle switches (equity only) */}
+                    {fromPlanContext && calcMode === 'equity' && (
                         <div className="border-t border-bg-subtle pt-4">
                             <h3 className="text-xs text-fg-muted mb-2 uppercase tracking-wider">Apply to Trade Plan</h3>
 
@@ -539,6 +811,37 @@ export default function PositionCalculatorModal({ isOpen, onClose, fromPlanConte
                                 >
                                     📋 Apply to Plan{selectedPlanId ? ` #${selectedPlanId}` : ''}
                                 </button>
+                            </div>
+                        </div>
+                    )}
+
+                    {/* Contribution CTA — non-equity modes don't support Apply to Plan yet */}
+                    {fromPlanContext && calcMode !== 'equity' && (
+                        <div
+                            data-testid="calc-contribute-cta"
+                            className="border-t border-bg-subtle pt-4"
+                        >
+                            <div className="rounded-lg border border-amber-500/20 bg-amber-500/5 px-4 py-3">
+                                <div className="flex items-start gap-3">
+                                    <span className="text-lg mt-0.5">🚀</span>
+                                    <div className="flex-1 space-y-1.5">
+                                        <h3 className="text-sm font-medium text-amber-300">
+                                            {CALC_MODES.find(m => m.value === calcMode)?.label} Trade Plans — Coming Soon
+                                        </h3>
+                                        <p className="text-xs text-fg-muted leading-relaxed">
+                                            Position sizing for {CALC_MODES.find(m => m.value === calcMode)?.label.toLowerCase()} works great — but trade plans and trade records don't support this instrument type yet. We're building multi-asset trade planning and would love your help.
+                                        </p>
+                                        <button
+                                            onClick={() => window.electron.openExternal('https://github.com/matbanik/zorivest/issues')}
+                                            className="inline-flex items-center gap-1.5 text-xs text-amber-400 hover:text-amber-300 transition-colors mt-1 cursor-pointer bg-transparent border-none p-0"
+                                        >
+                                            <svg className="w-3.5 h-3.5" fill="currentColor" viewBox="0 0 16 16">
+                                                <path d="M8 0C3.58 0 0 3.58 0 8c0 3.54 2.29 6.53 5.47 7.59.4.07.55-.17.55-.38 0-.19-.01-.82-.01-1.49-2.01.37-2.53-.49-2.69-.94-.09-.23-.48-.94-.82-1.13-.28-.15-.68-.52-.01-.53.63-.01 1.08.58 1.23.82.72 1.21 1.87.87 2.33.66.07-.52.28-.87.51-1.07-1.78-.2-3.64-.89-3.64-3.95 0-.87.31-1.59.82-2.15-.08-.2-.36-1.02.08-2.12 0 0 .67-.21 2.2.82.64-.18 1.32-.27 2-.27.68 0 1.36.09 2 .27 1.53-1.04 2.2-.82 2.2-.82.44 1.1.16 1.92.08 2.12.51.56.82 1.27.82 2.15 0 3.07-1.87 3.75-3.65 3.95.29.25.54.73.54 1.48 0 1.07-.01 1.93-.01 2.2 0 .21.15.46.55.38A8.013 8.013 0 0016 8c0-4.42-3.58-8-8-8z"/>
+                                            </svg>
+                                            Contribute on GitHub →
+                                        </button>
+                                    </div>
+                                </div>
                             </div>
                         </div>
                     )}

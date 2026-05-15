@@ -48,7 +48,6 @@ from zorivest_api.services.mcp_guard import McpGuardService
 from zorivest_api.stubs import (
     StubAnalyticsService,
     StubReviewService,
-    StubTaxService,
 )
 from zorivest_core.services.trade_service import TradeService
 from zorivest_core.services.account_service import AccountService
@@ -59,6 +58,7 @@ from zorivest_core.services.provider_connection_service import ProviderConnectio
 from zorivest_core.services.watchlist_service import WatchlistService
 from zorivest_core.services.email_provider_service import EmailProviderService  # MEU-73
 from zorivest_core.services.scheduling_service import SchedulingService
+from zorivest_core.services.tax_service import TaxService  # MEU-148: real tax service
 from zorivest_core.services.scheduler_service import SchedulerService
 from zorivest_core.services.pipeline_guardrails import PipelineGuardrails
 from zorivest_core.services.pipeline_runner import PipelineRunner
@@ -212,6 +212,33 @@ def _seed_default_templates(repo: Any, session: Any) -> None:
     session.commit()
 
 
+# ── Inline schema migrations (no Alembic) ───────────────────────────────
+
+
+def _get_inline_migrations() -> list[str]:
+    """Return the list of ``ALTER TABLE`` statements for schema evolution.
+
+    Each statement is run inside a try/except during startup so that
+    columns already present on a fresh database (via ``create_all``) are
+    silently skipped.  The list must be append-only.
+    """
+    return [
+        "ALTER TABLE trades ADD COLUMN notes TEXT DEFAULT ''",
+        "ALTER TABLE trade_plans ADD COLUMN executed_at TEXT",  # T5: status timestamps
+        "ALTER TABLE trade_plans ADD COLUMN cancelled_at TEXT",  # T5: status timestamps
+        "ALTER TABLE accounts ADD COLUMN is_archived BOOLEAN DEFAULT 0",  # MEU-37 AC-1
+        "ALTER TABLE accounts ADD COLUMN is_system BOOLEAN DEFAULT 0",  # MEU-37 AC-2
+        "ALTER TABLE trade_plans ADD COLUMN shares_planned INTEGER",  # Position size
+        "ALTER TABLE trade_plans ADD COLUMN position_size REAL",  # MEU-70a: dollar value
+        "ALTER TABLE market_quotes ADD COLUMN change NUMERIC(15,6)",  # Yahoo v8 quote
+        "ALTER TABLE market_quotes ADD COLUMN change_pct REAL",  # Yahoo v8 quote
+        # TAX-DBMIGRATION: 3 columns added to TaxLotModel in Phase 3B/3C
+        "ALTER TABLE tax_lots ADD COLUMN cost_basis_method VARCHAR(30)",
+        "ALTER TABLE tax_lots ADD COLUMN realized_gain_loss NUMERIC(15,6) DEFAULT 0 NOT NULL",
+        "ALTER TABLE tax_lots ADD COLUMN acquisition_source VARCHAR(20)",
+    ]
+
+
 # ── Lifespan ────────────────────────────────────────────────────────────
 
 
@@ -240,17 +267,7 @@ async def lifespan(app: FastAPI) -> AsyncGenerator[None, None]:
 
     # ── Schema migrations (no Alembic) ────────────────────────────────
     # Add missing columns to existing databases created before the column was added.
-    _inline_migrations = [
-        "ALTER TABLE trades ADD COLUMN notes TEXT DEFAULT ''",
-        "ALTER TABLE trade_plans ADD COLUMN executed_at TEXT",  # T5: status timestamps
-        "ALTER TABLE trade_plans ADD COLUMN cancelled_at TEXT",  # T5: status timestamps
-        "ALTER TABLE accounts ADD COLUMN is_archived BOOLEAN DEFAULT 0",  # MEU-37 AC-1
-        "ALTER TABLE accounts ADD COLUMN is_system BOOLEAN DEFAULT 0",  # MEU-37 AC-2
-        "ALTER TABLE trade_plans ADD COLUMN shares_planned INTEGER",  # Position size
-        "ALTER TABLE trade_plans ADD COLUMN position_size REAL",  # MEU-70a: dollar value
-        "ALTER TABLE market_quotes ADD COLUMN change NUMERIC(15,6)",  # Yahoo v8 quote
-        "ALTER TABLE market_quotes ADD COLUMN change_pct REAL",  # Yahoo v8 quote
-    ]
+    _inline_migrations = _get_inline_migrations()
     with engine.connect() as conn:
         for _stmt in _inline_migrations:
             try:
@@ -281,7 +298,7 @@ async def lifespan(app: FastAPI) -> AsyncGenerator[None, None]:
     app.state.guard_service = McpGuardService()
     app.state.analytics_service = StubAnalyticsService()
     app.state.review_service = StubReviewService()
-    app.state.tax_service = StubTaxService()
+    app.state.tax_service = TaxService(uow)  # MEU-148: real service replaces stub
     # MEU-91: shared HTTP client, encryption, rate limiters for all market data services
     _http_client = HttpxClient()
     _encryption = FernetEncryptionAdapter()

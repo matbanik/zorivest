@@ -241,6 +241,63 @@ export default function SettingsLayout() {
                 </div>
             </div>
 
+            {/* Tax Profile (MEU-156) — read-only until backend TaxProfile CRUD is available */}
+            <div className="bg-bg-elevated rounded-lg border border-bg-subtle p-4" data-testid="tax-profile-settings">
+                <h3 className="text-base font-semibold text-fg mb-3">Tax Profile</h3>
+                <p className="text-xs text-fg-muted mb-4">
+                    Tax configuration for gain/loss classification and reporting. Editing will be available when the Tax Profile API is implemented.
+                </p>
+                <div className="space-y-3">
+                    <div className="flex items-center gap-4">
+                        <span className="text-sm text-fg-muted w-32">Filing Status</span>
+                        <select
+                            data-testid="tax-filing-status"
+                            disabled
+                            title="Coming soon — Tax Profile API"
+                            className="rounded border border-border bg-bg px-2 py-1.5 text-sm text-fg-muted min-w-[200px] opacity-50 cursor-not-allowed"
+                            defaultValue="single"
+                        >
+                            <option value="single">Single</option>
+                            <option value="married_joint">Married Filing Jointly</option>
+                            <option value="married_separate">Married Filing Separately</option>
+                            <option value="head_of_household">Head of Household</option>
+                        </select>
+                    </div>
+                    <div className="flex items-center gap-4">
+                        <span className="text-sm text-fg-muted w-32">Cost Basis</span>
+                        <select
+                            data-testid="tax-cost-basis-method"
+                            disabled
+                            title="Coming soon — Tax Profile API"
+                            className="rounded border border-border bg-bg px-2 py-1.5 text-sm text-fg-muted min-w-[200px] opacity-50 cursor-not-allowed"
+                            defaultValue="fifo"
+                        >
+                            <option value="fifo">FIFO (First In, First Out)</option>
+                            <option value="lifo">LIFO (Last In, First Out)</option>
+                            <option value="specific_id">Specific Identification</option>
+                            <option value="avg_cost">Average Cost</option>
+                        </select>
+                    </div>
+                    <div className="flex items-center gap-4">
+                        <span className="text-sm text-fg-muted w-32">Tax Year</span>
+                        <select
+                            data-testid="tax-year-setting"
+                            disabled
+                            title="Coming soon — Tax Profile API"
+                            className="rounded border border-border bg-bg px-2 py-1.5 text-sm text-fg-muted min-w-[120px] opacity-50 cursor-not-allowed"
+                            defaultValue="2026"
+                        >
+                            <option value="2026">2026</option>
+                            <option value="2025">2025</option>
+                            <option value="2024">2024</option>
+                        </select>
+                    </div>
+                </div>
+                <p className="text-xs text-fg-muted mt-3 italic">
+                    🔒 Read-only — requires Tax Profile backend (Phase 4)
+                </p>
+            </div>
+
             {/* MCP Server Status Panel */}
             <McpServerStatusPanel />
 

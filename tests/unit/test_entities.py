@@ -385,6 +385,7 @@ class TestModuleIntegrity:
             "WatchlistItem",  # MEU-68
             "TaxLot",  # MEU-123
             "TaxProfile",  # MEU-124
+            "QuarterlyEstimate",  # MEU-143
         }
         assert set(class_names) == expected, (
             f"Expected {expected}, got {set(class_names)}"

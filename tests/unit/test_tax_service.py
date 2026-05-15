@@ -21,7 +21,7 @@ from unittest.mock import MagicMock
 import pytest
 
 from zorivest_core.domain.entities import TaxLot, Trade
-from zorivest_core.domain.enums import CostBasisMethod, TradeAction
+from zorivest_core.domain.enums import CostBasisMethod, FilingStatus, TradeAction
 from zorivest_core.domain.exceptions import (
     BusinessRuleError,
     NotFoundError,
@@ -1323,3 +1323,170 @@ class TestAggregatePaginationRegression:
         # 150 lots × $10 ST gain = $1500
         assert result.total_st_gains == Decimal("1500.00")
         uow.tax_lots.list_all_filtered.assert_called_once()
+
+
+# ── C2: TaxService.quarterly_estimate() contract tests (Finding #2/#3) ──
+
+
+class TestQuarterlyEstimate:
+    """AC-145.6: TaxService.quarterly_estimate(quarter, tax_year, method)
+    orchestrates bracket + safe harbor / annualized computation.
+
+    These tests verify the refactored service contract per 04f-api-tax.md.
+    """
+
+    def _make_profile_uow(
+        self,
+        *,
+        agi: Decimal = Decimal("200000"),
+        prior_year_tax: Decimal = Decimal("40000"),
+    ) -> MagicMock:
+        """Create a mock UoW with a TaxProfile for 2026."""
+        uow = MagicMock()
+        uow.__enter__ = MagicMock(return_value=uow)
+        uow.__exit__ = MagicMock(return_value=False)
+
+        profile = MagicMock()
+        profile.filing_status = FilingStatus.SINGLE
+        profile.agi_estimate = agi
+        profile.prior_year_tax = prior_year_tax
+        uow.tax_profiles.get_for_year.return_value = profile
+
+        return uow
+
+    def test_quarterly_estimate_returns_result(self) -> None:
+        """Valid quarter with default method returns structured result."""
+        uow = self._make_profile_uow()
+        svc = TaxService(uow)
+        result = svc.quarterly_estimate(quarter=1, tax_year=2026)
+
+        # Result must have ALL fields from the 04f-api-tax.md contract
+        assert hasattr(result, "required_amount")
+        assert hasattr(result, "due_date")
+        assert hasattr(result, "method")
+        assert hasattr(result, "paid")
+        assert hasattr(result, "due")
+        assert hasattr(result, "penalty")
+        assert result.required_amount > Decimal("0")
+
+    def test_quarterly_estimate_default_method_is_annualized(self) -> None:
+        """Default method matches API spec: 'annualized' per 04f-api-tax.md:123."""
+        uow = self._make_profile_uow()
+        svc = TaxService(uow)
+        result = svc.quarterly_estimate(quarter=1, tax_year=2026)
+
+        assert result.method == "annualized"
+
+    def test_quarterly_estimate_invalid_quarter_zero(self) -> None:
+        """quarter=0 raises BusinessRuleError."""
+        uow = self._make_profile_uow()
+        svc = TaxService(uow)
+        with pytest.raises(BusinessRuleError, match="quarter"):
+            svc.quarterly_estimate(quarter=0, tax_year=2026)
+
+    def test_quarterly_estimate_invalid_quarter_five(self) -> None:
+        """quarter=5 raises BusinessRuleError."""
+        uow = self._make_profile_uow()
+        svc = TaxService(uow)
+        with pytest.raises(BusinessRuleError, match="quarter"):
+            svc.quarterly_estimate(quarter=5, tax_year=2026)
+
+    def test_quarterly_estimate_no_profile_raises(self) -> None:
+        """Missing TaxProfile raises BusinessRuleError."""
+        uow = MagicMock()
+        uow.__enter__ = MagicMock(return_value=uow)
+        uow.__exit__ = MagicMock(return_value=False)
+        uow.tax_profiles.get_for_year.return_value = None
+        svc = TaxService(uow)
+        with pytest.raises(BusinessRuleError, match="TaxProfile"):
+            svc.quarterly_estimate(quarter=1, tax_year=2026)
+
+    def test_quarterly_estimate_due_date_quarter_1(self) -> None:
+        """Q1 due_date should be April 15 (or weekend-adjusted)."""
+        from datetime import date as dt_date
+
+        uow = self._make_profile_uow()
+        svc = TaxService(uow)
+        result = svc.quarterly_estimate(quarter=1, tax_year=2026)
+
+        # April 15, 2026 is a Wednesday — no weekend adjustment
+        assert result.due_date == dt_date(2026, 4, 15)
+
+    def test_quarterly_estimate_due_date_quarter_4(self) -> None:
+        """Q4 due_date should be January 15 of NEXT year."""
+        from datetime import date as dt_date
+
+        uow = self._make_profile_uow()
+        svc = TaxService(uow)
+        result = svc.quarterly_estimate(quarter=4, tax_year=2026)
+
+        # January 15, 2027 is a Friday — no weekend adjustment
+        assert result.due_date == dt_date(2027, 1, 15)
+
+    def test_quarterly_estimate_prior_year_method(self) -> None:
+        """method='prior_year' uses safe harbor computation (100%/110% prior year).
+
+        04f-api-tax.md names this 'prior_year'; it maps to the domain's
+        safe harbor calculator.
+        """
+        uow = self._make_profile_uow()
+        svc = TaxService(uow)
+        result = svc.quarterly_estimate(quarter=2, tax_year=2026, method="prior_year")
+
+        # Method should be one of the safe harbor labels
+        assert result.method in (
+            "safe_harbor_100",
+            "safe_harbor_110",
+            "current_year_90",
+        )
+
+    def test_quarterly_estimate_annualized_method(self) -> None:
+        """method='annualized' uses annualized income computation."""
+        uow = self._make_profile_uow()
+        svc = TaxService(uow)
+        result = svc.quarterly_estimate(quarter=1, tax_year=2026, method="annualized")
+
+        assert result.method == "annualized"
+        assert result.required_amount >= Decimal("0")
+
+    def test_quarterly_estimate_actual_method_raises(self) -> None:
+        """method='actual' raises BusinessRuleError — requires MEU-148 persistence.
+
+        The 'actual' method needs per-quarter income data that requires
+        QuarterlyEstimate persistence (deferred to MEU-148).
+        """
+        uow = self._make_profile_uow()
+        svc = TaxService(uow)
+        with pytest.raises(BusinessRuleError, match="actual.*MEU-148"):
+            svc.quarterly_estimate(quarter=1, tax_year=2026, method="actual")
+
+    def test_quarterly_estimate_invalid_method_raises(self) -> None:
+        """Truly invalid method raises BusinessRuleError."""
+        uow = self._make_profile_uow()
+        svc = TaxService(uow)
+        with pytest.raises(BusinessRuleError, match="method"):
+            svc.quarterly_estimate(quarter=1, tax_year=2026, method="invalid_method")
+
+    def test_quarterly_estimate_safe_harbor_rejected(self) -> None:
+        """'safe_harbor' is not an API-facing method name.
+
+        The API uses 'prior_year' for the safe harbor concept.
+        'safe_harbor' should be rejected as an invalid method.
+        """
+        uow = self._make_profile_uow()
+        svc = TaxService(uow)
+        with pytest.raises(BusinessRuleError, match="method"):
+            svc.quarterly_estimate(quarter=1, tax_year=2026, method="safe_harbor")
+
+    def test_quarterly_estimate_paid_due_penalty_defaults(self) -> None:
+        """Result includes paid/due/penalty fields with MEU-148 defaults.
+
+        Before MEU-148 persistence: paid=0, due=required_amount, penalty=0.
+        """
+        uow = self._make_profile_uow()
+        svc = TaxService(uow)
+        result = svc.quarterly_estimate(quarter=1, tax_year=2026)
+
+        assert result.paid == Decimal("0")
+        assert result.due == result.required_amount
+        assert result.penalty == Decimal("0")

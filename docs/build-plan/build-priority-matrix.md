@@ -374,6 +374,7 @@
 | Order | What | Tests First? | Notes |
 |-------|------|-------------|-------|
 | **75** | Tax REST API endpoints (FastAPI) | ✅ Yes | `/tax/estimate`, `/tax/wash-sales`, `/tax/simulate`, `/tax/lots`, `/tax/quarterly`, `/tax/harvest`, `/tax/ytd-summary` |
+| **75a** | TaxProfile CRUD API (`GET`/`PUT /api/v1/tax/profile`) | ✅ Yes | Registers 12 TaxProfile keys in SettingsRegistry; returns/accepts TaxProfile as single JSON object; prerequisite for **82** toggle persistence. Depends on: 75 |
 | **76** | Tax MCP tool registration (`registerTaxTools`) | ✅ Yes | 8 tools: `estimate_tax`, `find_wash_sales`, `simulate_tax_impact`, `get_tax_lots`, `get_quarterly_estimate`, `record_quarterly_tax_payment`, `harvest_losses`, `get_ytd_tax_summary` |
 | **77** | Year-end tax position summary | ✅ Yes | MCP: `get_ytd_tax_summary`. Aggregate dashboard |
 | **78** | Deferred loss carryover report | ✅ Yes | Real P&L vs reported P&L, trapped losses in chains |
@@ -381,7 +382,7 @@
 | **80** | Error check / transaction audit | ✅ Yes | Scan for missing basis, dupes, impossible prices |
 | **81** | Tax estimator GUI (React) — [06g-gui-tax.md](06g-gui-tax.md) | Playwright E2E — wave TBD (Phase 12+) | Dashboard, lot viewer, wash sales, what-if, harvesting, quarterly tracker |
 | **81a** | Position calculator GUI (React) — [06h-gui-calculator.md](06h-gui-calculator.md) | Playwright E2E — wave TBD (expansion; base is [Wave 4](06-gui.md#wave-activation-schedule)) | Calculator expansion: multi-mode, scenario comparison, calculation history |
-| **82** | Section 475 / 1256 / Forex toggles (conditional) | ✅ Yes | Mark-to-Market, 60/40 futures, forex worksheet |
+| **82** | Section 475 / 1256 / Forex toggles (conditional) | ✅ Yes | Mark-to-Market, 60/40 futures, forex worksheet. Depends on: **75a** (TaxProfile CRUD API for persistence) |
 
 ---
 

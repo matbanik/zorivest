@@ -277,6 +277,9 @@ export const TAX = {
     // What-If Simulator
     WHAT_IF_SIMULATOR: 'what-if-simulator',
     WHAT_IF_TICKER_INPUT: 'what-if-ticker-input',
+    WHAT_IF_QUANTITY: 'what-if-quantity',
+    WHAT_IF_PRICE: 'what-if-price',
+    WHAT_IF_SUBMIT: 'what-if-submit',
     WHAT_IF_RESULT: 'what-if-result',
     // Loss Harvesting
     LOSS_HARVESTING_TOOL: 'loss-harvesting-tool',

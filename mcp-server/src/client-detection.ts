@@ -143,7 +143,7 @@ This server provides toolset-based tool organization for portfolio analytics, tr
 - **zorivest_market** — Market data: quotes, news, search, SEC filings, provider management
 - **zorivest_watchlist** — Watchlist CRUD with ticker management
 - **zorivest_import** — CSV/PDF import, broker sync, bank statements
-- **zorivest_tax** — Tax operations (all 501 Not Implemented — planned for future phase)
+- **zorivest_tax** — Tax operations: simulate impact, estimate liability, wash sales, lots, quarterly estimates, record payments, harvest losses, YTD summary
 - **zorivest_policy** — Pipeline policy lifecycle: create, emulate, approve (GUI-only), run, schedule, history
 - **zorivest_template** — Email template CRUD with Jinja2 preview
 - **zorivest_db** — DB schema discovery, SQL validation, step types, provider capabilities
@@ -160,6 +160,6 @@ Destructive operations (trade deletion, account deletion, policy deletion, templ
 All tools return JSON with \`{ success, data?, error? }\`. Common error codes:
 - **404**: Resource not found (invalid ID, ticker, or template name)
 - **422**: Validation error (malformed input, missing required fields)
-- **501**: Not Implemented (tax tools, some import stubs)
+- **501**: Not Implemented (some import stubs)
 - **503**: External service unavailable (market data provider down)`;
 }

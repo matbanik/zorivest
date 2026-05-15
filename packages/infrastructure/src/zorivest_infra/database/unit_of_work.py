@@ -46,8 +46,12 @@ from zorivest_infra.database.email_template_repository import (
     EmailTemplateRepository,
 )
 from zorivest_infra.database.tax_repository import (
+    SqlQuarterlyEstimateRepository,
     SqlTaxLotRepository,
     SqlTaxProfileRepository,
+)
+from zorivest_infra.database.wash_sale_repository import (
+    SqlWashSaleChainRepository,
 )
 
 
@@ -85,6 +89,8 @@ class SqlAlchemyUnitOfWork:
     email_templates: EmailTemplateRepository  # MEU-PH6
     tax_lots: SqlTaxLotRepository  # MEU-123
     tax_profiles: SqlTaxProfileRepository  # MEU-124
+    quarterly_estimates: SqlQuarterlyEstimateRepository  # MEU-148
+    wash_sale_chains: SqlWashSaleChainRepository  # MEU-130
 
     def __init__(self, engine: Engine) -> None:
         self._engine = engine
@@ -125,6 +131,10 @@ class SqlAlchemyUnitOfWork:
             self.email_templates = EmailTemplateRepository(self._session)  # MEU-PH6
             self.tax_lots = SqlTaxLotRepository(self._session)  # MEU-123
             self.tax_profiles = SqlTaxProfileRepository(self._session)  # MEU-124
+            self.quarterly_estimates = SqlQuarterlyEstimateRepository(
+                self._session
+            )  # MEU-148
+            self.wash_sale_chains = SqlWashSaleChainRepository(self._session)  # MEU-130
         return self
 
     def __exit__(

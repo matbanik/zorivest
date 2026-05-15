@@ -4,11 +4,11 @@ Phase 1 stubs (InMemoryRepo, StubUnitOfWork) have been retired — MEU-90a.
 McpGuardService moved to zorivest_api.services.mcp_guard — MEU-90a.
 StubMarketDataService retired — MEU-91 (replaced by real MarketDataService).
 StubProviderConnectionService retired — MEU-65 (replaced by real ProviderConnectionService).
+StubTaxService retired — MEU-148 (replaced by real TaxService).
 
 Retained stubs (blocked on future MEUs):
 - StubAnalyticsService          — MEU-118 expansion-api
 - StubReviewService             — MEU-118 expansion-api
-- StubTaxService                — MEU-148 tax-api
 """
 
 from __future__ import annotations
@@ -93,83 +93,3 @@ class StubReviewService:
         self, account_id: Any = None, period: str = "ytd"
     ) -> dict[str, Any]:
         return {"total_cost": 0.0, "by_category": [], "trend": []}
-
-
-class StubTaxService:
-    """Stub tax service — returns properly shaped defaults.
-
-    Source: 04f — all tax methods return empty/default dicts.
-    No __getattr__ — explicit methods only.
-    """
-
-    def simulate_impact(self, body: Any) -> dict[str, Any]:
-        return {
-            "estimated_tax": 0.0,
-            "lots": [],
-            "st_lt_split": {"short_term": 0.0, "long_term": 0.0},
-        }
-
-    def estimate(self, body: Any) -> dict[str, Any]:
-        return {"federal_estimate": 0.0, "state_estimate": 0.0, "bracket_breakdown": []}
-
-    def find_wash_sales(self, body: Any) -> dict[str, Any]:
-        return {"chains": [], "disallowed_total": 0.0, "affected_tickers": []}
-
-    def get_lots(
-        self,
-        account_id: str,
-        ticker: Any = None,
-        status: str = "all",
-        sort_by: str = "acquired_date",
-    ) -> dict[str, Any]:
-        return {"lots": [], "total_count": 0}
-
-    def quarterly_estimate(
-        self, quarter: str, tax_year: int, method: str = "annualized"
-    ) -> dict[str, Any]:
-        return {
-            "required": 0.0,
-            "paid": 0.0,
-            "due": 0.0,
-            "penalty": 0.0,
-            "due_date": "",
-        }
-
-    def record_payment(self, body: Any) -> dict[str, Any]:
-        return {
-            "status": "recorded",
-            "quarter": getattr(body, "quarter", ""),
-            "amount": getattr(body, "payment_amount", 0.0),
-        }
-
-    def harvest_scan(
-        self, account_id: Any = None, min_loss: float = 0.0, exclude_wash: bool = False
-    ) -> dict[str, Any]:
-        return {"opportunities": [], "total_harvestable": 0.0}
-
-    def ytd_summary(self, tax_year: int, account_id: Any = None) -> dict[str, Any]:
-        return {
-            "short_term": 0.0,
-            "long_term": 0.0,
-            "wash_adjustments": 0.0,
-            "estimated_tax": 0.0,
-        }
-
-    def close_lot(self, lot_id: str) -> dict[str, Any]:
-        return {"lot_id": lot_id, "status": "closed", "realized_gain_loss": 0.0}
-
-    def reassign_basis(self, lot_id: str, body: dict[str, Any]) -> dict[str, Any]:
-        return {
-            "lot_id": lot_id,
-            "method": body.get("method", "fifo"),
-            "status": "reassigned",
-        }
-
-    def scan_wash_sales(self, account_id: Any = None) -> dict[str, Any]:
-        return {"active_chains": [], "trapped_amount": 0.0, "alerts": []}
-
-    def run_audit(self, account_id: Any = None, tax_year: Any = None) -> dict[str, Any]:
-        return {
-            "findings": [],
-            "severity_summary": {"error": 0, "warning": 0, "info": 0},
-        }

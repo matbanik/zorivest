@@ -3,6 +3,7 @@ import {
     ArrowLeftRight,
     CalendarClock,
     Calendar,
+    Receipt,
     Settings,
     PanelLeftClose,
     PanelLeftOpen,
@@ -22,6 +23,7 @@ const mainNavItems: NavItem[] = [
     { label: 'Trades', path: '/trades', icon: ArrowLeftRight },
     { label: 'Planning', path: '/planning', icon: CalendarClock },
     { label: 'Scheduling', path: '/scheduling', icon: Calendar },
+    { label: 'Tax', path: '/tax', icon: Receipt },
 ]
 
 const settingsItem: NavItem = { label: 'Settings', path: '/settings', icon: Settings }
@@ -31,6 +33,7 @@ const navTestIds: Record<string, string> = {
     '/trades': 'nav-trades',
     '/planning': 'nav-planning',
     '/scheduling': 'nav-scheduling',
+    '/tax': 'nav-tax',
     '/settings': 'nav-settings',
 }
 

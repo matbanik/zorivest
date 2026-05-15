@@ -29,6 +29,7 @@ from zorivest_core.domain.entities import (
     Account,
     BalanceSnapshot,
     ImageAttachment,
+    QuarterlyEstimate,
     TaxLot,
     TaxProfile,
     Trade,
@@ -37,6 +38,8 @@ from zorivest_core.domain.entities import (
     Watchlist,
     WatchlistItem,
 )
+from zorivest_core.domain.enums import WashSaleStatus
+from zorivest_core.domain.tax.wash_sale import WashSaleChain
 from zorivest_core.domain.market_provider_settings import MarketProviderSettings
 
 
@@ -327,6 +330,8 @@ class UnitOfWork(Protocol):
     email_provider: EmailProviderRepository  # MEU-73
     tax_lots: TaxLotRepository  # MEU-123
     tax_profiles: TaxProfileRepository  # MEU-124
+    wash_sale_chains: WashSaleChainRepository  # MEU-130
+    quarterly_estimates: QuarterlyEstimateRepository  # MEU-143
 
     def __enter__(self) -> UnitOfWork: ...
 
@@ -408,6 +413,58 @@ class TaxProfileRepository(Protocol):
 
     def get_for_year(self, tax_year: int) -> Optional[TaxProfile]:
         """Return the tax profile for the given year, if any."""
+        ...
+
+
+# ── Phase 3B: Wash Sale Engine Repository Ports ─────────────────────────
+
+
+class WashSaleChainRepository(Protocol):
+    """Repository for WashSaleChain entities.
+
+    MEU-130 AC-130.8. Follows TaxLotRepository pattern.
+    """
+
+    def get(self, chain_id: str) -> Optional[WashSaleChain]: ...
+
+    def save(self, chain: WashSaleChain) -> None: ...
+
+    def update(self, chain: WashSaleChain) -> None: ...
+
+    def list_for_ticker(self, ticker: str) -> list[WashSaleChain]:
+        """Return all wash sale chains for the given ticker."""
+        ...
+
+    def list_active(self, status: WashSaleStatus | None = None) -> list[WashSaleChain]:
+        """Return chains filtered by status (default: all active)."""
+        ...
+
+
+# ── Phase 3D: Quarterly Estimate Repository Port ────────────────────────
+
+
+class QuarterlyEstimateRepository(Protocol):
+    """Repository for QuarterlyEstimate entities.
+
+    MEU-143 AC-143.6. Follows TaxProfileRepository pattern.
+    """
+
+    def get(self, estimate_id: int) -> Optional[QuarterlyEstimate]: ...
+
+    def save(self, estimate: QuarterlyEstimate) -> int:
+        """Save a new quarterly estimate and return the assigned ID."""
+        ...
+
+    def update(self, estimate: QuarterlyEstimate) -> None: ...
+
+    def list_for_year(self, tax_year: int) -> list[QuarterlyEstimate]:
+        """Return all quarterly estimates for the given tax year."""
+        ...
+
+    def get_for_quarter(
+        self, tax_year: int, quarter: int
+    ) -> Optional[QuarterlyEstimate]:
+        """Return the estimate for a specific quarter, if any."""
         ...
 
 

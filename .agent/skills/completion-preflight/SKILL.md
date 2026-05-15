@@ -121,6 +121,45 @@ rg "Finding|Severity" <review-file>                         # Findings section
 
 > **Fail-safe**: If you cannot find the artifact to grep (e.g., you haven't created it yet), that is itself a compliance failure — create the artifact from its template before proceeding.
 
+## Closeout Artifact Quality Check
+
+**Trigger:** Before marking ANY closeout task `[x]` (handoff, reflection, metrics, pomera save).
+
+**Root cause this addresses:** Context fatigue at session end causes agents to treat closeout artifacts as "checkbox items" — writing thin, template-violating content from stale memory instead of following the full template structure. This check is the enforcement mechanism.
+
+### Pre-Write Verification
+
+Before writing ANY closeout artifact, confirm:
+
+- [ ] **Template loaded**: Did I `view_file` the relevant template (TEMPLATE.md) this session? If not, read it NOW.
+- [ ] **Exemplar loaded**: Did I `view_file` a recent peer exemplar (most recent by date) for quality calibration? If not, read one NOW.
+- [ ] **Not from memory**: Am I about to generate this artifact from the template I just read, or from a stale memory of what the template looks like? If the latter, re-read the template.
+
+### Post-Write Verification
+
+After writing each closeout artifact, verify:
+
+- [ ] **Reflection quality gate**: File size > 2,000 bytes AND all 11 template sections have substantive answers (not `_Answer here_` or single-sentence responses for complex questions)
+- [ ] **Handoff quality gate**: All 7 scored sections are populated with concrete evidence, not "pending" or "N/A" for blocking gates
+- [ ] **Pomera save verified**: `pomera_notes(action="search", search_term="Zorivest-{slug}*")` returns ≥1 result — do NOT claim pomera is unavailable without actually calling the tool
+- [ ] **Metrics row verified**: `Get-Content docs/execution/metrics.md | Select-Object -Last 3` shows a row with today's date and all columns populated
+
+### Anti-Patterns (Closeout-Specific)
+
+```
+# ❌ Writing reflection from memory
+"I know the template has 11 sections..." → WRONG — view_file TEMPLATE.md first
+
+# ❌ Claiming MCP unavailable without testing
+"pomera not available in this session" → WRONG — call mcp_pomera_pomera_diagnose() or the actual tool
+
+# ❌ Using Test-Path as the only quality check
+Test-Path docs/execution/reflections/foo.md → only checks existence, NOT quality
+
+# ❌ Treating closeout as "after the real work"
+"Implementation is done, now just need to do the admin stuff" → WRONG mindset
+```
+
 ## Post-Truncation Recovery Sequence
 
 **When resuming after context truncation (checkpoint message):**

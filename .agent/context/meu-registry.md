@@ -1,4 +1,4 @@
-# MEU Registry — Phase 1 + 1A + 2 + 2A + 3 + 3A + 4 + 5 + 6 + 6-UX + 8 + 9
+# MEU Registry — Phase 1 + 1A + 2 + 2A + 3 + 3A + 4 + 5 + 6 + 6-UX + 8 + 9 + 12
 
 > Source: [BUILD_PLAN.md](../docs/BUILD_PLAN.md) | [build-priority-matrix.md](../docs/build-plan/build-priority-matrix.md)
 
@@ -445,3 +445,92 @@ P2.75 (broker adapters): MEU-96 → MEU-99
 | MEU-127 | `tax-loss-carry` | 54 | Capital loss carryforward + $3K/$1.5K cap + tax-advantaged account exclusion | ✅ 2026-05-12 |
 | MEU-128 | `options-assignment` | 55 | Options assignment/exercise cost basis pairing (4 IRS paths: short put, short call, long call, long put) | ✅ 2026-05-12 |
 | MEU-129 | `ytd-pnl` | 56 | YTD P&L by symbol (ST vs LT breakdown) | ✅ 2026-05-12 |
+
+## Phase 3B: Wash Sale Engine (P1.5)
+
+| MEU | Slug | Matrix | Description | Status |
+|-----|------|:------:|-------------|:------:|
+| MEU-130 | `wash-sale-detection` | 57 | WashSaleChain/WashSaleEntry entities, 30-day window detection algorithm, SqlWashSaleChainRepository | ✅ 2026-05-13 |
+| MEU-131 | `wash-sale-chain` | 58 | Wash sale chain tracking: disallowed → absorbed → released state machine, deferred loss rolling | ✅ 2026-05-13 |
+| MEU-132 | `wash-sale-cross-acct` | 59 | Cross-account wash sale aggregation, IRA permanent loss destruction | ✅ 2026-05-13 |
+| MEU-133 | `wash-sale-options` | 60 | Options-to-stock substantially-identical matching (Conservative/Aggressive toggle) | ✅ 2026-05-13 |
+| MEU-134 | `wash-sale-drip` | 61 | DRIP wash sale detection, AcquisitionSource enum, dividend reinvestment conflict flag | ✅ 2026-05-13 |
+| MEU-135 | `wash-sale-rebalance` | 62 | Auto-rebalance wash sale warning + spousal account cross-wash detection | ✅ 2026-05-13 |
+| MEU-136 | `wash-sale-alerts` | 63 | Proactive wash sale prevention alerts (pre-trade warning with days-to-clear) | ✅ 2026-05-13 |
+
+## Phase 3C: Tax Optimization Tools (P1.5)
+
+| MEU | Slug | Matrix | Description | Status |
+|-----|------|:------:|-------------|:------:|
+| MEU-137 | `tax-what-if` | 64 | Pre-trade "what-if" tax simulator (wash-sale-aware simulation) | ✅ 2026-05-14 |
+| MEU-138 | `tax-harvest-scan` | 65 | Tax-loss harvesting scanner (portfolio scan, wash-conflict filter, ranked losses) | ✅ 2026-05-14 |
+| MEU-139 | `tax-replacement` | 66 | Tax-smart replacement suggestions (correlated non-identical securities lookup) | ✅ 2026-05-14 |
+| MEU-140 | `lot-matcher` | 67 | Lot matcher / close specific lots (SpecID selection API) | ✅ 2026-05-14 |
+| MEU-141 | `lot-reassignment` | 68 | Post-trade lot reassignment window (T+1 undo) | ✅ 2026-05-14 |
+| MEU-142 | `st-lt-comparison` | 69 | ST vs LT tax rate dollar comparison ("wait N days, save $X") | ✅ 2026-05-14 |
+
+## Phase 3D: Quarterly Payments & Tax Brackets (P1.5)
+
+| MEU | Slug | Matrix | Description | Status |
+|-----|------|:------:|-------------|:------:|
+| MEU-143 | `quarterly-estimate` | 70 | QuarterlyEstimate entity, safe harbor calculator (100%/110% prior year) | ✅ |
+| MEU-144 | `annualized-income` | 71 | Annualized income method (Form 2210 Schedule AI logic) | ✅ |
+| MEU-145 | `quarterly-tracker` | 72 | Due date tracker (Apr/Jun/Sep/Jan) + underpayment penalty preview | ✅ |
+| MEU-146 | `marginal-rate-calc` | 73 | Marginal tax rate calculator (federal bracket tables + state rate) | ✅ |
+| MEU-147 | `niit-alert` | 74 | NIIT 3.8% surtax threshold alert ($200K/$250K MAGI) | ✅ |
+
+## Phase 3E: Reports & Full-Stack Wiring (P1.5)
+
+| MEU | Slug | Matrix | Description | Status |
+|-----|------|:------:|-------------|:------:|
+| MEU-148 | `tax-api-wiring` | 75 | Tax REST API: swap StubTaxService → real TaxService | 🔲 |
+| MEU-148a | `tax-profile-api` | 75a | TaxProfile CRUD API: `GET`/`PUT /api/v1/tax/profile` backed by SettingsRegistry; registers 12 TaxProfile keys · Depends on: MEU-18 ✅, MEU-124 ✅, MEU-148 | 🔲 |
+| MEU-149 | `tax-mcp-wiring` | 76 | Tax MCP tools: 4 stub actions → 8 real tools | 🔲 |
+| MEU-150 | `tax-report-summary` | 77 | Year-end tax position summary report | 🔲 |
+| MEU-151 | `tax-report-deferred` | 78 | Deferred loss carryover report (trapped wash sale losses) | 🔲 |
+| MEU-152 | `tax-report-alpha` | 79 | Tax alpha savings summary (YTD savings tally) | 🔲 |
+| MEU-153 | `tax-audit-check` | 80 | Error check / transaction audit (anomaly scan) | 🔲 |
+| MEU-154 | `tax-gui` | 81 | Tax GUI: 10 React components (Wave 11 E2E) | ✅ |
+| MEU-155 | `tax-calc-expansion` | 81a | Calculator expansion (conditional) | ✅ |
+| MEU-156 | `tax-section-toggles` | 82 | Section 475/1256/Forex toggles (advanced/conditional) · Depends on: MEU-148a | 🔲 |
+
+## Phase 12: Contributor Documentation Suite
+
+> Source: [12-contributor-docs.md](../../docs/build-plan/12-contributor-docs.md) | Research: [COMPOSITE-SYNTHESIS.md](../../_inspiration/CONTRIBUTING.md_research/COMPOSITE-SYNTHESIS.md)
+> Depends on: Nothing — pure documentation; parallel with all code phases
+> Blocks: Phase 7 (Distribution) — contributor docs must exist before public release
+
+### P0 — Foundation
+
+| MEU | Slug | Matrix | Description | Status |
+|-----|------|:------:|-------------|:------:|
+| MEU-208 | `security-reporting` | 12.1 | SECURITY.md — vulnerability scope, PVR reporting, response SLAs, no-bounty | ⬜ planned |
+| MEU-209 | `github-templates` | 12.2 | .github/PULL_REQUEST_TEMPLATE.md + issue templates (bug_report.yml, feature_request.yml, config.yml) | ⬜ planned |
+| MEU-210 | `contributor-guide` | 12.3 | CONTRIBUTING.md (~390 lines, 12 sections) + CODE_OF_CONDUCT.md (Contributor Covenant 2.1) | ⬜ planned |
+| MEU-211 | `dev-setup-docs` | 12.4 | docs/DEVELOPMENT.md (setup + troubleshooting) + root AGENTS.md (≤200 lines, public) + README.md link update | ⬜ planned |
+
+### P1 — Governance & AI Policy
+
+| MEU | Slug | Matrix | Description | Status |
+|-----|------|:------:|-------------|:------:|
+| MEU-212 | `governance-ai-policy` | 12.5 | GOVERNANCE.md (BDFL + evolution trigger) + docs/AI_POLICY.md (disclosure rules) + docs/ARCHITECTURE.md (layer diagram) | ⬜ planned |
+| MEU-213 | `ai-tool-shims` | 12.6 | CLAUDE.md redirect + .windsurfrules symlink + per-package AGENTS.md (×5, ≤60 lines each) + docs_improvement.yml issue template | ⬜ planned |
+
+### P2 — Advanced Tooling
+
+| MEU | Slug | Matrix | Description | Status |
+|-----|------|:------:|-------------|:------:|
+| MEU-214 | `native-ai-rules` | 12.7 | .github/copilot-instructions.md (native `applyTo:`) + .cursor/rules/dependency-rule.mdc + .cursor/rules/tdd-policy.mdc + CODEOWNERS | ⬜ planned |
+| MEU-215 | `contributor-ci` | 12.8 | tools/validate_agent_files.py (AGENTS.md drift check) + agent_issue.yml template + CONTRIBUTORS.md | ⬜ planned |
+
+## Phase 12 Execution Order
+
+Phase 12 (P0): MEU-208 → MEU-209 → MEU-210 → MEU-211
+Phase 12 (P1): MEU-212 → MEU-213
+Phase 12 (P2): MEU-214 → MEU-215
+
+## Phase 12 Exit Criteria
+
+- P0 Exit: MEU-208..211 ✅ (SECURITY.md, PR+issue templates, CONTRIBUTING.md, CODE_OF_CONDUCT.md, DEVELOPMENT.md, root AGENTS.md, README.md links)
+- P1 Exit: MEU-212..213 ✅ (GOVERNANCE.md, AI_POLICY.md, ARCHITECTURE.md, CLAUDE.md, .windsurfrules, per-package AGENTS.md ×5, docs_improvement.yml)
+- P2 Exit: MEU-214..215 ✅ (copilot-instructions.md, .cursor/rules/*.mdc, CODEOWNERS, validate_agent_files.py, agent_issue.yml, CONTRIBUTORS.md)

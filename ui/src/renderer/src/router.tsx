@@ -43,6 +43,12 @@ const schedulingRoute = createRoute({
     component: React.lazy(() => import('./features/scheduling/SchedulingLayout')),
 })
 
+const taxRoute = createRoute({
+    getParentRoute: () => rootRoute,
+    path: '/tax',
+    component: React.lazy(() => import('./features/tax/TaxLayout')),
+})
+
 const settingsRoute = createRoute({
     getParentRoute: () => rootRoute,
     path: '/settings',
@@ -70,6 +76,7 @@ const routeTree = rootRoute.addChildren([
     tradesRoute,
     planningRoute,
     schedulingRoute,
+    taxRoute,
     settingsRoute,
     settingsMarketRoute,
     settingsEmailRoute,

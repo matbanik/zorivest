@@ -53,7 +53,7 @@ export default function AppShell({ children }: AppShellProps) {
     // Global Ctrl+Shift+C shortcut — opens Position Calculator from any page (AC-13)
     // Global Ctrl+Shift+1..5 shortcuts — page navigation (avoid OS Ctrl+1..5 conflict)
     useEffect(() => {
-        const navRoutes = ['/', '/trades', '/planning', '/scheduling', '/settings']
+        const navRoutes = ['/', '/trades', '/planning', '/scheduling', '/tax', '/settings']
         const handler = (e: KeyboardEvent) => {
             if (e.ctrlKey && e.shiftKey && e.key === 'C') {
                 e.preventDefault()
@@ -61,7 +61,7 @@ export default function AppShell({ children }: AppShellProps) {
                 return
             }
             if ((e.ctrlKey || e.metaKey) && e.shiftKey) {
-                const idx = ['!', '@', '#', '$', '%'].indexOf(e.key)
+                const idx = ['!', '@', '#', '$', '%', '^'].indexOf(e.key)
                 if (idx >= 0 && idx < navRoutes.length) {
                     e.preventDefault()
                     navigate({ to: navRoutes[idx] })

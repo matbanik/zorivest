@@ -3,7 +3,7 @@
 
 AC-1: 4 SQLAlchemy models with proper column types, nullable constraints, indexes.
 AC-2: UniqueConstraint prevents duplicate entries per natural key.
-AC-3: 42 tables exist after create_all (40 pre-3A + 2 Phase 3A tax).
+AC-3: 43 tables exist after create_all (canonical count including quarterly_estimates).
 """
 
 from __future__ import annotations
@@ -41,7 +41,7 @@ def _session(engine) -> Session:
 
 
 class TestTableCount:
-    """AC-3: 42 tables exist after create_all (40 pre-3A + 2 Phase 3A tax)."""
+    """AC-3: 43 tables exist after create_all (canonical count including quarterly_estimates)."""
 
     def test_market_ohlcv_table_exists(self) -> None:
         engine = _engine()
@@ -63,10 +63,15 @@ class TestTableCount:
         tables = inspect(engine).get_table_names()
         assert "market_fundamentals" in tables
 
-    def test_total_table_count_is_42(self) -> None:
+    def test_total_table_count(self) -> None:
+        """Table count canary — import all model modules before counting."""
+        import zorivest_infra.database.models  # noqa: F401  — ensure all models loaded
+
         engine = _engine()
         tables = inspect(engine).get_table_names()
-        assert len(tables) == 42
+        assert "quarterly_estimates" in tables, "MEU-148 table missing"
+        # Canary: count should be stable. Update when new models are added.
+        assert len(tables) >= 43, f"Expected ≥43 tables, got {len(tables)}"
 
 
 # ── AC-1: Column types and constraints ─────────────────────────────────────

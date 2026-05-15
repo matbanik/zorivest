@@ -287,3 +287,44 @@ class WashSaleMatchingMethod(StrEnum):  # §3A MEU-124
 
     CONSERVATIVE = "CONSERVATIVE"
     AGGRESSIVE = "AGGRESSIVE"
+
+
+# ── Phase 3B: Wash Sale Engine ───────────────────────────────────────────
+
+
+class WashSaleStatus(StrEnum):  # §3B MEU-130
+    """Wash sale chain lifecycle status.
+
+    Spec: DISALLOWED → ABSORBED → RELEASED (or DESTROYED for retirement).
+    """
+
+    DISALLOWED = "DISALLOWED"  # Loss initially disallowed
+    ABSORBED = "ABSORBED"  # Deferred loss added to replacement basis
+    RELEASED = "RELEASED"  # Chain expired, loss becomes deductible
+    DESTROYED = "DESTROYED"  # Loss permanently destroyed (IRA/401k)
+
+
+class WashSaleEventType(StrEnum):  # §3B MEU-130
+    """Event types in a wash sale chain's audit trail."""
+
+    LOSS_DISALLOWED = "LOSS_DISALLOWED"  # Initial loss flagged
+    BASIS_ADJUSTED = "BASIS_ADJUSTED"  # Deferred loss → replacement basis
+    CHAIN_CONTINUED = "CHAIN_CONTINUED"  # Re-trigger within window
+    LOSS_RELEASED = "LOSS_RELEASED"  # Chain expired, loss allowed
+    LOSS_DESTROYED = "LOSS_DESTROYED"  # Permanent destruction (retirement)
+
+
+class AcquisitionSource(StrEnum):  # §3B MEU-134
+    """How a tax lot was acquired — used for DRIP wash sale detection.
+
+    AC-134.1: 7 members covering known broker import acquisition types.
+    Nullable on TaxLot — existing lots have None (treated as PURCHASE).
+    """
+
+    PURCHASE = "PURCHASE"  # Standard market buy
+    DRIP = "DRIP"  # Dividend reinvestment
+    TRANSFER = "TRANSFER"  # In-kind transfer between accounts
+    GIFT = "GIFT"  # Gifted shares (cost basis = donor's)
+    INHERITANCE = "INHERITANCE"  # Inherited (stepped-up basis)
+    EXERCISE = "EXERCISE"  # Option exercise → stock
+    ASSIGNMENT = "ASSIGNMENT"  # Option assignment → stock

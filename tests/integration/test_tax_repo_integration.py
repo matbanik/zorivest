@@ -362,3 +362,62 @@ class TestUoWTaxWiring:
             fetched = uow2.tax_profiles.get(pid)
             assert fetched is not None
             assert fetched.tax_year == 2099
+
+
+# ── MEU-134: AcquisitionSource Persistence ─────────────────────────────
+
+
+class TestAcquisitionSourcePersistence:
+    """MEU-134 AC-134.2: acquisition_source round-trips through persistence."""
+
+    def test_save_with_acquisition_source(self, tax_lot_repo) -> None:
+        """Save a lot with DRIP source, fetch it, verify field survives."""
+        from zorivest_core.domain.enums import AcquisitionSource
+
+        lot = _make_lot(
+            lot_id="lot-drip-1",
+            acquisition_source=AcquisitionSource.DRIP,
+        )
+        tax_lot_repo.save(lot)
+
+        fetched = tax_lot_repo.get("lot-drip-1")
+        assert fetched is not None
+        assert fetched.acquisition_source == AcquisitionSource.DRIP
+
+    def test_save_without_acquisition_source(self, tax_lot_repo) -> None:
+        """Save a lot without acquisition_source → None (backward compat)."""
+        lot = _make_lot(lot_id="lot-no-src")
+        tax_lot_repo.save(lot)
+
+        fetched = tax_lot_repo.get("lot-no-src")
+        assert fetched is not None
+        assert fetched.acquisition_source is None
+
+    def test_update_acquisition_source(self, tax_lot_repo) -> None:
+        """Save with None, update to EXERCISE, verify round-trip."""
+        from zorivest_core.domain.enums import AcquisitionSource
+
+        lot = _make_lot(lot_id="lot-update-src")
+        tax_lot_repo.save(lot)
+
+        lot.acquisition_source = AcquisitionSource.EXERCISE
+        tax_lot_repo.update(lot)
+
+        fetched = tax_lot_repo.get("lot-update-src")
+        assert fetched is not None
+        assert fetched.acquisition_source == AcquisitionSource.EXERCISE
+
+    def test_all_acquisition_source_values_roundtrip(self, tax_lot_repo) -> None:
+        """Every AcquisitionSource enum value persists correctly."""
+        from zorivest_core.domain.enums import AcquisitionSource
+
+        for i, src in enumerate(AcquisitionSource):
+            lot = _make_lot(
+                lot_id=f"lot-src-{i}",
+                acquisition_source=src,
+            )
+            tax_lot_repo.save(lot)
+
+            fetched = tax_lot_repo.get(f"lot-src-{i}")
+            assert fetched is not None
+            assert fetched.acquisition_source == src, f"Round-trip failed for {src}"

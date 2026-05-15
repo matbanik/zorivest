@@ -80,14 +80,14 @@ export const TOOLSET_DEFINITIONS: ToolsetDefinition[] = [
     {
         name: "data",
         description:
-            "Account CRUD, market data, watchlists, import, tax stubs " +
+            "Account CRUD, market data, watchlists, import, tax operations " +
             "(zorivest_account, zorivest_market, zorivest_watchlist, zorivest_import, zorivest_tax compound tools)",
         tools: [
             { name: "zorivest_account", description: "Account management compound tool (9 actions)" },
             { name: "zorivest_market", description: "Market data compound tool (7 actions)" },
             { name: "zorivest_watchlist", description: "Watchlist management compound tool (5 actions)" },
             { name: "zorivest_import", description: "Data import compound tool (7 actions)" },
-            { name: "zorivest_tax", description: "Tax operations compound tool (4 stub actions)" },
+            { name: "zorivest_tax", description: "Tax operations compound tool (8 actions)" },
         ],
         register: (server: McpServer): RegisteredToolHandle[] => [
             ...registerAccountTool(server),

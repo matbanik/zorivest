@@ -24,7 +24,7 @@
     },
     {
       "name": "data",
-      "description": "Account CRUD, market data, watchlists, import, tax stubs (zorivest_account, zorivest_market, zorivest_watchlist, zorivest_import, zorivest_tax compound tools)",
+      "description": "Account CRUD, market data, watchlists, import, tax operations (zorivest_account, zorivest_market, zorivest_watchlist, zorivest_import, zorivest_tax compound tools)",
       "tool_count": 5,
       "always_loaded": false,
       "tools": [
@@ -48,5 +48,5 @@
       ]
     }
   ],
-  "generated_at": "2026-05-05T17:37:46.023Z"
+  "generated_at": "2026-05-14T16:49:31.604Z"
 }

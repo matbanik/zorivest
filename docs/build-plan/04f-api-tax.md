@@ -295,7 +295,154 @@ uv run pytest tests/ --tb=no -q
 uv run pyright packages/api/src/zorivest_api/main.py
 ```
 
+## TaxProfile CRUD (MEU-148a)
+
+> [!IMPORTANT]
+> MEU-148a (`tax-profile-api`) exposes the `TaxProfile` entity as a dedicated REST resource.
+> Persistence is backed by `SettingsRegistry` — the 12 TaxProfile fields are registered as
+> typed settings keys, then surfaced via a thin `/tax/profile` endpoint that reads/writes
+> the settings as a single JSON object.
+
+### Prerequisites
+
+| Dependency | MEU | Status | What It Provides |
+|-----------|-----|--------|-----------------|
+| SettingsRegistry + Resolver | MEU-18 | ✅ | Key-value storage, type coercion, validation |
+| TaxProfile entity | MEU-124 | ✅ | Domain model with 12 fields |
+| Tax API router | MEU-148 | ✅ | `/api/v1/tax` prefix and router |
+
+### Request / Response Schemas
+
+```python
+# Addition to packages/api/src/zorivest_api/routes/tax.py
+
+class TaxProfileResponse(BaseModel):
+    """Current TaxProfile configuration as a flat JSON object."""
+    filing_status: Literal["single", "married_joint", "married_separate", "head_of_household"] = "single"
+    tax_year: int = 2026
+    federal_bracket: float = Field(ge=0, le=1, default=0.22)
+    state_tax_rate: float = Field(ge=0, le=1, default=0.05)
+    state: str = "TX"
+    prior_year_tax: float = Field(ge=0, default=0.0)
+    agi_estimate: float = Field(ge=0, default=0.0)
+    capital_loss_carryforward: float = Field(ge=0, default=0.0)
+    wash_sale_method: Literal["conservative", "aggressive"] = "conservative"
+    default_cost_basis: Literal["fifo", "lifo", "hifo", "specific_id", "max_lt_gain", "max_lt_loss", "max_st_gain", "max_st_loss"] = "fifo"
+    section_475_elected: bool = False
+    section_1256_eligible: bool = False
+
+class TaxProfileUpdateRequest(BaseModel):
+    """Partial update — only include fields you want to change."""
+    model_config = ConfigDict(extra="forbid")
+    filing_status: Optional[Literal["single", "married_joint", "married_separate", "head_of_household"]] = None
+    tax_year: Optional[int] = None
+    federal_bracket: Optional[float] = Field(None, ge=0, le=1)
+    state_tax_rate: Optional[float] = Field(None, ge=0, le=1)
+    state: Optional[str] = None
+    prior_year_tax: Optional[float] = Field(None, ge=0)
+    agi_estimate: Optional[float] = Field(None, ge=0)
+    capital_loss_carryforward: Optional[float] = Field(None, ge=0)
+    wash_sale_method: Optional[Literal["conservative", "aggressive"]] = None
+    default_cost_basis: Optional[Literal["fifo", "lifo", "hifo", "specific_id", "max_lt_gain", "max_lt_loss", "max_st_gain", "max_st_loss"]] = None
+    section_475_elected: Optional[bool] = None
+    section_1256_eligible: Optional[bool] = None
+```
+
+### Endpoints
+
+```python
+# ── TaxProfile CRUD ─────────────────────────────────────────
+
+@tax_router.get("/profile", status_code=200)
+async def get_tax_profile(settings_service = Depends(get_settings_service)):
+    """Return the current TaxProfile as a single JSON object.
+    All 12 fields are returned with their current values (or defaults)."""
+    profile = settings_service.get_tax_profile()
+    return TaxProfileResponse(**profile)
+
+@tax_router.put("/profile", status_code=200)
+async def update_tax_profile(body: TaxProfileUpdateRequest,
+                              settings_service = Depends(get_settings_service)):
+    """Partial update of TaxProfile fields.
+    Only non-null fields in the request body are written.
+    Returns the updated profile."""
+    updates = body.model_dump(exclude_none=True)
+    if not updates:
+        raise HTTPException(422, "No fields to update — all values were null")
+    settings_service.update_tax_profile(updates)
+    profile = settings_service.get_tax_profile()
+    return TaxProfileResponse(**profile)
+```
+
+### Settings Key Registration
+
+The following 12 keys must be registered in `SettingsRegistry` (via `seed_defaults` or migration):
+
+| Key | Type | Default | Validation |
+|-----|------|---------|-----------|
+| `tax.filing_status` | `str` | `"single"` | Enum: single, married_joint, married_separate, head_of_household |
+| `tax.tax_year` | `int` | `2026` | ≥ 2020 |
+| `tax.federal_bracket` | `float` | `0.22` | 0–1 |
+| `tax.state_tax_rate` | `float` | `0.05` | 0–1 |
+| `tax.state` | `str` | `"TX"` | 2-letter US state code |
+| `tax.prior_year_tax` | `float` | `0.0` | ≥ 0 |
+| `tax.agi_estimate` | `float` | `0.0` | ≥ 0 |
+| `tax.capital_loss_carryforward` | `float` | `0.0` | ≥ 0 |
+| `tax.wash_sale_method` | `str` | `"conservative"` | Enum: conservative, aggressive |
+| `tax.default_cost_basis` | `str` | `"fifo"` | Enum: fifo, lifo, hifo, specific_id, max_lt_gain, max_lt_loss, max_st_gain, max_st_loss |
+| `tax.section_475_elected` | `bool` | `false` | — |
+| `tax.section_1256_eligible` | `bool` | `false` | — |
+
+### Tests
+
+```python
+# tests/unit/test_tax_profile_api.py
+
+def test_get_tax_profile_returns_defaults(client):
+    response = client.get("/api/v1/tax/profile")
+    assert response.status_code == 200
+    data = response.json()
+    assert data["filing_status"] == "single"
+    assert data["section_475_elected"] is False
+
+def test_update_tax_profile_partial(client):
+    response = client.put("/api/v1/tax/profile", json={
+        "filing_status": "married_joint",
+        "section_475_elected": True
+    })
+    assert response.status_code == 200
+    data = response.json()
+    assert data["filing_status"] == "married_joint"
+    assert data["section_475_elected"] is True
+    # Unchanged fields retain defaults
+    assert data["state_tax_rate"] == 0.05
+
+def test_update_tax_profile_rejects_empty(client):
+    response = client.put("/api/v1/tax/profile", json={})
+    assert response.status_code == 422
+
+def test_update_tax_profile_rejects_unknown_fields(client):
+    response = client.put("/api/v1/tax/profile", json={
+        "unknown_field": "value"
+    })
+    assert response.status_code == 422
+```
+
+### Verification
+
+```bash
+# TaxProfile-specific tests
+uv run pytest tests/ -k "tax_profile" -v
+
+# Full regression
+uv run pytest tests/ --tb=no -q
+```
+
+---
+
 ## Consumer Notes
 
 - **MCP tools:** `simulate_tax_impact`, `estimate_tax`, `find_wash_sales`, `get_tax_lots`, `get_quarterly_estimate`, `record_quarterly_tax_payment`, `harvest_losses`, `get_ytd_tax_summary` ([05h](05h-mcp-tax.md))
 - **GUI pages:** [06g-gui-tax.md](06g-gui-tax.md) — tax dashboard, lot viewer, wash sale scanner, quarterly tracker
+- **GUI settings:** [06f-gui-settings.md](06f-gui-settings.md) `TaxProfilePage` — consumes `GET`/`PUT /api/v1/tax/profile` (MEU-148a)
+- **Toggle persistence:** MEU-156 (`tax-section-toggles`) depends on MEU-148a for `section_475_elected` and `section_1256_eligible` write-back

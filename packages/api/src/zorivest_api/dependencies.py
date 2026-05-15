@@ -91,7 +91,7 @@ async def get_review_service(request: Request):  # noqa: ANN201
 
 
 async def get_tax_service(request: Request):  # noqa: ANN201
-    """Resolve StubTaxService from app state."""
+    """Resolve TaxService from app state (MEU-148)."""
     svc = getattr(request.app.state, "tax_service", None)
     if svc is None:
         raise HTTPException(500, "TaxService not configured")
