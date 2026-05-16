@@ -219,6 +219,11 @@ class TaxLot:
         "0.00"
     )  # Computed on close via calculate_realized_gain
     acquisition_source: AcquisitionSource | None = None  # MEU-134: DRIP detection
+    # ── Phase 3F: Provenance tracking (MEU-216) ──────────────────────────
+    materialized_at: Optional[str] = None  # ISO timestamp of last sync
+    is_user_modified: bool = False  # User override protection flag
+    source_hash: Optional[str] = None  # SHA-256 of source trade data
+    sync_status: str = "synced"  # synced | conflict | orphaned
 
     @property
     def holding_period_days(self) -> int:

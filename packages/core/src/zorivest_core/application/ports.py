@@ -400,7 +400,7 @@ class TaxLotRepository(Protocol):
 class TaxProfileRepository(Protocol):
     """Repository for TaxProfile entities.
 
-    MEU-124 AC-4. Simplified — get, save, update, get_for_year.
+    MEU-124 AC-4, MEU-218f. CRUD: get, save, update, delete, get_for_year, list_all.
     """
 
     def get(self, profile_id: int) -> Optional[TaxProfile]: ...
@@ -411,8 +411,16 @@ class TaxProfileRepository(Protocol):
 
     def update(self, profile: TaxProfile) -> None: ...
 
+    def delete(self, tax_year: int) -> bool:
+        """Delete the tax profile for the given year.  Returns True if deleted."""
+        ...
+
     def get_for_year(self, tax_year: int) -> Optional[TaxProfile]:
         """Return the tax profile for the given year, if any."""
+        ...
+
+    def list_all(self) -> list[TaxProfile]:
+        """Return all tax profiles ordered by tax_year descending."""
         ...
 
 

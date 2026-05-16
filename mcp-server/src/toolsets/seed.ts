@@ -87,7 +87,7 @@ export const TOOLSET_DEFINITIONS: ToolsetDefinition[] = [
             { name: "zorivest_market", description: "Market data compound tool (7 actions)" },
             { name: "zorivest_watchlist", description: "Watchlist management compound tool (5 actions)" },
             { name: "zorivest_import", description: "Data import compound tool (7 actions)" },
-            { name: "zorivest_tax", description: "Tax operations compound tool (8 actions)" },
+            { name: "zorivest_tax", description: "Tax operations compound tool (10 actions)" },
         ],
         register: (server: McpServer): RegisteredToolHandle[] => [
             ...registerAccountTool(server),

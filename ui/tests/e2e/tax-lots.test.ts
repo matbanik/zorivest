@@ -32,24 +32,43 @@ test('lots tab renders lot viewer container', async () => {
     await expect(viewer).toBeVisible()
 })
 
-test('close-lot button exists and is disabled', async () => {
+test('close-lot button exists per lot row and is disabled', async () => {
     await appPage.waitForTestId(TAX.LOT_VIEWER)
+    const lotRows = appPage.testId(TAX.LOT_ROW)
+    const rowCount = await lotRows.count()
+
+    if (rowCount === 0) {
+        // No lots in DB — buttons only render per-row, so none expected
+        const closeBtn = appPage.testId(TAX.LOT_CLOSE_BTN)
+        expect(await closeBtn.count()).toBe(0)
+        return
+    }
+
+    // Each lot row has a Close button
     const closeBtn = appPage.testId(TAX.LOT_CLOSE_BTN)
-    // Close button should always be present (header-level or per-row)
     const count = await closeBtn.count()
-    expect(count).toBeGreaterThanOrEqual(1)
-    // All instances should be disabled (not yet implemented)
+    expect(count).toBe(rowCount)
     for (let i = 0; i < count; i++) {
         await expect(closeBtn.nth(i)).toBeDisabled()
     }
 })
 
-test('reassign-method button exists and is disabled', async () => {
+test('reassign-method button exists per lot row and is disabled', async () => {
     await appPage.waitForTestId(TAX.LOT_VIEWER)
+    const lotRows = appPage.testId(TAX.LOT_ROW)
+    const rowCount = await lotRows.count()
+
+    if (rowCount === 0) {
+        // No lots in DB — buttons only render per-row, so none expected
+        const reassignBtn = appPage.testId(TAX.LOT_REASSIGN_BTN)
+        expect(await reassignBtn.count()).toBe(0)
+        return
+    }
+
+    // Each lot row has a Reassign button
     const reassignBtn = appPage.testId(TAX.LOT_REASSIGN_BTN)
-    // Reassign button should always be present
     const count = await reassignBtn.count()
-    expect(count).toBeGreaterThanOrEqual(1)
+    expect(count).toBe(rowCount)
     for (let i = 0; i < count; i++) {
         await expect(reassignBtn.nth(i)).toBeDisabled()
     }

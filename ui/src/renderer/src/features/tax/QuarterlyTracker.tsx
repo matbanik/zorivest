@@ -13,6 +13,8 @@ import { useState, useCallback, useEffect } from 'react'
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query'
 import { apiFetch } from '@/lib/api'
 import { TAX_TEST_IDS } from './test-ids'
+import TaxHelpCard from './TaxHelpCard'
+import { TAX_HELP } from './tax-help-content'
 
 interface QuarterData {
     quarter: string
@@ -25,7 +27,7 @@ interface QuarterData {
 
 /** Map API response fields to our UI model */
 function normalizeQuarterData(q: string, year: number, raw: Record<string, unknown>): QuarterData {
-    const required = Number(raw.required ?? raw.estimated_amount ?? 0)
+    const required = Number(raw.required_amount ?? raw.required ?? raw.estimated_amount ?? 0)
     const paid = Number(raw.paid ?? raw.paid_amount ?? 0)
     const dueDate = String(raw.due_date ?? '')
     let status: QuarterData['status'] = 'upcoming'
@@ -93,8 +95,9 @@ export default function QuarterlyTracker({ onDirtyChange }: QuarterlyTrackerProp
             })
         },
         onSuccess: () => {
-            // Refresh quarter data
+            // Refresh quarter data and dashboard
             queryClient.invalidateQueries({ queryKey: ['tax-quarterly'] })
+            queryClient.invalidateQueries({ queryKey: ['tax-ytd-summary'] })
             setPaymentAmount(0)
         },
     })
@@ -106,6 +109,7 @@ export default function QuarterlyTracker({ onDirtyChange }: QuarterlyTrackerProp
 
     return (
         <div data-testid={TAX_TEST_IDS.QUARTERLY_TRACKER} className="space-y-6">
+            <TaxHelpCard content={TAX_HELP.quarterly} />
             {/* Year Selector */}
             <div className="flex items-center gap-3">
                 <label htmlFor="quarterly-year" className="text-sm text-fg-muted">Tax Year</label>
@@ -122,7 +126,7 @@ export default function QuarterlyTracker({ onDirtyChange }: QuarterlyTrackerProp
             </div>
 
             {/* Quarter Cards (AC-154.13) */}
-            <div className="grid grid-cols-2 lg:grid-cols-4 gap-4">
+            <div className="grid grid-cols-2 lg:grid-cols-4 gap-4" aria-label="Quarterly payment timeline">
                 {QUARTERS.map((q, i) => {
                     const query = quarterQueries[i]
                     const data = query.data
@@ -219,12 +223,12 @@ export default function QuarterlyTracker({ onDirtyChange }: QuarterlyTrackerProp
                     </button>
                 </div>
                 {paymentMutation.error && (
-                    <div className="text-sm text-red-400">
+                    <div role="alert" className="text-sm text-red-400">
                         Failed: {paymentMutation.error instanceof Error ? paymentMutation.error.message : 'Unknown error'}
                     </div>
                 )}
                 {paymentMutation.isSuccess && (
-                    <div className="text-sm text-green-400">
+                    <div role="status" className="text-sm text-green-400">
                         ✓ Payment recorded successfully
                     </div>
                 )}

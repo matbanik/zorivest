@@ -16,7 +16,7 @@ from datetime import date, datetime, timedelta, timezone
 from decimal import Decimal
 from typing import TYPE_CHECKING
 
-from zorivest_core.domain.entities import QuarterlyEstimate, TaxLot, TaxProfile
+from zorivest_core.domain.entities import QuarterlyEstimate, TaxLot, TaxProfile, Trade
 from zorivest_core.domain.enums import (
     AccountType,
     CostBasisMethod,
@@ -236,6 +236,44 @@ class TaxService:
 
     def __init__(self, uow: UnitOfWork) -> None:
         self._uow = uow
+
+    # ── MEU-218f: TaxProfile CRUD ───────────────────────────────────────
+
+    def list_tax_profiles(self) -> list[TaxProfile]:
+        """Return all tax profiles ordered by year desc."""
+        with self._uow:
+            return self._uow.tax_profiles.list_all()
+
+    def save_tax_profile(self, profile: TaxProfile) -> int:
+        """Create a new tax profile.  Raises BusinessRuleError on duplicate year."""
+        with self._uow:
+            existing = self._uow.tax_profiles.get_for_year(profile.tax_year)
+            if existing is not None:
+                raise BusinessRuleError(
+                    f"Tax profile already exists for year {profile.tax_year}"
+                )
+            profile_id = self._uow.tax_profiles.save(profile)
+            self._uow.commit()
+        return profile_id
+
+    def update_tax_profile(self, profile: TaxProfile) -> None:
+        """Update an existing tax profile.  Raises NotFoundError if missing."""
+        with self._uow:
+            existing = self._uow.tax_profiles.get_for_year(profile.tax_year)
+            if existing is None:
+                raise NotFoundError(f"No tax profile found for year {profile.tax_year}")
+            # Preserve the existing row's PK
+            profile.id = existing.id
+            self._uow.tax_profiles.update(profile)
+            self._uow.commit()
+
+    def delete_tax_profile(self, tax_year: int) -> None:
+        """Delete a tax profile by year.  Raises NotFoundError if missing."""
+        with self._uow:
+            deleted = self._uow.tax_profiles.delete(tax_year)
+            if not deleted:
+                raise NotFoundError(f"No tax profile found for year {tax_year}")
+            self._uow.commit()
 
     # ── AC-125.2: get_lots ──────────────────────────────────────────────
 
@@ -1113,14 +1151,19 @@ class TaxService:
             filing_status=profile.filing_status,  # type: ignore[union-attr]
         )
 
+        # Read persisted payment for this quarter (if any)
+        with self._uow:
+            existing = self._uow.quarterly_estimates.get_for_quarter(tax_year, quarter)
+        paid = existing.actual_payment if existing is not None else Decimal("0")
+
         return QuarterlyEstimateResult(
             quarter=quarter,
             tax_year=tax_year,
             required_amount=result.quarterly_payment,
             due_date=due_date,
             method=result.method,
-            paid=Decimal("0"),
-            due=result.quarterly_payment,
+            paid=paid,
+            due=result.quarterly_payment - paid,
             penalty=Decimal("0"),
         )
 
@@ -1147,14 +1190,21 @@ class TaxService:
             tax_year=tax_year,
         )
 
+        required = annualized.installments[quarter - 1]
+
+        # Read persisted payment for this quarter (if any)
+        with self._uow:
+            existing = self._uow.quarterly_estimates.get_for_quarter(tax_year, quarter)
+        paid = existing.actual_payment if existing is not None else Decimal("0")
+
         return QuarterlyEstimateResult(
             quarter=quarter,
             tax_year=tax_year,
-            required_amount=annualized.installments[quarter - 1],
+            required_amount=required,
             due_date=due_date,
             method="annualized",
-            paid=Decimal("0"),
-            due=annualized.installments[quarter - 1],
+            paid=paid,
+            due=required - paid,
             penalty=Decimal("0"),
         )
 
@@ -1771,3 +1821,284 @@ class TaxService:
                 )
                 self._uow.quarterly_estimates.save(new_estimate)
             self._uow.commit()
+
+    # ── Phase 3F: Tax Lot Sync (MEU-217) ─────────────────────────────────
+
+    def sync_lots(
+        self,
+        account_id: str | None = None,
+    ) -> SyncReport:
+        """Materialize BOT trades into TaxLots and close lots via SLD trades.
+
+        Two-pass architecture:
+          Pass 1: Create/update TaxLots from BOT trades with provenance tracking.
+          Pass 2: Match SLD trades to open lots using FIFO, compute realized gains.
+
+        Args:
+            account_id: Scope to a single account. None = all accounts.
+
+        Returns:
+            SyncReport with created/updated/skipped/conflict/orphaned/closed counts.
+
+        Raises:
+            SyncAbortError: When conflict_resolution='block' and conflicts exist.
+        """
+        from zorivest_core.domain.exceptions import SyncAbortError
+        from zorivest_core.domain.settings import SETTINGS_REGISTRY
+
+        # Resolve conflict strategy
+        conflict_setting = self._uow.settings.get("tax.conflict_resolution")
+        if conflict_setting is not None:
+            # Settings repo returns a model object or raw value
+            conflict_resolution = (
+                conflict_setting.value
+                if hasattr(conflict_setting, "value")
+                else str(conflict_setting)
+            )
+        else:
+            conflict_resolution = SETTINGS_REGISTRY[
+                "tax.conflict_resolution"
+            ].hardcoded_default
+
+        now_iso = datetime.now(tz=timezone.utc).isoformat()
+        created = 0
+        updated = 0
+        skipped = 0
+        conflicts = 0
+        orphaned = 0
+        conflict_details: list[SyncConflict] = []
+
+        # Get BOT trades for scope
+        if account_id is not None:
+            trades = [
+                t
+                for t in self._uow.trades.list_for_account(account_id)
+                if t.action == TradeAction.BOT
+            ]
+        else:
+            trades = [
+                t
+                for t in self._uow.trades.list_all(limit=100000)
+                if t.action == TradeAction.BOT
+            ]
+
+        # Get existing lots for scope
+        if account_id is not None:
+            existing_lots = self._uow.tax_lots.list_for_account(account_id)
+        else:
+            existing_lots = self._uow.tax_lots.list_all_filtered()
+
+        # Index existing lots by their lot_id pattern
+        lot_by_trade_id: dict[str, TaxLot] = {}
+        for lot in existing_lots:
+            # Convention: lot_id = f"lot-{exec_id}"
+            lot_by_trade_id[lot.lot_id] = lot
+
+        # Track which trade IDs we've seen
+        trade_exec_ids: set[str] = set()
+
+        for trade in trades:
+            trade_exec_ids.add(trade.exec_id)
+            lot_id = f"lot-{trade.exec_id}"
+            source_hash = _compute_source_hash(trade)
+            existing = lot_by_trade_id.get(lot_id)
+
+            if existing is None:
+                # AC-217-1: New lot
+                new_lot = TaxLot(
+                    lot_id=lot_id,
+                    account_id=trade.account_id,
+                    ticker=trade.instrument,
+                    open_date=trade.time,
+                    close_date=None,
+                    quantity=trade.quantity,
+                    cost_basis=Decimal(str(trade.price)),
+                    proceeds=Decimal("0.00"),
+                    wash_sale_adjustment=Decimal("0.00"),
+                    is_closed=False,
+                    linked_trade_ids=[trade.exec_id],
+                    source_hash=source_hash,
+                    materialized_at=now_iso,
+                    is_user_modified=False,
+                    sync_status="synced",
+                )
+                self._uow.tax_lots.save(new_lot)
+                created += 1
+
+            elif existing.source_hash == source_hash:
+                # AC-217-2: Idempotent — skip
+                skipped += 1
+
+            elif existing.is_user_modified and conflict_resolution == "flag":
+                # AC-217-4: Flag conflict
+                existing.sync_status = "conflict"
+                self._uow.tax_lots.update(existing)
+                conflicts += 1
+                conflict_details.append(
+                    SyncConflict(
+                        lot_id=existing.lot_id,
+                        old_hash=existing.source_hash or "",
+                        new_hash=source_hash,
+                        reason="User-modified lot has stale source hash",
+                    )
+                )
+
+            elif existing.is_user_modified and conflict_resolution == "block":
+                # AC-217-7: Abort
+                raise SyncAbortError(
+                    f"Conflict on lot {existing.lot_id}: "
+                    f"user-modified lot has changed source data"
+                )
+
+            else:
+                # AC-217-3 or AC-217-8: Auto-update
+                existing.quantity = trade.quantity
+                existing.cost_basis = Decimal(str(trade.price))
+                existing.open_date = trade.time
+                existing.source_hash = source_hash
+                existing.materialized_at = now_iso
+                existing.sync_status = "synced"
+                if conflict_resolution == "auto_resolve":
+                    existing.is_user_modified = False
+                self._uow.tax_lots.update(existing)
+                updated += 1
+
+        # ── Pass 2: SLD lot closing (MEU-218b) ──────────────────────────
+        # After BOT pass, match SLD trades to open lots using FIFO.
+        # Only handles exact quantity matches; partial sells are skipped.
+        from collections import defaultdict
+        from zorivest_core.domain.tax.gains_calculator import (
+            calculate_realized_gain,
+        )
+
+        closed = 0
+
+        # Get SLD trades for scope
+        if account_id is not None:
+            sld_trades = [
+                t
+                for t in self._uow.trades.list_for_account(account_id)
+                if t.action == TradeAction.SLD
+            ]
+        else:
+            sld_trades = [
+                t
+                for t in self._uow.trades.list_all(limit=100000)
+                if t.action == TradeAction.SLD
+            ]
+
+        if sld_trades:
+            # Re-query open lots (includes lots just created by BOT pass)
+            if account_id is not None:
+                open_lots = [
+                    lot
+                    for lot in self._uow.tax_lots.list_for_account(account_id)
+                    if not lot.is_closed
+                ]
+            else:
+                open_lots = [
+                    lot
+                    for lot in self._uow.tax_lots.list_all_filtered()
+                    if not lot.is_closed
+                ]
+
+            # Build FIFO index: (ticker, account_id) → sorted open lots
+            fifo_index: dict[tuple[str, str], list[TaxLot]] = defaultdict(list)
+            for lot in open_lots:
+                fifo_index[(lot.ticker, lot.account_id)].append(lot)
+            # Sort each bucket by open_date (FIFO)
+            for key in fifo_index:
+                fifo_index[key].sort(key=lambda lot: lot.open_date)
+
+            # Track lot_ids already closed in this pass (avoid double-close)
+            closed_in_pass: set[str] = set()
+
+            for sld in sld_trades:
+                bucket = fifo_index.get((sld.instrument, sld.account_id), [])
+                matched_lot: TaxLot | None = None
+                for candidate in bucket:
+                    if candidate.lot_id in closed_in_pass:
+                        continue
+                    # Exact quantity match only
+                    if abs(candidate.quantity - sld.quantity) < 1e-9:
+                        matched_lot = candidate
+                        break
+
+                if matched_lot is None:
+                    continue  # No matching open lot for this SLD
+
+                # Close the lot
+                sale_price = Decimal(str(sld.price))
+                gain_result = calculate_realized_gain(matched_lot, sale_price)
+
+                matched_lot.is_closed = True
+                matched_lot.close_date = sld.time
+                matched_lot.proceeds = sale_price
+                matched_lot.realized_gain_loss = gain_result.gain_amount
+                if sld.exec_id not in matched_lot.linked_trade_ids:
+                    matched_lot.linked_trade_ids.append(sld.exec_id)
+
+                self._uow.tax_lots.update(matched_lot)
+                closed_in_pass.add(matched_lot.lot_id)
+                closed += 1
+
+        # AC-217-5: Orphan detection
+        for lot in existing_lots:
+            # Extract trade exec_id from lot_id convention
+            if lot.lot_id.startswith("lot-"):
+                trade_id = lot.lot_id[4:]
+                if trade_id not in trade_exec_ids and not lot.is_closed:
+                    lot.sync_status = "orphaned"
+                    self._uow.tax_lots.update(lot)
+                    orphaned += 1
+
+        self._uow.commit()
+
+        return SyncReport(
+            account_id=account_id,
+            created=created,
+            updated=updated,
+            skipped=skipped,
+            conflicts=conflicts,
+            orphaned=orphaned,
+            closed=closed,
+            conflict_details=conflict_details,
+        )
+
+
+# ── Sync VOs (Phase 3F, MEU-217) ────────────────────────────────────────
+
+
+@dataclass
+class SyncConflict:
+    """Details of a single sync conflict."""
+
+    lot_id: str
+    old_hash: str
+    new_hash: str
+    reason: str
+
+
+@dataclass
+class SyncReport:
+    """Result of a sync_lots operation."""
+
+    account_id: str | None
+    created: int
+    updated: int
+    skipped: int
+    conflicts: int
+    orphaned: int
+    closed: int = 0
+    conflict_details: list[SyncConflict] = field(default_factory=list)
+
+
+def _compute_source_hash(trade: Trade) -> str:
+    """Compute SHA-256 of trade fields for change detection."""
+    import hashlib
+
+    raw = (
+        f"{trade.exec_id}|{trade.instrument}|{trade.quantity}"
+        f"|{trade.price}|{trade.time.isoformat()}"
+    )
+    return hashlib.sha256(raw.encode()).hexdigest()

@@ -32,6 +32,7 @@ VALID_CATEGORIES = {
     "ui",
     "notification",
     "scheduling",
+    "tax",
 }
 
 
@@ -49,7 +50,7 @@ class TestRegistryCount:
     """AC-17.1: SETTINGS_REGISTRY contains exactly 28 entries."""
 
     def test_registry_has_26_entries(self) -> None:
-        assert len(SETTINGS_REGISTRY) == 28
+        assert len(SETTINGS_REGISTRY) == 29
 
 
 # ── AC-17.2: Value types ─────────────────────────────────────────────────
@@ -100,6 +101,7 @@ class TestCategories:
                 "ui",
                 "notification",
                 "scheduling",
+                "tax",
             ), f"Setting '{key}' prefix '{key_prefix}' unexpected"
 
     def test_all_categories_represented(self) -> None:
@@ -120,7 +122,7 @@ class TestSeedDefaults:
             seed_defaults(session, SETTINGS_REGISTRY)
             session.commit()
             count = session.query(AppDefaultModel).count()
-            assert count == 28
+            assert count == 29
 
     def test_seed_values_match_registry(self) -> None:
         """Seeded values match the registry's hardcoded_default."""
@@ -165,7 +167,7 @@ class TestIdempotentSeeding:
             seed_defaults(session, SETTINGS_REGISTRY)
             session.commit()
             count = session.query(AppDefaultModel).count()
-            assert count == 28
+            assert count == 29
 
     def test_seed_updates_existing_on_rerun(self) -> None:
         """Re-seeding updates value/description if the registry changed."""

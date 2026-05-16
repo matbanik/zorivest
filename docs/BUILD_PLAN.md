@@ -674,6 +674,30 @@ Domain → Infrastructure → Services → REST API → MCP Server → GUI → D
 | MEU-155 | `gui-calculator` | 81a | [06h](build-plan/06h-gui-calculator.md) | Position calculator GUI (React) — expansion modes (Futures/Options/Forex/Crypto), scenario comparison, calculation history, Copy-to-Plan · **Wave 10** — modal expansion tests | ✅ |
 | MEU-156 | `tax-section-toggles` | 82 | [matrix §3E](build-plan/build-priority-matrix.md) | Section 475/1256/Forex toggles · Depends on: MEU-148a | ⬜ |
 
+> [!IMPORTANT]
+> **Phase 3 Closure Blockers (as of 2026-05-15)**
+>
+> | Item | What's Missing | Blocks |
+> |------|---------------|--------|
+> | **MEU-148a** (⬜) | TaxProfile CRUD API + 12 SettingsRegistry keys + 2 new MCP actions (`get_profile`, `update_profile` on `zorivest_tax`) — the MCP spec in [05h](build-plan/05h-mcp-tax.md) has **no TaxProfile coverage**; full MCP spec added to [04f §MCP Actions](build-plan/04f-api-tax.md) | MEU-156, all TaxProfile-reading features defaulting to fallback values |
+> | **MEU-218c** (ad-hoc) | Wash sale orchestration: `TaxService.get_trapped_losses()` + `scan_cross_account_wash_sales()` + `scan_wash_sales` MCP action — see [execution plan](execution/plans/2026-05-15-tax-sync-pipeline/) | `wash_sales`/`harvest` MCP tools returning zero values |
+> | **MEU-156** (⬜) | Section 475/1256/Forex toggles — cannot persist elections without MEU-148a SettingsRegistry | Advanced tax configuration GUI |
+>
+> **Dependency chain:** MEU-148a → MEU-156 (strict); MEU-218c reads `TaxProfile.wash_sale_method` (defaults to CONSERVATIVE until MEU-148a lands).
+
+#### Phase 3F — Tax Data Sync (Trade-to-Lot Materialization)
+
+> Source: [03a-tax-data-sync.md](build-plan/03a-tax-data-sync.md) | Research: [derived-data-architecture-research.md](_inspiration/derived-data-architecture-research.md)
+>
+> Implements the Derived Entity with Provenance Tracking pattern — user-triggered,
+> conflict-aware merge from `trade_executions` → `tax_lots` with SHA-256 change detection.
+
+| MEU | Slug | Matrix Item | Build Plan Ref | Description | Status |
+|-----|------|:-----------:|----------------|-------------|:------:|
+| MEU-216 | `tax-sync-schema` | 82a | [03a](build-plan/03a-tax-data-sync.md) | Sync schema migration: `materialized_at`, `is_user_modified`, `source_hash`, `sync_status` columns on TaxLot + `tax.conflict_resolution` setting key · Depends on: MEU-123 ✅ | ✅ |
+| MEU-217 | `tax-sync-service` | 82b | [03a](build-plan/03a-tax-data-sync.md) | Core `TaxService.sync_lots()`: incremental merge, SHA-256 conflict detection, 3-strategy resolver (flag/auto_resolve/block), SyncReport response · Depends on: MEU-216 ✅ | ✅ |
+| MEU-218 | `tax-sync-wiring` | 82c | [03a](build-plan/03a-tax-data-sync.md) | Full-stack wiring: `POST /api/v1/tax/sync-lots` API + `sync_tax_lots` MCP tool + GUI "Process Tax Lots" button · Depends on: MEU-217 ✅, MEU-148 ✅, MEU-149 ✅, MEU-154 ✅ | ✅ |
+
 ---
 
 ### Phase 12: Contributor Documentation Suite
@@ -810,12 +834,12 @@ Domain → Infrastructure → Services → REST API → MCP Server → GUI → D
 | P2.5g — Auth Infrastructure | MEU-PH14 | 1 | 1 |
 | P2.6 — Phase 10 | MEU-91 → MEU-95b | 7 | 0 |
 | P2.75 — Expansion | MEU-96 → MEU-122 | 27 | 2 |
-| P3 — Tax | MEU-123 → MEU-156, MEU-148a | 35 | 33 |
+| P3 — Tax | MEU-123 → MEU-156, MEU-148a, MEU-216 → MEU-218 | 38 | 36 |
 | Phase 7 | MEU-157 | 1 | 0 |
 | Phase 12 — Contributor Docs | MEU-208 → MEU-215 | 8 | 0 |
 | P4 — Phase 11 | MEU-175 → MEU-181 | 7 | 0 |
 | Research | MEU-158 → MEU-170, MEU-173, MEU-TS1 → MEU-TS3 | 17 | 3 |
-| **Total** | | **270** | **170 + 1 🟡 + 1 🚫** |
+| **Total** | | **273** | **170 + 1 🟡 + 1 🚫** |
 
 ---
 

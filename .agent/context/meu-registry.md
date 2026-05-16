@@ -494,6 +494,27 @@ P2.75 (broker adapters): MEU-96 → MEU-99
 | MEU-155 | `tax-calc-expansion` | 81a | Calculator expansion (conditional) | ✅ |
 | MEU-156 | `tax-section-toggles` | 82 | Section 475/1256/Forex toggles (advanced/conditional) · Depends on: MEU-148a | 🔲 |
 
+### Phase 3F — Tax Data Sync (Trade-to-Lot Materialization)
+
+> Source: [03a-tax-data-sync.md](../../docs/build-plan/03a-tax-data-sync.md) | Research: [derived-data-architecture-research.md](../../_inspiration/derived-data-architecture-research.md)
+> Pattern: Derived Entity with Provenance Tracking — user-triggered merge from trade_executions → tax_lots
+
+| MEU | Slug | Matrix | Description | Status |
+|-----|------|:------:|-------------|:------:|
+| MEU-216 | `tax-sync-schema` | 82a | Schema migration: `materialized_at`, `is_user_modified`, `source_hash`, `sync_status` columns on TaxLot entity/model + `tax.conflict_resolution` SettingsRegistry key · Depends on: MEU-123 ✅ | 🔲 |
+| MEU-217 | `tax-sync-service` | 82b | Core `TaxService.sync_lots()`: incremental merge, SHA-256 conflict detection, 3-strategy resolver (flag/auto_resolve/block), SyncReport dataclass · Depends on: MEU-216 | 🔲 |
+| MEU-218 | `tax-sync-wiring` | 82c | Full-stack wiring: `POST /api/v1/tax/sync` + `zorivest_tax(action:"sync")` MCP + GUI "Process Tax Lots" button + E2E test · Depends on: MEU-217, MEU-148 ✅, MEU-149 ✅, MEU-154 ✅ | 🔲 |
+
+#### Phase 3F Execution Order
+
+MEU-216 → MEU-217 → MEU-218 (strict sequential — each depends on prior)
+
+#### Phase 3F Exit Criteria
+
+- Schema: TaxLot entity + model have 4 provenance fields; SettingsRegistry has `tax.conflict_resolution` key; migration applied
+- Service: `sync_lots()` passes: create from trades, idempotent re-sync, conflict detection (3 strategies), orphan flagging, user-modified preservation
+- Wiring: API returns SyncReport; MCP `sync` action functional; GUI button triggers sync + invalidates cache; all 3 surfaces use same service method
+
 ## Phase 12: Contributor Documentation Suite
 
 > Source: [12-contributor-docs.md](../../docs/build-plan/12-contributor-docs.md) | Research: [COMPOSITE-SYNTHESIS.md](../../_inspiration/CONTRIBUTING.md_research/COMPOSITE-SYNTHESIS.md)

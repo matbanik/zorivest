@@ -6,7 +6,7 @@ Source: 02a-backup-restore.md §2A.1, §2A.2
 Contains:
 - Sensitivity enum (NON_SENSITIVE, SENSITIVE, SECRET)
 - SettingSpec frozen dataclass (registry entry metadata)
-- SETTINGS_REGISTRY dict — canonical list of all 27 known settings
+- SETTINGS_REGISTRY dict — canonical list of all 28 known settings
 """
 
 from __future__ import annotations
@@ -288,5 +288,14 @@ SETTINGS_REGISTRY: dict[str, SettingSpec] = {
         hardcoded_default=True,
         category="notification",
         description="Show confirmation dialogs",
+    ),
+    # ── Tax (1 entry) ─────────────────────────────────────────────────────
+    "tax.conflict_resolution": SettingSpec(
+        key="tax.conflict_resolution",
+        value_type="str",
+        hardcoded_default="flag",
+        category="tax",
+        description="Conflict resolution strategy for tax lot sync",
+        allowed_values=["flag", "auto_resolve", "block"],
     ),
 }

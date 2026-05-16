@@ -236,6 +236,11 @@ def _get_inline_migrations() -> list[str]:
         "ALTER TABLE tax_lots ADD COLUMN cost_basis_method VARCHAR(30)",
         "ALTER TABLE tax_lots ADD COLUMN realized_gain_loss NUMERIC(15,6) DEFAULT 0 NOT NULL",
         "ALTER TABLE tax_lots ADD COLUMN acquisition_source VARCHAR(20)",
+        # TAX-DBMIGRATION: 4 columns added to TaxLotModel in Phase 3F (MEU-216)
+        "ALTER TABLE tax_lots ADD COLUMN materialized_at TEXT",
+        "ALTER TABLE tax_lots ADD COLUMN is_user_modified BOOLEAN DEFAULT 0 NOT NULL",
+        "ALTER TABLE tax_lots ADD COLUMN source_hash VARCHAR(64)",
+        "ALTER TABLE tax_lots ADD COLUMN sync_status VARCHAR(20) DEFAULT 'synced' NOT NULL",
     ]
 
 

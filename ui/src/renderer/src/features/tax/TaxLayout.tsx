@@ -1,7 +1,7 @@
 /**
  * TaxLayout — main tab container for the Tax feature.
  *
- * Renders 7 tabs: Dashboard, Lots, Wash Sales, Simulator, Harvesting, Quarterly, Audit
+ * Renders 8 tabs: Dashboard, Profiles, Lots, Wash Sales, Simulator, Harvesting, Quarterly, Audit
  * Follows SchedulingLayout tabbed pattern with G23 form guard.
  *
  * Source: 06g-gui-tax.md §Quick Actions L56–58
@@ -16,6 +16,7 @@ import UnsavedChangesModal from '@/components/UnsavedChangesModal'
 
 // Lazy-loaded tab components
 const TaxDashboard = lazy(() => import('./TaxDashboard'))
+const TaxProfileManager = lazy(() => import('./TaxProfileManager'))
 const TaxLotViewer = lazy(() => import('./TaxLotViewer'))
 const WashSaleMonitor = lazy(() => import('./WashSaleMonitor'))
 const WhatIfSimulator = lazy(() => import('./WhatIfSimulator'))
@@ -25,6 +26,7 @@ const TransactionAudit = lazy(() => import('./TransactionAudit'))
 
 const TAX_TABS = [
     'Dashboard',
+    'Profiles',
     'Lots',
     'Wash Sales',
     'Simulator',
@@ -37,6 +39,7 @@ type TaxTab = typeof TAX_TABS[number]
 
 const TAB_COMPONENTS: Record<TaxTab, React.LazyExoticComponent<React.ComponentType<{ onDirtyChange?: (dirty: boolean) => void }>>> = {
     Dashboard: TaxDashboard as React.LazyExoticComponent<React.ComponentType<{ onDirtyChange?: (dirty: boolean) => void }>>,
+    Profiles: TaxProfileManager as React.LazyExoticComponent<React.ComponentType<{ onDirtyChange?: (dirty: boolean) => void }>>,
     Lots: TaxLotViewer as React.LazyExoticComponent<React.ComponentType<{ onDirtyChange?: (dirty: boolean) => void }>>,
     'Wash Sales': WashSaleMonitor as React.LazyExoticComponent<React.ComponentType<{ onDirtyChange?: (dirty: boolean) => void }>>,
     Simulator: WhatIfSimulator as React.LazyExoticComponent<React.ComponentType<{ onDirtyChange?: (dirty: boolean) => void }>>,
@@ -75,28 +78,40 @@ export default function TaxLayout() {
     return (
         <div data-testid={TAX_TEST_IDS.ROOT} className="flex flex-col h-full">
             {/* Tab Bar */}
-            <div className="flex border-b border-bg-subtle px-4 shrink-0">
-                {TAX_TABS.map((tab) => (
-                    <button
-                        key={tab}
-                        data-testid={`${TAX_TEST_IDS.TAB}-${tab.toLowerCase().replace(/\s+/g, '-')}`}
-                        onClick={() => guardedSelect(tab)}
-                        className={`px-4 py-2.5 text-sm font-medium border-b-2 transition-colors cursor-pointer ${
-                            activeTab === tab
-                                ? 'text-accent border-accent'
-                                : 'text-fg-muted border-transparent hover:text-fg'
-                        }`}
-                    >
-                        {tab}
-                    </button>
-                ))}
+            <div className="flex border-b border-bg-subtle px-4 shrink-0" role="tablist" aria-label="Tax sections">
+                {TAX_TABS.map((tab) => {
+                    const tabId = `tax-tab-${tab.toLowerCase().replace(/\s+/g, '-')}`
+                    return (
+                        <button
+                            key={tab}
+                            id={tabId}
+                            role="tab"
+                            aria-selected={activeTab === tab}
+                            aria-controls="tax-tabpanel"
+                            data-testid={`${TAX_TEST_IDS.TAB}-${tab.toLowerCase().replace(/\s+/g, '-')}`}
+                            onClick={() => guardedSelect(tab)}
+                            className={`px-4 py-2.5 text-sm font-medium border-b-2 transition-colors cursor-pointer ${
+                                activeTab === tab
+                                    ? 'text-accent border-accent'
+                                    : 'text-fg-muted border-transparent hover:text-fg'
+                            }`}
+                        >
+                            {tab}
+                        </button>
+                    )
+                })}
             </div>
 
             {/* Disclaimer */}
             <TaxDisclaimer className="mx-4 mt-3" />
 
             {/* Tab Content */}
-            <div className="flex-1 overflow-auto p-4">
+            <div
+                id="tax-tabpanel"
+                role="tabpanel"
+                aria-labelledby={`tax-tab-${activeTab.toLowerCase().replace(/\s+/g, '-')}`}
+                className="flex-1 overflow-auto p-4"
+            >
                 <Suspense
                     fallback={
                         <div className="flex items-center justify-center h-32 text-fg-muted text-sm">

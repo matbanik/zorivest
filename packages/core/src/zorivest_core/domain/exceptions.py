@@ -12,7 +12,8 @@ Hierarchy:
     ├── BudgetExceededError
     ├── ImportError
     ├── InvalidPassphraseError
-    └── CorruptedBackupError
+    ├── CorruptedBackupError
+    └── SyncAbortError
 """
 
 from __future__ import annotations
@@ -56,3 +57,7 @@ class InvalidPassphraseError(ZorivestError):
 
 class CorruptedBackupError(ZorivestError):
     """Backup file is corrupted (hash mismatch, invalid manifest)."""
+
+
+class SyncAbortError(ZorivestError):
+    """Tax lot sync aborted due to conflict resolution policy (block mode)."""

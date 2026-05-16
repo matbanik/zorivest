@@ -214,10 +214,10 @@ describe("zorivest_tax compound tool", () => {
     // ── AC-149.8/AC-149.9: Metadata updates ──────────────────────────
 
     describe("metadata updates", () => {
-        it("seed.ts describes 8 actions (not 4 stubs)", async () => {
+        it("seed.ts describes current action count (not 4 stubs)", async () => {
             const fs = await import("fs");
             const source = fs.readFileSync("src/toolsets/seed.ts", "utf-8");
-            expect(source).toContain("8 actions");
+            expect(source).toContain("10 actions");
             expect(source).not.toContain("4 stub actions");
             expect(source).not.toContain("tax stubs");
         });

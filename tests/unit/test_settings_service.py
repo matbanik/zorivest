@@ -200,7 +200,7 @@ class TestServiceGetAllResolved:
         service = SettingsService(uow=uow, cache=cache)
         result = service.get_all_resolved()
         # Should resolve all static registry keys
-        assert len(result) == 28
+        assert len(result) == 29
         # Cache should now be populated
         assert cache.get_all() is not None
 

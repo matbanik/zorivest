@@ -14,11 +14,15 @@ export const TAX_TEST_IDS = {
     // Tab bar
     TAB: 'tax-tab',
 
+    // Help card (MEU-218i)
+    HELP_CARD: 'tax-help-card',
+
     // Dashboard
     DASHBOARD: 'tax-dashboard',
     SUMMARY_CARD: 'tax-summary-card',
     YTD_TABLE: 'tax-ytd-table',
     YEAR_SELECTOR: 'tax-year-selector',
+    SYNC_BUTTON: 'tax-sync-button',
 
     // Lot Viewer
     LOT_VIEWER: 'tax-lot-viewer',
@@ -55,4 +59,15 @@ export const TAX_TEST_IDS = {
     TX_AUDIT_PANEL: 'tx-audit-panel',
     TX_AUDIT_FINDING_ROW: 'tx-audit-finding-row',
     TX_AUDIT_RUN_BTN: 'tx-audit-run-btn',
+
+    // Tax Profile Manager (MEU-218f)
+    PROFILE_MANAGER: 'tax-profile-manager',
+    PROFILE_LIST: 'tax-profile-list',
+    PROFILE_CARD: 'tax-profile-card',
+    PROFILE_NEW_BTN: 'tax-profile-new-btn',
+    PROFILE_DETAIL: 'tax-profile-detail',
+    PROFILE_SAVE_BTN: 'tax-profile-save-btn',
+    PROFILE_DELETE_BTN: 'tax-profile-delete-btn',
+    PROFILE_YEAR_INPUT: 'tax-profile-year',
+    PROFILE_SEARCH: 'tax-profile-search',
 } as const

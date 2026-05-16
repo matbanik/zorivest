@@ -19,7 +19,7 @@ export default function TaxDisclaimer({ className = '' }: TaxDisclaimerProps) {
             role="status"
             className={`px-4 py-2 rounded-md bg-yellow-500/10 border border-yellow-500/20 text-yellow-300 text-xs ${className}`}
         >
-            ⚠️ This is an estimator, not tax advice. Always consult a CPA.
+            <span aria-hidden="true">⚠️</span> This is an estimator, not tax advice. Always consult a CPA.
         </div>
     )
 }

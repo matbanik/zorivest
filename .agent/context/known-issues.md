@@ -88,6 +88,54 @@
   - **Phase B** (options): (1) Add `get_options_chain()` to `MarketDataService` using Yahoo `/v7/finance/options/{symbol}`, (2) add API endpoint, (3) build Options Chain Browser UI component. No new provider needed — Yahoo covers it.
 - **Analysis:** [Full findings & provider comparison](sessions/2026-05-14-non-equity-ticker-lookup-findings.md)
 
+### [MCP-DEADTOOLS] — 11 standalone tool files in mcp-server/src/tools/ are dead code
+- **Severity:** Low (technical debt)
+- **Component:** mcp-server
+- **Discovered:** 2026-05-15 (MEU-218a/b session)
+- **Status:** Open — cleanup candidate, no runtime impact
+- **Details:** After the MC4 compound tool consolidation (85→13 tools), 11 of 13 files in `mcp-server/src/tools/` are never imported. They compile into `dist/` but are unreachable dead code. Only `scheduling-tools.ts` and `pipeline-security-tools.ts` remain active (for MCP resource registration, not tools).
+- **Dead files (11):**
+  - `tax-tools.ts` — 4× 501 stubs + standalone `sync_tax_lots` (all superseded by compound `zorivest_tax`)
+  - `accounts-tools.ts` — superseded by `compound/account-tool.ts`
+  - `analytics-tools.ts` — superseded by `compound/analytics-tool.ts`
+  - `trade-tools.ts` — superseded by `compound/trade-tool.ts`
+  - `market-data-tools.ts` — superseded by `compound/market-tool.ts`
+  - `planning-tools.ts` — superseded by `compound/plan-tool.ts`
+  - `calculator-tools.ts` — superseded by compound tools
+  - `diagnostics-tools.ts` — superseded by `compound/system-tool.ts`
+  - `discovery-tools.ts` — superseded by compound tools
+  - `gui-tools.ts` — superseded by compound tools
+  - `settings-tools.ts` — superseded by compound tools
+- **Alive files (2):** `scheduling-tools.ts`, `pipeline-security-tools.ts` (resource registration only)
+- **Verification command:** `cd mcp-server/src && rg -l "from.*tools/(accounts|analytics|calculator|diagnostics|discovery|gui|market-data|planning|settings|tax|trade)-tools" --type ts` — should return 0 results
+- **Resolution:** Delete dead files, verify `tsc --noEmit` + `npm run build` still pass, confirm tool count unchanged in `zorivest-tools.json`
+
+### [GUI-ARIA-GAP] — Tax components have near-zero ARIA coverage; other features inconsistent
+- **Severity:** Medium (accessibility compliance / WCAG 2.1 AA gap)
+- **Component:** ui (features/tax, features/*, components/)
+- **Discovered:** 2026-05-16
+- **Status:** Partial — tax module remediated (MEU-218h, 2026-05-16); **other GUI areas still need deep audit**
+- **Details:** Surface-level scan (`rg "aria-|role="`) reveals a significant disparity:
+  - **Tax features (10 components, ~100KB TSX):** Only **1** ARIA attribute total (`role="status"` on `TaxDisclaimer.tsx`). Zero `aria-label`, zero `aria-live`, zero `role="button"`, zero `role="tablist"` across `TaxDashboard`, `TaxLayout`, `TaxLotViewer`, `TaxProfileManager` (31KB), `WhatIfSimulator`, `WashSaleMonitor`, `QuarterlyTracker`, `LossHarvestingTool`, `TransactionAudit`.
+  - **Shared components (15 files):** Good coverage — `alertdialog` + `aria-modal` + `aria-labelledby` on all 3 modals, `role="listbox"` + `aria-selected` on autocomplete, `aria-label` on nav buttons, `role="status"` on loading skeleton. ~40+ ARIA attributes.
+  - **Planning (3 files):** Moderate — `role="group"` + `aria-pressed` on status toggles, `role="dialog"` + `aria-modal` on calculator, `role="switch"` + `aria-checked` on apply toggles. ~12 ARIA attributes.
+  - **Settings (2 files):** Moderate — `aria-hidden="true"` on decorative emoji, `aria-label` on provider status. ~12 ARIA attributes.
+  - **Trades (4 files):** Sparse — `aria-disabled`, `aria-label`, `role="region"`. ~5 attributes.
+  - **Accounts (1 file):** Minimal — 1× `aria-label`. ~1 attribute.
+- **Preliminary gap categories (tax):**
+  1. **Forms** — `<select>`, `<input>`, filter controls have no `aria-label`
+  2. **Tables** — data tables have no `aria-label` or `role="table"`
+  3. **Action buttons** — "Close", "Reassign", "Simulate" missing `aria-label`
+  4. **Interactive lists** — wash sale chain items are clickable `<div>`s with no `role="button"` or keyboard event handlers
+  5. **Detail/result panels** — no `aria-live` regions for dynamic content rendering
+  6. **Tab navigation** — tax tabs use `data-testid` but lack `role="tablist"` / `role="tab"` / `aria-selected`
+- **⚠️ Action required before remediation:**
+  1. **Deep scan** all GUI components (not just `rg` for `aria-`) to identify missing semantic HTML (`<nav>`, `<main>`, `<section>`, `<aside>`), missing `<label>` associations, keyboard trap risks, focus management gaps, and color contrast issues
+  2. **Sequential thinking audit** to classify each gap by WCAG 2.1 AA criterion, prioritize by user impact, and determine whether the fix is per-component or warrants a shared accessible primitive (e.g., reusable `TabList`, `DataTable`, `DetailPanel` wrappers)
+  3. **Cross-reference** against existing E2E axe scans (only `tax-dashboard.test.ts` runs axe currently) to determine which pages have automated coverage and which are untested
+  4. Register as MEU once audit is complete (candidate: Phase 12 or Phase 6 GUI polish)
+- **E2E axe evidence:** Dashboard axe scan required `heading-order` exclusion (h3 without h2) — see MEU-218g in `implementation-plan.md`. No other pages have axe E2E coverage.
+
 ## Mitigated / Workaround Applied
 
 ### [MCP-ZODSTRIP] — `server.tool()` silently strips arguments with z.object()

@@ -134,6 +134,8 @@ def _run(cmd: list[str], *, cwd: str | None = None) -> subprocess.CompletedProce
         cmd,
         capture_output=True,
         text=True,
+        encoding="utf-8",
+        errors="replace",
         cwd=cwd or os.getcwd(),
         shell=sys.platform == "win32",  # npx.cmd needs shell on Windows
     )
@@ -161,7 +163,7 @@ def _timed_check(
     message = ""
     if not passed:
         # Capture first 5 lines of stderr or stdout for context
-        output = result.stderr.strip() or result.stdout.strip()
+        output = (result.stderr or "").strip() or (result.stdout or "").strip()
         lines = output.split("\n")[:5]
         message = "\n".join(lines)
 
@@ -420,7 +422,7 @@ def run_quality_gate(
         passed = result.returncode == 0
         message = ""
         if not passed:
-            output = result.stderr.strip() or result.stdout.strip()
+            output = (result.stderr or "").strip() or (result.stdout or "").strip()
             lines = output.split("\n")[:5]
             message = "\n".join(lines)
         check = CheckResult(
@@ -453,7 +455,7 @@ def run_quality_gate(
         passed = result.returncode == 0
         message = ""
         if not passed:
-            output = result.stderr.strip() or result.stdout.strip()
+            output = (result.stderr or "").strip() or (result.stdout or "").strip()
             lines = output.split("\n")[:5]
             message = "\n".join(lines)
         check = CheckResult(
@@ -481,7 +483,7 @@ def run_quality_gate(
         passed = result.returncode == 0
         message = ""
         if not passed:
-            output = result.stderr.strip() or result.stdout.strip()
+            output = (result.stderr or "").strip() or (result.stdout or "").strip()
             lines = output.split("\n")[:5]
             message = "\n".join(lines)
         check = CheckResult(

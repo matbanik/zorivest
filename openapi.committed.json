@@ -8870,6 +8870,58 @@
         ]
       }
     },
+    "/api/v1/tax/sync-lots": {
+      "post": {
+        "description": "Trigger trade-to-lot materialization pipeline.\n\nAC-218.1: Returns SyncReport with created/updated/skipped/conflicts/orphaned.\nAC-218.5: SyncAbortError (block mode) maps to 409 Conflict.",
+        "operationId": "sync_tax_lots_api_v1_tax_sync_lots_post",
+        "parameters": [
+          {
+            "in": "query",
+            "name": "account_id",
+            "required": false,
+            "schema": {
+              "anyOf": [
+                {
+                  "type": "string"
+                },
+                {
+                  "type": "null"
+                }
+              ],
+              "title": "Account Id"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "additionalProperties": true,
+                  "title": "Response Sync Tax Lots Api V1 Tax Sync Lots Post",
+                  "type": "object"
+                }
+              }
+            },
+            "description": "Successful Response"
+          },
+          "422": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HTTPValidationError"
+                }
+              }
+            },
+            "description": "Validation Error"
+          }
+        },
+        "summary": "Sync Tax Lots",
+        "tags": [
+          "tax"
+        ]
+      }
+    },
     "/api/v1/tax/wash-sales": {
       "post": {
         "description": "Detect wash sale chains/conflicts within 30-day windows.\n\nAC-148.3: Routes to TaxService.get_trapped_losses().",

@@ -1,53 +1,73 @@
 /**
  * TaxDashboard — summary cards + YTD P&L by Symbol table.
  *
- * Fetches GET /api/v1/tax/ytd-summary and renders:
- * - 7 summary cards (ST Gains, LT Gains, Wash Sale Adj, Estimated Tax,
- *   Loss Carryforward, Harvestable Losses, Tax Alpha)
- * - YTD P&L by Symbol table via group_by=symbol
+ * Fetches GET /api/v1/tax/ytd-summary?tax_year={Y} and renders:
+ * - Summary cards from actual YtdTaxSummary dataclass fields:
+ *   realized_st_gain, realized_lt_gain, wash_sale_adjustments,
+ *   estimated_federal_tax, estimated_state_tax, trades_count,
+ *   quarterly_payments[]
+ * - Derived: estimated_tax = estimated_federal_tax + estimated_state_tax
  *
  * Source: 06g-gui-tax.md L44–75, L82
  * MEU: MEU-154 (AC-154.4, AC-154.5, AC-154.6)
  */
 
 import { useState, useMemo } from 'react'
-import { useQuery } from '@tanstack/react-query'
+import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query'
 import { apiFetch } from '@/lib/api'
 import { TAX_TEST_IDS } from './test-ids'
+import TaxHelpCard from './TaxHelpCard'
+import { TAX_HELP } from './tax-help-content'
 
+/** Matches SyncReport dataclass from tax_service.sync_lots() */
+interface SyncReport {
+    created: number
+    updated: number
+    skipped: number
+    conflicts: number
+    orphaned: number
+    closed?: number
+    account_id?: string | null
+}
+
+/** Matches actual YtdTaxSummary dataclass + API fallback shape */
 interface YtdSummary {
     realized_st_gain: number
     realized_lt_gain: number
     total_realized: number
     wash_sale_adjustments: number
-    estimated_tax: number
+    trades_count: number
     estimated_federal_tax: number
     estimated_state_tax: number
-    trades_count: number
-    /** Capital loss carryforward from prior year — optional, defaults to 0 */
-    capital_loss_carryforward?: number
-    /** Unrealized losses available for harvesting — optional, populated when harvest scan runs */
-    harvestable_losses?: number
-    /** Dollars saved via lot optimization + harvesting — optional, computed */
-    tax_alpha?: number
+    /** Computed: federal + state; present in API fallback path */
+    estimated_tax?: number
+    /** Q1-Q4 payment status from QuarterlyEstimate records */
+    quarterly_payments?: { quarter: number; required: number; paid: number; due: number }[]
 }
 
-interface SymbolBreakdown {
-    ticker: string
-    short_term_pnl: number
-    long_term_pnl: number
-    total_pnl: number
+/** Safe number extraction — handles Decimal strings, null, undefined */
+function n(v: unknown): number {
+    if (v === null || v === undefined) return 0
+    const num = Number(v)
+    return isNaN(num) ? 0 : num
 }
 
-const SUMMARY_CARDS: { label: string; key: keyof YtdSummary; format?: 'currency' | 'percent' }[] = [
-    { label: 'ST Gains', key: 'realized_st_gain', format: 'currency' },
-    { label: 'LT Gains', key: 'realized_lt_gain', format: 'currency' },
-    { label: 'Wash Sale Adj', key: 'wash_sale_adjustments', format: 'currency' },
-    { label: 'Estimated Tax', key: 'estimated_tax', format: 'currency' },
-    { label: 'Loss Carryforward', key: 'capital_loss_carryforward', format: 'currency' },
-    { label: 'Harvestable Losses', key: 'harvestable_losses', format: 'currency' },
-    { label: 'Tax Alpha', key: 'tax_alpha', format: 'currency' },
-]
+/** Normalize API response to our display model */
+function normalizeSummary(raw: Record<string, unknown>): YtdSummary {
+    const federal = n(raw.estimated_federal_tax)
+    const state = n(raw.estimated_state_tax)
+    return {
+        realized_st_gain: n(raw.realized_st_gain),
+        realized_lt_gain: n(raw.realized_lt_gain),
+        total_realized: n(raw.total_realized),
+        wash_sale_adjustments: n(raw.wash_sale_adjustments),
+        trades_count: n(raw.trades_count),
+        estimated_federal_tax: federal,
+        estimated_state_tax: state,
+        estimated_tax: n(raw.estimated_tax) || (federal + state),
+        quarterly_payments: Array.isArray(raw.quarterly_payments) ? raw.quarterly_payments : [],
+    }
+}
 
 function formatCurrency(value: number): string {
     const abs = Math.abs(value)
@@ -65,23 +85,12 @@ export default function TaxDashboard() {
     const currentYear = new Date().getFullYear()
     const [taxYear, setTaxYear] = useState(currentYear)
 
-    // Fetch YTD summary
+    // Fetch YTD summary — normalize defensively
     const { data: summary, isLoading, error } = useQuery<YtdSummary>({
         queryKey: ['tax-ytd-summary', taxYear],
-        queryFn: () => apiFetch(`/api/v1/tax/ytd-summary?tax_year=${taxYear}`),
-    })
-
-    // Fetch symbol breakdown — API may not support group_by=symbol yet;
-    // if it returns a non-array (e.g. the same summary dict), fall back to [].
-    const { data: symbols = [] } = useQuery<SymbolBreakdown[]>({
-        queryKey: ['tax-ytd-symbols', taxYear],
         queryFn: async () => {
-            try {
-                const res = await apiFetch(`/api/v1/tax/ytd-summary?tax_year=${taxYear}&group_by=symbol`)
-                return Array.isArray(res) ? res : []
-            } catch {
-                return []
-            }
+            const raw = await apiFetch(`/api/v1/tax/ytd-summary?tax_year=${taxYear}`)
+            return normalizeSummary(raw ?? {})
         },
     })
 
@@ -92,6 +101,15 @@ export default function TaxDashboard() {
         return years
     }, [currentYear])
 
+    // Sync lots mutation (Phase 3F, MEU-218)
+    const queryClient = useQueryClient()
+    const syncMutation = useMutation<SyncReport>({
+        mutationFn: () => apiFetch('/api/v1/tax/sync-lots', { method: 'POST' }),
+        onSuccess: () => {
+            queryClient.invalidateQueries({ queryKey: ['tax-ytd-summary'] })
+        },
+    })
+
     if (error) {
         return (
             <div className="flex items-center justify-center h-32 text-red-400 text-sm">
@@ -100,9 +118,22 @@ export default function TaxDashboard() {
         )
     }
 
+    // Build card definitions from actual data
+    const cards = [
+        { label: 'ST Gains', value: summary?.realized_st_gain ?? 0 },
+        { label: 'LT Gains', value: summary?.realized_lt_gain ?? 0 },
+        { label: 'Total Realized', value: summary?.total_realized ?? 0 },
+        { label: 'Wash Sale Adj', value: summary?.wash_sale_adjustments ?? 0 },
+        { label: 'Federal Tax', value: summary?.estimated_federal_tax ?? 0 },
+        { label: 'State Tax', value: summary?.estimated_state_tax ?? 0 },
+        { label: 'Total Est. Tax', value: summary?.estimated_tax ?? 0 },
+        { label: 'Trades', value: summary?.trades_count ?? 0, isCurrency: false },
+    ]
+
     return (
         <div data-testid={TAX_TEST_IDS.DASHBOARD} className="space-y-6">
-            {/* Year Selector (AC-154.6) */}
+            <TaxHelpCard content={TAX_HELP.dashboard} />
+            {/* Year Selector + Sync button (AC-154.6) */}
             <div className="flex items-center gap-3">
                 <label htmlFor="tax-year-select" className="text-sm text-fg-muted">
                     Tax Year
@@ -120,77 +151,78 @@ export default function TaxDashboard() {
                         </option>
                     ))}
                 </select>
+                <button
+                    data-testid={TAX_TEST_IDS.SYNC_BUTTON}
+                    onClick={() => syncMutation.mutate()}
+                    disabled={syncMutation.isPending}
+                    aria-label="Process tax lots"
+                    className="ml-auto px-4 py-1.5 text-sm rounded-md bg-accent text-accent-fg hover:bg-accent/90 border border-accent cursor-pointer disabled:opacity-50 disabled:cursor-not-allowed"
+                >
+                    {syncMutation.isPending ? 'Processing…' : <><span aria-hidden="true">🔄</span> Process Tax Lots</>}
+                </button>
             </div>
+
+            {/* Sync status message */}
+            {syncMutation.isSuccess && (
+                <div role="status" className="text-xs text-green-400 bg-green-400/10 rounded px-3 py-1.5">
+                    Sync complete — {syncMutation.data?.created ?? 0} created,{' '}
+                    {syncMutation.data?.updated ?? 0} updated,{' '}
+                    {syncMutation.data?.conflicts ?? 0} conflicts
+                </div>
+            )}
+            {syncMutation.isError && (
+                <div role="alert" className="text-xs text-red-400 bg-red-400/10 rounded px-3 py-1.5">
+                    Sync failed: {syncMutation.error instanceof Error ? syncMutation.error.message : 'Unknown error'}
+                </div>
+            )}
 
             {/* Summary Cards (AC-154.4) */}
-            <div className="grid grid-cols-2 md:grid-cols-3 lg:grid-cols-4 gap-4">
-                {SUMMARY_CARDS.map(({ label, key, format }) => {
-                    const value = summary?.[key] ?? 0
-                    return (
-                        <div
-                            key={key}
-                            data-testid={TAX_TEST_IDS.SUMMARY_CARD}
-                            className="bg-bg-elevated rounded-lg border border-bg-subtle p-4"
-                        >
-                            <span className="block text-xs text-fg-muted uppercase tracking-wider mb-1">
-                                {label}
+            <div className="grid grid-cols-2 md:grid-cols-3 lg:grid-cols-4 gap-4" aria-label="Tax summary cards">
+                {cards.map(({ label, value, isCurrency }) => (
+                    <div
+                        key={label}
+                        data-testid={TAX_TEST_IDS.SUMMARY_CARD}
+                        className="bg-bg-elevated rounded-lg border border-bg-subtle p-4"
+                    >
+                        <span className="block text-xs text-fg-muted uppercase tracking-wider mb-1">
+                            {label}
+                        </span>
+                        {isLoading ? (
+                            <span className="text-lg font-semibold text-fg-muted font-mono">—</span>
+                        ) : (
+                            <span className={`text-lg font-semibold font-mono ${isCurrency === false ? 'text-fg' : valueColor(value)}`}>
+                                {isCurrency === false ? value.toLocaleString() : formatCurrency(value)}
                             </span>
-                            {isLoading ? (
-                                <span className="text-lg font-semibold text-fg-muted font-mono">—</span>
-                            ) : (
-                                <span className={`text-lg font-semibold font-mono ${format === 'currency' ? valueColor(value) : 'text-fg'}`}>
-                                    {format === 'currency' ? formatCurrency(value) : value.toLocaleString()}
-                                </span>
-                            )}
-                        </div>
-                    )
-                })}
+                        )}
+                    </div>
+                ))}
             </div>
 
-            {/* YTD P&L by Symbol (AC-154.5) */}
-            <div className="bg-bg-elevated rounded-lg border border-bg-subtle overflow-hidden">
-                <div className="px-4 py-3 border-b border-bg-subtle">
-                    <h3 className="text-sm font-semibold text-fg-muted uppercase tracking-wide">
-                        YTD P&L by Symbol
-                    </h3>
+            {/* Quarterly Payments Summary (from ytd_summary data) */}
+            {(summary?.quarterly_payments ?? []).length > 0 && (
+                <div className="bg-bg-elevated rounded-lg border border-bg-subtle overflow-hidden">
+                    <div className="px-4 py-3 border-b border-bg-subtle">
+                        <h3 className="text-sm font-semibold text-fg-muted uppercase tracking-wide">
+                            Quarterly Payment Status
+                        </h3>
+                    </div>
+                    <div className="grid grid-cols-4 gap-px bg-bg-subtle">
+                        {(summary?.quarterly_payments ?? []).map((qp) => (
+                            <div key={qp.quarter} className="bg-bg-elevated p-3 text-center">
+                                <div className="text-xs text-fg-muted mb-1">Q{qp.quarter}</div>
+                                <div className="text-sm font-mono">
+                                    <span className="text-fg-muted">Req: </span>
+                                    <span className={valueColor(n(qp.required))}>{formatCurrency(n(qp.required))}</span>
+                                </div>
+                                <div className="text-sm font-mono">
+                                    <span className="text-fg-muted">Paid: </span>
+                                    <span className="text-green-400">{formatCurrency(n(qp.paid))}</span>
+                                </div>
+                            </div>
+                        ))}
+                    </div>
                 </div>
-                <div data-testid={TAX_TEST_IDS.YTD_TABLE} className="overflow-x-auto">
-                    <table className="w-full text-sm">
-                        <thead>
-                            <tr className="border-b border-bg-subtle">
-                                <th className="text-left px-4 py-2 text-fg-muted font-medium">Symbol</th>
-                                <th className="text-right px-4 py-2 text-fg-muted font-medium">ST P&L</th>
-                                <th className="text-right px-4 py-2 text-fg-muted font-medium">LT P&L</th>
-                                <th className="text-right px-4 py-2 text-fg-muted font-medium">Total</th>
-                            </tr>
-                        </thead>
-                        <tbody>
-                            {symbols.length === 0 && !isLoading ? (
-                                <tr>
-                                    <td colSpan={4} className="px-4 py-8 text-center text-fg-muted">
-                                        No data for {taxYear}
-                                    </td>
-                                </tr>
-                            ) : (
-                                symbols.map((row) => (
-                                    <tr key={row.ticker} className="border-b border-bg-subtle/50 hover:bg-bg-subtle/30">
-                                        <td className="px-4 py-2 font-mono text-fg">{row.ticker}</td>
-                                        <td className={`px-4 py-2 text-right font-mono ${valueColor(row.short_term_pnl)}`}>
-                                            {formatCurrency(row.short_term_pnl)}
-                                        </td>
-                                        <td className={`px-4 py-2 text-right font-mono ${valueColor(row.long_term_pnl)}`}>
-                                            {formatCurrency(row.long_term_pnl)}
-                                        </td>
-                                        <td className={`px-4 py-2 text-right font-mono font-semibold ${valueColor(row.total_pnl)}`}>
-                                            {formatCurrency(row.total_pnl)}
-                                        </td>
-                                    </tr>
-                                ))
-                            )}
-                        </tbody>
-                    </table>
-                </div>
-            </div>
+            )}
         </div>
     )
 }

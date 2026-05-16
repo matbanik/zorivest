@@ -72,7 +72,7 @@ class EstimateTaxRequest(BaseModel):
 class WashSaleRequest(BaseModel):
     model_config = {"extra": "forbid"}
 
-    account_id: str
+    account_id: Optional[str] = None
     ticker: Optional[str] = None
     date_range_start: Optional[str] = None
     date_range_end: Optional[str] = None
@@ -91,6 +91,80 @@ class ReassignLotBasisRequest(BaseModel):
     model_config = {"extra": "forbid"}
 
     method: Literal["fifo", "lifo", "hifo", "specific_id", "avg_cost"] = "fifo"
+
+
+class SyncTaxLotsRequest(BaseModel):
+    model_config = {"extra": "forbid"}
+
+    account_id: Optional[str] = None
+    conflict_strategy: Optional[Literal["flag", "block", "auto_resolve"]] = None
+
+
+class ScanWashSalesRequest(BaseModel):
+    model_config = {"extra": "forbid"}
+
+    tax_year: Optional[int] = Field(default=None, ge=2000, le=2099)
+
+
+class TaxProfileCreateRequest(BaseModel):
+    model_config = {"extra": "forbid"}
+
+    tax_year: int = Field(ge=2020, le=2030)
+    filing_status: Literal[
+        "SINGLE", "MARRIED_JOINT", "MARRIED_SEPARATE", "HEAD_OF_HOUSEHOLD"
+    ]
+    federal_bracket: float = Field(ge=0.0, le=1.0)
+    state_tax_rate: float = Field(ge=0.0, le=1.0)
+    state: str = Field(min_length=2, max_length=2)
+    prior_year_tax: float = Field(ge=0.0)
+    agi_estimate: float = Field(ge=0.0)
+    capital_loss_carryforward: float = Field(ge=0.0, default=0.0)
+    wash_sale_method: Literal["CONSERVATIVE", "AGGRESSIVE"] = "CONSERVATIVE"
+    default_cost_basis: Literal[
+        "FIFO",
+        "LIFO",
+        "HIFO",
+        "SPEC_ID",
+        "MAX_LT_GAIN",
+        "MAX_LT_LOSS",
+        "MAX_ST_GAIN",
+        "MAX_ST_LOSS",
+    ] = "FIFO"
+    include_drip_wash_detection: bool = True
+    include_spousal_accounts: bool = False
+    section_475_elected: bool = False
+    section_1256_eligible: bool = False
+
+
+class TaxProfileUpdateRequest(BaseModel):
+    model_config = {"extra": "forbid"}
+
+    filing_status: Optional[
+        Literal["SINGLE", "MARRIED_JOINT", "MARRIED_SEPARATE", "HEAD_OF_HOUSEHOLD"]
+    ] = None
+    federal_bracket: Optional[float] = Field(default=None, ge=0.0, le=1.0)
+    state_tax_rate: Optional[float] = Field(default=None, ge=0.0, le=1.0)
+    state: Optional[str] = Field(default=None, min_length=2, max_length=2)
+    prior_year_tax: Optional[float] = Field(default=None, ge=0.0)
+    agi_estimate: Optional[float] = Field(default=None, ge=0.0)
+    capital_loss_carryforward: Optional[float] = Field(default=None, ge=0.0)
+    wash_sale_method: Optional[Literal["CONSERVATIVE", "AGGRESSIVE"]] = None
+    default_cost_basis: Optional[
+        Literal[
+            "FIFO",
+            "LIFO",
+            "HIFO",
+            "SPEC_ID",
+            "MAX_LT_GAIN",
+            "MAX_LT_LOSS",
+            "MAX_ST_GAIN",
+            "MAX_ST_LOSS",
+        ]
+    ] = None
+    include_drip_wash_detection: Optional[bool] = None
+    include_spousal_accounts: Optional[bool] = None
+    section_475_elected: Optional[bool] = None
+    section_1256_eligible: Optional[bool] = None
 
 
 # ── Quarter string → int mapping (AC-148.9) ────────────────────────
@@ -163,6 +237,22 @@ async def estimate_tax(
 # ── Wash sale detection ─────────────────────────────────────────────
 
 
+def _build_lot_account_map(service: Any, chains: list) -> dict[str, str]:
+    """Build a mapping from lot_id → account_id for chain filtering.
+
+    Chains are cross-account entities (WashSaleChain has no account_id).
+    This correlates each chain's loss_lot_id to its originating account.
+    """
+    lot_ids = {c.loss_lot_id for c in chains}
+    result: dict[str, str] = {}
+    with service._uow:
+        for lot_id in lot_ids:
+            lot = service._uow.tax_lots.get(lot_id)
+            if lot is not None:
+                result[lot_id] = lot.account_id
+    return result
+
+
 @tax_router.post("/wash-sales", status_code=200)
 async def find_wash_sales(
     body: WashSaleRequest,
@@ -171,22 +261,22 @@ async def find_wash_sales(
     """Detect wash sale chains/conflicts within 30-day windows.
 
     AC-148.3: Routes to TaxService.get_trapped_losses().
+    Chains are cross-account entities; account_id filters by loss lot's account.
     """
     chains = service.get_trapped_losses()
-    # Filter by account if specified
+    # Filter by account if specified — correlate via loss lot's account
     if body.account_id:
+        lot_account_map = _build_lot_account_map(service, chains)
         chains = [
-            c for c in chains if getattr(c, "account_id", None) == body.account_id
+            c for c in chains if lot_account_map.get(c.loss_lot_id) == body.account_id
         ]
     # Filter by ticker if specified
     if body.ticker:
-        chains = [c for c in chains if getattr(c, "ticker", None) == body.ticker]
+        chains = [c for c in chains if c.ticker == body.ticker]
     return {
         "chains": _serialize(chains),
-        "disallowed_total": sum(
-            float(getattr(c, "disallowed_amount", 0)) for c in chains
-        ),
-        "affected_tickers": list({getattr(c, "ticker", "") for c in chains}),
+        "disallowed_total": sum(float(c.disallowed_amount) for c in chains),
+        "affected_tickers": list({c.ticker for c in chains}),
     }
 
 
@@ -403,16 +493,20 @@ async def reassign_lot_basis(
 
 @tax_router.post("/wash-sales/scan", status_code=200)
 async def scan_wash_sales(
-    account_id: Optional[str] = None,
+    body: ScanWashSalesRequest = ScanWashSalesRequest(),
     service: Any = Depends(get_tax_service),
 ) -> dict:
     """Trigger a full wash sale scan across all accounts.
 
-    AC-148.3: Routes to scan_cross_account_wash_sales for current year.
+    AC-148.3: Routes to scan_cross_account_wash_sales for given/current year.
     """
-    current_year = datetime.now(tz=timezone.utc).year
+    tax_year = (
+        body.tax_year
+        if body.tax_year is not None
+        else datetime.now(tz=timezone.utc).year
+    )
     try:
-        matches = service.scan_cross_account_wash_sales(current_year)
+        matches = service.scan_cross_account_wash_sales(tax_year)
         return {
             "active_chains": _serialize(matches),
             "trapped_amount": sum(
@@ -466,3 +560,175 @@ async def get_tax_alpha_report(
     """
     result = service.tax_alpha_report(tax_year)
     return _serialize(result)
+
+
+# ── Phase 3F: Tax Lot Sync (MEU-218) ────────────────────────────────
+
+
+@tax_router.post("/sync-lots", status_code=200)
+async def sync_tax_lots(
+    body: SyncTaxLotsRequest = SyncTaxLotsRequest(),
+    service: Any = Depends(get_tax_service),
+) -> dict:
+    """Trigger trade-to-lot materialization pipeline.
+
+    AC-218.1: Returns SyncReport with created/updated/skipped/conflicts/orphaned.
+    AC-218.5: SyncAbortError (block mode) maps to 409 Conflict.
+    """
+    from zorivest_core.domain.exceptions import SyncAbortError
+
+    try:
+        report = service.sync_lots(
+            account_id=body.account_id,
+            conflict_strategy=body.conflict_strategy,
+        )
+        return _serialize(report)
+    except SyncAbortError as exc:
+        raise HTTPException(status_code=409, detail=str(exc))
+
+
+# ── MEU-218f: TaxProfile CRUD ────────────────────────────────────────
+
+
+@tax_router.get("/profiles", status_code=200)
+async def list_profiles(
+    service: Any = Depends(get_tax_service),
+) -> list[dict]:
+    """List all tax profiles ordered by year desc."""
+    profiles = service.list_tax_profiles()
+    return [_serialize(p) for p in profiles]
+
+
+@tax_router.get("/profiles/{year}", status_code=200)
+async def get_profile(
+    year: int,
+    service: Any = Depends(get_tax_service),
+) -> dict:
+    """Get tax profile for a specific year."""
+    with service._uow:
+        profile = service._uow.tax_profiles.get_for_year(year)
+    if profile is None:
+        raise HTTPException(status_code=404, detail=f"No tax profile for year {year}")
+    return _serialize(profile)
+
+
+@tax_router.post("/profiles", status_code=201)
+async def create_profile(
+    body: TaxProfileCreateRequest,
+    service: Any = Depends(get_tax_service),
+) -> dict:
+    """Create a new tax profile.  Returns 409 if year already exists."""
+    from zorivest_core.domain.entities import TaxProfile
+    from zorivest_core.domain.enums import (
+        CostBasisMethod,
+        FilingStatus,
+        WashSaleMatchingMethod,
+    )
+    from zorivest_core.domain.exceptions import BusinessRuleError
+
+    profile = TaxProfile(
+        id=0,  # auto-assigned by DB
+        filing_status=FilingStatus(body.filing_status),
+        tax_year=body.tax_year,
+        federal_bracket=body.federal_bracket,
+        state_tax_rate=body.state_tax_rate,
+        state=body.state.upper(),
+        prior_year_tax=Decimal(str(body.prior_year_tax)),
+        agi_estimate=Decimal(str(body.agi_estimate)),
+        capital_loss_carryforward=Decimal(str(body.capital_loss_carryforward)),
+        wash_sale_method=WashSaleMatchingMethod(body.wash_sale_method),
+        default_cost_basis=CostBasisMethod(body.default_cost_basis),
+        include_drip_wash_detection=body.include_drip_wash_detection,
+        include_spousal_accounts=body.include_spousal_accounts,
+        section_475_elected=body.section_475_elected,
+        section_1256_eligible=body.section_1256_eligible,
+    )
+    try:
+        profile_id = service.save_tax_profile(profile)
+    except BusinessRuleError as exc:
+        raise HTTPException(status_code=409, detail=str(exc))
+    return {"id": profile_id, "tax_year": body.tax_year}
+
+
+@tax_router.put("/profiles/{year}", status_code=200)
+async def update_profile(
+    year: int,
+    body: TaxProfileUpdateRequest,
+    service: Any = Depends(get_tax_service),
+) -> dict:
+    """Update an existing tax profile.  Merges provided fields."""
+    from zorivest_core.domain.entities import TaxProfile
+    from zorivest_core.domain.enums import (
+        CostBasisMethod,
+        FilingStatus,
+        WashSaleMatchingMethod,
+    )
+    from zorivest_core.domain.exceptions import NotFoundError
+
+    # Load existing profile to merge partial updates
+    with service._uow:
+        existing = service._uow.tax_profiles.get_for_year(year)
+    if existing is None:
+        raise HTTPException(status_code=404, detail=f"No tax profile for year {year}")
+
+    updated = TaxProfile(
+        id=existing.id,
+        filing_status=FilingStatus(body.filing_status)
+        if body.filing_status
+        else existing.filing_status,
+        tax_year=year,
+        federal_bracket=body.federal_bracket
+        if body.federal_bracket is not None
+        else existing.federal_bracket,
+        state_tax_rate=body.state_tax_rate
+        if body.state_tax_rate is not None
+        else existing.state_tax_rate,
+        state=body.state.upper() if body.state is not None else existing.state,
+        prior_year_tax=Decimal(str(body.prior_year_tax))
+        if body.prior_year_tax is not None
+        else existing.prior_year_tax,
+        agi_estimate=Decimal(str(body.agi_estimate))
+        if body.agi_estimate is not None
+        else existing.agi_estimate,
+        capital_loss_carryforward=Decimal(str(body.capital_loss_carryforward))
+        if body.capital_loss_carryforward is not None
+        else existing.capital_loss_carryforward,
+        wash_sale_method=WashSaleMatchingMethod(body.wash_sale_method)
+        if body.wash_sale_method is not None
+        else existing.wash_sale_method,
+        default_cost_basis=CostBasisMethod(body.default_cost_basis)
+        if body.default_cost_basis is not None
+        else existing.default_cost_basis,
+        include_drip_wash_detection=body.include_drip_wash_detection
+        if body.include_drip_wash_detection is not None
+        else existing.include_drip_wash_detection,
+        include_spousal_accounts=body.include_spousal_accounts
+        if body.include_spousal_accounts is not None
+        else existing.include_spousal_accounts,
+        section_475_elected=body.section_475_elected
+        if body.section_475_elected is not None
+        else existing.section_475_elected,
+        section_1256_eligible=body.section_1256_eligible
+        if body.section_1256_eligible is not None
+        else existing.section_1256_eligible,
+    )
+    try:
+        service.update_tax_profile(updated)
+    except NotFoundError as exc:
+        raise HTTPException(status_code=404, detail=str(exc))
+    return {"status": "updated", "tax_year": year}
+
+
+@tax_router.delete("/profiles/{year}", status_code=200)
+async def delete_profile(
+    year: int,
+    service: Any = Depends(get_tax_service),
+) -> dict:
+    """Delete a tax profile by year."""
+    from zorivest_core.domain.exceptions import NotFoundError
+
+    try:
+        service.delete_tax_profile(year)
+    except NotFoundError as exc:
+        raise HTTPException(status_code=404, detail=str(exc))
+    return {"status": "deleted", "tax_year": year}

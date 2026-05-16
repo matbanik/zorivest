@@ -72,6 +72,11 @@ class SqlTaxLotRepository:
         model.acquisition_source = (
             lot.acquisition_source.value if lot.acquisition_source else None
         )
+        # Phase 3F: Provenance tracking (MEU-216)
+        model.materialized_at = lot.materialized_at
+        model.is_user_modified = lot.is_user_modified
+        model.source_hash = lot.source_hash
+        model.sync_status = lot.sync_status
         self._session.flush()
 
     def delete(self, lot_id: str) -> None:
@@ -189,6 +194,26 @@ class SqlTaxProfileRepository:
             return None
         return _profile_model_to_entity(model)
 
+    def list_all(self) -> list[TaxProfile]:
+        """Return all tax profiles ordered by tax_year descending."""
+        models = (
+            self._session.query(TaxProfileModel)
+            .order_by(TaxProfileModel.tax_year.desc())
+            .all()
+        )
+        return [_profile_model_to_entity(m) for m in models]
+
+    def delete(self, tax_year: int) -> bool:
+        """Delete the tax profile for the given year.  Returns True if deleted."""
+        model = (
+            self._session.query(TaxProfileModel).filter_by(tax_year=tax_year).first()
+        )
+        if model is None:
+            return False
+        self._session.delete(model)
+        self._session.flush()
+        return True
+
 
 # ── Mappers ──────────────────────────────────────────────────────────────
 
@@ -231,6 +256,11 @@ def _lot_model_to_entity(model: TaxLotModel) -> TaxLot:
         acquisition_source=AcquisitionSource(model.acquisition_source)
         if model.acquisition_source
         else None,
+        # Phase 3F: Provenance tracking (MEU-216)
+        materialized_at=model.materialized_at,
+        is_user_modified=bool(model.is_user_modified),
+        source_hash=model.source_hash,
+        sync_status=model.sync_status or "synced",
     )
 
 
@@ -254,6 +284,11 @@ def _lot_entity_to_model(lot: TaxLot) -> TaxLotModel:
         acquisition_source=lot.acquisition_source.value
         if lot.acquisition_source
         else None,
+        # Phase 3F: Provenance tracking (MEU-216)
+        materialized_at=lot.materialized_at,
+        is_user_modified=lot.is_user_modified,
+        source_hash=lot.source_hash,
+        sync_status=lot.sync_status,
     )
 
 

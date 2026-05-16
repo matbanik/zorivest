@@ -428,11 +428,104 @@ def test_update_tax_profile_rejects_unknown_fields(client):
     assert response.status_code == 422
 ```
 
+### MCP Actions (MEU-148a scope)
+
+> [!IMPORTANT]
+> The MCP spec in [05h-mcp-tax.md](05h-mcp-tax.md) does **not** include TaxProfile actions.
+> MEU-148a must add `get_profile` and `update_profile` as new actions on `zorivest_tax`
+> (compound tool, see [mcp-consolidation-proposal-v3.md](../../.agent/context/MCP/mcp-consolidation-proposal-v3.md)).
+
+The TaxProfile CRUD is surfaced via two new `zorivest_tax` compound tool actions:
+
+```typescript
+// Addition to mcp-server/src/compound/tax-tool.ts
+
+// ── get_profile ──────────────────────────────────────────────
+get_profile: {
+    schema: z.object({}).strict(),
+    handler: async (): Promise<ToolResult> => {
+        return textResult(await fetchApi("/tax/profile"));
+    },
+},
+
+// ── update_profile ───────────────────────────────────────────
+update_profile: {
+    schema: z.object({
+        filing_status: z.enum(["single", "married_joint", "married_separate", "head_of_household"]).optional(),
+        tax_year: z.number().int().min(2020).optional(),
+        federal_bracket: z.number().min(0).max(1).optional(),
+        state_tax_rate: z.number().min(0).max(1).optional(),
+        state: z.string().length(2).optional().describe("2-letter US state code"),
+        prior_year_tax: z.number().min(0).optional(),
+        agi_estimate: z.number().min(0).optional(),
+        capital_loss_carryforward: z.number().min(0).optional(),
+        wash_sale_method: z.enum(["conservative", "aggressive"]).optional(),
+        default_cost_basis: z.enum(["fifo", "lifo", "hifo", "specific_id", "max_lt_gain", "max_lt_loss", "max_st_gain", "max_st_loss"]).optional(),
+        section_475_elected: z.boolean().optional(),
+        section_1256_eligible: z.boolean().optional(),
+    }).strict(),
+    handler: async (params): Promise<ToolResult> => {
+        return textResult(await fetchApi("/tax/profile", {
+            method: "PUT",
+            headers: { "Content-Type": "application/json" },
+            body: JSON.stringify(params),
+        }));
+    },
+},
+```
+
+**TAX_ACTIONS update:** Add `"get_profile"`, `"update_profile"` to TAX_ACTIONS array (9 → 11 actions).
+
+**MCP tool description update:** Append `"get/update tax profile"` to the `zorivest_tax` description.
+
+**Annotations for `update_profile`:**
+- `readOnlyHint`: false
+- `destructiveHint`: true — overwrites user's tax configuration
+- `idempotentHint`: true — PUT semantics, same input = same state
+
+### Downstream Consumers of TaxProfile
+
+The following features read TaxProfile fields at runtime. When MEU-148a lands,
+these consumers should switch from hardcoded defaults to SettingsRegistry lookups:
+
+| Consumer | Field(s) Used | Current Behavior |
+|----------|--------------|------------------|
+| `TaxService.quarterly_estimate()` | `filing_status`, `federal_bracket`, `state_tax_rate`, `prior_year_tax` | Reads from TaxProfile entity in DB (if exists) |
+| `TaxService.estimate()` | All bracket/rate fields | Reads from TaxProfile entity |
+| `TaxService.simulate_impact()` | `default_cost_basis`, `wash_sale_method` | Falls back to FIFO/CONSERVATIVE defaults |
+| `TaxService.scan_cross_account_wash_sales()` (MEU-218c) | `wash_sale_method` | Falls back to CONSERVATIVE default |
+| `TaxService.harvest_scan()` | `section_475_elected` (excludes MTM positions) | Falls back to False |
+| MEU-156 (Section toggles GUI) | `section_475_elected`, `section_1256_eligible` | **Blocked** — cannot persist without MEU-148a |
+
+### Implementation Gap Analysis (2026-05-15)
+
+> [!WARNING]
+> **Current state:** TaxProfile CRUD has zero implementation at any layer.
+> - `GET /api/v1/tax/profile` — endpoint does not exist
+> - `PUT /api/v1/tax/profile` — endpoint does not exist
+> - `zorivest_tax(action:"get_profile")` — MCP action does not exist
+> - `zorivest_tax(action:"update_profile")` — MCP action does not exist
+> - 12 `tax.*` SettingsRegistry keys — not registered
+> - `SettingsService.get_tax_profile()` / `update_tax_profile()` — methods do not exist
+>
+> **Impact:** Features that depend on TaxProfile use hardcoded defaults or fall back to
+> empty TaxProfile entities. This is functional but prevents users from configuring their
+> tax situation (filing status, brackets, state rate) and prevents MEU-156 from persisting
+> Section 475/1256 elections.
+>
+> **Priority:** Should be implemented before Phase 3 can be fully closed.
+> The wash sale scan (MEU-218c) will read `wash_sale_method` from TaxProfile;
+> until MEU-148a lands, it defaults to CONSERVATIVE.
+
 ### Verification
 
 ```bash
 # TaxProfile-specific tests
 uv run pytest tests/ -k "tax_profile" -v
+
+# MCP action verification
+# zorivest_tax(action:"get_profile") → returns 12-field TaxProfile JSON
+# zorivest_tax(action:"update_profile", filing_status:"married_joint") → updates filing_status
 
 # Full regression
 uv run pytest tests/ --tb=no -q
@@ -442,7 +535,10 @@ uv run pytest tests/ --tb=no -q
 
 ## Consumer Notes
 
-- **MCP tools:** `simulate_tax_impact`, `estimate_tax`, `find_wash_sales`, `get_tax_lots`, `get_quarterly_estimate`, `record_quarterly_tax_payment`, `harvest_losses`, `get_ytd_tax_summary` ([05h](05h-mcp-tax.md))
+- **MCP tools (existing):** `simulate`, `estimate`, `wash_sales`, `lots`, `quarterly`, `record_payment`, `harvest`, `ytd_summary`, `sync_lots` — 9 actions on `zorivest_tax` ([05h](05h-mcp-tax.md))
+- **MCP tools (MEU-148a):** `get_profile`, `update_profile` — 2 new actions on `zorivest_tax` (spec in this file §MCP Actions)
+- **MCP tools (MEU-218c):** `scan_wash_sales` — 1 new action on `zorivest_tax` (ad-hoc, spec in execution plan)
 - **GUI pages:** [06g-gui-tax.md](06g-gui-tax.md) — tax dashboard, lot viewer, wash sale scanner, quarterly tracker
-- **GUI settings:** [06f-gui-settings.md](06f-gui-settings.md) `TaxProfilePage` — consumes `GET`/`PUT /api/v1/tax/profile` (MEU-148a)
+- **GUI settings:** [06f-gui-settings.md](06f-gui-settings.md) `TaxProfilePage` (P3) — consumes `GET`/`PUT /api/v1/tax/profile` (MEU-148a)
 - **Toggle persistence:** MEU-156 (`tax-section-toggles`) depends on MEU-148a for `section_475_elected` and `section_1256_eligible` write-back
+- **Wash sale orchestration:** MEU-218c reads `TaxProfile.wash_sale_method` during cross-account scan; defaults to CONSERVATIVE until MEU-148a registers the `tax.wash_sale_method` setting key

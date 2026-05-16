@@ -384,6 +384,17 @@
 | **81a** | Position calculator GUI (React) — [06h-gui-calculator.md](06h-gui-calculator.md) | Playwright E2E — wave TBD (expansion; base is [Wave 4](06-gui.md#wave-activation-schedule)) | Calculator expansion: multi-mode, scenario comparison, calculation history |
 | **82** | Section 475 / 1256 / Forex toggles (conditional) | ✅ Yes | Mark-to-Market, 60/40 futures, forex worksheet. Depends on: **75a** (TaxProfile CRUD API for persistence) |
 
+### Phase 3F — Tax Data Sync (Trade-to-Lot Materialization)
+
+> **Source**: [03a-tax-data-sync.md](03a-tax-data-sync.md). Implements the Derived Entity with Provenance Tracking pattern.
+> Research: [derived-data-architecture-research.md](../../_inspiration/derived-data-architecture-research.md) (17 sources).
+
+| Order | What | Tests First? | Notes |
+|-------|------|-------------|-------|
+| **82a** | Sync schema migration: `materialized_at`, `is_user_modified`, `source_hash`, `sync_status` columns + `tax.conflict_resolution` setting key (MEU-216) | ✅ Yes | TaxLot entity + TaxLotModel provenance fields; SettingsRegistry key; Alembic migration |
+| **82b** | `TaxService.sync_lots()` core: incremental merge, SHA-256 conflict detection, 3-strategy resolver, SyncReport (MEU-217) | ✅ Yes | Trade scanning, lot creation, hash-based conflict detection, orphan flagging. Depends on: **82a** |
+| **82c** | Full-stack wiring: `POST /api/v1/tax/sync` + `zorivest_tax(action:"sync")` + GUI "Process Tax Lots" button (MEU-218) | ✅ Yes | API endpoint, MCP compound action, TaxDashboard button. Depends on: **82b**, 75, 76, 81 |
+
 ---
 
 ## P4 — Monetization (Phase 11)

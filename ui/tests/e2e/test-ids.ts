@@ -291,4 +291,14 @@ export const TAX = {
     // Transaction Audit
     TX_AUDIT_PANEL: 'tx-audit-panel',
     TX_AUDIT_FINDING_ROW: 'tx-audit-finding-row',
+    // Tax Profile Manager (MEU-218f)
+    PROFILE_MANAGER: 'tax-profile-manager',
+    PROFILE_LIST: 'tax-profile-list',
+    PROFILE_CARD: 'tax-profile-card',
+    PROFILE_NEW_BTN: 'tax-profile-new-btn',
+    PROFILE_DETAIL: 'tax-profile-detail',
+    PROFILE_SAVE_BTN: 'tax-profile-save-btn',
+    PROFILE_DELETE_BTN: 'tax-profile-delete-btn',
+    PROFILE_YEAR_INPUT: 'tax-profile-year',
+    PROFILE_SEARCH: 'tax-profile-search',
 } as const

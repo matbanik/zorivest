@@ -837,3 +837,136 @@ const { showModal, guardedSelect, handleCancel, handleDiscard, handleSaveAndCont
   | | Persist via localStorage | QuickBooks multi-year pattern | Convenience for power users | Risk of stale-year confusion | ⚠️ |
   ```
 - **Workflow integration:** Enforced by `/create-plan` Step 2B (Research Open Design Questions). The reviewer can approve with the agent's recommendation or override.
+
+### G25 — Multi-Surface Feature Parity Verification
+
+- **Severity:** 🔴 Critical
+- **Applies to:** GUI, API, MCP
+- **Rule:** Before declaring any multi-surface feature complete, run a **parity test** that: (1) seeds data through the full pipeline (including any materialization/sync steps), (2) queries each surface (API endpoint, MCP tool, GUI rendering), (3) asserts **data presence and equivalence** — not just successful status codes. "MCP returns 200 with zero items" is NOT a passing test if the GUI is expected to show data.
+- **Origin:** 2026-05-15 Tax GUI investigation — All 8 MCP tax tools were verified as functional (`zorivest_tax()` returned 200 OK). Agent declared the tax feature complete. However, the Tax GUI remained completely empty because no `tax_lots` had been materialized from `trade_executions`. The MCP tests only checked status codes and response shapes — they never verified that the underlying data existed. The GUI visually exposed what the MCP smoke tests missed.
+- **Bad example:**
+  ```
+  # Agent verifies MCP only:
+  zorivest_tax(action:"lots") → 200 OK, lots: [] → "✅ Tax lots tool works"
+  zorivest_tax(action:"ytd_summary") → 200 OK, trades_count: 0 → "✅ YTD summary works"
+  # Agent declares: "All 8 tax tools verified ✅"
+  # Reality: Tax GUI shows empty dashboard, empty lot viewer, empty everything
+  ```
+- **Good example:**
+  ```python
+  # 1. Seed through the full pipeline
+  create_account(...)
+  create_trades(3 BOT trades, 1 SLD trade)
+  sync_tax_lots()  # ← materialization step — this was missing
+
+  # 2. Verify API returns DATA, not just 200
+  lots = api.get("/tax/lots")
+  assert len(lots["data"]["lots"]) > 0, "Lots must exist after sync"
+
+  # 3. Verify MCP returns SAME data
+  mcp_lots = mcp.call("zorivest_tax", action="lots")
+  assert len(mcp_lots["lots"]) == len(lots["data"]["lots"])
+
+  # 4. Verify GUI renders the data (E2E or manual)
+  page.goto("/tax")
+  rows = page.locator('[data-testid="tax-lot-row"]')
+  assert rows.count() == len(lots["data"]["lots"])
+  ```
+- **Applies when:** Any MEU implements or modifies a feature accessible from 2+ surfaces (GUI + API, or GUI + API + MCP). Single-surface features (API-only internal endpoints) are exempt.
+- **Checklist for multi-surface MEUs:**
+  1. [ ] Identify the data pipeline: what steps are needed to go from empty DB → populated feature?
+  2. [ ] Write a parity test that seeds data through the FULL pipeline (not shortcuts)
+  3. [ ] Assert data PRESENCE on each surface (count > 0, values non-zero), not just status codes
+  4. [ ] Assert data EQUIVALENCE across surfaces (same counts, same totals)
+  5. [ ] If E2E tests are not feasible (per [E2E-ELECTRONLAUNCH]), provide a manual GUI verification checklist with expected screenshots
+  6. [ ] Exit criteria must include per-surface evidence (test output OR screenshot for GUI)
+- **Enforcement gate:** Multi-surface MEU exit criteria must include a "Parity Gates" section listing the cross-surface assertions. Plans missing this section will be rejected during `/plan-critical-review`.
+
+### G26 — Contextual Help Panel Pattern (Progressive Disclosure)
+
+- **Severity:** 🟡 Medium
+- **Applies to:** GUI
+- **Rule:** Feature modules with domain-specific logic (tax, analytics, planning) must include a contextual help card at the top of the content area. The card must follow the **collapsible inline info card** pattern with three content sections (What / Source / Calculation), localStorage persistence, and WAI-ARIA disclosure semantics.
+- **Origin:** 2026-05-16 MEU-218i — Tax Help Cards. Research (TurboTax, Wealthfront, Betterment, CMS.gov, NNG) confirmed collapsible inline card as industry consensus over tooltips (too small), drawers (too heavy), modals (blocks workflow), or always-visible text (noise for experts).
+- **Bad example:** No help content anywhere → beginners have no way to understand what a feature does, where data comes from, or how values are calculated. Or: tooltip with "ℹ️" icon → caps at ~130 chars, hover-only, fails on touch.
+- **Good example:**
+  ```tsx
+  // Shared component: TaxHelpCard.tsx (reusable across modules)
+  <TaxHelpCard content={{
+      tabKey: 'dashboard',
+      what: 'Overview of your tax position...',
+      source: 'Aggregated from sync_lots...',
+      calculation: 'Realized P&L = sum of (proceeds − cost basis)...',
+      learnMoreUrl: 'https://www.irs.gov/publications/p550',
+      learnMoreLabel: 'IRS Publication 550',
+  }} />
+  ```
+- **Content architecture:**
+
+  | Layer | File | Purpose |
+  |-------|------|---------|
+  | Content data | `{feature}-help-content.ts` | Plain text (no JSX), CMS/i18n-ready |
+  | Shared component | `{Feature}HelpCard.tsx` | Collapsible card with ARIA disclosure |
+  | Test ID | `test-ids.ts` | `HELP_CARD` constant for E2E |
+
+- **State management:**
+
+  | State | localStorage Key | Default |
+  |-------|-----------------|---------|
+  | `expanded` | `zorivest:{feature}-help:{tabKey}:state` | First visit |
+  | `collapsed` | Same | User toggled |
+  | `dismissed` | Same | User dismissed → re-show button visible |
+
+- **Accessibility requirements (WCAG 2.1 AA):**
+  - `aria-labelledby` on `<section>` → heading `id`
+  - `aria-expanded` on toggle button
+  - `aria-controls` linking button → content panel `id`
+  - `aria-label` on dismiss button ("Dismiss help card")
+  - `aria-hidden="true"` on decorative emoji
+- **Checklist for new feature modules:**
+  1. [ ] Create `{feature}-help-content.ts` with structured content per tab/section
+  2. [ ] Create or reuse a `HelpCard` component with localStorage persistence
+  3. [ ] 3 content sections minimum: What / Source / Calculation (or equivalent)
+  4. [ ] External "Learn more" link to authoritative source (IRS, MDN, RFC, etc.)
+  5. [ ] Re-show mechanism when dismissed (inline "ℹ️ How it works" button)
+  6. [ ] First-visit default: expanded
+  7. [ ] ARIA disclosure pattern: `aria-expanded`, `aria-controls`, `aria-labelledby`
+  8. [ ] External links use `window.electron.openExternal()` (see G27)
+
+### G27 — Electron External Links Must Use Preload Bridge
+
+- **Severity:** 🔴 Critical
+- **Applies to:** GUI (Electron)
+- **Rule:** Never use `<a href="..." target="_blank">` for external links in Electron renderer components. The sandboxed renderer does not open system browser for plain `<a>` tags. Use `<button onClick={() => window.electron.openExternal(url)}>` via the preload bridge instead.
+- **Origin:** 2026-05-16 MEU-218i — Tax Help Cards "Learn more" links to IRS publications did not open. The `<a target="_blank">` pattern silently failed. Root cause: Electron's renderer process is sandboxed; `window.open()` and `<a target="_blank">` are intercepted and blocked by default.
+- **Bad example:**
+  ```tsx
+  // Silent failure in Electron — link does nothing
+  <a href="https://www.irs.gov/pub/p550" target="_blank" rel="noopener noreferrer">
+      Learn more
+  </a>
+  ```
+- **Good example:**
+  ```tsx
+  // Uses Electron's shell.openExternal via preload bridge
+  <button
+      onClick={() => window.electron.openExternal('https://www.irs.gov/pub/p550')}
+      className="text-accent hover:text-accent/80 cursor-pointer bg-transparent border-none p-0"
+  >
+      Learn more
+  </button>
+  ```
+- **Existing pattern files:** `MarketDataProvidersPage.tsx` (line 459), `PositionCalculatorModal.tsx` (line 835)
+- **Preload bridge declaration:** Already declared globally in `MarketDataProvidersPage.tsx`:
+  ```ts
+  declare global {
+      interface Window {
+          electron: { openExternal: (url: string) => void }
+      }
+  }
+  ```
+- **Checklist for external links:**
+  1. [ ] No `<a target="_blank">` in renderer components
+  2. [ ] Uses `window.electron.openExternal(url)` via preload bridge
+  3. [ ] Styled as button with `cursor-pointer` and no native button chrome (`bg-transparent border-none p-0`)
+  4. [ ] External link icon (↗) visible to indicate system browser will open

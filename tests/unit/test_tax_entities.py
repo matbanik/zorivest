@@ -17,7 +17,7 @@ if TYPE_CHECKING:
 
 
 class TestTaxLot:
-    """MEU-123 AC-2/AC-3/AC-4: TaxLot entity with 14 stored fields + 2 computed."""
+    """MEU-123 AC-2/AC-3/AC-4: TaxLot entity with 18 stored fields + 2 computed."""
 
     def _make_lot(self, **overrides: object) -> TaxLot:
         """Factory for TaxLot with valid defaults."""
@@ -51,12 +51,12 @@ class TestTaxLot:
         assert lot.linked_trade_ids == ["exec-001", "exec-002"]
 
     def test_stored_field_count(self) -> None:
-        """AC-2: TaxLot has exactly 14 stored fields (no computed in __init__)."""
+        """AC-2: TaxLot has exactly 18 stored fields (14 base + 4 provenance)."""
         from zorivest_core.domain.entities import TaxLot
         import dataclasses
 
         init_fields = [f for f in dataclasses.fields(TaxLot)]
-        assert len(init_fields) == 14
+        assert len(init_fields) == 18
 
     def test_missing_required_field_raises_type_error(self) -> None:
         """AC-2 negative: Missing required field raises TypeError."""

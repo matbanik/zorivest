@@ -885,6 +885,13 @@ class TaxLotModel(Base):
     acquisition_source = Column(
         String(20), nullable=True
     )  # AcquisitionSource enum (MEU-134)
+    # ── Phase 3F: Provenance tracking (MEU-216) ──────────────────────────
+    materialized_at = Column(String, nullable=True)  # ISO timestamp of last sync
+    is_user_modified = Column(Boolean, nullable=False, default=False)
+    source_hash = Column(String(64), nullable=True)  # SHA-256 of source trade data
+    sync_status = Column(
+        String(20), nullable=False, default="synced"
+    )  # synced | conflict | orphaned
 
 
 class TaxProfileModel(Base):

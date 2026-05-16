@@ -176,16 +176,18 @@ describe("zorivest_tax compound tool", () => {
         expect(result.isError).toBe(true);
     });
 
-    it("rejects wash_sales without required account_id", async () => {
+    it("accepts wash_sales without optional account_id", async () => {
         const client = await createClient(registerTaxTool);
         const result = await client.callTool({
             name: "zorivest_tax",
             arguments: {
                 action: "wash_sales",
-                // account_id intentionally omitted
+                // account_id intentionally omitted — it is optional in schema
             },
         });
-        expect(result.isError).toBe(true);
+        // Should succeed since account_id is .optional()
+        expect(result.isError).toBeFalsy();
+        expect(getLastFetchUrl(fetchMock)).toContain("/tax/wash-sales");
     });
 
     // ── Destructive hint ─────────────────────────────────────────────
