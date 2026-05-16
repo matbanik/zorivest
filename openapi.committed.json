@@ -1917,6 +1917,26 @@
         "title": "RunTriggerRequest",
         "type": "object"
       },
+      "ScanWashSalesRequest": {
+        "additionalProperties": false,
+        "properties": {
+          "tax_year": {
+            "anyOf": [
+              {
+                "maximum": 2099.0,
+                "minimum": 2000.0,
+                "type": "integer"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Tax Year"
+          }
+        },
+        "title": "ScanWashSalesRequest",
+        "type": "object"
+      },
       "SchedulerStatusResponse": {
         "description": "Scheduler diagnostics response.",
         "properties": {
@@ -2126,6 +2146,329 @@
           "attempt"
         ],
         "title": "StepResponse",
+        "type": "object"
+      },
+      "SyncTaxLotsRequest": {
+        "additionalProperties": false,
+        "properties": {
+          "account_id": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Account Id"
+          },
+          "conflict_strategy": {
+            "anyOf": [
+              {
+                "enum": [
+                  "flag",
+                  "block",
+                  "auto_resolve"
+                ],
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Conflict Strategy"
+          }
+        },
+        "title": "SyncTaxLotsRequest",
+        "type": "object"
+      },
+      "TaxProfileCreateRequest": {
+        "additionalProperties": false,
+        "properties": {
+          "agi_estimate": {
+            "minimum": 0.0,
+            "title": "Agi Estimate",
+            "type": "number"
+          },
+          "capital_loss_carryforward": {
+            "default": 0.0,
+            "minimum": 0.0,
+            "title": "Capital Loss Carryforward",
+            "type": "number"
+          },
+          "default_cost_basis": {
+            "default": "FIFO",
+            "enum": [
+              "FIFO",
+              "LIFO",
+              "HIFO",
+              "SPEC_ID",
+              "MAX_LT_GAIN",
+              "MAX_LT_LOSS",
+              "MAX_ST_GAIN",
+              "MAX_ST_LOSS"
+            ],
+            "title": "Default Cost Basis",
+            "type": "string"
+          },
+          "federal_bracket": {
+            "maximum": 1.0,
+            "minimum": 0.0,
+            "title": "Federal Bracket",
+            "type": "number"
+          },
+          "filing_status": {
+            "enum": [
+              "SINGLE",
+              "MARRIED_JOINT",
+              "MARRIED_SEPARATE",
+              "HEAD_OF_HOUSEHOLD"
+            ],
+            "title": "Filing Status",
+            "type": "string"
+          },
+          "include_drip_wash_detection": {
+            "default": true,
+            "title": "Include Drip Wash Detection",
+            "type": "boolean"
+          },
+          "include_spousal_accounts": {
+            "default": false,
+            "title": "Include Spousal Accounts",
+            "type": "boolean"
+          },
+          "prior_year_tax": {
+            "minimum": 0.0,
+            "title": "Prior Year Tax",
+            "type": "number"
+          },
+          "section_1256_eligible": {
+            "default": false,
+            "title": "Section 1256 Eligible",
+            "type": "boolean"
+          },
+          "section_475_elected": {
+            "default": false,
+            "title": "Section 475 Elected",
+            "type": "boolean"
+          },
+          "state": {
+            "maxLength": 2,
+            "minLength": 2,
+            "title": "State",
+            "type": "string"
+          },
+          "state_tax_rate": {
+            "maximum": 1.0,
+            "minimum": 0.0,
+            "title": "State Tax Rate",
+            "type": "number"
+          },
+          "tax_year": {
+            "maximum": 2030.0,
+            "minimum": 2020.0,
+            "title": "Tax Year",
+            "type": "integer"
+          },
+          "wash_sale_method": {
+            "default": "CONSERVATIVE",
+            "enum": [
+              "CONSERVATIVE",
+              "AGGRESSIVE"
+            ],
+            "title": "Wash Sale Method",
+            "type": "string"
+          }
+        },
+        "required": [
+          "tax_year",
+          "filing_status",
+          "federal_bracket",
+          "state_tax_rate",
+          "state",
+          "prior_year_tax",
+          "agi_estimate"
+        ],
+        "title": "TaxProfileCreateRequest",
+        "type": "object"
+      },
+      "TaxProfileUpdateRequest": {
+        "additionalProperties": false,
+        "properties": {
+          "agi_estimate": {
+            "anyOf": [
+              {
+                "minimum": 0.0,
+                "type": "number"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Agi Estimate"
+          },
+          "capital_loss_carryforward": {
+            "anyOf": [
+              {
+                "minimum": 0.0,
+                "type": "number"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Capital Loss Carryforward"
+          },
+          "default_cost_basis": {
+            "anyOf": [
+              {
+                "enum": [
+                  "FIFO",
+                  "LIFO",
+                  "HIFO",
+                  "SPEC_ID",
+                  "MAX_LT_GAIN",
+                  "MAX_LT_LOSS",
+                  "MAX_ST_GAIN",
+                  "MAX_ST_LOSS"
+                ],
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Default Cost Basis"
+          },
+          "federal_bracket": {
+            "anyOf": [
+              {
+                "maximum": 1.0,
+                "minimum": 0.0,
+                "type": "number"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Federal Bracket"
+          },
+          "filing_status": {
+            "anyOf": [
+              {
+                "enum": [
+                  "SINGLE",
+                  "MARRIED_JOINT",
+                  "MARRIED_SEPARATE",
+                  "HEAD_OF_HOUSEHOLD"
+                ],
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Filing Status"
+          },
+          "include_drip_wash_detection": {
+            "anyOf": [
+              {
+                "type": "boolean"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Include Drip Wash Detection"
+          },
+          "include_spousal_accounts": {
+            "anyOf": [
+              {
+                "type": "boolean"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Include Spousal Accounts"
+          },
+          "prior_year_tax": {
+            "anyOf": [
+              {
+                "minimum": 0.0,
+                "type": "number"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Prior Year Tax"
+          },
+          "section_1256_eligible": {
+            "anyOf": [
+              {
+                "type": "boolean"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Section 1256 Eligible"
+          },
+          "section_475_elected": {
+            "anyOf": [
+              {
+                "type": "boolean"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Section 475 Elected"
+          },
+          "state": {
+            "anyOf": [
+              {
+                "maxLength": 2,
+                "minLength": 2,
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "State"
+          },
+          "state_tax_rate": {
+            "anyOf": [
+              {
+                "maximum": 1.0,
+                "minimum": 0.0,
+                "type": "number"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "State Tax Rate"
+          },
+          "wash_sale_method": {
+            "anyOf": [
+              {
+                "enum": [
+                  "CONSERVATIVE",
+                  "AGGRESSIVE"
+                ],
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Wash Sale Method"
+          }
+        },
+        "title": "TaxProfileUpdateRequest",
         "type": "object"
       },
       "TestConnectionResponse": {
@@ -2800,8 +3143,15 @@
         "additionalProperties": false,
         "properties": {
           "account_id": {
-            "title": "Account Id",
-            "type": "string"
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Account Id"
           },
           "date_range_end": {
             "anyOf": [
@@ -2837,9 +3187,6 @@
             "title": "Ticker"
           }
         },
-        "required": [
-          "account_id"
-        ],
         "title": "WashSaleRequest",
         "type": "object"
       }
@@ -8707,6 +9054,216 @@
         ]
       }
     },
+    "/api/v1/tax/profiles": {
+      "get": {
+        "description": "List all tax profiles ordered by year desc.",
+        "operationId": "list_profiles_api_v1_tax_profiles_get",
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "items": {
+                    "additionalProperties": true,
+                    "type": "object"
+                  },
+                  "title": "Response List Profiles Api V1 Tax Profiles Get",
+                  "type": "array"
+                }
+              }
+            },
+            "description": "Successful Response"
+          }
+        },
+        "summary": "List Profiles",
+        "tags": [
+          "tax"
+        ]
+      },
+      "post": {
+        "description": "Create a new tax profile.  Returns 409 if year already exists.",
+        "operationId": "create_profile_api_v1_tax_profiles_post",
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/TaxProfileCreateRequest"
+              }
+            }
+          },
+          "required": true
+        },
+        "responses": {
+          "201": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "additionalProperties": true,
+                  "title": "Response Create Profile Api V1 Tax Profiles Post",
+                  "type": "object"
+                }
+              }
+            },
+            "description": "Successful Response"
+          },
+          "422": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HTTPValidationError"
+                }
+              }
+            },
+            "description": "Validation Error"
+          }
+        },
+        "summary": "Create Profile",
+        "tags": [
+          "tax"
+        ]
+      }
+    },
+    "/api/v1/tax/profiles/{year}": {
+      "delete": {
+        "description": "Delete a tax profile by year.",
+        "operationId": "delete_profile_api_v1_tax_profiles__year__delete",
+        "parameters": [
+          {
+            "in": "path",
+            "name": "year",
+            "required": true,
+            "schema": {
+              "title": "Year",
+              "type": "integer"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "additionalProperties": true,
+                  "title": "Response Delete Profile Api V1 Tax Profiles  Year  Delete",
+                  "type": "object"
+                }
+              }
+            },
+            "description": "Successful Response"
+          },
+          "422": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HTTPValidationError"
+                }
+              }
+            },
+            "description": "Validation Error"
+          }
+        },
+        "summary": "Delete Profile",
+        "tags": [
+          "tax"
+        ]
+      },
+      "get": {
+        "description": "Get tax profile for a specific year.",
+        "operationId": "get_profile_api_v1_tax_profiles__year__get",
+        "parameters": [
+          {
+            "in": "path",
+            "name": "year",
+            "required": true,
+            "schema": {
+              "title": "Year",
+              "type": "integer"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "additionalProperties": true,
+                  "title": "Response Get Profile Api V1 Tax Profiles  Year  Get",
+                  "type": "object"
+                }
+              }
+            },
+            "description": "Successful Response"
+          },
+          "422": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HTTPValidationError"
+                }
+              }
+            },
+            "description": "Validation Error"
+          }
+        },
+        "summary": "Get Profile",
+        "tags": [
+          "tax"
+        ]
+      },
+      "put": {
+        "description": "Update an existing tax profile.  Merges provided fields.",
+        "operationId": "update_profile_api_v1_tax_profiles__year__put",
+        "parameters": [
+          {
+            "in": "path",
+            "name": "year",
+            "required": true,
+            "schema": {
+              "title": "Year",
+              "type": "integer"
+            }
+          }
+        ],
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/TaxProfileUpdateRequest"
+              }
+            }
+          },
+          "required": true
+        },
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "additionalProperties": true,
+                  "title": "Response Update Profile Api V1 Tax Profiles  Year  Put",
+                  "type": "object"
+                }
+              }
+            },
+            "description": "Successful Response"
+          },
+          "422": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HTTPValidationError"
+                }
+              }
+            },
+            "description": "Validation Error"
+          }
+        },
+        "summary": "Update Profile",
+        "tags": [
+          "tax"
+        ]
+      }
+    },
     "/api/v1/tax/quarterly": {
       "get": {
         "description": "Compute quarterly estimated tax payment obligations.\n\nAC-148.9: Quarter string \"Q1\"\u21921, \"Q2\"\u21922 etc.",
@@ -8874,24 +9431,16 @@
       "post": {
         "description": "Trigger trade-to-lot materialization pipeline.\n\nAC-218.1: Returns SyncReport with created/updated/skipped/conflicts/orphaned.\nAC-218.5: SyncAbortError (block mode) maps to 409 Conflict.",
         "operationId": "sync_tax_lots_api_v1_tax_sync_lots_post",
-        "parameters": [
-          {
-            "in": "query",
-            "name": "account_id",
-            "required": false,
-            "schema": {
-              "anyOf": [
-                {
-                  "type": "string"
-                },
-                {
-                  "type": "null"
-                }
-              ],
-              "title": "Account Id"
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/SyncTaxLotsRequest",
+                "default": {}
+              }
             }
           }
-        ],
+        },
         "responses": {
           "200": {
             "content": {
@@ -8924,7 +9473,7 @@
     },
     "/api/v1/tax/wash-sales": {
       "post": {
-        "description": "Detect wash sale chains/conflicts within 30-day windows.\n\nAC-148.3: Routes to TaxService.get_trapped_losses().",
+        "description": "Detect wash sale chains/conflicts within 30-day windows.\n\nAC-148.3: Routes to TaxService.get_trapped_losses().\nChains are cross-account entities; account_id filters by loss lot's account.",
         "operationId": "find_wash_sales_api_v1_tax_wash_sales_post",
         "requestBody": {
           "content": {
@@ -8968,26 +9517,18 @@
     },
     "/api/v1/tax/wash-sales/scan": {
       "post": {
-        "description": "Trigger a full wash sale scan across all accounts.\n\nAC-148.3: Routes to scan_cross_account_wash_sales for current year.",
+        "description": "Trigger a full wash sale scan across all accounts.\n\nAC-148.3: Routes to scan_cross_account_wash_sales for given/current year.",
         "operationId": "scan_wash_sales_api_v1_tax_wash_sales_scan_post",
-        "parameters": [
-          {
-            "in": "query",
-            "name": "account_id",
-            "required": false,
-            "schema": {
-              "anyOf": [
-                {
-                  "type": "string"
-                },
-                {
-                  "type": "null"
-                }
-              ],
-              "title": "Account Id"
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/ScanWashSalesRequest",
+                "default": {}
+              }
             }
           }
-        ],
+        },
         "responses": {
           "200": {
             "content": {
